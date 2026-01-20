@@ -76,14 +76,22 @@ const stats = {
  * Find matching anime by MAL ID or title
  */
 function findMatchingAnime(scraped, animeList) {
-  // First try to match by MAL ID if we have it in the data
-  const byMalId = animeList.find((a) => a.malId === scraped.mal_id);
+  // First try to match by MAL ID across known shapes
+  const targetMalId = Number(scraped.mal_id);
+  const byMalId = animeList.find((a) => {
+    const candidate =
+      a?.mal_id ??
+      a?.malId ??
+      a?.metadata?.malId ??
+      a?.metadata?.mal_id;
+    return Number(candidate) === targetMalId;
+  });
   if (byMalId) return byMalId;
 
   // Try to match by title (fuzzy)
   const normalizedTitle = scraped.title.toLowerCase().trim();
   const byTitle = animeList.find((a) => {
-    const animeTitle = a.title.toLowerCase().trim();
+    const animeTitle = (a?.metadata?.title || a?.title || "").toLowerCase().trim();
     return (
       animeTitle === normalizedTitle ||
       animeTitle.includes(normalizedTitle) ||
@@ -159,9 +167,12 @@ for (const scraped of scrapedData) {
       );
 
       if (!options.dryRun) {
-        // Add MAL ID if not present
-        if (!match.malId) {
-          match.malId = scraped.mal_id;
+        // Add MAL ID if not present (keep both flat and nested metadata in sync)
+        if (!match.mal_id) {
+          match.mal_id = scraped.mal_id;
+        }
+        if (match.metadata && !match.metadata.malId) {
+          match.metadata.malId = scraped.mal_id;
         }
         match.episodes = newEpisodes;
       }

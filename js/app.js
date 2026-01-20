@@ -11,6 +11,10 @@ const App = {
   // Pagination state
   gridPageSize: 24,
   gridCurrentPage: 1,
+  gridRenderedCount: 0,
+  gridSortedCache: null,
+  gridSortedKey: '',
+  gridSortedSource: null,
 
   // Active filters state
   activeFilters: {
@@ -586,6 +590,69 @@ const App = {
   },
 
   /**
+   * Get cached sorted data for the grid
+   */
+  getSortedGridData() {
+    if (this.gridSortedCache &&
+        this.gridSortedKey === this.currentSort &&
+        this.gridSortedSource === this.filteredData) {
+      return this.gridSortedCache;
+    }
+
+    const sorted = this.sortAnimeByMetric(this.filteredData, this.currentSort);
+    this.gridSortedCache = sorted;
+    this.gridSortedKey = this.currentSort;
+    this.gridSortedSource = this.filteredData;
+    return sorted;
+  },
+
+  /**
+   * Render anime cards HTML
+   */
+  renderAnimeCards(animeList) {
+    return animeList.map((anime) => {
+      const badges = Recommendations.getBadges(anime);
+      const cardStats = Recommendations.getCardStats(anime);
+      const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
+      const satisfactionLevel = hasEpisodes ? Math.round(anime.stats.satisfactionScore) : 0;
+      const reason = Recommendations.getRecommendationReason(anime);
+
+      return `
+        <div class="anime-card"
+             data-id="${anime.id}"
+             onclick="App.handleCardClick('${anime.id}')">
+          <div class="card-media">
+            <img src="${anime.cover}" alt="${anime.title}" class="card-cover" loading="lazy" onerror="this.src='https://via.placeholder.com/120x170?text=No+Image'">
+          </div>
+          <div class="card-body">
+            <div class="card-title-row">
+              <h3 class="card-title">${anime.title}</h3>
+            </div>
+            <div class="card-year">${anime.year || 'Unknown'} &bull; ${anime.studio || 'Unknown'}</div>
+            ${badges.length > 0 ? `
+              <div class="card-badges">
+                ${badges.map(b => `<span class="card-badge ${b.class}">${b.label}</span>`).join('')}
+              </div>
+            ` : ''}
+            <div class="card-stats">
+              ${cardStats.map(stat => `
+                <div class="stat">
+                  <span class="stat-value ${stat.class || ''}">${stat.value}${stat.suffix || ''}</span>
+                  <span class="stat-label">${stat.label}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div class="satisfaction-meter ${hasEpisodes ? '' : 'is-muted'}">
+              <span class="satisfaction-fill" style="width: ${satisfactionLevel}%"></span>
+            </div>
+            <div class="card-reason">${reason}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  /**
    * Render active filters summary
    */
   renderActiveFilters() {
@@ -777,11 +844,11 @@ const App = {
   /**
    * Render anime grid with pagination
    */
-  renderAnimeGrid() {
+  renderAnimeGrid({ append = false } = {}) {
     const container = document.getElementById('anime-grid');
     if (!container) return;
 
-    const sorted = this.sortAnimeByMetric(this.filteredData, this.currentSort);
+    const sorted = this.getSortedGridData();
 
     if (sorted.length === 0) {
       container.innerHTML = `
@@ -793,62 +860,33 @@ const App = {
       return;
     }
 
-    // Pagination: show only current page items
-    const startIndex = 0;
-    const endIndex = this.gridCurrentPage * this.gridPageSize;
+    const shouldAppend = append && this.gridRenderedCount > 0;
+    const startIndex = shouldAppend ? this.gridRenderedCount : 0;
+    const endIndex = Math.min(sorted.length, this.gridCurrentPage * this.gridPageSize);
     const visibleAnime = sorted.slice(startIndex, endIndex);
     const hasMore = endIndex < sorted.length;
 
-    container.innerHTML = visibleAnime.map((anime) => {
-      const badges = Recommendations.getBadges(anime);
-      const cardStats = Recommendations.getCardStats(anime);
-      const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-      const satisfactionLevel = hasEpisodes ? Math.round(anime.stats.satisfactionScore) : 0;
-      const reason = Recommendations.getRecommendationReason(anime);
+    if (!shouldAppend) {
+      container.innerHTML = this.renderAnimeCards(visibleAnime);
+    } else if (visibleAnime.length > 0) {
+      const loadMoreEl = container.querySelector('.load-more-container');
+      if (loadMoreEl) {
+        loadMoreEl.remove();
+      }
+      container.insertAdjacentHTML('beforeend', this.renderAnimeCards(visibleAnime));
+    }
 
-      return `
-        <div class="anime-card"
-             data-id="${anime.id}"
-             onclick="App.handleCardClick('${anime.id}')">
-          <div class="card-media">
-            <img src="${anime.cover}" alt="${anime.title}" class="card-cover" loading="lazy" onerror="this.src='https://via.placeholder.com/120x170?text=No+Image'">
-          </div>
-          <div class="card-body">
-            <div class="card-title-row">
-              <h3 class="card-title">${anime.title}</h3>
-            </div>
-            <div class="card-year">${anime.year || 'Unknown'} &bull; ${anime.studio || 'Unknown'}</div>
-            ${badges.length > 0 ? `
-              <div class="card-badges">
-                ${badges.map(b => `<span class="card-badge ${b.class}">${b.label}</span>`).join('')}
-              </div>
-            ` : ''}
-            <div class="card-stats">
-              ${cardStats.map(stat => `
-                <div class="stat">
-                  <span class="stat-value ${stat.class || ''}">${stat.value}${stat.suffix || ''}</span>
-                  <span class="stat-label">${stat.label}</span>
-                </div>
-              `).join('')}
-            </div>
-            <div class="satisfaction-meter ${hasEpisodes ? '' : 'is-muted'}">
-              <span class="satisfaction-fill" style="width: ${satisfactionLevel}%"></span>
-            </div>
-            <div class="card-reason">${reason}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
+    this.gridRenderedCount = endIndex;
 
     // Add "Load More" button if there are more items
     if (hasMore) {
-      container.innerHTML += `
+      container.insertAdjacentHTML('beforeend', `
         <div class="load-more-container">
           <button class="load-more-btn" onclick="App.loadMoreAnime()">
             Load More (${sorted.length - endIndex} remaining)
           </button>
         </div>
-      `;
+      `);
     }
 
   },
@@ -858,7 +896,7 @@ const App = {
    */
   loadMoreAnime() {
     this.gridCurrentPage++;
-    this.renderAnimeGrid();
+    this.renderAnimeGrid({ append: true });
   },
 
   /**
@@ -866,6 +904,10 @@ const App = {
    */
   resetGridPagination() {
     this.gridCurrentPage = 1;
+    this.gridRenderedCount = 0;
+    this.gridSortedCache = null;
+    this.gridSortedKey = '';
+    this.gridSortedSource = null;
   },
 
   /**
