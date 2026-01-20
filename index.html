@@ -3,87 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rekonime - Anime Scoring Dashboard</title>
+  <title>Rekonime - Beginner-friendly Anime Scores</title>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <!-- Welcome Modal (First-Time User) -->
-  <div class="welcome-modal-overlay" id="welcome-modal">
-    <div class="welcome-modal">
-      <h2>Welcome to Rekonime!</h2>
-      <p class="welcome-subtitle">How do you typically watch anime? Choose your viewing style:</p>
-      <div class="profile-cards">
-        <button class="profile-card" data-profile="programmer">
-          <span class="profile-card-icon">📋</span>
-          <h3>Weekly Watcher</h3>
-          <p class="profile-card-desc">I schedule my viewing sessions. Consistency matters - one bad episode can ruin my night.</p>
-          <span class="profile-card-optimizes">Optimizes for: Consistency & Safe Watching</span>
-        </button>
-        <button class="profile-card" data-profile="completionist">
-          <span class="profile-card-icon">🏁</span>
-          <h3>Completionist</h3>
-          <p class="profile-card-desc">I finish every show I start. I want standout moments and satisfying endings.</p>
-          <span class="profile-card-optimizes">Optimizes for: Standout Episodes & Great Endings</span>
-        </button>
-        <button class="profile-card" data-profile="escapist">
-          <span class="profile-card-icon">☁️</span>
-          <h3>Casual Viewer</h3>
-          <p class="profile-card-desc">Anime is my comfort zone. I want predictable quality and emotional stability.</p>
-          <span class="profile-card-optimizes">Optimizes for: Relaxation & Low Stress</span>
-        </button>
-        <button class="profile-card" data-profile="focuser">
-          <span class="profile-card-icon">🔍</span>
-          <h3>Deep Diver</h3>
-          <p class="profile-card-desc">I watch few shows but analyze deeply. I notice every quality change and trend.</p>
-          <span class="profile-card-optimizes">Optimizes for: Technical Quality & Trends</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
   <div class="app-container" id="app-container">
-    <!-- Header -->
     <header class="header">
       <div class="logo">
         <div class="logo-icon">R</div>
-        <h1>Rekonime</h1>
-      </div>
-
-      <!-- Profile Selector -->
-      <div class="profile-selector" id="profile-selector">
-        <span class="profile-label">Viewing Style:</span>
-        <div class="profile-options">
-          <button class="profile-btn" data-profile="programmer" title="Weekly viewer - Consistency focused">
-            <span class="profile-icon">📋</span>
-            <span class="profile-name">Weekly Watcher</span>
-          </button>
-          <button class="profile-btn" data-profile="completionist" title="Completion focused - Standout moments">
-            <span class="profile-icon">🏁</span>
-            <span class="profile-name">Completionist</span>
-          </button>
-          <button class="profile-btn" data-profile="escapist" title="Casual viewer - Relaxation focused">
-            <span class="profile-icon">☁️</span>
-            <span class="profile-name">Casual Viewer</span>
-          </button>
-          <button class="profile-btn" data-profile="focuser" title="Deep analyst - Quality focused">
-            <span class="profile-icon">🔍</span>
-            <span class="profile-name">Deep Diver</span>
-          </button>
+        <div class="logo-text">
+          <span class="logo-title">Rekonime</span>
+          <span class="logo-tagline">Beginner-friendly anime recommendation</span>
         </div>
-        <button class="profile-help" id="profile-help" type="button">How it works</button>
       </div>
-
       <div class="header-controls">
         <div class="header-search-wrapper">
           <input type="text" id="header-search" class="header-search-input" placeholder="Search anime...">
@@ -91,222 +30,112 @@
             <!-- Search results populated by JS -->
           </div>
         </div>
+      <div class="header-actions">
+        <div class="header-sort">
+          <label class="sort-label" for="sort-select">Sort</label>
+          <select id="sort-select" class="sort-select" aria-label="Sort anime"></select>
+        </div>
+        <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Filters</button>
+      </div>
       </div>
     </header>
 
-    <!-- Onboarding Strip -->
-    <section class="onboarding-strip" id="onboarding-strip" aria-live="polite">
-      <div class="onboarding-copy">
-        <div class="onboarding-title" id="onboarding-title">How Rekonime works</div>
-        <p class="onboarding-desc" id="onboarding-desc">Episode-by-episode scores reveal consistency, hook strength, and endings.</p>
-      </div>
-      <div class="onboarding-steps">
-        <div class="onboarding-step" id="onboarding-step-profile">Pick a viewing style to set the ranking metric.</div>
-        <div class="onboarding-step">Add titles to compare or use filters.</div>
-        <div class="onboarding-step">Open any anime for deep analysis and curves.</div>
-      </div>
-      <div class="onboarding-actions">
-        <button class="btn btn-sm" id="onboarding-learn-more" type="button">How scoring works</button>
-        <button class="btn btn-sm btn-clear" id="onboarding-dismiss" type="button">Got it</button>
-      </div>
-    </section>
-
-    <!-- Insight Panel -->
-    <section class="insight-panel" id="insight-panel" aria-hidden="true">
-      <div class="insight-panel-header">
-        <h3>How scoring works</h3>
-        <button class="btn btn-sm btn-clear insight-close" id="insight-close" type="button">Close</button>
-      </div>
-      <div class="insight-panel-grid">
-        <div class="insight-card">
-          <h4>Episode curves</h4>
-          <p>We score every episode to reveal consistency, dips, and endings that overall ratings miss.</p>
-        </div>
-        <div class="insight-card">
-          <h4>Viewing styles</h4>
-          <p>Your profile changes the ranking metric so recommendations fit how you watch.</p>
-        </div>
-        <div class="insight-card">
-          <h4>Deep dive</h4>
-          <p>Open a title to see profile-specific analysis like hook strength and finale quality.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Filter Modal -->
-    <div class="modal-overlay filter-modal-overlay" id="filter-modal">
-      <div class="modal-content filter-modal-content">
-        <button class="modal-close" id="close-filter-modal">&times;</button>
-        <div class="filter-modal-body">
-          <h2 class="filter-modal-title">Filter Anime</h2>
-          <div class="filter-sections" id="filter-sections">
-            <!-- Populated by JS -->
-          </div>
-          <div class="filter-modal-actions">
-            <button class="btn btn-clear" id="clear-filters">Clear All</button>
-            <button class="btn btn-primary" id="apply-filters">Apply Filters</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Active Filters Bar -->
     <div class="active-filters" id="active-filters">
-      <!-- Populated by JS -->
+      <div class="active-filters-content">
+        <span class="active-filters-label" id="active-filters-label">Personalize recommendations</span>
+        <div class="active-filters-list" id="active-filters-list"></div>
+        <span class="active-filters-empty" id="active-filters-empty">Choose a filter to personalize your recommendations.</span>
+      </div>
+      <button class="btn btn-sm btn-outline active-filters-clear" id="active-filters-clear" type="button">Clear filters</button>
     </div>
 
-    <!-- Filter Nudge -->
-    <div class="filter-nudge" id="filter-nudge" role="status">
-      <div class="filter-nudge-copy">
-        <span class="filter-nudge-title" id="filter-nudge-title">Large result set</span>
-        <span class="filter-nudge-text" id="filter-nudge-text">Showing 0 titles. Add filters to focus on what matters.</span>
-      </div>
-      <button class="btn btn-sm filter-nudge-btn" id="filter-nudge-open" type="button">Add filters</button>
-    </div>
-
-    <!-- Compare Mode Banner -->
-    <div class="compare-mode-banner" id="compare-mode-banner">
-      <div class="compare-instructions">
-        <span class="compare-icon">vs</span>
-        <span class="compare-text">Click on anime cards below to select them for comparison</span>
-      </div>
-      <span class="compare-count-badge" id="compare-count-badge">0 selected</span>
-      <button class="btn btn-sm btn-clear-selection" id="clear-selection">Clear Selection</button>
-    </div>
-
-    <!-- Comparison Section (Side-by-Side Stats) -->
-    <section class="comparison-section" id="comparison-section">
-      <div class="comparison-header">
-        <h2>Side-by-Side Comparison</h2>
-      </div>
-      <div class="comparison-table-wrapper" id="comparison-table">
-        <!-- Populated by JS -->
-      </div>
-    </section>
-
-    <!-- Main Chart Section -->
-    <section class="chart-section">
-      <div class="chart-header">
-        <div class="chart-title-wrapper">
-          <div class="chart-title-row">
-            <h2 id="main-chart-title">Average Score</h2>
-            <span class="metric-direction metric-direction-high" id="main-chart-direction">Higher is better</span>
-            <button class="info-tooltip" id="main-chart-info" type="button" aria-label="Metric definition">i</button>
-          </div>
-          <p class="chart-definition" id="chart-definition"></p>
-        </div>
-        <div class="chart-header-controls">
-          <div class="chart-add-wrapper">
-            <input type="text" id="chart-add-search" class="chart-add-input" placeholder="+ Add anime to compare...">
-            <div class="chart-add-dropdown" id="chart-add-dropdown">
-              <!-- Search results populated by JS -->
-            </div>
-          </div>
-          <div class="chart-sort-wrapper">
-            <select id="chart-direction-select" class="chart-sort-select" aria-label="Sort order">
-              <option value="desc">Descending</option>
-              <option value="asc">Ascending</option>
-            </select>
-          </div>
-          <button class="btn btn-sm btn-filter-chart" id="chart-filter-toggle">
-            <span class="filter-icon">⚙</span> Filters
-          </button>
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="hero-kicker">Beginner-friendly anime recommendation</span>
+        <h2 class="hero-title">Two numbers to trust.</h2>
+        <p class="hero-subtitle">We keep it simple: a Satisfaction Score built from watch-through consistency, plus a familiar Popularity Score from MAL.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#recommendations-section">See recommendations</a>
+          <a class="btn btn-outline" href="#catalog-section">Browse catalog</a>
         </div>
       </div>
-      <div class="chart-info-bar">
-        <span class="chart-info" id="chart-info">Showing top 10</span>
-        <span class="selected-anime-count" id="selected-anime-count"></span>
-        <button class="btn btn-xs btn-clear-compare" id="clear-chart-selection" style="display: none;">Clear Selection</button>
-      </div>
-      <div class="chart-filters" id="chart-filters">
-        <!-- Filter chips populated by JS -->
-      </div>
-      <div class="chart-wrapper">
-        <button class="chart-nav-btn chart-nav-left" id="chart-nav-left" onclick="App.chartNavigateLeft()" style="display: none;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-        </button>
-        <div class="chart-container">
-          <canvas id="main-chart"></canvas>
-        </div>
-        <button class="chart-nav-btn chart-nav-right" id="chart-nav-right" onclick="App.chartNavigateRight()" style="display: none;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </button>
-      </div>
-      <div class="chart-subsection">
-        <div class="chart-subheader">
-          <div class="chart-title-wrapper">
-            <div class="chart-title-row">
-              <h3 id="sort-chart-title">Metric Focus</h3>
-              <span class="metric-direction metric-direction-high" id="sort-chart-direction">Higher is better</span>
-              <button class="info-tooltip info-tooltip-sm" id="sort-chart-info" type="button" aria-label="Metric definition">i</button>
-            </div>
-            <p class="chart-definition" id="sort-chart-definition"></p>
+      <div class="hero-metrics">
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Satisfaction Score</span>
+            <span class="metric-range">0-100</span>
           </div>
+          <div class="metric-value">Built from watch-through consistency</div>
+          <p class="metric-note">Strong starts, low drop-off, steady pacing.</p>
         </div>
-        <div class="metric-chip-row chart-filter-scroll" id="metric-chip-row">
-          <!-- Metric chips populated dynamically -->
-        </div>
-        <div class="chart-wrapper chart-wrapper-compact">
-          <button class="chart-nav-btn chart-nav-left" id="sort-chart-nav-left" onclick="App.chartNavigateLeft()" style="display: none;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-          </button>
-          <div class="chart-container">
-            <canvas id="sort-chart"></canvas>
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Popularity Score (MAL)</span>
+            <span class="metric-range">0-10</span>
           </div>
-          <button class="chart-nav-btn chart-nav-right" id="sort-chart-nav-right" onclick="App.chartNavigateRight()" style="display: none;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </button>
+          <div class="metric-value">Community rating you already know</div>
+          <p class="metric-note">Great for quick comparisons.</p>
         </div>
       </div>
     </section>
 
-    <!-- Rankings Section -->
-    <section class="rankings-section" id="rankings-section">
-      <div class="ranking-card" id="ranking-card-1">
-        <h3 id="ranking-title-1">Best Average Score</h3>
-        <div id="best-ranking-1">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-      <div class="ranking-card" id="ranking-card-2">
-        <h3 id="ranking-title-2">Most Consistent</h3>
-        <div id="best-ranking-2">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-    </section>
-
-    <!-- Recommendations Section -->
     <section class="recommendations-section" id="recommendations-section">
       <div class="recommendations-header">
-        <h2>Recommended for You</h2>
-        <span class="profile-context" id="recommendations-context">Based on your viewing profile</span>
+        <div>
+          <h2>Recommended for you</h2>
+          <p class="section-subtitle" id="recommendations-context">Based on Satisfaction Score with a popularity nudge</p>
+        </div>
       </div>
       <div class="recommendations-grid" id="recommendations-grid">
         <!-- Populated by JS -->
       </div>
     </section>
 
-    <!-- Anime Grid Section -->
-    <section class="grid-section">
-      <h2>All Anime</h2>
-      <div class="scroll-nudge" id="scroll-nudge" role="status">
-        <span class="scroll-nudge-text">Tip: click any card for deep analysis and trends.</span>
-        <button class="scroll-nudge-dismiss" id="scroll-nudge-dismiss" type="button" aria-label="Dismiss">x</button>
+    <section class="rankings-section" id="rankings-section">
+      <div class="ranking-card" id="ranking-card-1">
+        <h3 id="ranking-title-1">Top Satisfaction</h3>
+        <div id="best-ranking-1">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+      <div class="ranking-card" id="ranking-card-2">
+        <h3 id="ranking-title-2">Most Popular</h3>
+        <div id="best-ranking-2">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-section" id="catalog-section">
+      <div class="section-header">
+        <div>
+          <h2>Browse the catalog</h2>
+          <p class="section-subtitle">Sort by Satisfaction or Popularity to match how you judge anime.</p>
+        </div>
       </div>
       <div class="anime-grid" id="anime-grid">
         <!-- Populated by JS -->
       </div>
     </section>
   </div>
+
+  <div class="modal-overlay filter-modal-overlay" id="filter-modal">
+    <div class="modal-content filter-modal-content">
+      <button class="modal-close" id="close-filter-modal">&times;</button>
+      <div class="filter-modal-body">
+        <h2 class="filter-modal-title">Refine results</h2>
+        <p class="filter-modal-subtitle">Pick a few filters to personalize your recommendations.</p>
+        <div class="filter-sections" id="filter-sections">
+          <!-- Populated by JS -->
+        </div>
+        <div class="filter-modal-actions">
+          <button class="btn btn-clear" id="clear-filters">Clear All</button>
+          <button class="btn btn-primary" id="apply-filters">Apply Filters</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Detail Modal -->
   <div class="modal-overlay" id="detail-modal">
@@ -324,7 +153,6 @@
     const ANIME_DATA = {"anime":[{"id":"frieren","title":"Frieren: Beyond Journey's End","cover":"https://cdn.myanimelist.net/images/anime/1015/138006.jpg","year":2023,"season":"Fall","studio":"Madhouse","source":"Manga","genres":["Adventure","Drama","Fantasy"],"themes":[],"demographic":"Shounen","episodes":[{"episode":1,"score":4.4},{"episode":2,"score":4.4},{"episode":3,"score":4.4},{"episode":4,"score":4.5},{"episode":5,"score":4.5},{"episode":6,"score":4.6},{"episode":7,"score":4.6},{"episode":8,"score":4.7},{"episode":9,"score":4.7},{"episode":10,"score":4.8},{"episode":11,"score":4.6},{"episode":12,"score":4.7},{"episode":13,"score":4.5},{"episode":14,"score":4.7},{"episode":15,"score":4.7},{"episode":16,"score":4.6},{"episode":17,"score":4.6},{"episode":18,"score":4.5},{"episode":19,"score":4.6},{"episode":20,"score":4.6},{"episode":21,"score":4.7},{"episode":22,"score":4.5},{"episode":23,"score":4.7},{"episode":24,"score":4.6},{"episode":25,"score":4.7},{"episode":26,"score":4.8},{"episode":27,"score":4.8},{"episode":28,"score":4.7}]},{"id":"5-toubun","title":"The Quintessential Quintuplets","cover":"https://cdn.myanimelist.net/images/anime/1819/97947.jpg","year":2019,"season":"Winter","studio":"Tezuka Productions","source":"Manga","genres":["Comedy","Romance"],"themes":["Harem","School"],"demographic":"Shounen","episodes":[{"episode":1,"score":4.2},{"episode":2,"score":4.3},{"episode":3,"score":4.1},{"episode":4,"score":4.3},{"episode":5,"score":4.4},{"episode":6,"score":4.4},{"episode":7,"score":4.5},{"episode":8,"score":4.6},{"episode":9,"score":4.5},{"episode":10,"score":4.4},{"episode":11,"score":4.6},{"episode":12,"score":4.4}]},{"id":"oshi-no-ko","title":"Oshi no Ko","cover":"https://cdn.myanimelist.net/images/anime/1812/134736.jpg","year":2023,"season":"Spring","studio":"Doga Kobo","source":"Manga","genres":["Drama","Award Winning"],"themes":["Reincarnation","Showbiz"],"demographic":"Seinen","episodes":[{"episode":1,"score":4.7},{"episode":2,"score":4.4},{"episode":3,"score":4.4},{"episode":4,"score":4.5},{"episode":5,"score":4.4},{"episode":6,"score":4.7},{"episode":7,"score":4.7},{"episode":8,"score":4.6},{"episode":9,"score":4.5},{"episode":10,"score":4.5},{"episode":11,"score":4.6}]},{"id":"adachi-and-shimamura","title":"Adachi and Shimamura","cover":"https://cdn.myanimelist.net/images/anime/1649/109056.jpg","year":2020,"season":"Fall","studio":"Tezuka Productions","source":"Light Novel","genres":["Girls Love"],"themes":["School"],"demographic":"","episodes":[{"episode":1,"score":4.3},{"episode":2,"score":4.6},{"episode":3,"score":4.3},{"episode":4,"score":4.5},{"episode":5,"score":4.5},{"episode":6,"score":4.5},{"episode":7,"score":4.5},{"episode":8,"score":4.3},{"episode":9,"score":4.6},{"episode":10,"score":4.4},{"episode":11,"score":4.6},{"episode":12,"score":4.2}]},{"id":"bocchi","title":"Bocchi the Rock!","cover":"https://cdn.myanimelist.net/images/anime/1448/127956.jpg","year":2022,"season":"Fall","studio":"CloverWorks","source":"Manga","genres":["Comedy"],"themes":["CGDCT","Music"],"demographic":"Seinen","episodes":[{"episode":1,"score":4.4},{"episode":2,"score":4.4},{"episode":3,"score":4.4},{"episode":4,"score":4.5},{"episode":5,"score":4.6},{"episode":6,"score":4.6},{"episode":7,"score":4.5},{"episode":8,"score":4.7},{"episode":9,"score":4.5},{"episode":10,"score":4.5},{"episode":11,"score":4.6},{"episode":12,"score":4.7}]},{"id":"spy-x-family","title":"Spy x Family","cover":"https://cdn.myanimelist.net/images/anime/1441/122795.jpg","year":2022,"season":"Spring","studio":"Wit Studio","source":"Manga","genres":["Action","Award Winning","Comedy"],"themes":["Childcare","Super Power"],"demographic":"Shounen","episodes":[{"episode":1,"score":4.6},{"episode":2,"score":4.7},{"episode":3,"score":4.5},{"episode":4,"score":4.7},{"episode":5,"score":4.5},{"episode":6,"score":4.6},{"episode":7,"score":4.6},{"episode":8,"score":4.5},{"episode":9,"score":4.5},{"episode":10,"score":4.5},{"episode":11,"score":4.5},{"episode":12,"score":4.5}]},{"id":"blue-spring-ride","title":"Blue Spring Ride","cover":"https://cdn.myanimelist.net/images/anime/8/64813.jpg","year":2014,"season":"Summer","studio":"Production I.G","source":"Manga","genres":["Romance"],"themes":["Love Polygon","School"],"demographic":"Shoujo","episodes":[{"episode":1,"score":4.3},{"episode":2,"score":4.4},{"episode":3,"score":4.4},{"episode":4,"score":4.5},{"episode":5,"score":4.3},{"episode":6,"score":4.6},{"episode":7,"score":4.3},{"episode":8,"score":4.4},{"episode":9,"score":4.3},{"episode":10,"score":4.5},{"episode":11,"score":4.7},{"episode":12,"score":4.4}]},{"id":"atri","title":"Atri -My Dear Moments-","cover":"https://cdn.myanimelist.net/images/anime/1825/143408.jpg","year":2024,"season":"Summer","studio":"TROYCA","source":"Visual Novel","genres":["Drama","Romance","Sci-Fi"],"themes":[],"demographic":"","episodes":[{"episode":1,"score":4.2},{"episode":2,"score":4.3},{"episode":3,"score":4.3},{"episode":4,"score":4.4},{"episode":5,"score":4.5},{"episode":6,"score":4.5},{"episode":7,"score":4.3},{"episode":8,"score":4.3},{"episode":9,"score":4.4},{"episode":10,"score":4.7},{"episode":11,"score":4.3},{"episode":12,"score":4.2},{"episode":13,"score":4.3}]},{"id":"chunibyo","title":"Love, Chunibyo & Other Delusions!","cover":"https://cdn.myanimelist.net/images/anime/1905/142840.jpg","year":2012,"season":"Fall","studio":"Kyoto Animation","source":"Light Novel","genres":["Comedy","Romance"],"themes":["School"],"demographic":"","episodes":[{"episode":1,"score":4.4},{"episode":2,"score":4.5},{"episode":3,"score":4.5},{"episode":4,"score":4.5},{"episode":5,"score":4.7},{"episode":6,"score":4.6},{"episode":7,"score":4.7},{"episode":8,"score":4.7},{"episode":9,"score":4.8},{"episode":10,"score":4.8},{"episode":11,"score":4.6},{"episode":12,"score":4.5}]},{"id":"your-lie-april","title":"Your Lie in April","cover":"https://cdn.myanimelist.net/images/anime/3/67177.jpg","year":2014,"season":"Fall","studio":"A-1 Pictures","source":"Manga","genres":["Drama","Romance"],"themes":["Love Polygon","Music","Performing Arts","School"],"demographic":"Shounen","episodes":[{"episode":1,"score":4.3},{"episode":2,"score":4.5},{"episode":3,"score":4.4},{"episode":4,"score":4.7},{"episode":5,"score":4.4},{"episode":6,"score":4.5},{"episode":7,"score":4.4},{"episode":8,"score":4.6},{"episode":9,"score":4.5},{"episode":10,"score":4.7},{"episode":11,"score":4.6},{"episode":12,"score":4.4},{"episode":13,"score":4.7},{"episode":14,"score":4.6},{"episode":15,"score":4.5},{"episode":16,"score":4.5},{"episode":17,"score":4.5},{"episode":18,"score":4.7},{"episode":19,"score":4.5},{"episode":20,"score":4.6},{"episode":21,"score":4.7},{"episode":22,"score":4.7}]},{"id":"buddy_daddies","title":"Buddy Daddies","cover":"https://cdn.myanimelist.net/images/anime/1553/133767.jpg","year":2023,"season":"Winter","studio":"P.A. Works","source":"Original","genres":["Action","Comedy"],"themes":["Childcare","Organized Crime"],"demographic":"","episodes":[{"episode":1,"score":4.3},{"episode":2,"score":4.1},{"episode":3,"score":4.4},{"episode":4,"score":4.5},{"episode":5,"score":4.5},{"episode":6,"score":4.6},{"episode":7,"score":4.6},{"episode":8,"score":4.6},{"episode":9,"score":4.6},{"episode":10,"score":4.6},{"episode":11,"score":4.5},{"episode":12,"score":4.6}]},{"id":"protocol-rain","title":"Protocol: Rain","cover":"https://cdn.myanimelist.net/images/anime/1160/138465.jpg","year":2023,"season":"Fall","studio":"Quad","source":"Original","genres":["Action"],"themes":["Video Game"],"demographic":"","episodes":[{"episode":1,"score":3.4},{"episode":2,"score":3.9},{"episode":3,"score":3.9},{"episode":4,"score":3.8},{"episode":5,"score":3.8},{"episode":6,"score":3.7},{"episode":7,"score":4},{"episode":8,"score":4},{"episode":9,"score":3.9},{"episode":10,"score":4},{"episode":11,"score":3.7},{"episode":12,"score":3.9}]},{"id":"the-mystic-archives-of-dantalian","title":"The Mystic Archives of Dantalian","cover":"https://cdn.myanimelist.net/images/anime/2/52683.jpg","year":2011,"season":"Summer","studio":"Gainax","source":"Light Novel","genres":["Action","Mystery","Supernatural"],"themes":["Detective","Historical"],"demographic":"","episodes":[{"episode":1,"score":4},{"episode":2,"score":3.8},{"episode":3,"score":3.8},{"episode":4,"score":4.2},{"episode":5,"score":3.7},{"episode":6,"score":4.2},{"episode":7,"score":4.1},{"episode":8,"score":4},{"episode":9,"score":3.9},{"episode":10,"score":4},{"episode":11,"score":4.1},{"episode":12,"score":4.1}]},{"id":"gosick","title":"Gosick","cover":"https://cdn.myanimelist.net/images/anime/11/27906.jpg","year":2011,"season":"Winter","studio":"Bones","source":"Light Novel","genres":["Drama","Mystery","Romance"],"themes":["Historical"],"demographic":"","episodes":[{"episode":1,"score":4},{"episode":2,"score":4.4},{"episode":3,"score":4.5},{"episode":4,"score":4.3},{"episode":5,"score":4.4},{"episode":6,"score":4.4},{"episode":7,"score":4.5},{"episode":8,"score":4.4},{"episode":9,"score":4.5},{"episode":10,"score":4.5},{"episode":11,"score":4.3},{"episode":12,"score":4.4},{"episode":13,"score":4.4},{"episode":14,"score":4.3},{"episode":15,"score":4.7},{"episode":16,"score":4.5},{"episode":17,"score":4.6},{"episode":18,"score":4.6},{"episode":19,"score":4.5},{"episode":20,"score":4.3},{"episode":21,"score":4.7},{"episode":22,"score":4.6},{"episode":23,"score":4.7},{"episode":24,"score":4.7}]},{"id":"bang-dream","title":"BanG Dream!","cover":"https://cdn.myanimelist.net/images/anime/4/82414.jpg","year":2017,"season":"Winter","studio":["Xebec","Issen"],"source":"Mixed Media","genres":[],"themes":["CGDCT","Music","School"],"demographic":"","episodes":[{"episode":1,"score":4.3},{"episode":2,"score":4.4},{"episode":3,"score":4.1},{"episode":4,"score":4.4},{"episode":5,"score":4.5},{"episode":6,"score":4.3},{"episode":7,"score":4.4},{"episode":8,"score":4.5},{"episode":9,"score":4.4},{"episode":10,"score":4.3},{"episode":11,"score":4.4},{"episode":12,"score":4.7},{"episode":13,"score":4.5}]}]};
   </script>
   <script src="js/stats.js"></script>
-  <script src="js/charts.js"></script>
   <script src="js/recommendations.js"></script>
   <script src="js/reviews.js"></script>
   <script src="js/app.js"></script>

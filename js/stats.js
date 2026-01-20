@@ -729,6 +729,34 @@ const Stats = {
     };
   },
 
+  // ======================================
+  // BEGINNER-FRIENDLY SATISFACTION METRIC
+  // ======================================
+
+  /**
+   * Calculate "Satisfaction Score" - retention-based single metric
+   * Blends strong openings, low drop-off risk, momentum, and steady pacing
+   * @param {Array} episodes - Array of episode objects
+   * @returns {number} Satisfaction score (0-100)
+   */
+  calculateSatisfactionScore(episodes) {
+    if (!episodes || episodes.length === 0) return 0;
+
+    const hook = this.calculate3EpisodeHook(episodes);
+    const churnRisk = this.calculateChurnRisk(episodes).score;
+    const dropSafety = 100 - churnRisk;
+    const momentum = this.calculateMomentum(episodes);
+    const momentumScore = this.clamp((momentum + 100) / 2, 0, 100);
+    const flowState = this.calculateFlowState(episodes);
+
+    const blended = (hook * 0.35)
+      + (dropSafety * 0.3)
+      + (momentumScore * 0.2)
+      + (flowState * 0.15);
+
+    return this.strictPercent(this.clamp(blended, 0, 100));
+  },
+
   /**
    * Calculate all statistics for an anime
    * @param {Object} anime - Anime object with episodes array
@@ -741,6 +769,8 @@ const Stats = {
     const auc = this.calculateAUC(episodes);
     const consistency = this.getConsistencyRating(stdDev);
     const scoreClass = this.getScoreColorClass(avg);
+    const satisfactionScore = this.calculateSatisfactionScore(episodes);
+    const popularityScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
 
     return {
       // Core metrics
@@ -752,6 +782,8 @@ const Stats = {
       episodeCount: episodes.length,
       highestScore: episodes.length > 0 ? Math.max(...episodes.map(e => e.score)) : 0,
       lowestScore: episodes.length > 0 ? Math.min(...episodes.map(e => e.score)) : 0,
+      satisfactionScore: satisfactionScore,
+      popularityScore: popularityScore,
 
       // Weekly Watcher archetype metrics
       reliabilityScore: this.calculateReliabilityScore(episodes),
@@ -815,6 +847,12 @@ const Stats = {
       case 'consistency':
         // Lower stdDev = more consistent = higher rank
         sorted.sort((a, b) => a.stats.stdDev - b.stats.stdDev);
+        break;
+      case 'satisfaction':
+        sorted.sort((a, b) => b.stats.satisfactionScore - a.stats.satisfactionScore);
+        break;
+      case 'popularity':
+        sorted.sort((a, b) => (b.stats.popularityScore || 0) - (a.stats.popularityScore || 0));
         break;
 
       // Weekly Watcher archetype sorts

@@ -62,7 +62,9 @@ const Charts = {
       // Core metrics
       average: { key: 'average', label: 'Average Score', max: 5, suffix: '', lowerIsBetter: false },
       auc: { key: 'auc', label: 'Overall Score', max: 100, suffix: '%', lowerIsBetter: false },
-      consistency: { key: 'stdDev', label: 'Score Spread', max: 2, suffix: '', lowerIsBetter: true }
+      consistency: { key: 'stdDev', label: 'Score Spread', max: 2, suffix: '', lowerIsBetter: true },
+      satisfaction: { key: 'satisfactionScore', label: 'Satisfaction Score', max: 100, suffix: '%', lowerIsBetter: false },
+      popularity: { key: 'popularityScore', label: 'Popularity Score', max: 10, suffix: '/10', lowerIsBetter: false }
     };
     return metrics[sortKey] || { key: 'average', label: 'Average Score', max: 5, suffix: '', lowerIsBetter: false };
   },
@@ -79,7 +81,7 @@ const Charts = {
       escapist: { key: 'comfortScore', label: 'Relaxation Score', max: 100, suffix: '%' },
       focuser: { key: 'productionQualityIndex', label: 'Quality Score', max: 100, suffix: '%' }
     };
-    return metrics[profile] || { key: 'average', label: 'Average Score', max: 5, suffix: '' };
+    return metrics[profile] || { key: 'satisfactionScore', label: 'Satisfaction Score', max: 100, suffix: '%' };
   },
 
   /**
@@ -126,7 +128,9 @@ const Charts = {
       // Core metrics
       average: 'Mean score across all episodes',
       auc: 'Total score normalized against a perfect run with a strict curve',
-      consistency: 'Standard deviation of scores - lower means more consistent'
+      consistency: 'Standard deviation of scores - lower means more consistent',
+      satisfaction: 'Retention-based blend of strong opening, low drop-off risk, momentum, and steady pacing',
+      popularity: 'Community score from MyAnimeList (MAL)'
     };
     return descriptions[sortKey] || '';
   },
@@ -143,7 +147,7 @@ const Charts = {
       escapist: 'Flow State (40%) + Emotional Stability (30%) + Entry Ease (20%) + Low Stress Spikes (10%)',
       focuser: 'Average (35%) + Consistency (15%) + Trend (20%) + Hook (15%) + Low Drop Risk (15%) - dip penalties'
     };
-    return definitions[profile] || '';
+    return definitions[profile] || 'Strong opening (35%) + low drop-off risk (30%) + momentum (20%) + steady pacing (15%)';
   },
 
   /**
