@@ -167,11 +167,19 @@ def extract_player_response(html: str) -> Optional[Dict[str, Any]]:
 
 def fetch_player_response(session: requests.Session, video_id: str) -> Optional[Dict[str, Any]]:
     url = f"{YOUTUBE_WATCH_URL}{video_id}"
-    response = session.get(url, timeout=20)
+    try:
+        response = session.get(url, timeout=20)
+    except requests.RequestException:
+        time.sleep(YOUTUBE_DELAY)
+        return None
 
     if response.status_code == 429:
         time.sleep(5)
-        response = session.get(url, timeout=20)
+        try:
+            response = session.get(url, timeout=20)
+        except requests.RequestException:
+            time.sleep(YOUTUBE_DELAY)
+            return None
 
     if not response.ok:
         time.sleep(YOUTUBE_DELAY)
@@ -201,19 +209,27 @@ def is_embeddable(session: requests.Session, video_id: str, cache: Dict[str, boo
 
 
 def search_youtube_video_ids(session: requests.Session, query: str) -> List[str]:
-    response = session.get(
-        YOUTUBE_SEARCH_URL,
-        params={"search_query": query},
-        timeout=20
-    )
-
-    if response.status_code == 429:
-        time.sleep(5)
+    try:
         response = session.get(
             YOUTUBE_SEARCH_URL,
             params={"search_query": query},
             timeout=20
         )
+    except requests.RequestException:
+        time.sleep(YOUTUBE_DELAY)
+        return []
+
+    if response.status_code == 429:
+        time.sleep(5)
+        try:
+            response = session.get(
+                YOUTUBE_SEARCH_URL,
+                params={"search_query": query},
+                timeout=20
+            )
+        except requests.RequestException:
+            time.sleep(YOUTUBE_DELAY)
+            return []
 
     if not response.ok:
         return []
@@ -334,6 +350,7 @@ def main() -> None:
     parser.add_argument("--output", help="Output path (default: overwrite input)")
     parser.add_argument("--refresh", action="store_true", help="Refresh trailers even if present")
     parser.add_argument("--limit", type=int, help="Limit number of anime to update (debug)")
+    parser.add_argument("--offset", type=int, default=0, help="Start offset for batch updates")
 
     args = parser.parse_args()
 
@@ -344,6 +361,8 @@ def main() -> None:
         data = json.load(handle)
 
     anime_list = data.get("anime", [])
+    if args.offset:
+        anime_list = anime_list[args.offset :]
     if args.limit:
         anime_list = anime_list[: args.limit]
 
@@ -387,16 +406,19 @@ def main() -> None:
         print(f"Falling back to Jikan for {len(missing_after_anilist)} anime...")
 
     jikan_updated = 0
+    missing_after_jikan = []
     for entry in missing_after_anilist:
         metadata = entry.get("metadata") or {}
         mal_id = metadata.get("malId") or entry.get("mal_id") or entry.get("malId")
         if not mal_id:
+            missing_after_jikan.append(entry)
             continue
 
         try:
             trailer_data = fetch_jikan_trailer(session, int(mal_id))
         except (requests.RequestException, ValueError) as exc:
             print(f"Jikan error for MAL {mal_id}: {exc}")
+            missing_after_jikan.append(entry)
             continue
 
         normalized = normalize_jikan_trailer(trailer_data)
@@ -404,12 +426,44 @@ def main() -> None:
             metadata["trailer"] = normalized
             entry["metadata"] = metadata
             jikan_updated += 1
+        else:
+            missing_after_jikan.append(entry)
 
         time.sleep(JIKAN_DELAY)
 
     print(f"Jikan trailers found: {jikan_updated}")
 
     embed_cache: Dict[str, bool] = {}
+    search_updated = 0
+    search_missing = []
+
+    if missing_after_jikan:
+        print(f"Searching YouTube for {len(missing_after_jikan)} missing trailers...")
+
+    for entry in missing_after_jikan:
+        metadata = entry.get("metadata") or {}
+        title = metadata.get("title") or entry.get("title") or ""
+        if not title:
+            search_missing.append(title or "Unknown title")
+            continue
+
+        alternative = find_embeddable_trailer(
+            session,
+            title,
+            set(),
+            embed_cache,
+        )
+
+        if alternative:
+            metadata["trailer"] = alternative
+            entry["metadata"] = metadata
+            search_updated += 1
+        else:
+            search_missing.append(title or "Unknown title")
+
+    if missing_after_jikan:
+        print(f"YouTube search trailers found: {search_updated}")
+
     replaced = 0
     removed = 0
     still_blocked = []
@@ -453,6 +507,10 @@ def main() -> None:
     print(f"Total trailers present: {total_trailers} / {len(anime_list)}")
     print(f"Replaced blocked trailers: {replaced}")
     print(f"Removed blocked trailers (no embeddable alternative found): {removed}")
+    if search_missing:
+        print("Missing trailers after YouTube search:")
+        for title in search_missing:
+            print(f"  - {title}")
     if still_blocked:
         print("Missing embeddable trailers:")
         for title in still_blocked:
