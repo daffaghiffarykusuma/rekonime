@@ -1938,13 +1938,13 @@ h1, h2, h3, h4 {
   border: 1px solid var(--border-color);
 }
 
-.badge-satisfaction {
+.badge-retention {
   background: rgba(47, 111, 100, 0.16);
   color: var(--accent-secondary);
   border-color: rgba(47, 111, 100, 0.3);
 }
 
-.badge-popular {
+.badge-satisfaction {
   background: rgba(211, 84, 59, 0.15);
   color: var(--accent-primary);
   border-color: rgba(211, 84, 59, 0.3);
@@ -1981,7 +1981,7 @@ h1, h2, h3, h4 {
   line-height: 1.2;
 }
 
-.satisfaction-meter {
+.retention-meter {
   height: 6px;
   background: rgba(31, 26, 22, 0.08);
   border-radius: 999px;
@@ -1989,11 +1989,11 @@ h1, h2, h3, h4 {
   margin-bottom: 0.8rem;
 }
 
-.satisfaction-meter.is-muted .satisfaction-fill {
+.retention-meter.is-muted .retention-fill {
   width: 0;
 }
 
-.satisfaction-fill {
+.retention-fill {
   display: block;
   height: 100%;
   background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary));

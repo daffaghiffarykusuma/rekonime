@@ -730,16 +730,16 @@ const Stats = {
   },
 
   // ======================================
-  // BEGINNER-FRIENDLY SATISFACTION METRIC
+  // BEGINNER-FRIENDLY RETENTION METRIC
   // ======================================
 
   /**
-   * Calculate "Satisfaction Score" - retention-based single metric
+   * Calculate "Retention Score" - retention-based single metric
    * Blends strong openings, low drop-off risk, momentum, and steady pacing
    * @param {Array} episodes - Array of episode objects
-   * @returns {number} Satisfaction score (0-100)
+   * @returns {number} Retention score (0-100)
    */
-  calculateSatisfactionScore(episodes) {
+  calculateRetentionScore(episodes) {
     if (!episodes || episodes.length === 0) return 0;
 
     const hook = this.calculate3EpisodeHook(episodes);
@@ -769,8 +769,8 @@ const Stats = {
     const auc = this.calculateAUC(episodes);
     const consistency = this.getConsistencyRating(stdDev);
     const scoreClass = this.getScoreColorClass(avg);
-    const satisfactionScore = this.calculateSatisfactionScore(episodes);
-    const popularityScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
+    const retentionScore = this.calculateRetentionScore(episodes);
+    const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
 
     return {
       // Core metrics
@@ -782,8 +782,8 @@ const Stats = {
       episodeCount: episodes.length,
       highestScore: episodes.length > 0 ? Math.max(...episodes.map(e => e.score)) : 0,
       lowestScore: episodes.length > 0 ? Math.min(...episodes.map(e => e.score)) : 0,
-      satisfactionScore: satisfactionScore,
-      popularityScore: popularityScore,
+      retentionScore: retentionScore,
+      malSatisfactionScore: malSatisfactionScore,
 
       // Weekly Watcher archetype metrics
       reliabilityScore: this.calculateReliabilityScore(episodes),
@@ -848,11 +848,11 @@ const Stats = {
         // Lower stdDev = more consistent = higher rank
         sorted.sort((a, b) => a.stats.stdDev - b.stats.stdDev);
         break;
-      case 'satisfaction':
-        sorted.sort((a, b) => b.stats.satisfactionScore - a.stats.satisfactionScore);
+      case 'retention':
+        sorted.sort((a, b) => b.stats.retentionScore - a.stats.retentionScore);
         break;
-      case 'popularity':
-        sorted.sort((a, b) => (b.stats.popularityScore || 0) - (a.stats.popularityScore || 0));
+      case 'satisfaction':
+        sorted.sort((a, b) => (b.stats.malSatisfactionScore || 0) - (a.stats.malSatisfactionScore || 0));
         break;
 
       // Weekly Watcher archetype sorts

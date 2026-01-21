@@ -46,7 +46,7 @@ const Charts = {
       controversyPotential: { key: 'controversyPotential', label: 'Controversy Score', max: 100, suffix: '%', lowerIsBetter: true },
       sharkJump: { key: 'sharkJump', label: 'Shark Jump', max: 1, suffix: '', lowerIsBetter: false, isObject: true, valueKey: 'episode' },
 
-      // Original satisfaction metrics
+      // Core engagement metrics
       reliability: { key: 'reliabilityScore', label: 'Consistency Score', max: 100, suffix: '%', lowerIsBetter: false },
       sessionSafety: { key: 'sessionSafety', label: 'Session Safety', max: 100, suffix: '%', lowerIsBetter: false },
       peakEpisodes: { key: 'peakEpisodeCount', label: 'Peak Episodes', max: 10, suffix: '', lowerIsBetter: false },
@@ -63,8 +63,8 @@ const Charts = {
       average: { key: 'average', label: 'Average Score', max: 5, suffix: '', lowerIsBetter: false },
       auc: { key: 'auc', label: 'Overall Score', max: 100, suffix: '%', lowerIsBetter: false },
       consistency: { key: 'stdDev', label: 'Score Spread', max: 2, suffix: '', lowerIsBetter: true },
-      satisfaction: { key: 'satisfactionScore', label: 'Satisfaction Score', max: 100, suffix: '%', lowerIsBetter: false },
-      popularity: { key: 'popularityScore', label: 'Popularity Score', max: 10, suffix: '/10', lowerIsBetter: false }
+      retention: { key: 'retentionScore', label: 'Retention Score', max: 100, suffix: '%', lowerIsBetter: false },
+      satisfaction: { key: 'malSatisfactionScore', label: 'Satisfaction Score (MAL)', max: 10, suffix: '/10', lowerIsBetter: false }
     };
     return metrics[sortKey] || { key: 'average', label: 'Average Score', max: 5, suffix: '', lowerIsBetter: false };
   },
@@ -81,7 +81,7 @@ const Charts = {
       escapist: { key: 'comfortScore', label: 'Relaxation Score', max: 100, suffix: '%' },
       focuser: { key: 'productionQualityIndex', label: 'Quality Score', max: 100, suffix: '%' }
     };
-    return metrics[profile] || { key: 'satisfactionScore', label: 'Satisfaction Score', max: 100, suffix: '%' };
+    return metrics[profile] || { key: 'retentionScore', label: 'Retention Score', max: 100, suffix: '%' };
   },
 
   /**
@@ -112,7 +112,7 @@ const Charts = {
       controversyPotential: 'Presence of both very high and very low scores indicates discussion-worthy content',
       sharkJump: 'Episode where quality permanently dropped by >0.8 point',
 
-      // Satisfaction metrics
+      // Engagement metrics
       reliability: 'Hook Strength (35%) + Session Safety (35%) + Low Drop Risk (20%) + Habit Safety (10%)',
       sessionSafety: 'Blends safe-episode ratio with overall quality for stricter session safety',
       peakEpisodes: 'Number of episodes with perfect 5/5 score',
@@ -129,8 +129,8 @@ const Charts = {
       average: 'Mean score across all episodes',
       auc: 'Total score normalized against a perfect run with a strict curve',
       consistency: 'Standard deviation of scores - lower means more consistent',
-      satisfaction: 'Retention-based blend of strong opening, low drop-off risk, momentum, and steady pacing',
-      popularity: 'Community score from MyAnimeList (MAL)'
+      retention: 'Retention-based blend of strong opening, low drop-off risk, momentum, and steady pacing',
+      satisfaction: 'Community satisfaction score from MyAnimeList (MAL)'
     };
     return descriptions[sortKey] || '';
   },

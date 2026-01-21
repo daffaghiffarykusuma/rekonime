@@ -5,7 +5,7 @@
 const App = {
   animeData: [],
   filteredData: [],
-  currentSort: 'satisfaction',
+  currentSort: 'retention',
   filterPanelOpen: false,
   currentAnimeId: null,
   siteName: 'Rekonime',
@@ -84,7 +84,7 @@ const App = {
     ).join('');
 
     if (!options.some(option => option.value === this.currentSort)) {
-      this.currentSort = options[0]?.value || 'satisfaction';
+      this.currentSort = options[0]?.value || 'retention';
     }
     select.value = this.currentSort;
   },
@@ -929,7 +929,7 @@ const App = {
       const badges = Recommendations.getBadges(anime);
       const cardStats = Recommendations.getCardStats(anime);
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-      const satisfactionLevel = hasEpisodes ? Math.round(anime.stats.satisfactionScore) : 0;
+      const retentionLevel = hasEpisodes ? Math.round(anime.stats.retentionScore) : 0;
       const reason = Recommendations.getRecommendationReason(anime);
 
       return `
@@ -957,8 +957,8 @@ const App = {
                 </div>
               `).join('')}
             </div>
-            <div class="satisfaction-meter ${hasEpisodes ? '' : 'is-muted'}">
-              <span class="satisfaction-fill" style="width: ${satisfactionLevel}%"></span>
+            <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
+              <span class="retention-fill" style="width: ${retentionLevel}%"></span>
             </div>
             <div class="card-reason">${reason}</div>
           </div>
@@ -1040,7 +1040,7 @@ const App = {
     if (!container) return;
 
     if (contextEl) {
-      contextEl.textContent = 'Based on Satisfaction Score with a popularity nudge';
+      contextEl.textContent = 'Retention-first picks blended with MAL satisfaction for more dependable recommendations.';
     }
 
     // Get recommendations
@@ -1056,8 +1056,8 @@ const App = {
 
     container.innerHTML = recommendations.map(anime => {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-      const satisfaction = hasEpisodes ? `${Math.round(anime.stats.satisfactionScore)}%` : 'N/A';
-      const popularity = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
+      const retention = hasEpisodes ? `${Math.round(anime.stats.retentionScore)}%` : 'N/A';
+      const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
 
       return `
         <div class="recommendation-card" onclick="App.showAnimeDetail('${anime.id}')">
@@ -1065,8 +1065,8 @@ const App = {
           <div class="recommendation-info">
             <div class="recommendation-title">${anime.title}</div>
             <div class="recommendation-meta">
-              <span>Satisfaction ${satisfaction}</span>
-              <span>Popularity ${popularity}</span>
+              <span>Retention ${retention}</span>
+              <span>Satisfaction (MAL) ${malSatisfaction}</span>
             </div>
             <div class="recommendation-reason">${anime.reason || ''}</div>
           </div>
@@ -1122,20 +1122,20 @@ const App = {
     let labelDisplay = '';
     let valueClass = '';
 
-    if (metric === 'satisfaction') {
+    if (metric === 'retention') {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       if (hasEpisodes) {
-        const score = Math.round(anime.stats.satisfactionScore);
+        const score = Math.round(anime.stats.retentionScore);
         valueDisplay = `${score}%`;
-        valueClass = Recommendations.getSatisfactionClass(score);
+        valueClass = Recommendations.getRetentionClass(score);
       }
-      labelDisplay = 'satisfaction score';
-    } else if (metric === 'popularity') {
+      labelDisplay = 'retention score';
+    } else if (metric === 'satisfaction') {
       if (Number.isFinite(anime.communityScore)) {
         valueDisplay = `${anime.communityScore.toFixed(1)}/10`;
-        valueClass = Recommendations.getPopularityClass(anime.communityScore);
+        valueClass = Recommendations.getMalSatisfactionClass(anime.communityScore);
       }
-      labelDisplay = 'popularity score';
+      labelDisplay = 'satisfaction score (MAL)';
     } else {
       valueDisplay = anime.stats.average;
       labelDisplay = 'avg score';
@@ -1233,15 +1233,15 @@ const App = {
    */
   sortAnimeByMetric(animeList, metricKey) {
     const list = [...animeList];
-    const key = metricKey === 'popularity' ? 'popularity' : 'satisfaction';
+    const key = metricKey === 'satisfaction' ? 'satisfaction' : 'retention';
 
     list.sort((a, b) => {
-      const aVal = key === 'popularity'
+      const aVal = key === 'satisfaction'
         ? (Number.isFinite(a.communityScore) ? a.communityScore : 0)
-        : (a.stats?.satisfactionScore ?? 0);
-      const bVal = key === 'popularity'
+        : (a.stats?.retentionScore ?? 0);
+      const bVal = key === 'satisfaction'
         ? (Number.isFinite(b.communityScore) ? b.communityScore : 0)
-        : (b.stats?.satisfactionScore ?? 0);
+        : (b.stats?.retentionScore ?? 0);
       return bVal - aVal;
     });
 
@@ -1292,10 +1292,10 @@ const App = {
     const synopsisSection = synopsisMarkup || ReviewsService.renderSynopsisLoading();
     const trailerSection = this.renderTrailerSection(anime);
     const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-    const satisfactionScore = hasEpisodes ? Math.round(anime.stats.satisfactionScore) : null;
-    const popularityScore = Number.isFinite(anime.communityScore) ? anime.communityScore : null;
-    const satisfactionClass = Recommendations.getSatisfactionClass(satisfactionScore);
-    const popularityClass = Recommendations.getPopularityClass(popularityScore);
+    const retentionScore = hasEpisodes ? Math.round(anime.stats.retentionScore) : null;
+    const malSatisfactionScore = Number.isFinite(anime.communityScore) ? anime.communityScore : null;
+    const retentionClass = Recommendations.getRetentionClass(retentionScore);
+    const malSatisfactionClass = Recommendations.getMalSatisfactionClass(malSatisfactionScore);
     const startScore = hasEpisodes ? Math.round(anime.stats.threeEpisodeHook) : null;
     const stayScore = hasEpisodes ? Math.round(100 - anime.stats.churnRisk.score) : null;
     const finishScore = hasEpisodes ? Math.round(anime.stats.worthFinishing) : null;
@@ -1323,19 +1323,19 @@ const App = {
           </div>
           <div class="detail-stats">
             <div class="detail-stat">
-              <span class="detail-stat-value ${satisfactionClass}">${satisfactionScore !== null ? `${satisfactionScore}%` : 'N/A'}</span>
-              <span class="detail-stat-label">Satisfaction Score</span>
+              <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
+              <span class="detail-stat-label">Retention Score</span>
             </div>
             <div class="detail-stat">
-              <span class="detail-stat-value ${popularityClass}">${popularityScore !== null ? `${popularityScore.toFixed(1)}/10` : 'N/A'}</span>
-              <span class="detail-stat-label">Popularity (MAL)</span>
+              <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
+              <span class="detail-stat-label">Satisfaction (MAL)</span>
             </div>
             <div class="detail-stat">
               <span class="detail-stat-value">${anime.stats.episodeCount || 'N/A'}</span>
               <span class="detail-stat-label">Episodes</span>
             </div>
           </div>
-          <p class="detail-hint">Satisfaction Score is built from how consistently people keep watching across episodes.</p>
+          <p class="detail-hint">Retention Score reflects how consistently people keep watching across episodes. Satisfaction (MAL) reflects community ratings.</p>
         </div>
       </div>
       ${hasEpisodes ? `
@@ -1371,7 +1371,7 @@ const App = {
           <div class="detail-section-header">
             <h3>Why it sticks</h3>
           </div>
-          <p class="detail-empty">No episode scores yet. Satisfaction appears once episode scores are available.</p>
+          <p class="detail-empty">No episode scores yet. Retention appears once episode scores are available.</p>
         </div>
       `}
       <div id="synopsis-section">

@@ -4,19 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rekonime - Beginner-friendly Anime Scores</title>
-  <meta name="description" content="Beginner-friendly anime recommendations and scores built from Satisfaction and Popularity. Browse the catalog and open shareable anime details.">
+  <meta name="description" content="Beginner-friendly anime recommendations built from Retention and Satisfaction (MAL), adding staying power to the usual satisfaction + popularity lens.">
   <meta name="theme-color" content="#d3543b">
   <link rel="canonical" href="">
   <meta property="og:site_name" content="Rekonime">
   <meta property="og:title" content="Rekonime - Beginner-friendly Anime Scores">
-  <meta property="og:description" content="Beginner-friendly anime recommendations and scores built from Satisfaction and Popularity. Browse the catalog and open shareable anime details.">
+  <meta property="og:description" content="Beginner-friendly anime recommendations built from Retention and Satisfaction (MAL), adding staying power to the usual satisfaction + popularity lens.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="">
   <meta property="og:image" content="favicon.svg">
   <meta property="og:image:alt" content="Rekonime logo">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Rekonime - Beginner-friendly Anime Scores">
-  <meta name="twitter:description" content="Beginner-friendly anime recommendations and scores built from Satisfaction and Popularity. Browse the catalog and open shareable anime details.">
+  <meta name="twitter:description" content="Beginner-friendly anime recommendations built from Retention and Satisfaction (MAL), adding staying power to the usual satisfaction + popularity lens.">
   <meta name="twitter:image" content="favicon.svg">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
@@ -33,7 +33,7 @@
       "@type": "WebSite",
       "name": "Rekonime",
       "url": "",
-      "description": "Beginner-friendly anime recommendations and scores built from Satisfaction and Popularity. Browse the catalog and open shareable anime details."
+      "description": "Beginner-friendly anime recommendations built from Retention and Satisfaction (MAL), adding staying power to the usual satisfaction + popularity lens."
     }
   </script>
 </head>
@@ -77,7 +77,7 @@
       <div class="hero-copy">
         <span class="hero-kicker">Beginner-friendly anime recommendation</span>
         <h1 class="hero-title">Two numbers to trust.</h1>
-        <p class="hero-subtitle">We keep it simple: a Satisfaction Score built from watch-through consistency, plus a familiar Popularity Score from MAL.</p>
+          <p class="hero-subtitle">We keep it simple: a Retention Score built from watch-through consistency, plus a Satisfaction Score from MAL. It adds retention to MAL's satisfaction + popularity lens for more dependable picks.</p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="#recommendations-section">See recommendations</a>
           <a class="btn btn-outline" href="#catalog-section">Browse catalog</a>
@@ -86,7 +86,7 @@
       <div class="hero-metrics">
         <div class="metric-card">
           <div class="metric-header">
-            <span class="metric-label">Satisfaction Score</span>
+            <span class="metric-label">Retention Score</span>
             <span class="metric-range">0-100</span>
           </div>
           <div class="metric-value">Built from watch-through consistency</div>
@@ -94,10 +94,10 @@
         </div>
         <div class="metric-card">
           <div class="metric-header">
-            <span class="metric-label">Popularity Score (MAL)</span>
+            <span class="metric-label">Satisfaction Score (MAL)</span>
             <span class="metric-range">0-10</span>
           </div>
-          <div class="metric-value">Community rating you already know</div>
+          <div class="metric-value">Community satisfaction you already know</div>
           <p class="metric-note">Great for quick comparisons.</p>
         </div>
       </div>
@@ -107,7 +107,7 @@
       <div class="recommendations-header">
         <div>
           <h2>Recommended for you</h2>
-          <p class="section-subtitle" id="recommendations-context">Based on Satisfaction Score with a popularity nudge</p>
+          <p class="section-subtitle" id="recommendations-context">Retention-first picks blended with MAL satisfaction for more dependable recommendations.</p>
         </div>
       </div>
       <div class="recommendations-grid" id="recommendations-grid">
@@ -117,13 +117,13 @@
 
     <section class="rankings-section" id="rankings-section">
       <div class="ranking-card" id="ranking-card-1">
-        <h3 id="ranking-title-1">Top Satisfaction</h3>
+        <h3 id="ranking-title-1">Top Retention</h3>
         <div id="best-ranking-1">
           <!-- Populated by JS -->
         </div>
       </div>
       <div class="ranking-card" id="ranking-card-2">
-        <h3 id="ranking-title-2">Most Popular</h3>
+        <h3 id="ranking-title-2">Highest Satisfaction (MAL)</h3>
         <div id="best-ranking-2">
           <!-- Populated by JS -->
         </div>
@@ -134,7 +134,7 @@
       <div class="section-header">
         <div>
           <h2>Browse the catalog</h2>
-          <p class="section-subtitle">Sort by Satisfaction or Popularity to match how you judge anime.</p>
+          <p class="section-subtitle">Sort by Retention or Satisfaction (MAL) to match how you judge anime.</p>
         </div>
       </div>
       <div class="anime-grid" id="anime-grid">
