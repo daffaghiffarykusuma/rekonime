@@ -7,6 +7,15 @@ const App = {
   filteredData: [],
   currentSort: 'satisfaction',
   filterPanelOpen: false,
+  currentAnimeId: null,
+  siteName: 'Rekonime',
+  basePageUrl: '',
+  defaultMeta: {
+    title: '',
+    description: '',
+    image: '',
+    url: ''
+  },
 
   // Pagination state
   gridPageSize: 24,
@@ -53,6 +62,8 @@ const App = {
       this.renderFilterPanel();
       this.render();
       this.setupEventListeners();
+      this.initSeo();
+      this.syncModalWithUrl();
     } catch (error) {
       console.error('Failed to initialize app:', error);
       this.showError('Failed to load anime data. Please check the data/anime.json file.');
@@ -108,6 +119,7 @@ const App = {
       const normalizedGenres = this.sanitizeTagList(anime?.metadata?.genres || anime?.genres || []);
       const normalizedThemes = this.sanitizeTagList(anime?.metadata?.themes || anime?.themes || []);
       const normalizedTrailer = anime?.metadata?.trailer || anime?.trailer || null;
+      const normalizedSynopsis = anime?.metadata?.synopsis || anime?.synopsis || '';
       const rawCommunityScore = anime?.metadata?.score ?? anime?.score;
       const communityScore = Number.isFinite(Number(rawCommunityScore)) ? Number(rawCommunityScore) : null;
 
@@ -127,6 +139,7 @@ const App = {
           themes: normalizedThemes,
           demographic: anime.metadata.demographic || anime.demographic,
           trailer: normalizedTrailer,
+          synopsis: normalizedSynopsis,
           communityScore: communityScore,
           episodes: anime.episodes || []
         };
@@ -146,6 +159,7 @@ const App = {
         themes: normalizedThemes,
         demographic: anime.demographic,
         trailer: normalizedTrailer,
+        synopsis: normalizedSynopsis,
         communityScore: communityScore,
         episodes: anime.episodes || []
       };
@@ -326,6 +340,10 @@ const App = {
       });
     }
 
+    window.addEventListener('popstate', () => {
+      this.syncModalWithUrl({ updateUrl: false });
+    });
+
     // Header search
     this.setupHeaderSearch();
   },
@@ -355,6 +373,303 @@ const App = {
         }
       });
     }
+  },
+
+  /**
+   * Initialize SEO metadata and structured data defaults.
+   */
+  initSeo() {
+    const currentTitle = document.title || this.siteName;
+    const currentDescription = this.getMetaContent('description');
+    const currentImage = this.getMetaContent('og:image', true);
+    const canonicalUrl = this.buildCanonicalUrl(window.location.href);
+
+    this.basePageUrl = this.getBaseUrl(canonicalUrl);
+    this.siteName = currentTitle.split(' - ')[0] || this.siteName;
+
+    this.defaultMeta = {
+      title: currentTitle,
+      description: currentDescription,
+      image: currentImage,
+      url: this.basePageUrl || canonicalUrl
+    };
+
+    this.applyMetaTags({
+      title: currentTitle,
+      description: currentDescription,
+      image: currentImage,
+      url: canonicalUrl,
+      imageAlt: 'Rekonime logo'
+    });
+
+    this.updateStructuredData({
+      title: currentTitle,
+      description: currentDescription,
+      url: canonicalUrl,
+      image: currentImage
+    });
+  },
+
+  /**
+   * Sync modal state to the current URL.
+   */
+  syncModalWithUrl({ updateUrl = true } = {}) {
+    const animeId = this.getAnimeIdFromUrl();
+    if (animeId) {
+      if (this.currentAnimeId !== animeId) {
+        this.showAnimeDetail(animeId, { updateUrl });
+      }
+      return;
+    }
+
+    if (this.currentAnimeId) {
+      this.closeDetailModal({ updateUrl });
+    }
+  },
+
+  getAnimeIdFromUrl() {
+    try {
+      const url = new URL(window.location.href);
+      const animeId = url.searchParams.get('anime');
+      return animeId ? animeId.trim() : '';
+    } catch (error) {
+      return '';
+    }
+  },
+
+  getBaseUrl(sourceUrl) {
+    try {
+      const url = new URL(sourceUrl || window.location.href);
+      url.searchParams.delete('anime');
+      return this.buildCanonicalUrl(url.toString());
+    } catch (error) {
+      return '';
+    }
+  },
+
+  buildCanonicalUrl(sourceUrl) {
+    try {
+      const url = new URL(sourceUrl || window.location.href);
+      url.hash = '';
+      return url.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
+  resolveUrl(value) {
+    if (!value) return '';
+    try {
+      return new URL(value, window.location.href).toString();
+    } catch (error) {
+      return value;
+    }
+  },
+
+  buildUrlForAnime(animeId) {
+    try {
+      const url = new URL(this.basePageUrl || window.location.href);
+      if (animeId) {
+        url.searchParams.set('anime', animeId);
+      } else {
+        url.searchParams.delete('anime');
+      }
+      return url.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
+  updateUrlForAnime(animeId, { replace = false } = {}) {
+    try {
+      const url = new URL(window.location.href);
+      const currentAnimeId = url.searchParams.get('anime');
+
+      if (animeId) {
+        if (currentAnimeId === animeId && !replace) return url.toString();
+        url.searchParams.set('anime', animeId);
+      } else {
+        if (!currentAnimeId && !replace) return url.toString();
+        url.searchParams.delete('anime');
+      }
+
+      const newUrl = url.toString();
+      const method = replace ? 'replaceState' : 'pushState';
+      window.history[method]({ animeId: animeId || null }, '', newUrl);
+      this.setCanonicalUrl(this.buildCanonicalUrl(newUrl));
+      return newUrl;
+    } catch (error) {
+      return '';
+    }
+  },
+
+  getMetaContent(key, isProperty = false) {
+    const attr = isProperty ? 'property' : 'name';
+    const tag = document.querySelector(`meta[${attr}="${key}"]`);
+    return tag ? tag.getAttribute('content') || '' : '';
+  },
+
+  setMetaContent(key, content, isProperty = false) {
+    const attr = isProperty ? 'property' : 'name';
+    let tag = document.querySelector(`meta[${attr}="${key}"]`);
+    if (!tag) {
+      tag = document.createElement('meta');
+      tag.setAttribute(attr, key);
+      document.head.appendChild(tag);
+    }
+    tag.setAttribute('content', content);
+  },
+
+  setCanonicalUrl(url) {
+    if (!url) return;
+    let tag = document.querySelector('link[rel="canonical"]');
+    if (!tag) {
+      tag = document.createElement('link');
+      tag.setAttribute('rel', 'canonical');
+      document.head.appendChild(tag);
+    }
+    tag.setAttribute('href', url);
+  },
+
+  applyMetaTags({ title, description, image, url, imageAlt } = {}) {
+    const safeTitle = title || this.defaultMeta.title || this.siteName;
+    const safeDescription = description || this.defaultMeta.description || '';
+    const safeImage = image || this.defaultMeta.image || '';
+    const safeUrl = url || this.defaultMeta.url || this.buildCanonicalUrl(window.location.href);
+    const resolvedUrl = this.resolveUrl(safeUrl);
+    const resolvedImage = this.resolveUrl(safeImage);
+    const twitterCard = resolvedImage ? 'summary_large_image' : 'summary';
+
+    if (safeTitle) {
+      document.title = safeTitle;
+      this.setMetaContent('og:title', safeTitle, true);
+      this.setMetaContent('twitter:title', safeTitle);
+    }
+
+    if (safeDescription) {
+      this.setMetaContent('description', safeDescription);
+      this.setMetaContent('og:description', safeDescription, true);
+      this.setMetaContent('twitter:description', safeDescription);
+    }
+
+    if (resolvedUrl) {
+      this.setMetaContent('og:url', resolvedUrl, true);
+      this.setCanonicalUrl(resolvedUrl);
+    }
+
+    this.setMetaContent('twitter:card', twitterCard);
+
+    if (resolvedImage) {
+      this.setMetaContent('og:image', resolvedImage, true);
+      this.setMetaContent('twitter:image', resolvedImage);
+    }
+
+    if (imageAlt) {
+      this.setMetaContent('og:image:alt', imageAlt, true);
+    }
+  },
+
+  buildMetaDescription(text) {
+    const cleaned = String(text || '')
+      .replace(/<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleaned) return '';
+    if (cleaned.length <= 160) return cleaned;
+    return `${cleaned.slice(0, 157).trim()}...`;
+  },
+
+  getSynopsisForAnime(anime) {
+    if (!anime) return '';
+    const synopsis = String(anime.synopsis || '').trim();
+    if (synopsis) return synopsis;
+    const cacheKey = anime.anilistId || anime.title;
+    return ReviewsService.getCachedDescription(cacheKey);
+  },
+
+  updateMetaForAnime(anime, descriptionOverride = '') {
+    if (!anime) {
+      this.resetMetaToDefault();
+      return;
+    }
+
+    const description = this.buildMetaDescription(descriptionOverride || anime.synopsis);
+    const title = `${anime.title} | ${this.siteName}`;
+    const url = this.buildCanonicalUrl(this.buildUrlForAnime(anime.id));
+    const image = anime.cover || this.defaultMeta.image;
+
+    this.applyMetaTags({
+      title,
+      description: description || this.defaultMeta.description,
+      image,
+      url,
+      imageAlt: anime.title
+    });
+
+    this.updateStructuredData({
+      title,
+      description: description || this.defaultMeta.description,
+      url,
+      image
+    });
+  },
+
+  resetMetaToDefault() {
+    const url = this.buildCanonicalUrl(this.basePageUrl || window.location.href);
+    this.applyMetaTags({
+      title: this.defaultMeta.title,
+      description: this.defaultMeta.description,
+      image: this.defaultMeta.image,
+      url,
+      imageAlt: 'Rekonime logo'
+    });
+
+    this.updateStructuredData({
+      title: this.defaultMeta.title,
+      description: this.defaultMeta.description,
+      url,
+      image: this.defaultMeta.image
+    });
+  },
+
+  updateStructuredData({ title, description, url, image } = {}) {
+    const script = document.getElementById('structured-data');
+    if (!script) return;
+
+    const pageUrl = url || this.buildCanonicalUrl(window.location.href);
+    const siteUrl = this.basePageUrl || this.getBaseUrl(pageUrl) || pageUrl;
+    const resolvedImage = this.resolveUrl(image);
+
+    const data = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'WebSite',
+          '@id': `${siteUrl}#website`,
+          'name': this.siteName,
+          'url': siteUrl,
+          'description': this.defaultMeta.description || description || ''
+        },
+        {
+          '@type': 'WebPage',
+          '@id': `${pageUrl}#webpage`,
+          'name': title || this.defaultMeta.title || this.siteName,
+          'url': pageUrl,
+          'description': description || this.defaultMeta.description || '',
+          'isPartOf': { '@id': `${siteUrl}#website` }
+        }
+      ]
+    };
+
+    if (resolvedImage) {
+      data['@graph'][1].primaryImageOfPage = {
+        '@type': 'ImageObject',
+        'url': resolvedImage
+      };
+    }
+
+    script.textContent = JSON.stringify(data);
   },
 
   /**
@@ -943,14 +1258,26 @@ const App = {
   /**
    * Show anime detail modal
    */
-  showAnimeDetail(animeId) {
+  showAnimeDetail(animeId, { updateUrl = true } = {}) {
     const anime = this.animeData.find(a => a.id === animeId);
-    if (!anime) return;
+    if (!anime) {
+      if (updateUrl) {
+        this.updateUrlForAnime(null, { replace: true });
+      }
+      this.resetMetaToDefault();
+      return;
+    }
 
     const modal = document.getElementById('detail-modal');
     const content = document.getElementById('detail-content');
 
     if (!modal || !content) return;
+
+    this.currentAnimeId = anime.id;
+
+    if (updateUrl) {
+      this.updateUrlForAnime(anime.id);
+    }
 
     // Build genres and themes tags
     const genreTags = anime.genres && anime.genres.length > 0
@@ -960,6 +1287,9 @@ const App = {
       ? anime.themes.map(t => `<span class="detail-tag">${t}</span>`).join('')
       : '';
 
+    const synopsis = this.getSynopsisForAnime(anime);
+    const synopsisMarkup = ReviewsService.renderSynopsis(synopsis);
+    const synopsisSection = synopsisMarkup || ReviewsService.renderSynopsisLoading();
     const trailerSection = this.renderTrailerSection(anime);
     const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
     const satisfactionScore = hasEpisodes ? Math.round(anime.stats.satisfactionScore) : null;
@@ -1045,7 +1375,7 @@ const App = {
         </div>
       `}
       <div id="synopsis-section">
-        ${ReviewsService.renderSynopsisLoading()}
+        ${synopsisSection}
       </div>
       ${trailerSection}
       <div id="community-reviews-section">
@@ -1056,23 +1386,35 @@ const App = {
     modal.classList.add('visible');
     document.body.style.overflow = 'hidden';
 
+    this.updateMetaForAnime(anime, synopsis);
+
     // Load community reviews
-    this.loadCommunityReviews(anime);
+    this.loadCommunityReviews(anime, synopsis);
   },
 
   /**
    * Load community reviews and synopsis from AniList
    */
-  async loadCommunityReviews(anime) {
+  async loadCommunityReviews(anime, fallbackSynopsis = '') {
     const reviewsSection = document.getElementById('community-reviews-section');
     const synopsisSection = document.getElementById('synopsis-section');
 
     try {
       const data = await ReviewsService.fetchReviews(anime.anilistId, anime.title);
 
+      if (this.currentAnimeId !== anime.id) {
+        return;
+      }
+
       // Update synopsis section
       if (synopsisSection) {
-        synopsisSection.innerHTML = ReviewsService.renderSynopsis(data.description);
+        if (data.description) {
+          synopsisSection.innerHTML = ReviewsService.renderSynopsis(data.description);
+        } else if (fallbackSynopsis) {
+          synopsisSection.innerHTML = ReviewsService.renderSynopsis(fallbackSynopsis);
+        } else {
+          synopsisSection.innerHTML = '';
+        }
       }
 
       // Update reviews section
@@ -1080,12 +1422,18 @@ const App = {
         reviewsSection.innerHTML = ReviewsService.renderReviewsSection(data, 'positive');
         ReviewsService.initTabSwitching(data);
       }
+
+      if (data.description) {
+        this.updateMetaForAnime(anime, data.description);
+      }
     } catch (error) {
       console.error('Failed to load reviews:', error);
 
       // Clear synopsis loading state on error
       if (synopsisSection) {
-        synopsisSection.innerHTML = '';
+        if (!fallbackSynopsis) {
+          synopsisSection.innerHTML = '';
+        }
       }
 
       if (reviewsSection) {
@@ -1194,12 +1542,20 @@ const App = {
   /**
    * Close detail modal
    */
-  closeDetailModal() {
+  closeDetailModal({ updateUrl = true } = {}) {
     const modal = document.getElementById('detail-modal');
     if (modal) {
       modal.classList.remove('visible');
       document.body.style.overflow = '';
     }
+
+    this.currentAnimeId = null;
+
+    if (updateUrl) {
+      this.updateUrlForAnime(null);
+    }
+
+    this.resetMetaToDefault();
   },
 
   /**

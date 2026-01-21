@@ -6,6 +6,8 @@ const ReviewsService = {
 
   // Cache to avoid repeated API calls
   cache: new Map(),
+  descriptionCachePrefix: 'rekonime:description:',
+  descriptionCacheTtlMs: 1000 * 60 * 60 * 24 * 30,
 
   /**
    * GraphQL query to fetch reviews and description for an anime
@@ -54,6 +56,8 @@ const ReviewsService = {
       return this.cache.get(cacheKey);
     }
 
+    const cachedDescription = this.getCachedDescription(cacheKey);
+
     try {
       const variables = anilistId ? { id: anilistId } : { search: title };
 
@@ -81,7 +85,7 @@ const ReviewsService = {
 
       const media = data.data?.Media;
       const reviews = media?.reviews?.nodes || [];
-      const description = media?.description || '';
+      const description = media?.description || cachedDescription || '';
       const categorized = this.categorizeReviews(reviews);
 
       const result = {
@@ -89,12 +93,76 @@ const ReviewsService = {
         description
       };
 
+      if (media?.description) {
+        this.setCachedDescription(cacheKey, media.description);
+      }
+
       this.cache.set(cacheKey, result);
       return result;
 
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
-      return { positive: [], neutral: [], negative: [], description: '', error: true };
+      return {
+        positive: [],
+        neutral: [],
+        negative: [],
+        description: cachedDescription || '',
+        error: true
+      };
+    }
+  },
+
+  /**
+   * Build a stable localStorage key for cached descriptions.
+   * @param {string|number} cacheKey - Anime identifier
+   * @returns {string} Storage key
+   */
+  getDescriptionCacheKey(cacheKey) {
+    if (cacheKey === null || cacheKey === undefined || cacheKey === '') return '';
+    return `${this.descriptionCachePrefix}${String(cacheKey)}`;
+  },
+
+  /**
+   * Read a cached description if available and not expired.
+   * @param {string|number} cacheKey - Anime identifier
+   * @returns {string} Cached description
+   */
+  getCachedDescription(cacheKey) {
+    const storageKey = this.getDescriptionCacheKey(cacheKey);
+    if (!storageKey || typeof localStorage === 'undefined') return '';
+
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (!stored) return '';
+      const parsed = JSON.parse(stored);
+      if (!parsed || typeof parsed.description !== 'string') return '';
+      if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+        localStorage.removeItem(storageKey);
+        return '';
+      }
+      return parsed.description;
+    } catch (error) {
+      return '';
+    }
+  },
+
+  /**
+   * Persist a description for faster synopsis loads.
+   * @param {string|number} cacheKey - Anime identifier
+   * @param {string} description - Description text
+   */
+  setCachedDescription(cacheKey, description) {
+    const storageKey = this.getDescriptionCacheKey(cacheKey);
+    if (!storageKey || typeof localStorage === 'undefined' || !description) return;
+
+    try {
+      const payload = {
+        description,
+        expiresAt: Date.now() + this.descriptionCacheTtlMs
+      };
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    } catch (error) {
+      // Ignore storage failures (private mode, quota, etc).
     }
   },
 

@@ -14,6 +14,7 @@
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
   --text-muted: #52525b;
+  --text-tertiary: #71717a;
 
   /* Accent colors */
   --accent-primary: #a1a1aa;
@@ -33,6 +34,7 @@
 
   /* Refined radius */
   --radius: 8px;
+  --radius-md: 6px;
   --radius-sm: 4px;
 
   /* Archetype Colors (refined) */
@@ -471,6 +473,7 @@ h1, h2, h3, h4 {
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1149,6 +1152,7 @@ h1, h2, h3, h4 {
   margin-bottom: 0.25rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1308,6 +1312,7 @@ h1, h2, h3, h4 {
   --text-primary: #1f1a16;
   --text-secondary: #5f544b;
   --text-muted: #8a7c70;
+  --text-tertiary: #a3988c;
   --accent-primary: #d3543b;
   --accent-secondary: #2f6f64;
   --accent-hover: #b8432c;
@@ -1319,6 +1324,7 @@ h1, h2, h3, h4 {
   --shadow: 0 12px 28px rgba(31, 26, 22, 0.08);
   --shadow-lg: 0 26px 60px rgba(31, 26, 22, 0.12);
   --radius: 18px;
+  --radius-md: 14px;
   --radius-sm: 10px;
 }
 
@@ -1805,6 +1811,7 @@ h1, h2, h3, h4 {
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
