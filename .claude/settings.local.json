@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s \"c:\\\\Users\\\\Lenovo\\\\Documents\\\\VS Code Projetcs\\\\rekonime\")",
+      "Bash(find:*)"
+    ]
+  }
+}
