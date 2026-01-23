@@ -49,20 +49,20 @@ const Recommendations = {
 
     if (!hasEpisodes) {
       if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) {
-        return 'Highly rated on MAL';
+        return 'Loved by the community';
       }
-      return 'Data still growing';
+      return 'New entry, check back soon';
     }
 
-    if (retentionScore >= 85) reasons.push('High retention');
-    if (anime?.stats?.churnRisk?.score <= 25) reasons.push('Low drop-off');
-    if (anime?.stats?.threeEpisodeHook >= 80) reasons.push('Strong start');
-    if (anime?.stats?.worthFinishing >= 70) reasons.push('Strong finish');
-    if (anime?.stats?.flowState >= 85) reasons.push('Steady pace');
-    if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) reasons.push('Highly rated on MAL');
+    if (retentionScore >= 85) reasons.push('Hard to put down');
+    if (anime?.stats?.churnRisk?.score <= 25) reasons.push('Viewers stick around');
+    if (anime?.stats?.threeEpisodeHook >= 80) reasons.push('Hooks you early');
+    if (anime?.stats?.worthFinishing >= 70) reasons.push('Worth the finale');
+    if (anime?.stats?.flowState >= 85) reasons.push('Smooth pacing');
+    if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) reasons.push('Community favorite');
 
     if (reasons.length === 0) {
-      return 'Solid watch-through';
+      return 'Reliable pick';
     }
 
     return reasons.slice(0, 2).join(' + ');
@@ -104,16 +104,16 @@ const Recommendations = {
     const hasEpisodes = Array.isArray(anime?.episodes) && anime.episodes.length > 0;
 
     if (hasEpisodes && retentionScore >= 85) {
-      badges.push({ label: 'High Retention', class: 'badge-retention' });
+      badges.push({ label: 'Keeps You Hooked', class: 'badge-retention' });
     }
     if (malSatisfactionScore !== null && malSatisfactionScore >= 8.5) {
-      badges.push({ label: 'Highly Rated (MAL)', class: 'badge-satisfaction' });
+      badges.push({ label: 'Fan Favorite', class: 'badge-satisfaction' });
     }
     if (hasEpisodes && anime?.stats?.threeEpisodeHook >= 80) {
-      badges.push({ label: 'Strong Start', class: 'badge-strong-start' });
+      badges.push({ label: 'Great First Impression', class: 'badge-strong-start' });
     }
     if (hasEpisodes && retentionScore >= 80 && (malSatisfactionScore === null || malSatisfactionScore < 7.2)) {
-      badges.push({ label: 'Hidden Gem', class: 'badge-hidden-gem' });
+      badges.push({ label: 'Underrated Pick', class: 'badge-hidden-gem' });
     }
 
     return badges.slice(0, 2);

@@ -66,7 +66,7 @@ const App = {
       this.syncModalWithUrl();
     } catch (error) {
       console.error('Failed to initialize app:', error);
-      this.showError('Failed to load anime data. Please check the data/anime.json file.');
+      this.showError('We couldn\'t load the catalog. Try refreshing—if it persists, the data might be updating.');
     }
   },
 
@@ -691,7 +691,7 @@ const App = {
       .slice(0, 8);
 
     if (matches.length === 0) {
-      dropdown.innerHTML = '<div class="search-no-results">No anime found</div>';
+      dropdown.innerHTML = '<div class="search-no-results">No matches—try a different title</div>';
       dropdown.classList.add('visible');
       return;
     }
@@ -1168,8 +1168,8 @@ const App = {
     if (sorted.length === 0) {
       container.innerHTML = `
         <div class="no-results">
-          <h3>No anime found</h3>
-          <p>Try adjusting your filters to see more results.</p>
+          <h3>No matches yet</h3>
+          <p>Try removing a filter or two—there might be a hidden gem waiting.</p>
         </div>
       `;
       return;

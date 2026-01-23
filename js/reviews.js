@@ -281,7 +281,7 @@ const ReviewsService = {
         <div class="reviews-container" id="reviews-container">
           ${activeReviews.length > 0
             ? activeReviews.map(r => this.renderReviewCard(r)).join('')
-            : '<p class="no-reviews">No reviews yet</p>'
+            : '<p class="no-reviews">No community reviews yet—be the first on AniList!</p>'
           }
         </div>
         <p class="reviews-attribution">
@@ -374,7 +374,7 @@ const ReviewsService = {
         const reviews = categorizedReviews[sentiment] || [];
         container.innerHTML = reviews.length > 0
           ? reviews.map(r => this.renderReviewCard(r)).join('')
-          : '<p class="no-reviews">No reviews yet</p>';
+          : '<p class="no-reviews">No community reviews yet—be the first on AniList!</p>';
       });
     });
   }

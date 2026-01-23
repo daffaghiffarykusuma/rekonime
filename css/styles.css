@@ -2,51 +2,7 @@
    Anime Scoring Dashboard - Styles
    ========================================== */
 
-/* CSS Variables - Minimalist Dark */
-:root {
-  /* Deep, rich backgrounds */
-  --bg-primary: #09090b;
-  --bg-secondary: #18181b;
-  --bg-tertiary: #27272a;
-  --card-bg: #18181b;
-
-  /* Text hierarchy */
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
-  --text-tertiary: #71717a;
-
-  /* Accent colors */
-  --accent-primary: #a1a1aa;
-  --accent-secondary: #71717a;
-  --accent-hover: #f4f4f5;
-  --accent-brand: #e4e4e7;
-
-  /* Semantic colors */
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --error: #f87171;
-
-  /* UI elements */
-  --border-color: #27272a;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.4);
-
-  /* Refined radius */
-  --radius: 8px;
-  --radius-md: 6px;
-  --radius-sm: 4px;
-
-  /* Archetype Colors (refined) */
-  --programmer-primary: #60a5fa;
-  --programmer-secondary: #93c5fd;
-  --completionist-primary: #fbbf24;
-  --completionist-secondary: #fcd34d;
-  --escapist-primary: #34d399;
-  --escapist-secondary: #6ee7b7;
-  --focuser-primary: #a78bfa;
-  --focuser-secondary: #c4b5fd;
-}
+/* CSS Variables defined in "Beginner-friendly UX refresh" section below */
 
 /* Reset & Base */
 *, *::before, *::after {
@@ -898,18 +854,18 @@ h1, h2, h3, h4 {
 }
 
 .review-tab.active[data-sentiment="positive"] {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .review-tab.active[data-sentiment="neutral"] {
-  background: rgba(234, 179, 8, 0.2);
-  color: #eab308;
+  background: var(--warning-bg);
+  color: var(--warning);
 }
 
 .review-tab.active[data-sentiment="negative"] {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--error-bg);
+  color: var(--error);
 }
 
 .tab-count {
@@ -982,18 +938,18 @@ h1, h2, h3, h4 {
 }
 
 .review-score.positive {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .review-score.neutral {
-  background: rgba(234, 179, 8, 0.2);
-  color: #eab308;
+  background: var(--warning-bg);
+  color: var(--warning);
 }
 
 .review-score.negative {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--error-bg);
+  color: var(--error);
 }
 
 .review-content {
@@ -1326,6 +1282,11 @@ h1, h2, h3, h4 {
   --radius: 18px;
   --radius-md: 14px;
   --radius-sm: 10px;
+
+  /* Semantic background colors */
+  --success-bg: rgba(47, 111, 100, 0.15);
+  --warning-bg: rgba(209, 154, 43, 0.15);
+  --error-bg: rgba(192, 73, 59, 0.15);
 }
 
 body {
