@@ -185,7 +185,8 @@ class MALScraper:
         Fetch full anime metadata from Jikan API.
 
         Returns dict with: title, cover, year, season, studio, source,
-                          genres, themes, demographic, anilistId (if available)
+                          genres, themes, demographic, type, title_english,
+                          title_japanese, anilistId (if available)
         """
         data = self._fetch_jikan(f"/anime/{anime_id}/full")
 
@@ -214,6 +215,8 @@ class MALScraper:
 
         # Create ID slug from title
         title = anime.get("title", "")
+        title_english = anime.get("title_english") or ""
+        title_japanese = anime.get("title_japanese") or ""
         id_slug = self._create_slug(title)
 
         trailer = self._normalize_jikan_trailer(anime.get("trailer") or {})
@@ -221,8 +224,11 @@ class MALScraper:
         return {
             "id": id_slug,
             "title": title,
+            "title_english": title_english,
+            "title_japanese": title_japanese,
             "malId": anime_id,
             "cover": anime.get("images", {}).get("jpg", {}).get("large_image_url", ""),
+            "type": anime.get("type", ""),
             "year": year,
             "season": season,
             "studio": studio,
@@ -628,6 +634,11 @@ class MALScraper:
         if fetch_metadata:
             metadata = self.get_anime_metadata(anime_id)
             if metadata:
+                if metadata.get("type") and metadata.get("type") != "TV":
+                    self._log(f"Skipping non-TV type: {metadata.get('type')}")
+                    result["metadata"] = metadata
+                    result["scrape_errors"].append("Non-TV type skipped")
+                    return result
                 jikan_trailer = metadata.get("trailer")
                 # Also fetch AniList ID
                 anilist_id = self.get_anilist_id(anime_id)
@@ -698,12 +709,17 @@ class MALScraper:
             return None
 
         meta = scrape_result["metadata"]
+        if meta.get("type") and meta.get("type") != "TV":
+            return None
 
         entry = {
             "id": meta["id"],
             "title": meta["title"],
+            "title_english": meta.get("title_english", ""),
+            "title_japanese": meta.get("title_japanese", ""),
             "malId": scrape_result["mal_id"],
             "cover": meta["cover"],
+            "type": meta.get("type", ""),
             "year": meta["year"],
             "season": meta["season"],
             "studio": meta["studio"],

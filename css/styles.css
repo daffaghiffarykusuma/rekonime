@@ -623,6 +623,32 @@ h1, h2, h3, h4 {
   margin-bottom: 0.25rem;
 }
 
+.detail-alt-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.detail-alt-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.detail-alt-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.detail-alt-value {
+  font-weight: 500;
+}
+
 .detail-year {
   color: var(--text-muted);
   margin-bottom: 1rem;
@@ -1521,6 +1547,12 @@ h1, h2, h3, h4 {
 
 .search-result-title {
   font-weight: 600;
+}
+
+.search-result-alt {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
 }
 
 .search-result-meta {

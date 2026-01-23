@@ -120,17 +120,34 @@ const App = {
       const normalizedThemes = this.sanitizeTagList(anime?.metadata?.themes || anime?.themes || []);
       const normalizedTrailer = anime?.metadata?.trailer || anime?.trailer || null;
       const normalizedSynopsis = anime?.metadata?.synopsis || anime?.synopsis || '';
+      const normalizedTitleEnglish =
+        anime?.metadata?.title_english ||
+        anime?.metadata?.titleEnglish ||
+        anime?.title_english ||
+        anime?.titleEnglish ||
+        '';
+      const normalizedTitleJapanese =
+        anime?.metadata?.title_japanese ||
+        anime?.metadata?.titleJapanese ||
+        anime?.title_japanese ||
+        anime?.titleJapanese ||
+        '';
+      const normalizedType = anime?.metadata?.type || anime?.type || '';
       const rawCommunityScore = anime?.metadata?.score ?? anime?.score;
       const communityScore = Number.isFinite(Number(rawCommunityScore)) ? Number(rawCommunityScore) : null;
 
       // If data has nested metadata structure, flatten it
       if (anime.metadata) {
+        const resolvedTitle = anime.metadata.title || anime.title;
         return {
           id: anime.metadata.id || anime.id,
-          title: anime.metadata.title || anime.title,
+          title: resolvedTitle,
+          titleEnglish: normalizedTitleEnglish,
+          titleJapanese: normalizedTitleJapanese,
           malId: anime.metadata.malId || anime.mal_id || anime.malId,
           anilistId: anime.metadata.anilistId || anime.anilistId,
           cover: anime.metadata.cover || anime.cover,
+          type: normalizedType,
           year: anime.metadata.year || anime.year,
           season: anime.metadata.season || anime.season,
           studio: anime.metadata.studio || anime.studio,
@@ -141,16 +158,21 @@ const App = {
           trailer: normalizedTrailer,
           synopsis: normalizedSynopsis,
           communityScore: communityScore,
+          searchText: this.buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
           episodes: anime.episodes || []
         };
       }
       // Already flat structure, ensure all fields exist
+      const resolvedTitle = anime.title;
       return {
         id: anime.id,
-        title: anime.title,
+        title: resolvedTitle,
+        titleEnglish: normalizedTitleEnglish,
+        titleJapanese: normalizedTitleJapanese,
         malId: anime.malId,
         anilistId: anime.anilistId,
         cover: anime.cover,
+        type: normalizedType,
         year: anime.year,
         season: anime.season,
         studio: anime.studio,
@@ -161,6 +183,7 @@ const App = {
         trailer: normalizedTrailer,
         synopsis: normalizedSynopsis,
         communityScore: communityScore,
+        searchText: this.buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
         episodes: anime.episodes || []
       };
     });
@@ -186,6 +209,21 @@ const App = {
     }
 
     return cleaned;
+  },
+
+  normalizeSearchQuery(value) {
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFKC')
+      .replace(/\s+/g, ' ')
+      .trim();
+  },
+
+  buildSearchText(title, titleEnglish, titleJapanese) {
+    const parts = [title, titleEnglish, titleJapanese]
+      .map(value => this.normalizeSearchQuery(value))
+      .filter(Boolean);
+    return parts.join(' ');
   },
 
   /**
@@ -685,9 +723,12 @@ const App = {
       return;
     }
 
-    const queryLower = query.toLowerCase();
+    const queryLower = this.normalizeSearchQuery(query);
     const matches = this.animeData
-      .filter(anime => anime.title.toLowerCase().includes(queryLower))
+      .filter(anime => {
+        const haystack = anime.searchText || this.buildSearchText(anime.title, anime.titleEnglish, anime.titleJapanese);
+        return haystack.includes(queryLower);
+      })
       .slice(0, 8);
 
     if (matches.length === 0) {
@@ -696,15 +737,25 @@ const App = {
       return;
     }
 
-    dropdown.innerHTML = matches.map(anime => `
+    dropdown.innerHTML = matches.map(anime => {
+      const altTitles = [anime.titleEnglish, anime.titleJapanese]
+        .map(value => String(value || '').trim())
+        .filter(Boolean)
+        .filter(value => value.toLowerCase() !== anime.title.toLowerCase());
+      const altTitleMarkup = altTitles.length
+        ? `<div class="search-result-alt">${altTitles.join(' • ')}</div>`
+        : '';
+      return `
       <div class="search-result-item" data-id="${anime.id}">
         <img src="${anime.cover}" alt="${anime.title}" class="search-result-cover" onerror="this.src='https://via.placeholder.com/40x56?text=No'">
         <div class="search-result-info">
           <div class="search-result-title">${anime.title}</div>
+          ${altTitleMarkup}
           <div class="search-result-meta">${anime.year} &bull; ${anime.studio}</div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     dropdown.classList.add('visible');
 
@@ -1300,7 +1351,7 @@ const App = {
     const stayScore = hasEpisodes ? Math.round(100 - anime.stats.churnRisk.score) : null;
     const finishScore = hasEpisodes ? Math.round(anime.stats.worthFinishing) : null;
 
-    const metaParts = [anime.year, anime.studio, anime.source, anime.demographic]
+    const metaParts = [anime.type, anime.year, anime.studio, anime.source, anime.demographic]
       .map(value => {
         const label = String(value ?? '').trim();
         const normalized = label.toLowerCase();
@@ -1310,11 +1361,30 @@ const App = {
       .filter(Boolean);
     const metaHtml = metaParts.map(part => `<span>${part}</span>`).join(' &bull; ');
 
+    const altTitles = [];
+    if (anime.titleEnglish && anime.titleEnglish.toLowerCase() !== anime.title.toLowerCase()) {
+      altTitles.push({ label: 'English', value: anime.titleEnglish });
+    }
+    if (anime.titleJapanese && anime.titleJapanese.toLowerCase() !== anime.title.toLowerCase()) {
+      altTitles.push({ label: 'Japanese', value: anime.titleJapanese });
+    }
+    const altTitlesHtml = altTitles.length
+      ? `<div class="detail-alt-titles">
+          ${altTitles.map(item => `
+            <div class="detail-alt-title">
+              <span class="detail-alt-label">${item.label}</span>
+              <span class="detail-alt-value">${item.value}</span>
+            </div>
+          `).join('')}
+        </div>`
+      : '';
+
     content.innerHTML = `
       <div class="detail-header">
         <img src="${anime.cover}" alt="${anime.title}" class="detail-cover" onerror="this.src='https://via.placeholder.com/150x210?text=No+Image'">
         <div class="detail-info">
           <h2 class="detail-title">${anime.title}</h2>
+          ${altTitlesHtml}
           <div class="detail-meta">
             ${metaHtml}
           </div>

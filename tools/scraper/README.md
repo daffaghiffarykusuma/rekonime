@@ -5,10 +5,11 @@ Scrapes episode poll scores from MyAnimeList episode list pages and fetches full
 ## Features
 
 - **Episode Scores**: Poll averages (1-5 scale) from MAL episode pages
-- **Full Metadata**: Title, cover image, year, season, studio, source, genres, themes, demographic
+- **Full Metadata**: Title, English/Japanese titles, type, cover image, year, season, studio, source, genres, themes, demographic
 - **AniList ID Lookup**: Automatically fetches AniList ID for each anime (used for reviews/descriptions)
 - **Trailers**: YouTube trailer links from AniList with Jikan fallback, verified for embeddability
 - **Database-Ready Output**: Use `--format-db` to get output matching `anime.json` format
+- **TV-only Output**: Non-TV entries are skipped to keep retention metrics consistent
 
 ## Prerequisites
 
