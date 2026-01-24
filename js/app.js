@@ -60,6 +60,7 @@ const App = {
       this.updateSortOptions();
 
       this.renderFilterPanel();
+      this.renderQuickFilters();
       this.render();
       this.setupEventListeners();
       this.initSeo();
@@ -834,6 +835,42 @@ const App = {
   },
 
   /**
+   * Render quick filter chips (genre & theme)
+   */
+  renderQuickFilters() {
+    const genreContainer = document.getElementById('genre-chips');
+    const themeContainer = document.getElementById('theme-chips');
+
+    if (genreContainer && this.filterOptions.genres) {
+      genreContainer.innerHTML = this.filterOptions.genres.map(genre => {
+        const isActive = this.activeFilters.genres.includes(genre);
+        return `
+          <button class="quick-chip ${isActive ? 'active' : ''}"
+                  data-filter-type="genres"
+                  data-filter-value="${genre}"
+                  onclick="App.toggleFilter('genres', '${genre.replace(/'/g, "\\'")}')">
+            ${genre}
+          </button>
+        `;
+      }).join('');
+    }
+
+    if (themeContainer && this.filterOptions.themes) {
+      themeContainer.innerHTML = this.filterOptions.themes.map(theme => {
+        const isActive = this.activeFilters.themes.includes(theme);
+        return `
+          <button class="quick-chip ${isActive ? 'active' : ''}"
+                  data-filter-type="themes"
+                  data-filter-value="${theme}"
+                  onclick="App.toggleFilter('themes', '${theme.replace(/'/g, "\\'")}')">
+            ${theme}
+          </button>
+        `;
+      }).join('');
+    }
+  },
+
+  /**
    * Toggle a filter on/off
    */
   toggleFilter(type, value) {
@@ -848,6 +885,12 @@ const App = {
     const pill = document.querySelector(`.filter-pill[data-filter-type="${type}"][data-filter-value="${value}"]`);
     if (pill) {
       pill.classList.toggle('active');
+    }
+
+    // Update quick chip state
+    const chip = document.querySelector(`.quick-chip[data-filter-type="${type}"][data-filter-value="${value}"]`);
+    if (chip) {
+      chip.classList.toggle('active');
     }
 
     this.applyFilters();
@@ -867,9 +910,9 @@ const App = {
       demographic: []
     };
 
-    // Update all pills
-    document.querySelectorAll('.filter-pill.active').forEach(pill => {
-      pill.classList.remove('active');
+    // Update all pills and quick chips
+    document.querySelectorAll('.filter-pill.active, .quick-chip.active').forEach(el => {
+      el.classList.remove('active');
     });
 
     this.applyFilters();
@@ -1002,9 +1045,15 @@ const App = {
             ` : ''}
             <div class="card-stats">
               ${cardStats.map(stat => `
-                <div class="stat">
+                <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
                   <span class="stat-value ${stat.class || ''}">${stat.value}${stat.suffix || ''}</span>
                   <span class="stat-label">${stat.label}</span>
+                  ${stat.tooltip ? `
+                    <div class="tooltip tooltip--bottom" role="tooltip">
+                      <div class="tooltip-title">${stat.tooltip.title}</div>
+                      <div class="tooltip-text">${stat.tooltip.text}</div>
+                    </div>
+                  ` : ''}
                 </div>
               `).join('')}
             </div>
@@ -1392,20 +1441,27 @@ const App = {
             ${genreTags}${themeTags}
           </div>
           <div class="detail-stats">
-            <div class="detail-stat">
+            <div class="detail-stat has-tooltip" tabindex="0">
               <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
               <span class="detail-stat-label">Retention Score</span>
+              <div class="tooltip" role="tooltip">
+                <div class="tooltip-title">Retention Score</div>
+                <div class="tooltip-text">How consistently people keep watching across episodes. Factors in strong starts, low drop-off, and steady pacing.</div>
+              </div>
             </div>
-            <div class="detail-stat">
+            <div class="detail-stat has-tooltip" tabindex="0">
               <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
               <span class="detail-stat-label">Satisfaction (MAL)</span>
+              <div class="tooltip" role="tooltip">
+                <div class="tooltip-title">Satisfaction Score</div>
+                <div class="tooltip-text">Community rating from MyAnimeList.</div>
+              </div>
             </div>
             <div class="detail-stat">
               <span class="detail-stat-value">${anime.stats.episodeCount || 'N/A'}</span>
               <span class="detail-stat-label">Episodes</span>
             </div>
           </div>
-          <p class="detail-hint">Retention Score reflects how consistently people keep watching across episodes. Satisfaction (MAL) reflects community ratings.</p>
         </div>
       </div>
       ${hasEpisodes ? `
@@ -1415,21 +1471,39 @@ const App = {
             <span class="detail-section-note">Start, stay, finish</span>
           </div>
           <div class="breakdown-row">
-            <span class="breakdown-label">Strong start</span>
+            <span class="breakdown-label has-tooltip" tabindex="0">
+              Strong start
+              <div class="tooltip tooltip--bottom" role="tooltip">
+                <div class="tooltip-title">Strong Start</div>
+                <div class="tooltip-text">How compelling the first 3 episodes are. High scores mean the show hooks viewers early.</div>
+              </div>
+            </span>
             <div class="breakdown-bar">
               <span class="breakdown-fill" style="width: ${startScore}%"></span>
             </div>
             <span class="breakdown-value">${startScore}%</span>
           </div>
           <div class="breakdown-row">
-            <span class="breakdown-label">Keeps you watching</span>
+            <span class="breakdown-label has-tooltip" tabindex="0">
+              Keeps you watching
+              <div class="tooltip tooltip--bottom" role="tooltip">
+                <div class="tooltip-title">Keeps You Watching</div>
+                <div class="tooltip-text">Low drop-off probability. Measures how likely viewers are to continue without losing interest.</div>
+              </div>
+            </span>
             <div class="breakdown-bar">
               <span class="breakdown-fill" style="width: ${stayScore}%"></span>
             </div>
             <span class="breakdown-value">${stayScore}%</span>
           </div>
           <div class="breakdown-row">
-            <span class="breakdown-label">Finish payoff</span>
+            <span class="breakdown-label has-tooltip" tabindex="0">
+              Finish payoff
+              <div class="tooltip tooltip--bottom" role="tooltip">
+                <div class="tooltip-title">Finish Payoff</div>
+                <div class="tooltip-text">How well the show sticks the landing. Combines finale strength, momentum, and narrative build-up.</div>
+              </div>
+            </span>
             <div class="breakdown-bar">
               <span class="breakdown-fill" style="width: ${finishScore}%"></span>
             </div>

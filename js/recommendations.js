@@ -135,19 +135,28 @@ const Recommendations = {
         label: 'Retention',
         value: retentionScore !== null ? retentionScore : 'N/A',
         suffix: retentionScore !== null ? '%' : '',
-        class: this.getRetentionClass(retentionScore)
+        class: this.getRetentionClass(retentionScore),
+        tooltip: {
+          title: 'Retention Score',
+          text: 'How consistently people keep watching across episodes.'
+        }
       },
       {
         label: 'Satisfaction (MAL)',
         value: malSatisfactionScore !== null ? malSatisfactionScore.toFixed(1) : 'N/A',
         suffix: malSatisfactionScore !== null ? '/10' : '',
-        class: this.getMalSatisfactionClass(malSatisfactionScore)
+        class: this.getMalSatisfactionClass(malSatisfactionScore),
+        tooltip: {
+          title: 'Satisfaction Score',
+          text: 'Community rating from MyAnimeList.'
+        }
       },
       {
         label: 'Episodes',
         value: episodeCount || 'N/A',
         suffix: '',
-        class: ''
+        class: '',
+        tooltip: null
       }
     ];
   },
