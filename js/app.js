@@ -231,9 +231,11 @@ const App = {
    * Calculate statistics for all anime
    */
   calculateAllStats() {
+    const scoreProfile = Stats.buildScoreProfile(this.animeData);
+    this.scoreProfile = scoreProfile;
     this.animeData = this.animeData.map((anime, index) => ({
       ...anime,
-      stats: Stats.calculateAllStats(anime),
+      stats: Stats.calculateAllStats(anime, scoreProfile),
       colorIndex: index
     }));
   },

@@ -38,7 +38,7 @@ const Charts = {
       // Retention metrics
       threeEpisodeHook: { key: 'threeEpisodeHook', label: 'Hook Strength', max: 100, suffix: '%', lowerIsBetter: false },
       churnRisk: { key: 'churnRisk', label: 'Drop Risk', max: 100, suffix: '%', lowerIsBetter: true, isObject: true, valueKey: 'score' },
-      habitBreakRisk: { key: 'habitBreakRisk', label: 'Habit Break Risk', max: 10, suffix: ' eps', lowerIsBetter: true },
+      habitBreakRisk: { key: 'habitBreakRisk', label: 'Habit Break Risk', max: 10, suffix: ' /10 eps', lowerIsBetter: true },
       momentum: { key: 'momentum', label: 'Momentum', max: 100, suffix: '', lowerIsBetter: false, allowNegative: true },
       narrativeAcceleration: { key: 'narrativeAcceleration', label: 'Story Acceleration', max: 1, suffix: '', lowerIsBetter: false, allowNegative: true },
       flowState: { key: 'flowState', label: 'Flow State', max: 100, suffix: '%', lowerIsBetter: false },
@@ -54,7 +54,7 @@ const Charts = {
       worthFinishing: { key: 'worthFinishing', label: 'Completion Score', max: 100, suffix: '%', lowerIsBetter: false },
       comfort: { key: 'comfortScore', label: 'Relaxation Score', max: 100, suffix: '%', lowerIsBetter: false },
       emotionalStability: { key: 'emotionalStability', label: 'Emotional Stability', max: 100, suffix: '%', lowerIsBetter: false },
-      stressSpikes: { key: 'stressSpikes', label: 'Stress Spikes', max: 10, suffix: '', lowerIsBetter: true },
+      stressSpikes: { key: 'stressSpikes', label: 'Stress Spikes', max: 10, suffix: ' /10 eps', lowerIsBetter: true },
       productionQuality: { key: 'productionQualityIndex', label: 'Quality Score', max: 100, suffix: '%', lowerIsBetter: false },
       improving: { key: 'qualityTrend', label: 'Quality Trend', max: 1, suffix: '', lowerIsBetter: false, isObject: true, valueKey: 'slope' },
       qualityDips: { key: 'qualityDips', label: 'Quality Dips', max: 10, suffix: '', lowerIsBetter: true, isObject: true, valueKey: 'length' },
@@ -103,8 +103,8 @@ const Charts = {
     const descriptions = {
       // Retention metrics
       threeEpisodeHook: 'Measures opening strength - average score of first 3 episodes normalized with a strict curve',
-      churnRisk: 'Probability of dropping the show based on opening strength, quality slumps, recent trends, and baseline quality penalty',
-      habitBreakRisk: 'Longest chain of consecutive episodes below the series median score',
+      churnRisk: 'Probability of dropping based on quality slumps, recent dips, and baseline quality penalty',
+      habitBreakRisk: 'Longest chain of consecutive episodes below the series median, scaled per 10 episodes',
       momentum: 'Compares last 3 episodes to overall average. Positive = building momentum',
       narrativeAcceleration: 'Story pacing in second half. Positive slope = building to climax',
       flowState: 'Viewing smoothness - higher means fewer jarring quality changes between episodes',
@@ -113,14 +113,14 @@ const Charts = {
       sharkJump: 'Episode where quality permanently dropped by >0.8 point',
 
       // Engagement metrics
-      reliability: 'Hook Strength (35%) + Session Safety (35%) + Low Drop Risk (20%) + Habit Safety (10%)',
+      reliability: 'Hook Strength (scaled for long series) + Session Safety + Low Drop Risk + Habit Safety',
       sessionSafety: 'Blends safe-episode ratio with overall quality for stricter session safety',
       peakEpisodes: 'Number of episodes with perfect 5/5 score',
       finaleStrength: 'Compares final 25% of episodes to earlier parts. 50% = neutral',
       worthFinishing: 'Finale Strength (50%) + Momentum (30%) + Narrative Acceleration (20%)',
       comfort: 'Flow State (40%) + Emotional Stability (30%) + Entry Ease (20%) + Low Stress Spikes (10%)',
       emotionalStability: 'Smoothness of episode-to-episode score changes',
-      stressSpikes: 'Number of episodes with 1.5+ point drop from previous episode',
+      stressSpikes: 'Rate of 1.5+ point drops between episodes, per 10 episodes',
       productionQuality: 'Average (35%) + Consistency (15%) + Trend (20%) + Hook (15%) + Low Drop Risk (15%) - dip penalties',
       improving: 'Linear regression slope of all episode scores. Positive = improving',
       qualityDips: 'Episodes scoring more than 0.8 below the series average',
@@ -129,7 +129,7 @@ const Charts = {
       average: 'Mean score across all episodes',
       auc: 'Total score normalized against a perfect run with a strict curve',
       consistency: 'Standard deviation of scores - lower means more consistent',
-      retention: 'Retention-based blend of strong opening, low drop-off risk, momentum, and steady pacing',
+      retention: 'Retention blend with a lighter opening weight for long series and slow-burn boosts',
       satisfaction: 'Community satisfaction score from MyAnimeList (MAL)'
     };
     return descriptions[sortKey] || '';
@@ -142,12 +142,12 @@ const Charts = {
    */
   getMetricDefinition(profile) {
     const definitions = {
-      programmer: 'Hook Strength (35%) + Session Safety (35%) + Low Drop Risk (20%) + Habit Safety (10%)',
+      programmer: 'Hook Strength (scaled for long series) + Session Safety + Low Drop Risk + Habit Safety',
       completionist: 'Finale Strength (50%) + Momentum (30%) + Narrative Acceleration (20%)',
       escapist: 'Flow State (40%) + Emotional Stability (30%) + Entry Ease (20%) + Low Stress Spikes (10%)',
       focuser: 'Average (35%) + Consistency (15%) + Trend (20%) + Hook (15%) + Low Drop Risk (15%) - dip penalties'
     };
-    return definitions[profile] || 'Strong opening (35%) + low drop-off risk (30%) + momentum (20%) + steady pacing (15%)';
+    return definitions[profile] || 'Opening weight scales down for long series; strong finales soften early penalties';
   },
 
   /**

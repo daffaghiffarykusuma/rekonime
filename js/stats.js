@@ -4,6 +4,129 @@
 
 const Stats = {
   strictnessExponent: 1.35,
+  defaultScoreProfile: { p35: 3.2, p50: 3.6, p65: 4.0 },
+
+  /**
+   * Build a score profile from a list of anime (per-user catalog baseline)
+   * @param {Array} animeList - Array of anime objects
+   * @returns {Object} Score profile with p35/p50/p65
+   */
+  buildScoreProfile(animeList = []) {
+    const scores = [];
+    if (!Array.isArray(animeList)) {
+      return this.buildScoreProfileFromScores(scores);
+    }
+
+    for (const anime of animeList) {
+      const episodes = anime?.episodes;
+      if (!Array.isArray(episodes)) continue;
+      for (const ep of episodes) {
+        const score = Number(ep?.score);
+        if (Number.isFinite(score)) scores.push(score);
+      }
+    }
+
+    return this.buildScoreProfileFromScores(scores);
+  },
+
+  /**
+   * Build a score profile from raw scores
+   * @param {Array} scores - Numeric scores
+   * @returns {Object} Score profile with p35/p50/p65
+   */
+  buildScoreProfileFromScores(scores = []) {
+    const values = Array.isArray(scores)
+      ? scores.map(Number).filter(value => Number.isFinite(value))
+      : [];
+    const fallback = { ...this.defaultScoreProfile, sampleSize: values.length, source: 'default' };
+    if (values.length < 5) {
+      return fallback;
+    }
+
+    const p35 = this.calculatePercentile(values, 35);
+    const p50 = this.calculatePercentile(values, 50);
+    const p65 = this.calculatePercentile(values, 65);
+    const round2 = (value) => Math.round(value * 100) / 100;
+
+    return this.resolveScoreProfile({
+      p35: round2(this.clamp(p35, 1, 5)),
+      p50: round2(this.clamp(p50, 1, 5)),
+      p65: round2(this.clamp(p65, 1, 5)),
+      sampleSize: values.length,
+      source: 'derived'
+    });
+  },
+
+  /**
+   * Calculate a percentile with linear interpolation
+   * @param {Array} values - Numeric values
+   * @param {number} percentile - Percentile (0-100)
+   * @returns {number} Percentile value
+   */
+  calculatePercentile(values, percentile) {
+    if (!Array.isArray(values) || values.length === 0) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const rank = (percentile / 100) * (sorted.length - 1);
+    const lower = Math.floor(rank);
+    const upper = Math.ceil(rank);
+    if (lower === upper) return sorted[lower];
+    const weight = rank - lower;
+    return sorted[lower] + (sorted[upper] - sorted[lower]) * weight;
+  },
+
+  /**
+   * Normalize or fallback a score profile
+   * @param {Object} profile - Score profile
+   * @returns {Object} Normalized score profile
+   */
+  resolveScoreProfile(profile) {
+    const fallback = this.defaultScoreProfile;
+    if (!profile || !Number.isFinite(profile.p35) || !Number.isFinite(profile.p50) || !Number.isFinite(profile.p65)) {
+      return { ...fallback };
+    }
+    const ordered = [
+      this.clamp(profile.p35, 1, 5),
+      this.clamp(profile.p50, 1, 5),
+      this.clamp(profile.p65, 1, 5)
+    ].sort((a, b) => a - b);
+
+    const normalized = {
+      p35: ordered[0],
+      p50: ordered[1],
+      p65: ordered[2]
+    };
+
+    if (Number.isFinite(profile.sampleSize)) normalized.sampleSize = profile.sampleSize;
+    if (typeof profile.source === 'string') normalized.source = profile.source;
+
+    return normalized;
+  },
+
+  /**
+   * Scale early-episode penalties for longer series
+   * @param {Array} episodes - Array of episode objects
+   * @param {number} capLength - Episode count to cap at
+   * @returns {number} Scale factor (0-1)
+   */
+  getEarlyPenaltyScale(episodes, capLength = 6) {
+    const length = Array.isArray(episodes) ? episodes.length : 0;
+    if (!length || length <= capLength) return 1;
+    return this.clamp(capLength / length, 0, 1);
+  },
+
+  /**
+   * Compute slow-burn signal from finale and momentum strength
+   * @param {Object} values - Values object
+   * @param {number} values.momentumScore - Momentum normalized to 0-100
+   * @param {number} values.finaleStrength - Finale strength (0-100)
+   * @returns {number} Signal strength (0-1)
+   */
+  getSlowBurnSignal({ momentumScore, finaleStrength } = {}) {
+    if (!Number.isFinite(momentumScore) || !Number.isFinite(finaleStrength)) return 0;
+    const finaleSignal = this.clamp((finaleStrength - 65) / 35, 0, 1);
+    const momentumSignal = this.clamp((momentumScore - 60) / 40, 0, 1);
+    return Math.max(finaleSignal, momentumSignal);
+  },
 
   /**
    * Clamp a value between min and max
@@ -147,36 +270,46 @@ const Stats = {
 
   /**
    * Calculate "Consistency Score" - retention-focused reliability
-   * Emphasizes strong openings, safe sessions, low churn risk, and habit stability
+   * Emphasizes strong openings (scaled for long series), safe sessions, low churn risk, and habit stability
    * @param {Array} episodes - Array of episode objects
    * @returns {number} Consistency score (0-100)
    */
-  calculateReliabilityScore(episodes) {
+  calculateReliabilityScore(episodes, scoreProfile) {
     if (!episodes || episodes.length === 0) return 0;
     const hook = this.calculate3EpisodeHook(episodes);
-    const safety = this.calculateSessionSafety(episodes);
-    const churnRisk = this.calculateChurnRisk(episodes).score;
-    const habitRisk = this.calculateHabitBreakRisk(episodes);
+    const safety = this.calculateSessionSafety(episodes, scoreProfile);
+    const churnRisk = this.calculateChurnRisk(episodes, scoreProfile).score;
+    const habitRiskRate = this.calculateHabitBreakRisk(episodes);
 
-    const maxChain = Math.max(3, Math.min(6, episodes.length));
-    const habitSafety = maxChain === 0
+    const earlyScale = this.getEarlyPenaltyScale(episodes);
+    const hookWeight = 0.35 * earlyScale;
+    const remainingWeight = 1 - hookWeight;
+    const otherTotal = 0.65;
+    const scaleUp = otherTotal > 0 ? (remainingWeight / otherTotal) : 0;
+
+    const maxRate = 6;
+    const habitSafety = maxRate === 0
       ? 100
-      : Math.round(this.clamp(1 - (Math.min(habitRisk, maxChain) / maxChain), 0, 1) * 100);
+      : Math.round(this.clamp(1 - (Math.min(habitRiskRate, maxRate) / maxRate), 0, 1) * 100);
 
-    const reliability = (hook * 0.35) + (safety * 0.35) + ((100 - churnRisk) * 0.2) + (habitSafety * 0.1);
+    const reliability = (hook * hookWeight)
+      + (safety * 0.35 * scaleUp)
+      + ((100 - churnRisk) * 0.2 * scaleUp)
+      + (habitSafety * 0.1 * scaleUp);
     return this.strictPercent(this.clamp(reliability, 0, 100));
   },
 
   /**
    * Calculate "Session Safety" - probability of no bad episodes
-   * Based on percentage of episodes at or above score 3
+   * Based on percentage of episodes above a percentile-based safety floor
    * @param {Array} episodes - Array of episode objects
    * @returns {number} Session safety percentage (0-100)
    */
-  calculateSessionSafety(episodes) {
+  calculateSessionSafety(episodes, scoreProfile) {
     if (!episodes || episodes.length === 0) return 0;
+    const thresholds = this.resolveScoreProfile(scoreProfile);
     const avg = this.calculateAverage(episodes);
-    const safetyFloor = this.clamp(avg - 0.4, 3.2, 4.2);
+    const safetyFloor = this.clamp(avg - 0.4, thresholds.p35, thresholds.p65);
     const belowThreshold = episodes.filter(e => e.score < safetyFloor).length;
     const safetyRatio = 1 - (belowThreshold / episodes.length);
     const qualityRatio = this.normalizeScore(avg);
@@ -217,10 +350,10 @@ const Stats = {
 
   /**
    * Calculate "Habit Break Risk"
-   * Longest chain of consecutive episodes below series median
+   * Longest chain of consecutive episodes below series median (per 10 eps)
    * High value = more likely to break weekly watching habit
    * @param {Array} episodes - Array of episode objects
-   * @returns {number} Longest below-median chain length
+   * @returns {number} Risk rate per 10 episodes (0-10)
    */
   calculateHabitBreakRisk(episodes) {
     if (!episodes || episodes.length < 2) return 0;
@@ -238,7 +371,8 @@ const Stats = {
       }
     }
 
-    return maxChain;
+    const rate = (maxChain / episodes.length) * 10;
+    return Math.round(rate * 10) / 10;
   },
 
   // ======================================
@@ -377,20 +511,20 @@ const Stats = {
     const flowState = this.calculateFlowState(episodes);
     const emotionalStability = this.calculateEmotionalStability(episodes);
     const barrierToEntry = this.calculateBarrierToEntry(episodes);
-    const stressSpikes = this.countStressSpikes(episodes);
+    const stressSpikeRate = this.countStressSpikes(episodes);
 
     const barrierScore = 100 - this.clamp((Math.min(barrierToEntry, 2) / 2) * 100, 0, 100);
-    const stressScore = 100 - this.clamp((Math.min(stressSpikes, 5) / 5) * 100, 0, 100);
+    const stressScore = 100 - this.clamp((Math.min(stressSpikeRate, 5) / 5) * 100, 0, 100);
 
     const comfort = (flowState * 0.4) + (emotionalStability * 0.3) + (barrierScore * 0.2) + (stressScore * 0.1);
     return this.strictPercent(this.clamp(comfort, 0, 100));
   },
 
   /**
-   * Count "Stress Spikes" - episodes with score drops of 2+ from previous
-   * Escapists want to avoid these
+   * Count "Stress Spikes" - episodes with score drops of 1.5+ from previous
+   * Escapists want to avoid these (reported per 10 episodes)
    * @param {Array} episodes - Array of episode objects
-   * @returns {number} Number of stress spikes
+   * @returns {number} Stress spike rate per 10 episodes (0-10)
    */
   countStressSpikes(episodes) {
     if (!episodes || episodes.length < 2) return 0;
@@ -400,7 +534,8 @@ const Stats = {
         spikes++;
       }
     }
-    return spikes;
+    const rate = (spikes / episodes.length) * 10;
+    return Math.round(rate * 10) / 10;
   },
 
   /**
@@ -525,14 +660,14 @@ const Stats = {
    * @param {Array} episodes - Array of episode objects
    * @returns {number} Production quality index (0-100)
    */
-  calculateProductionQualityIndex(episodes) {
+  calculateProductionQualityIndex(episodes, scoreProfile) {
     if (!episodes || episodes.length === 0) return 0;
 
     const avg = this.calculateAverage(episodes);
     const stdDev = this.calculateStdDev(episodes);
     const trend = this.calculateQualityTrend(episodes);
     const dips = this.detectQualityDips(episodes);
-    const churnRisk = this.calculateChurnRisk(episodes).score;
+    const churnRisk = this.calculateChurnRisk(episodes, scoreProfile).score;
     const hook = this.calculate3EpisodeHook(episodes);
 
     const avgScore = (avg / 5) * 100;
@@ -646,34 +781,24 @@ const Stats = {
 
   /**
    * Calculate "Churn Risk" - Probability of a viewer dropping the show
-   * Based on the "3-Episode Rule" and consecutive low-quality streaks
+   * Based on consecutive low-quality streaks, recent dips, and baseline quality
    * @param {Array} episodes - Array of episode objects
+   * @param {Object} scoreProfile - Percentile thresholds for the viewer baseline
    * @returns {Object} {score: 0-100, label: string, factors: string[]}
    */
-  calculateChurnRisk(episodes) {
+  calculateChurnRisk(episodes, scoreProfile) {
     if (!episodes || episodes.length === 0) {
       return { score: 0, label: 'Unknown', factors: [] };
     }
 
+    const thresholds = this.resolveScoreProfile(scoreProfile);
     let riskScore = 0;
     const factors = [];
     const avgScore = this.calculateAverage(episodes);
 
-    // FACTOR 1: The 3-Episode Rule (Critical for initial retention)
-    if (episodes.length >= 3) {
-      const first3Avg = (episodes[0].score + episodes[1].score + episodes[2].score) / 3;
-      if (first3Avg < 3.6) {
-        riskScore += 40;
-        factors.push('Weak opening (first 3 episodes avg < 3.6)');
-      } else if (first3Avg < 4.0) {
-        riskScore += 20;
-        factors.push('Mediocre opening (first 3 episodes avg < 4.0)');
-      }
-    }
-
-    // FACTOR 2: The "Slump" (Consecutive episodes below threshold)
+    // FACTOR 1: The "Slump" (Consecutive episodes below threshold)
     const globalAvg = avgScore;
-    const dropThreshold = this.clamp(globalAvg - 0.4, 3.4, 4.2);
+    const dropThreshold = this.clamp(globalAvg - 0.4, thresholds.p35, thresholds.p65);
 
     let currentSlump = 0;
     let maxSlump = 0;
@@ -696,17 +821,17 @@ const Stats = {
       factors.push('Minor slump (2 consecutive weak episodes)');
     }
 
-    // FACTOR 3: Recent Trend (Are they leaving on a low note?)
+    // FACTOR 2: Recent Trend (Are they leaving on a low note?)
     if (episodes.length > 1) {
       const lastEp = episodes[episodes.length - 1];
       const secondLastEp = episodes[episodes.length - 2];
-      if (lastEp.score < 3.2 && secondLastEp.score < 3.2) {
+      if (lastEp.score < thresholds.p35 && secondLastEp.score < thresholds.p35) {
         riskScore += 30;
-        factors.push('Poor recent episodes (last 2 avg < 3.2)');
+        factors.push('Poor recent episodes (last 2 below p35 baseline)');
       }
     }
 
-    // FACTOR 4: Baseline quality penalty (stricter overall)
+    // FACTOR 3: Baseline quality penalty (stricter overall)
     const avgPenalty = (1 - this.normalizeScore(avgScore)) * 35;
     if (avgPenalty > 0) {
       riskScore += Math.round(avgPenalty);
@@ -736,23 +861,35 @@ const Stats = {
   /**
    * Calculate "Retention Score" - retention-based single metric
    * Blends strong openings, low drop-off risk, momentum, and steady pacing
+   * Opening weight scales down for longer series; strong finishes soften early penalties
    * @param {Array} episodes - Array of episode objects
    * @returns {number} Retention score (0-100)
    */
-  calculateRetentionScore(episodes) {
+  calculateRetentionScore(episodes, scoreProfile) {
     if (!episodes || episodes.length === 0) return 0;
 
     const hook = this.calculate3EpisodeHook(episodes);
-    const churnRisk = this.calculateChurnRisk(episodes).score;
+    const churnRisk = this.calculateChurnRisk(episodes, scoreProfile).score;
     const dropSafety = 100 - churnRisk;
     const momentum = this.calculateMomentum(episodes);
     const momentumScore = this.clamp((momentum + 100) / 2, 0, 100);
     const flowState = this.calculateFlowState(episodes);
+    const finaleStrength = this.calculateFinaleStrength(episodes);
 
-    const blended = (hook * 0.35)
-      + (dropSafety * 0.3)
-      + (momentumScore * 0.2)
-      + (flowState * 0.15);
+    const baseEarlyScale = this.getEarlyPenaltyScale(episodes);
+    const slowBurnSignal = this.getSlowBurnSignal({ momentumScore, finaleStrength });
+    const slowBurnLift = slowBurnSignal * 0.35;
+    const earlyScale = this.clamp(baseEarlyScale + ((1 - baseEarlyScale) * slowBurnLift), 0, 1);
+
+    const hookWeight = 0.35 * earlyScale;
+    const remainingWeight = 1 - hookWeight;
+    const otherTotal = 0.65;
+    const scaleUp = otherTotal > 0 ? (remainingWeight / otherTotal) : 0;
+
+    const blended = (hook * hookWeight)
+      + (dropSafety * 0.3 * scaleUp)
+      + (momentumScore * 0.2 * scaleUp)
+      + (flowState * 0.15 * scaleUp);
 
     return this.strictPercent(this.clamp(blended, 0, 100));
   },
@@ -762,14 +899,19 @@ const Stats = {
    * @param {Object} anime - Anime object with episodes array
    * @returns {Object} Object containing all calculated statistics
    */
-  calculateAllStats(anime) {
+  calculateAllStats(anime, scoreProfile) {
     const episodes = anime.episodes || [];
+    const profile = this.resolveScoreProfile(scoreProfile);
     const avg = this.calculateAverage(episodes);
     const stdDev = this.calculateStdDev(episodes);
     const auc = this.calculateAUC(episodes);
     const consistency = this.getConsistencyRating(stdDev);
     const scoreClass = this.getScoreColorClass(avg);
-    const retentionScore = this.calculateRetentionScore(episodes);
+    const retentionScore = this.calculateRetentionScore(episodes, profile);
+    const momentum = this.calculateMomentum(episodes);
+    const momentumScore = this.clamp((momentum + 100) / 2, 0, 100);
+    const finaleStrength = this.calculateFinaleStrength(episodes);
+    const slowBurnSignal = this.getSlowBurnSignal({ momentumScore, finaleStrength });
     const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
 
     return {
@@ -786,8 +928,8 @@ const Stats = {
       malSatisfactionScore: malSatisfactionScore,
 
       // Weekly Watcher archetype metrics
-      reliabilityScore: this.calculateReliabilityScore(episodes),
-      sessionSafety: this.calculateSessionSafety(episodes),
+      reliabilityScore: this.calculateReliabilityScore(episodes, profile),
+      sessionSafety: this.calculateSessionSafety(episodes, profile),
 
       // Weekly Watcher retention metrics
       threeEpisodeHook: this.calculate3EpisodeHook(episodes),
@@ -795,12 +937,12 @@ const Stats = {
 
       // Completionist archetype metrics
       peakScore: this.calculatePeakScore(episodes),
-      finaleStrength: this.calculateFinaleStrength(episodes),
+      finaleStrength: finaleStrength,
       worthFinishing: this.calculateWorthFinishing(episodes),
       peakEpisodeCount: this.countPeakEpisodes(episodes),
 
       // Completionist retention metrics
-      momentum: this.calculateMomentum(episodes),
+      momentum: momentum,
       narrativeAcceleration: this.calculateNarrativeAcceleration(episodes),
 
       // Casual Viewer archetype metrics
@@ -815,7 +957,7 @@ const Stats = {
       // Deep Diver archetype metrics
       qualityTrend: this.calculateQualityTrend(episodes),
       qualityDips: this.detectQualityDips(episodes),
-      productionQualityIndex: this.calculateProductionQualityIndex(episodes),
+      productionQualityIndex: this.calculateProductionQualityIndex(episodes, profile),
       rollingAverage: this.calculateRollingAverage(episodes),
 
       // Deep Diver retention metrics
@@ -823,7 +965,15 @@ const Stats = {
       sharkJump: this.detectSharkJump(episodes),
 
       // Universal retention metric
-      churnRisk: this.calculateChurnRisk(episodes)
+      churnRisk: this.calculateChurnRisk(episodes, profile),
+
+      // Slow-burn indicator
+      slowBurn: {
+        signal: Math.round(slowBurnSignal * 100) / 100,
+        isActive: slowBurnSignal > 0,
+        momentumScore: Math.round(momentumScore),
+        finaleStrength: Math.round(finaleStrength)
+      }
     };
   },
 
