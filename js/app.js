@@ -1358,6 +1358,71 @@ const App = {
   },
 
   /**
+   * Render similar anime section for the detail modal
+   * @param {Object} anime - Current anime
+   * @returns {string} HTML string
+   */
+  renderSimilarAnimeSection(anime) {
+    const similarResults = Recommendations.getSimilarAnime(this.animeData, anime, 6);
+    const hasGenres = Array.isArray(anime?.genres) && anime.genres.length > 0;
+    const hasThemes = Array.isArray(anime?.themes) && anime.themes.length > 0;
+    const canMatch = hasGenres && hasThemes;
+
+    const formatTags = (tags, max = 2) => {
+      if (!Array.isArray(tags) || tags.length === 0) return 'None';
+      const trimmed = tags.slice(0, max);
+      const extra = tags.length - trimmed.length;
+      return extra > 0 ? `${trimmed.join(', ')} +${extra}` : trimmed.join(', ');
+    };
+
+    const emptyMessage = canMatch
+      ? 'No similar anime found yet.'
+      : 'Similar anime needs both genre and theme tags for this title.';
+
+    return `
+      <div class="similar-anime">
+        <div class="detail-section-header">
+          <h3>Similar Anime</h3>
+          <span class="detail-section-note">Shared genre + theme, aligned retention and satisfaction</span>
+        </div>
+        ${similarResults.length > 0 ? `
+          <div class="similar-grid">
+            ${similarResults.map(result => {
+              const similar = result.anime;
+              const hasEpisodes = Array.isArray(similar.episodes) && similar.episodes.length > 0;
+              const retentionScore = hasEpisodes ? Math.round(similar.stats.retentionScore) : null;
+              const satisfactionScore = Number.isFinite(similar.communityScore) ? similar.communityScore : null;
+              const retentionClass = Recommendations.getRetentionClass(retentionScore);
+              const satisfactionClass = Recommendations.getMalSatisfactionClass(satisfactionScore);
+              const sharedGenres = formatTags(result.sharedGenres);
+              const sharedThemes = formatTags(result.sharedThemes);
+
+              return `
+                <div class="similar-card" onclick="App.showAnimeDetail('${similar.id}')">
+                  <img src="${similar.cover}" alt="${similar.title}" class="similar-cover" onerror="this.src='https://via.placeholder.com/200x140?text=No+Image'">
+                  <div class="similar-info">
+                    <div class="similar-title">${similar.title}</div>
+                    <div class="similar-tags">
+                      <span class="similar-tag">Genres: ${sharedGenres}</span>
+                      <span class="similar-tag">Themes: ${sharedThemes}</span>
+                    </div>
+                    <div class="similar-stats">
+                      <span class="similar-stat ${retentionClass}">Retention ${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
+                      <span class="similar-stat ${satisfactionClass}">Satisfaction (MAL) ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : `
+          <p class="similar-empty">${emptyMessage}</p>
+        `}
+      </div>
+    `;
+  },
+
+  /**
    * Show anime detail modal
    */
   showAnimeDetail(animeId, { updateUrl = true } = {}) {
@@ -1372,6 +1437,7 @@ const App = {
 
     const modal = document.getElementById('detail-modal');
     const content = document.getElementById('detail-content');
+    const modalContent = modal ? modal.querySelector('.modal-content') : null;
 
     if (!modal || !content) return;
 
@@ -1429,6 +1495,7 @@ const App = {
           `).join('')}
         </div>`
       : '';
+    const similarSection = this.renderSimilarAnimeSection(anime);
 
     content.innerHTML = `
       <div class="detail-header">
@@ -1527,7 +1594,15 @@ const App = {
       <div id="community-reviews-section">
         ${ReviewsService.renderLoading()}
       </div>
+      <div id="similar-anime-section">
+        ${similarSection}
+      </div>
     `;
+
+    if (modalContent) {
+      modalContent.scrollTop = 0;
+    }
+    content.scrollTop = 0;
 
     modal.classList.add('visible');
     document.body.style.overflow = 'hidden';

@@ -25,6 +25,77 @@ const Recommendations = {
   },
 
   /**
+   * Get similar anime based on shared genres + themes and score alignment
+   * @param {Array} animeList - Array of anime objects
+   * @param {Object} currentAnime - The anime being viewed
+   * @param {number} limit - Maximum number of results
+   * @returns {Array} Array of similarity results
+   */
+  getSimilarAnime(animeList, currentAnime, limit = 6) {
+    if (!animeList || !currentAnime) return [];
+
+    const baseGenres = this.normalizeTagSet(currentAnime.genres);
+    const baseThemes = this.normalizeTagSet(currentAnime.themes);
+
+    if (baseGenres.size === 0 || baseThemes.size === 0) {
+      return [];
+    }
+
+    const baseRetention = this.getRetentionScore(currentAnime);
+    const baseSatisfaction = this.getMalScore(currentAnime);
+
+    const scored = animeList
+      .filter(anime => anime && anime.id !== currentAnime.id)
+      .map(anime => {
+        const sharedGenres = this.getSharedTags(baseGenres, anime.genres);
+        const sharedThemes = this.getSharedTags(baseThemes, anime.themes);
+
+        if (sharedGenres.length === 0 || sharedThemes.length === 0) {
+          return null;
+        }
+
+        const similarityScore = this.computeSimilarityScore(
+          baseGenres.size,
+          baseThemes.size,
+          sharedGenres.length,
+          sharedThemes.length
+        );
+
+        const retentionAlignment = this.computeAlignmentScore(
+          baseRetention,
+          this.getRetentionScore(anime),
+          100
+        );
+        const satisfactionAlignment = this.computeAlignmentScore(
+          baseSatisfaction,
+          this.getMalScore(anime),
+          10
+        );
+        const alignmentScore = this.combineAlignmentScores(
+          retentionAlignment,
+          satisfactionAlignment
+        );
+
+        const compositeScore = (similarityScore * 0.6) + (alignmentScore * 0.4);
+
+        return {
+          anime,
+          sharedGenres,
+          sharedThemes,
+          retentionAlignment,
+          satisfactionAlignment,
+          similarityScore,
+          score: compositeScore
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+
+    return scored;
+  },
+
+  /**
    * Score anime for recommendations
    * @param {Object} anime - Anime object with stats
    * @returns {number} Composite score
@@ -159,6 +230,115 @@ const Recommendations = {
         tooltip: null
       }
     ];
+  },
+
+  /**
+   * Normalize tag lists into a set of clean labels
+   * @param {Array} tags - Raw tag list
+   * @returns {Set} Unique tag labels
+   */
+  normalizeTagSet(tags) {
+    if (!Array.isArray(tags)) return new Set();
+    const set = new Set();
+    tags.forEach(tag => {
+      const label = String(tag || '').trim();
+      if (label) {
+        set.add(label);
+      }
+    });
+    return set;
+  },
+
+  /**
+   * Get shared tags between the base set and a candidate list
+   * @param {Set} baseSet - Base tag set
+   * @param {Array} candidateTags - Candidate tag list
+   * @returns {Array} Shared tag labels
+   */
+  getSharedTags(baseSet, candidateTags) {
+    if (!baseSet || baseSet.size === 0 || !Array.isArray(candidateTags)) return [];
+    const seen = new Set();
+    const shared = [];
+    candidateTags.forEach(tag => {
+      const label = String(tag || '').trim();
+      if (!label || !baseSet.has(label) || seen.has(label)) return;
+      seen.add(label);
+      shared.push(label);
+    });
+    return shared;
+  },
+
+  /**
+   * Get retention score if available
+   * @param {Object} anime - Anime object
+   * @returns {number|null} Retention score
+   */
+  getRetentionScore(anime) {
+    const hasEpisodes = Array.isArray(anime?.episodes) && anime.episodes.length > 0;
+    if (!hasEpisodes) return null;
+    const score = anime?.stats?.retentionScore;
+    return Number.isFinite(score) ? score : null;
+  },
+
+  /**
+   * Get satisfaction (MAL) score if available
+   * @param {Object} anime - Anime object
+   * @returns {number|null} MAL score
+   */
+  getMalScore(anime) {
+    const score = anime?.communityScore;
+    return Number.isFinite(score) ? score : null;
+  },
+
+  /**
+   * Compute alignment between two scores on a fixed scale
+   * @param {number|null} base - Base score
+   * @param {number|null} candidate - Candidate score
+   * @param {number} max - Max scale value
+   * @returns {number|null} Alignment score
+   */
+  computeAlignmentScore(base, candidate, max) {
+    if (!Number.isFinite(base) || !Number.isFinite(candidate) || !Number.isFinite(max) || max <= 0) {
+      return null;
+    }
+    const delta = Math.abs(base - candidate);
+    const clamped = Math.min(delta, max);
+    return 1 - (clamped / max);
+  },
+
+  /**
+   * Combine retention and satisfaction alignment into a single score
+   * @param {number|null} retentionAlignment - Alignment score for retention
+   * @param {number|null} satisfactionAlignment - Alignment score for satisfaction
+   * @returns {number} Combined alignment score
+   */
+  combineAlignmentScores(retentionAlignment, satisfactionAlignment) {
+    let score = 0;
+    let weight = 0;
+    if (Number.isFinite(retentionAlignment)) {
+      score += retentionAlignment * 0.6;
+      weight += 0.6;
+    }
+    if (Number.isFinite(satisfactionAlignment)) {
+      score += satisfactionAlignment * 0.4;
+      weight += 0.4;
+    }
+    if (weight === 0) return 0;
+    return score / weight;
+  },
+
+  /**
+   * Compute similarity score based on shared tag coverage
+   * @param {number} baseGenreCount - Number of base genres
+   * @param {number} baseThemeCount - Number of base themes
+   * @param {number} sharedGenreCount - Number of shared genres
+   * @param {number} sharedThemeCount - Number of shared themes
+   * @returns {number} Similarity score
+   */
+  computeSimilarityScore(baseGenreCount, baseThemeCount, sharedGenreCount, sharedThemeCount) {
+    const genreScore = baseGenreCount > 0 ? (sharedGenreCount / baseGenreCount) : 0;
+    const themeScore = baseThemeCount > 0 ? (sharedThemeCount / baseThemeCount) : 0;
+    return (genreScore + themeScore) / 2;
   },
 
   /**
