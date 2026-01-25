@@ -4,6 +4,36 @@
 const ReviewsService = {
   API_URL: 'https://graphql.anilist.co',
 
+  escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => {
+      switch (char) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case '\'': return '&#39;';
+        default: return char;
+      }
+    });
+  },
+
+  escapeAttr(value) {
+    return this.escapeHtml(value).replace(/`/g, '&#96;');
+  },
+
+  sanitizeUrl(rawUrl) {
+    if (!rawUrl) return '';
+    const value = String(rawUrl).trim();
+    if (!value) return '';
+    try {
+      const parsed = new URL(value, window.location.href);
+      if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+      return parsed.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
   // Cache to avoid repeated API calls
   cache: new Map(),
   descriptionCachePrefix: 'rekonime:description:',
@@ -225,25 +255,35 @@ const ReviewsService = {
    * @returns {string} HTML string
    */
   renderReviewCard(review) {
-    const scoreClass = review.score >= 70 ? 'positive' : review.score >= 50 ? 'neutral' : 'negative';
+    const numericScore = Number.isFinite(review.score) ? review.score : 0;
+    const scoreClass = numericScore >= 70 ? 'positive' : numericScore >= 50 ? 'neutral' : 'negative';
+    const scoreText = Number.isFinite(review.score) ? `${review.score}/100` : 'N/A';
+    const ratingText = Number.isFinite(review.rating) ? review.rating : 'N/A';
+    const ratingAmountText = Number.isFinite(review.ratingAmount) ? review.ratingAmount : 'N/A';
+    const safeUserName = this.escapeHtml(review.userName || 'Anonymous');
+    const safeSummary = this.escapeHtml(review.summary || '');
+    const safeBody = this.escapeHtml(review.body || '');
+    const safeDate = this.escapeHtml(review.date || '');
+    const safeAvatar = this.escapeAttr(this.sanitizeUrl(review.userAvatar));
+    const safeUrl = this.escapeAttr(this.sanitizeUrl(review.url));
 
     return `
       <div class="review-card">
         <div class="review-header">
           <div class="review-user">
-            ${review.userAvatar ? `<img src="${review.userAvatar}" alt="${review.userName}" class="review-avatar">` : ''}
-            <span class="review-username">${review.userName}</span>
+            ${safeAvatar ? `<img src="${safeAvatar}" alt="${safeUserName}" class="review-avatar" data-fallback-src="https://via.placeholder.com/40x40?text=User">` : ''}
+            <span class="review-username">${safeUserName}</span>
           </div>
-          <div class="review-score ${scoreClass}">${review.score}/100</div>
+          <div class="review-score ${scoreClass}">${scoreText}</div>
         </div>
         <div class="review-content">
-          <p class="review-summary">${review.summary || ''}</p>
-          <p class="review-body">${review.body}</p>
+          <p class="review-summary">${safeSummary}</p>
+          <p class="review-body">${safeBody}</p>
         </div>
         <div class="review-footer">
-          <span class="review-date">${review.date}</span>
-          <span class="review-helpful">${review.rating}/${review.ratingAmount} found helpful</span>
-          <a href="${review.url}" target="_blank" rel="noopener noreferrer" class="review-link">Read full review</a>
+          <span class="review-date">${safeDate}</span>
+          <span class="review-helpful">${ratingText}/${ratingAmountText} found helpful</span>
+          ${safeUrl ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="review-link">Read full review</a>` : ''}
         </div>
       </div>
     `;
@@ -311,10 +351,12 @@ const ReviewsService = {
       return '';
     }
 
+    const safeDescription = this.escapeHtml(cleanDescription);
+
     return `
       <div class="anime-synopsis">
         <h3>Synopsis</h3>
-        <p class="synopsis-text">${cleanDescription}</p>
+        <p class="synopsis-text">${safeDescription}</p>
       </div>
     `;
   },

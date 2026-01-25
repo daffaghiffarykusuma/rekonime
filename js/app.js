@@ -17,6 +17,50 @@ const App = {
     url: ''
   },
 
+  escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => {
+      switch (char) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case '\'': return '&#39;';
+        default: return char;
+      }
+    });
+  },
+
+  escapeAttr(value) {
+    return this.escapeHtml(value).replace(/`/g, '&#96;');
+  },
+
+  escapeCssValue(value) {
+    const raw = String(value ?? '');
+    if (window.CSS && typeof window.CSS.escape === 'function') {
+      return window.CSS.escape(raw);
+    }
+    return raw.replace(/["\\]/g, '\\$&');
+  },
+
+  sanitizeUrl(rawUrl, { allowRelative = true } = {}) {
+    if (!rawUrl) return '';
+    const value = String(rawUrl).trim();
+    if (!value) return '';
+
+    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value);
+    if (!hasScheme) {
+      return allowRelative ? value : '';
+    }
+
+    try {
+      const parsed = new URL(value, window.location.href);
+      if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+      return parsed.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
   // Pagination state
   gridPageSize: 24,
   gridCurrentPage: 1,
@@ -387,6 +431,8 @@ const App = {
 
     // Header search
     this.setupHeaderSearch();
+    this.setupActionDelegates();
+    this.setupImageFallbacks();
   },
 
   /**
@@ -675,8 +721,13 @@ const App = {
   },
 
   updateStructuredData({ title, description, url, image } = {}) {
-    const script = document.getElementById('structured-data');
-    if (!script) return;
+    let script = document.getElementById('structured-data');
+    if (!script) {
+      script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'structured-data';
+      document.head.appendChild(script);
+    }
 
     const pageUrl = url || this.buildCanonicalUrl(window.location.href);
     const siteUrl = this.basePageUrl || this.getBaseUrl(pageUrl) || pageUrl;
@@ -739,38 +790,33 @@ const App = {
       dropdown.classList.add('visible');
       return;
     }
-
     dropdown.innerHTML = matches.map(anime => {
       const altTitles = [anime.titleEnglish, anime.titleJapanese]
         .map(value => String(value || '').trim())
         .filter(Boolean)
         .filter(value => value.toLowerCase() !== anime.title.toLowerCase());
+      const safeAltTitles = altTitles.map(value => this.escapeHtml(value));
       const altTitleMarkup = altTitles.length
-        ? `<div class="search-result-alt">${altTitles.join(' • ')}</div>`
+        ? `<div class="search-result-alt">${safeAltTitles.join(' • ')}</div>`
         : '';
+      const safeId = this.escapeAttr(anime.id);
+      const safeTitle = this.escapeHtml(anime.title);
+      const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
+      const safeYear = this.escapeHtml(anime.year ?? 'Unknown');
+      const safeStudio = this.escapeHtml(anime.studio ?? 'Unknown');
       return `
-      <div class="search-result-item" data-id="${anime.id}">
-        <img src="${anime.cover}" alt="${anime.title}" class="search-result-cover" onerror="this.src='https://via.placeholder.com/40x56?text=No'">
+      <div class="search-result-item" data-action="open-anime" data-anime-id="${safeId}">
+        <img src="${safeCover}" alt="${safeTitle}" class="search-result-cover" data-fallback-src="https://via.placeholder.com/40x56?text=No">
         <div class="search-result-info">
-          <div class="search-result-title">${anime.title}</div>
+          <div class="search-result-title">${safeTitle}</div>
           ${altTitleMarkup}
-          <div class="search-result-meta">${anime.year} &bull; ${anime.studio}</div>
+          <div class="search-result-meta">${safeYear} &bull; ${safeStudio}</div>
         </div>
       </div>
     `;
     }).join('');
 
     dropdown.classList.add('visible');
-
-    // Add click listeners to search results
-    dropdown.querySelectorAll('.search-result-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const animeId = item.dataset.id;
-        this.showAnimeDetail(animeId);
-        dropdown.classList.remove('visible');
-        document.getElementById('header-search').value = '';
-      });
-    });
   },
 
   /**
@@ -815,19 +861,24 @@ const App = {
       const options = this.filterOptions[config.key];
       if (!options || options.length === 0) return '';
 
+      const safeLabel = this.escapeHtml(config.label);
+      const safeType = this.escapeAttr(config.key);
+
       return `
         <div class="filter-section">
-          <div class="filter-section-title">${config.label}</div>
+          <div class="filter-section-title">${safeLabel}</div>
           <div class="filter-pills">
             ${options.map(option => {
               const optionStr = String(option);
               const isActive = this.activeFilters[config.key].includes(optionStr) || this.activeFilters[config.key].includes(option);
+              const safeOptionText = this.escapeHtml(optionStr);
+              const safeOptionAttr = this.escapeAttr(optionStr);
               return `
               <button class="filter-pill ${isActive ? 'active' : ''}"
-                      data-filter-type="${config.key}"
-                      data-filter-value="${optionStr}"
-                      onclick="App.toggleFilter('${config.key}', '${optionStr.replace(/'/g, "\\'")}')">
-                ${optionStr}
+                      data-action="toggle-filter"
+                      data-filter-type="${safeType}"
+                      data-filter-value="${safeOptionAttr}">
+                ${safeOptionText}
               </button>
             `}).join('')}
           </div>
@@ -846,12 +897,14 @@ const App = {
     if (genreContainer && this.filterOptions.genres) {
       genreContainer.innerHTML = this.filterOptions.genres.map(genre => {
         const isActive = this.activeFilters.genres.includes(genre);
+        const safeGenreText = this.escapeHtml(genre);
+        const safeGenreAttr = this.escapeAttr(genre);
         return `
           <button class="quick-chip ${isActive ? 'active' : ''}"
+                  data-action="toggle-filter"
                   data-filter-type="genres"
-                  data-filter-value="${genre}"
-                  onclick="App.toggleFilter('genres', '${genre.replace(/'/g, "\\'")}')">
-            ${genre}
+                  data-filter-value="${safeGenreAttr}">
+            ${safeGenreText}
           </button>
         `;
       }).join('');
@@ -860,12 +913,14 @@ const App = {
     if (themeContainer && this.filterOptions.themes) {
       themeContainer.innerHTML = this.filterOptions.themes.map(theme => {
         const isActive = this.activeFilters.themes.includes(theme);
+        const safeThemeText = this.escapeHtml(theme);
+        const safeThemeAttr = this.escapeAttr(theme);
         return `
           <button class="quick-chip ${isActive ? 'active' : ''}"
+                  data-action="toggle-filter"
                   data-filter-type="themes"
-                  data-filter-value="${theme}"
-                  onclick="App.toggleFilter('themes', '${theme.replace(/'/g, "\\'")}')">
-            ${theme}
+                  data-filter-value="${safeThemeAttr}">
+            ${safeThemeText}
           </button>
         `;
       }).join('');
@@ -876,21 +931,25 @@ const App = {
    * Toggle a filter on/off
    */
   toggleFilter(type, value) {
-    const index = this.activeFilters[type].indexOf(value);
+    const valueStr = String(value);
+    const index = this.activeFilters[type].indexOf(valueStr);
     if (index > -1) {
       this.activeFilters[type].splice(index, 1);
     } else {
-      this.activeFilters[type].push(value);
+      this.activeFilters[type].push(valueStr);
     }
 
     // Update pill state in modal
-    const pill = document.querySelector(`.filter-pill[data-filter-type="${type}"][data-filter-value="${value}"]`);
+    const safeType = this.escapeCssValue(type);
+    const pillCandidates = document.querySelectorAll(`.filter-pill[data-filter-type="${safeType}"]`);
+    const pill = Array.from(pillCandidates).find(el => el.dataset.filterValue === valueStr);
     if (pill) {
       pill.classList.toggle('active');
     }
 
     // Update quick chip state
-    const chip = document.querySelector(`.quick-chip[data-filter-type="${type}"][data-filter-value="${value}"]`);
+    const chipCandidates = document.querySelectorAll(`.quick-chip[data-filter-type="${safeType}"]`);
+    const chip = Array.from(chipCandidates).find(el => el.dataset.filterValue === valueStr);
     if (chip) {
       chip.classList.toggle('active');
     }
@@ -1027,42 +1086,55 @@ const App = {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       const retentionLevel = hasEpisodes ? Math.round(anime.stats.retentionScore) : 0;
       const reason = Recommendations.getRecommendationReason(anime);
+      const safeId = this.escapeAttr(anime.id);
+      const safeTitle = this.escapeHtml(anime.title);
+      const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
+      const safeYear = this.escapeHtml(anime.year || 'Unknown');
+      const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
+      const safeReason = this.escapeHtml(reason);
 
       return `
         <div class="anime-card"
-             data-id="${anime.id}"
-             onclick="App.handleCardClick('${anime.id}')">
+             data-action="open-anime"
+             data-anime-id="${safeId}">
           <div class="card-media">
-            <img src="${anime.cover}" alt="${anime.title}" class="card-cover" loading="lazy" onerror="this.src='https://via.placeholder.com/120x170?text=No+Image'">
+            <img src="${safeCover}" alt="${safeTitle}" class="card-cover" loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
           </div>
           <div class="card-body">
             <div class="card-title-row">
-              <h3 class="card-title">${anime.title}</h3>
+              <h3 class="card-title">${safeTitle}</h3>
             </div>
-            <div class="card-year">${anime.year || 'Unknown'} &bull; ${anime.studio || 'Unknown'}</div>
+            <div class="card-year">${safeYear} &bull; ${safeStudio}</div>
             ${badges.length > 0 ? `
               <div class="card-badges">
-                ${badges.map(b => `<span class="card-badge ${b.class}">${b.label}</span>`).join('')}
+                ${badges.map(b => `<span class="card-badge ${b.class}">${this.escapeHtml(b.label)}</span>`).join('')}
               </div>
             ` : ''}
             <div class="card-stats">
-              ${cardStats.map(stat => `
+              ${cardStats.map(stat => {
+                const safeValue = this.escapeHtml(stat.value);
+                const safeSuffix = this.escapeHtml(stat.suffix || '');
+                const safeLabel = this.escapeHtml(stat.label);
+                const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
+                const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
+                return `
                 <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
-                  <span class="stat-value ${stat.class || ''}">${stat.value}${stat.suffix || ''}</span>
-                  <span class="stat-label">${stat.label}</span>
+                  <span class="stat-value ${stat.class || ''}">${safeValue}${safeSuffix}</span>
+                  <span class="stat-label">${safeLabel}</span>
                   ${stat.tooltip ? `
                     <div class="tooltip tooltip--bottom" role="tooltip">
-                      <div class="tooltip-title">${stat.tooltip.title}</div>
-                      <div class="tooltip-text">${stat.tooltip.text}</div>
+                      <div class="tooltip-title">${safeTooltipTitle}</div>
+                      <div class="tooltip-text">${safeTooltipText}</div>
                     </div>
                   ` : ''}
                 </div>
-              `).join('')}
+              `;
+              }).join('')}
             </div>
             <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
               <span class="retention-fill" style="width: ${retentionLevel}%"></span>
             </div>
-            <div class="card-reason">${reason}</div>
+            <div class="card-reason">${safeReason}</div>
           </div>
         </div>
       `;
@@ -1117,16 +1189,18 @@ const App = {
     empty.style.display = 'none';
     list.innerHTML = active.map(item => {
       const displayValue = String(item.value);
-      const dataValue = displayValue.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-      const onclickValue = displayValue.replace(/'/g, "\\'");
+      const safeValueText = this.escapeHtml(displayValue);
+      const safeValueAttr = this.escapeAttr(displayValue);
+      const safeTypeAttr = this.escapeAttr(item.type);
+      const safeLabel = this.escapeHtml(item.label);
       return `
         <button class="active-filter-pill"
                 type="button"
-                data-filter-type="${item.type}"
-                data-filter-value="${dataValue}"
-                onclick="App.toggleFilter('${item.type}', '${onclickValue}')">
-          <span class="active-filter-pill-label">${item.label}</span>
-          ${displayValue}
+                data-action="toggle-filter"
+                data-filter-type="${safeTypeAttr}"
+                data-filter-value="${safeValueAttr}">
+          <span class="active-filter-pill-label">${safeLabel}</span>
+          ${safeValueText}
           <span class="active-filter-pill-remove" aria-hidden="true">&times;</span>
         </button>
       `;
@@ -1160,17 +1234,21 @@ const App = {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats.retentionScore)}%` : 'N/A';
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
+      const safeId = this.escapeAttr(anime.id);
+      const safeTitle = this.escapeHtml(anime.title);
+      const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
+      const safeReason = this.escapeHtml(anime.reason || '');
 
       return `
-        <div class="recommendation-card" onclick="App.showAnimeDetail('${anime.id}')">
-          <img src="${anime.cover}" alt="${anime.title}" class="recommendation-cover" onerror="this.src='https://via.placeholder.com/180x120?text=No+Image'">
+        <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}">
+          <img src="${safeCover}" alt="${safeTitle}" class="recommendation-cover" data-fallback-src="https://via.placeholder.com/180x120?text=No+Image">
           <div class="recommendation-info">
-            <div class="recommendation-title">${anime.title}</div>
+            <div class="recommendation-title">${safeTitle}</div>
             <div class="recommendation-meta">
               <span>Retention ${retention}</span>
               <span>Satisfaction (MAL) ${malSatisfaction}</span>
             </div>
-            <div class="recommendation-reason">${anime.reason || ''}</div>
+            <div class="recommendation-reason">${safeReason}</div>
           </div>
         </div>
       `;
@@ -1246,9 +1324,9 @@ const App = {
 
     return `
       <div class="ranking-anime">
-        <img src="${anime.cover}" alt="${anime.title}" class="ranking-cover" onerror="this.src='https://via.placeholder.com/60x85?text=No+Image'">
+        <img src="${this.escapeAttr(this.sanitizeUrl(anime.cover))}" alt="${this.escapeHtml(anime.title)}" class="ranking-cover" data-fallback-src="https://via.placeholder.com/60x85?text=No+Image">
         <div class="ranking-info">
-          <div class="ranking-title">${anime.title}</div>
+          <div class="ranking-title">${this.escapeHtml(anime.title)}</div>
           <div class="ranking-score ${valueClass}">
             <span class="score-value">${valueDisplay}</span>
             <span class="score-label">${labelDisplay}</span>
@@ -1299,7 +1377,7 @@ const App = {
     if (hasMore) {
       container.insertAdjacentHTML('beforeend', `
         <div class="load-more-container">
-          <button class="load-more-btn" onclick="App.loadMoreAnime()">
+          <button class="load-more-btn" data-action="load-more">
             Load More (${sorted.length - endIndex} remaining)
           </button>
         </div>
@@ -1357,6 +1435,54 @@ const App = {
     this.showAnimeDetail(animeId);
   },
 
+  setupActionDelegates() {
+    document.addEventListener('click', (event) => {
+      const actionEl = event.target.closest('[data-action]');
+      if (!actionEl) return;
+
+      const action = actionEl.dataset.action;
+      if (action === 'toggle-filter') {
+        const type = actionEl.dataset.filterType;
+        const value = actionEl.dataset.filterValue;
+        if (type && value !== undefined) {
+          this.toggleFilter(type, value);
+        }
+        return;
+      }
+
+      if (action === 'open-anime') {
+        const animeId = actionEl.dataset.animeId;
+        if (animeId) {
+          this.showAnimeDetail(animeId);
+        }
+        const dropdown = actionEl.closest('.header-search-dropdown');
+        if (dropdown) {
+          dropdown.classList.remove('visible');
+          const input = document.getElementById('header-search');
+          if (input) {
+            input.value = '';
+          }
+        }
+        return;
+      }
+
+      if (action === 'load-more') {
+        this.loadMoreAnime();
+      }
+    });
+  },
+
+  setupImageFallbacks() {
+    document.addEventListener('error', (event) => {
+      const target = event.target;
+      if (!target || target.tagName !== 'IMG') return;
+      const fallback = target.dataset.fallbackSrc;
+      if (!fallback || target.dataset.fallbackApplied) return;
+      target.dataset.fallbackApplied = '1';
+      target.src = fallback;
+    }, true);
+  },
+
   /**
    * Render similar anime section for the detail modal
    * @param {Object} anime - Current anime
@@ -1396,15 +1522,20 @@ const App = {
               const satisfactionClass = Recommendations.getMalSatisfactionClass(satisfactionScore);
               const sharedGenres = formatTags(result.sharedGenres);
               const sharedThemes = formatTags(result.sharedThemes);
+              const safeId = this.escapeAttr(similar.id);
+              const safeTitle = this.escapeHtml(similar.title);
+              const safeCover = this.escapeAttr(this.sanitizeUrl(similar.cover));
+              const safeGenres = this.escapeHtml(sharedGenres);
+              const safeThemes = this.escapeHtml(sharedThemes);
 
               return `
-                <div class="similar-card" onclick="App.showAnimeDetail('${similar.id}')">
-                  <img src="${similar.cover}" alt="${similar.title}" class="similar-cover" onerror="this.src='https://via.placeholder.com/200x140?text=No+Image'">
+                <div class="similar-card" data-action="open-anime" data-anime-id="${safeId}">
+                  <img src="${safeCover}" alt="${safeTitle}" class="similar-cover" data-fallback-src="https://via.placeholder.com/200x140?text=No+Image">
                   <div class="similar-info">
-                    <div class="similar-title">${similar.title}</div>
+                    <div class="similar-title">${safeTitle}</div>
                     <div class="similar-tags">
-                      <span class="similar-tag">Genres: ${sharedGenres}</span>
-                      <span class="similar-tag">Themes: ${sharedThemes}</span>
+                      <span class="similar-tag">Genres: ${safeGenres}</span>
+                      <span class="similar-tag">Themes: ${safeThemes}</span>
                     </div>
                     <div class="similar-stats">
                       <span class="similar-stat ${retentionClass}">Retention ${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
@@ -1449,10 +1580,10 @@ const App = {
 
     // Build genres and themes tags
     const genreTags = anime.genres && anime.genres.length > 0
-      ? anime.genres.map(g => `<span class="detail-tag">${g}</span>`).join('')
+      ? anime.genres.map(g => `<span class="detail-tag">${this.escapeHtml(g)}</span>`).join('')
       : '';
     const themeTags = anime.themes && anime.themes.length > 0
-      ? anime.themes.map(t => `<span class="detail-tag">${t}</span>`).join('')
+      ? anime.themes.map(t => `<span class="detail-tag">${this.escapeHtml(t)}</span>`).join('')
       : '';
 
     const synopsis = this.getSynopsisForAnime(anime);
@@ -1476,7 +1607,9 @@ const App = {
         return label;
       })
       .filter(Boolean);
-    const metaHtml = metaParts.map(part => `<span>${part}</span>`).join(' &bull; ');
+    const metaHtml = metaParts.map(part => `<span>${this.escapeHtml(part)}</span>`).join(' &bull; ');
+    const safeTitle = this.escapeHtml(anime.title);
+    const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
 
     const altTitles = [];
     if (anime.titleEnglish && anime.titleEnglish.toLowerCase() !== anime.title.toLowerCase()) {
@@ -1489,8 +1622,8 @@ const App = {
       ? `<div class="detail-alt-titles">
           ${altTitles.map(item => `
             <div class="detail-alt-title">
-              <span class="detail-alt-label">${item.label}</span>
-              <span class="detail-alt-value">${item.value}</span>
+              <span class="detail-alt-label">${this.escapeHtml(item.label)}</span>
+              <span class="detail-alt-value">${this.escapeHtml(item.value)}</span>
             </div>
           `).join('')}
         </div>`
@@ -1499,9 +1632,9 @@ const App = {
 
     content.innerHTML = `
       <div class="detail-header">
-        <img src="${anime.cover}" alt="${anime.title}" class="detail-cover" onerror="this.src='https://via.placeholder.com/150x210?text=No+Image'">
+        <img src="${safeCover}" alt="${safeTitle}" class="detail-cover" data-fallback-src="https://via.placeholder.com/150x210?text=No+Image">
         <div class="detail-info">
-          <h2 class="detail-title">${anime.title}</h2>
+          <h2 class="detail-title">${safeTitle}</h2>
           ${altTitlesHtml}
           <div class="detail-meta">
             ${metaHtml}
@@ -1735,25 +1868,28 @@ const App = {
     if (!url && !embedUrl) return '';
 
     const title = anime?.title ? `Trailer for ${anime.title}` : 'Anime trailer';
+    const safeTitle = this.escapeAttr(title);
+    const safeUrl = this.escapeAttr(url);
+    const safeEmbedUrl = this.escapeAttr(embedUrl);
 
     return `
       <div class="detail-trailer">
         <div class="detail-section-header">
           <h3>Trailer</h3>
-          ${url ? `<a class="trailer-link" href="${url}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
+          ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
         </div>
         ${embedUrl
           ? `<div class="trailer-embed">
               <iframe
-                src="${embedUrl}"
-                title="${title}"
+                src="${safeEmbedUrl}"
+                title="${safeTitle}"
                 loading="lazy"
                 allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen>
               </iframe>
             </div>`
           : `<div class="trailer-fallback">
-              <a class="trailer-link" href="${url}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
+              <a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
             </div>`
         }
       </div>
@@ -1785,10 +1921,11 @@ const App = {
   showError(message) {
     const container = document.getElementById('app-container');
     if (container) {
+      const safeMessage = this.escapeHtml(message);
       container.innerHTML = `
         <div class="error-message">
           <h2>Error</h2>
-          <p>${message}</p>
+          <p>${safeMessage}</p>
         </div>
       `;
     }
@@ -1799,3 +1936,4 @@ const App = {
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
+
