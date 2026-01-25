@@ -43,22 +43,29 @@ const Recommendations = {
 
     const baseRetention = this.getRetentionScore(currentAnime);
     const baseSatisfaction = this.getMalScore(currentAnime);
+    const minSharedGenres = baseGenres.size >= 2 ? 2 : 1;
 
-    const scored = animeList
+    const strictMatches = [];
+    const relaxedMatches = [];
+
+    animeList
       .filter(anime => anime && anime.id !== currentAnime.id)
-      .map(anime => {
+      .forEach(anime => {
         const sharedGenres = this.getSharedTags(baseGenres, anime.genres);
         const sharedThemes = this.getSharedTags(baseThemes, anime.themes);
 
         if (sharedGenres.length === 0 || sharedThemes.length === 0) {
-          return null;
+          return;
         }
 
+        const candidateGenres = this.normalizeTagSet(anime.genres);
+        const candidateThemes = this.normalizeTagSet(anime.themes);
+
         const similarityScore = this.computeSimilarityScore(
-          baseGenres.size,
-          baseThemes.size,
-          sharedGenres.length,
-          sharedThemes.length
+          baseGenres,
+          candidateGenres,
+          baseThemes,
+          candidateThemes
         );
 
         const retentionAlignment = this.computeAlignmentScore(
@@ -78,7 +85,7 @@ const Recommendations = {
 
         const compositeScore = (similarityScore * 0.6) + (alignmentScore * 0.4);
 
-        return {
+        const entry = {
           anime,
           sharedGenres,
           sharedThemes,
@@ -87,12 +94,19 @@ const Recommendations = {
           similarityScore,
           score: compositeScore
         };
-      })
-      .filter(Boolean)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
 
-    return scored;
+        if (sharedGenres.length >= minSharedGenres) {
+          strictMatches.push(entry);
+        } else {
+          relaxedMatches.push(entry);
+        }
+      });
+
+    const byScore = (a, b) => b.score - a.score;
+    strictMatches.sort(byScore);
+    relaxedMatches.sort(byScore);
+
+    return strictMatches.concat(relaxedMatches).slice(0, limit);
   },
 
   /**
@@ -335,10 +349,31 @@ const Recommendations = {
    * @param {number} sharedThemeCount - Number of shared themes
    * @returns {number} Similarity score
    */
-  computeSimilarityScore(baseGenreCount, baseThemeCount, sharedGenreCount, sharedThemeCount) {
-    const genreScore = baseGenreCount > 0 ? (sharedGenreCount / baseGenreCount) : 0;
-    const themeScore = baseThemeCount > 0 ? (sharedThemeCount / baseThemeCount) : 0;
+  computeSimilarityScore(baseGenres, candidateGenres, baseThemes, candidateThemes) {
+    const genreScore = this.computeJaccardScore(baseGenres, candidateGenres);
+    const themeScore = this.computeJaccardScore(baseThemes, candidateThemes);
     return (genreScore + themeScore) / 2;
+  },
+
+  /**
+   * Compute Jaccard similarity score between two tag sets
+   * @param {Set} baseSet - Base tag set
+   * @param {Set} candidateSet - Candidate tag set
+   * @returns {number} Similarity score
+   */
+  computeJaccardScore(baseSet, candidateSet) {
+    if (!baseSet || !candidateSet || baseSet.size === 0 || candidateSet.size === 0) {
+      return 0;
+    }
+    let intersection = 0;
+    baseSet.forEach(tag => {
+      if (candidateSet.has(tag)) {
+        intersection += 1;
+      }
+    });
+    const union = baseSet.size + candidateSet.size - intersection;
+    if (union === 0) return 0;
+    return intersection / union;
   },
 
   /**
