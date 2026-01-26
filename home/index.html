@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://graphql.anilist.co; frame-src https://www.youtube.com https://www.youtube-nocookie.com">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rekonime - Find Anime You'll Actually Finish</title>
+  <meta name="description" content="Discover anime worth your time. Rekonime uses Retention and Satisfaction scores to find shows that stay engaging from start to finish.">
+  <meta name="theme-color" content="#00d4aa">
+  <link rel="canonical" href="">
+  <meta property="og:site_name" content="Rekonime">
+  <meta property="og:title" content="Rekonime - Find Anime You'll Actually Finish">
+  <meta property="og:description" content="Discover anime worth your time with two numbers you can trust: Retention Score for watch-through consistency, plus Satisfaction Score from MAL.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="/favicon.svg">
+  <meta property="og:image:alt" content="Rekonime logo">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Rekonime - Find Anime You'll Actually Finish">
+  <meta name="twitter:description" content="Discover anime worth your time with Retention and Satisfaction scores that help you find shows that stay engaging.">
+  <meta name="twitter:image" content="/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-container" id="app-container">
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">R</div>
+        <div class="logo-text">
+          <span class="logo-title">Rekonime</span>
+          <span class="logo-tagline">Anime worth your time</span>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="header-search-wrapper">
+          <input type="text" id="header-search" class="header-search-input" placeholder="Search anime...">
+          <div class="header-search-dropdown" id="header-search-dropdown">
+            <!-- Search results populated by JS -->
+          </div>
+        </div>
+      <div class="header-actions">
+        <div class="header-sort">
+          <label class="sort-label" for="sort-select">Sort</label>
+          <div class="select-wrapper sort-select-wrapper">
+            <select id="sort-select" class="sort-select" aria-label="Sort anime"></select>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Filters</button>
+        <a class="btn btn-sm btn-outline bookmarks-link" href="/bookmarks.html" aria-label="View bookmarks">Bookmarks &#9733;</a>
+      </div>
+      </div>
+    </header>
+
+    <div class="active-filters" id="active-filters">
+      <div class="active-filters-content">
+        <span class="active-filters-label" id="active-filters-label">Personalize recommendations</span>
+        <div class="active-filters-list" id="active-filters-list"></div>
+        <span class="active-filters-empty" id="active-filters-empty">Pick what you're in the mood for.</span>
+      </div>
+      <button class="btn btn-sm btn-outline active-filters-clear" id="active-filters-clear" type="button">Clear filters</button>
+    </div>
+
+    <div class="quick-filters">
+      <div class="quick-filters-row">
+        <span class="quick-filters-label">Genre</span>
+        <div class="quick-filters-track" id="genre-chips">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+      <div class="quick-filters-row">
+        <span class="quick-filters-label">Theme</span>
+        <div class="quick-filters-track" id="theme-chips">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <section class="recommendations-section" id="recommendations-section">
+      <div class="recommendations-header">
+        <div>
+          <h2>Recommended for you</h2>
+          <p class="section-subtitle" id="recommendations-context">Our top picks based on what keeps viewers watching.</p>
+        </div>
+      </div>
+      <div class="recommendations-grid" id="recommendations-grid">
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
+      </div>
+    </section>
+
+    <section class="rankings-section" id="rankings-section">
+      <div class="ranking-card" id="ranking-card-1">
+        <h3 id="ranking-title-1">Top Retention</h3>
+        <div id="best-ranking-1">
+          <div class="skeleton-card skeleton-ranking"></div>
+        </div>
+      </div>
+      <div class="ranking-card" id="ranking-card-2">
+        <h3 id="ranking-title-2">Highest Satisfaction (MAL)</h3>
+        <div id="best-ranking-2">
+          <div class="skeleton-card skeleton-ranking"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-section" id="catalog-section">
+      <div class="section-header">
+        <div>
+          <h2>Browse the catalog</h2>
+          <p class="section-subtitle">Explore all titles, sorted by what matters to you.</p>
+        </div>
+      </div>
+      <div class="anime-grid" id="anime-grid">
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay filter-modal-overlay" id="filter-modal">
+    <div class="modal-content filter-modal-content">
+      <button class="modal-close" id="close-filter-modal">&times;</button>
+      <div class="filter-modal-body">
+        <h2 class="filter-modal-title">Find your next watch</h2>
+        <p class="filter-modal-subtitle">Mix and match to narrow down what you're in the mood for.</p>
+        <div class="filter-sections" id="filter-sections">
+          <!-- Populated by JS -->
+        </div>
+        <div class="filter-modal-actions">
+          <button class="btn btn-clear" id="clear-filters">Clear All</button>
+          <button class="btn btn-primary" id="apply-filters">Apply Filters</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-detail">&times;</button>
+      <div class="modal-body" id="detail-content">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/stats.js" defer></script>
+  <script src="/js/recommendations.js" defer></script>
+  <script src="/js/reviews.js" defer></script>
+  <script src="/js/app.js" defer></script>
+</body>
+</html>

@@ -97,8 +97,20 @@ const App = {
     }
   },
 
+  getAssetPath(path) {
+    if (!path) return '';
+    if (window.location.protocol === 'file:') {
+      return path;
+    }
+    return path.startsWith('/') ? path : `/${path}`;
+  },
+
   shouldUseHomeAlias() {
-    return Boolean(this.preferredHomePath) && window.location.protocol !== 'file:';
+    if (!this.preferredHomePath) return false;
+    if (window.location.protocol === 'file:') return false;
+    const hostname = window.location.hostname || '';
+    const localHosts = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
+    return !localHosts.has(hostname);
   },
 
   normalizeHomePath(url) {
@@ -673,7 +685,7 @@ const App = {
   async fetchCatalog(path) {
     if (!path) return null;
     try {
-      const response = await fetch(path, { cache: 'force-cache' });
+      const response = await fetch(this.getAssetPath(path), { cache: 'force-cache' });
       if (!response.ok) return null;
       return await response.json();
     } catch (error) {
@@ -799,7 +811,7 @@ const App = {
 
     this.embeddedDataPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'js/data.js';
+      script.src = this.getAssetPath('js/data.js');
       script.async = true;
       script.onload = () => resolve();
       script.onerror = () => reject(new Error('Failed to load embedded anime data'));

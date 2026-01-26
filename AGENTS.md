@@ -11,6 +11,7 @@
 
 ### Nodes (files and modules)
 - `index.html`: Main catalog page, SEO meta, CSP, and script/style includes.
+- `home/index.html`: Alias entry point for `/home` (local/static fallback) using the same JS/CSS.
 - `bookmarks.html`: Bookmarks page, shares the same JS/CSS and detail modal.
 - `css/styles.css`: Global styles, component layouts, animations, and responsive rules.
 - `js/app.js`: Central controller for state, rendering, filtering, search, modals, SEO, and bookmarks.
@@ -28,6 +29,7 @@
 ### Edges (dependencies and relationships)
 - `index.html` -> `css/styles.css`
 - `index.html` -> `js/stats.js` -> `js/recommendations.js` -> `js/reviews.js` -> `js/app.js`
+- `home/index.html` -> same JS/CSS stack as `index.html`
 - `bookmarks.html` -> same JS/CSS stack as `index.html`
 - `js/app.js` -> `Stats` (calculations) + `Recommendations` (badges/recs/similar/sort options)
 - `js/app.js` -> `ReviewsService` (synopsis + review tabs in detail modal)
@@ -184,6 +186,8 @@ flowchart TD
   %% Runtime entry points
   index[index.html] --> css[css/styles.css]
   index --> app[js/app.js]
+  home[home/index.html] --> css
+  home --> app
   bookmarks[bookmarks.html] --> css
   bookmarks --> app
 
