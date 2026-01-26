@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Reviews Service - Fetches and categorizes reviews from AniList
  */
 const ReviewsService = {
@@ -321,7 +321,7 @@ const ReviewsService = {
         <div class="reviews-container" id="reviews-container">
           ${activeReviews.length > 0
             ? activeReviews.map(r => this.renderReviewCard(r)).join('')
-            : '<p class="no-reviews">No community reviews yet—be the first on AniList!</p>'
+            : '<p class="no-reviews">No community reviews yetâ€”be the first on AniList!</p>'
           }
         </div>
         <p class="reviews-attribution">
@@ -401,8 +401,22 @@ const ReviewsService = {
   initTabSwitching(categorizedReviews) {
     const tabs = document.querySelectorAll('.review-tab');
     const container = document.getElementById('reviews-container');
+    const tabsWrap = document.querySelector('.review-tabs');
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const scrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
 
-    if (!container) return;
+    if (!container || tabs.length === 0) return;
+
+    const scrollTabIntoView = (tab) => {
+      if (!tab || !tabsWrap) return;
+      if (tabsWrap.scrollWidth <= tabsWrap.clientWidth) return;
+      tab.scrollIntoView({ behavior: scrollBehavior, block: 'nearest', inline: 'center' });
+    };
+
+    const activeTab = document.querySelector('.review-tab.active');
+    if (activeTab) {
+      scrollTabIntoView(activeTab);
+    }
 
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
@@ -416,7 +430,8 @@ const ReviewsService = {
         const reviews = categorizedReviews[sentiment] || [];
         container.innerHTML = reviews.length > 0
           ? reviews.map(r => this.renderReviewCard(r)).join('')
-          : '<p class="no-reviews">No community reviews yet—be the first on AniList!</p>';
+          : '<p class="no-reviews">No community reviews yetâ€”be the first on AniList!</p>';
+        scrollTabIntoView(tab);
       });
     });
   }
@@ -426,3 +441,4 @@ const ReviewsService = {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ReviewsService;
 }
+

@@ -69,14 +69,18 @@
     </div>
 
     <div class="quick-filters">
-      <div class="quick-filters-row">
-        <span class="quick-filters-label">Genre</span>
+      <div class="quick-filters-row" data-filter-group="genres">
+        <button class="quick-filters-label" type="button" data-action="toggle-quick-filter" aria-expanded="false" aria-controls="genre-chips">
+          Genre
+        </button>
         <div class="quick-filters-track" id="genre-chips">
           <!-- Populated by JS -->
         </div>
       </div>
-      <div class="quick-filters-row">
-        <span class="quick-filters-label">Theme</span>
+      <div class="quick-filters-row" data-filter-group="themes">
+        <button class="quick-filters-label" type="button" data-action="toggle-quick-filter" aria-expanded="false" aria-controls="theme-chips">
+          Theme
+        </button>
         <div class="quick-filters-track" id="theme-chips">
           <!-- Populated by JS -->
         </div>

@@ -1643,6 +1643,34 @@ const App = {
   },
 
   /**
+   * Count total active filters across all filter groups.
+   * @returns {number} Active filter count
+   */
+  getActiveFilterCount() {
+    return Object.values(this.activeFilters).reduce((total, values) => {
+      if (!Array.isArray(values)) return total;
+      return total + values.filter(value => value !== null && value !== undefined && value !== '').length;
+    }, 0);
+  },
+
+  /**
+   * Smoothly scroll to results after quick filter actions.
+   */
+  scrollToResultsSection() {
+    const shouldScroll = window.matchMedia?.('(max-width: 640px)')?.matches;
+    if (!shouldScroll) return;
+    const target =
+      document.getElementById('recommendations-section') ||
+      document.getElementById('catalog-section');
+    if (!target) return;
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    target.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start'
+    });
+  },
+
+  /**
    * Clear all active filters
    */
   clearAllFilters() {
@@ -2142,9 +2170,44 @@ const App = {
       if (action === 'toggle-filter') {
         const type = actionEl.dataset.filterType;
         const value = actionEl.dataset.filterValue;
+        const isQuickChip = actionEl.classList.contains('quick-chip');
         if (type && value !== undefined) {
           this.toggleFilter(type, value);
         }
+        if (isQuickChip) {
+          const isMobile = window.matchMedia?.('(max-width: 640px)')?.matches;
+          if (isMobile) {
+            const row = actionEl.closest('.quick-filters-row');
+            if (row) {
+              row.classList.remove('is-open');
+              const label = row.querySelector('.quick-filters-label');
+              if (label) {
+                label.setAttribute('aria-expanded', 'false');
+              }
+            }
+          }
+          if (this.getActiveFilterCount() >= 2) {
+            this.scrollToResultsSection();
+          }
+        }
+        return;
+      }
+
+      if (action === 'toggle-quick-filter') {
+        const isMobile = window.matchMedia?.('(max-width: 640px)')?.matches;
+        if (!isMobile) return;
+        const row = actionEl.closest('.quick-filters-row');
+        if (!row) return;
+        const isOpen = row.classList.toggle('is-open');
+        actionEl.setAttribute('aria-expanded', String(isOpen));
+        document.querySelectorAll('.quick-filters-row.is-open').forEach(other => {
+          if (other === row) return;
+          other.classList.remove('is-open');
+          const label = other.querySelector('.quick-filters-label');
+          if (label) {
+            label.setAttribute('aria-expanded', 'false');
+          }
+        });
         return;
       }
 
