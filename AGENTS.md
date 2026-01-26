@@ -1,338 +1,216 @@
-# AGENTS.md - Atom-of-Thought Coding Protocol
+# Rekonime Agent Guide
 
-## Core Directive
-All AI agents operating within this codebase MUST apply the **Atom-of-Thought (AoT) methodology** internally to every coding task. The agent performs rigorous atomic decomposition, validation, and synthesis mentally, then outputs ONLY clean, production-ready code with standard comments.
+## Mandatory skills and workflow
+- Always check the `skills/` folder at the start of a task.
+- Always apply the instructions in `skills/ATOM-OF-THOUGHT.md` for every coding task.
+- For UI or design work (layouts, styling, components, or visual changes), also apply:
+  - `skills/FRONTEND-DESIGN.md`
+  - `skills/FRONTEND-RESPONSIVE-UI.md`
 
-**Critical Rules:**
-- NO atom IDs, phases, or confidence scores in code comments
-- NO markdown documentation of the atomic process
-- NO explicit "Atom X" labels in output
-- Output appears as normal, well-commented professional code
+## Graph-based Codebase Context (nodes and edges)
 
----
+### Nodes (files and modules)
+- `index.html`: Main catalog page, SEO meta, CSP, and script/style includes.
+- `bookmarks.html`: Bookmarks page, shares the same JS/CSS and detail modal.
+- `css/styles.css`: Global styles, component layouts, animations, and responsive rules.
+- `js/app.js`: Central controller for state, rendering, filtering, search, modals, SEO, and bookmarks.
+- `js/stats.js`: Retention and scoring metrics. Builds score profiles and per-anime stats.
+- `js/recommendations.js`: Recommendation, badges, sorting options, and similarity scoring.
+- `js/reviews.js`: AniList GraphQL review fetch + rendering + synopsis utilities.
+- `js/charts.js`: Chart.js helpers (not wired in current HTML).
+- `js/data.js`: Embedded fallback dataset (`ANIME_DATA`) for `file://` and fetch failure.
+- `data/anime.json`: Raw catalog (scraped). Source of truth for builds.
+- `data/anime.full.json`: Full catalog with stats + colorIndex (generated).
+- `data/anime.preview.json`: Preview subset for fast first paint (generated).
+- `tools/*.js` and `tools/*.ps1`: Data pipeline utilities.
+- `tools/scraper/*`: Python scraper + metadata enrichers for MAL/Jikan/AniList.
 
-## Methodology Overview
+### Edges (dependencies and relationships)
+- `index.html` -> `css/styles.css`
+- `index.html` -> `js/stats.js` -> `js/recommendations.js` -> `js/reviews.js` -> `js/app.js`
+- `bookmarks.html` -> same JS/CSS stack as `index.html`
+- `js/app.js` -> `Stats` (calculations) + `Recommendations` (badges/recs/similar/sort options)
+- `js/app.js` -> `ReviewsService` (synopsis + review tabs in detail modal)
+- `js/app.js` -> localStorage (`rekonime.bookmarks`) for saved anime
+- `js/app.js` -> `data/*.json` (fetch preview/full/legacy) and `js/data.js` fallback
+- `js/reviews.js` -> AniList GraphQL (`https://graphql.anilist.co`)
+- `js/app.js` -> YouTube (trailer links and embeds, sanitized to allowed hosts)
+- `tools/build-catalogs.js` -> `js/stats.js` (precompute stats) -> `data/anime.full.json` + `data/anime.preview.json`
+- `tools/regenerate-data.ps1` -> `data/anime.full.json` -> `js/data.js`
+- `tools/merge-scores.js` -> `tools/scraper/output/*.json` -> `data/anime.json`
+- `tools/update_metadata.js` -> Jikan API -> `data/anime.json`
+- `tools/backfill_data.js` -> AniList + MAL HTML scraping -> `data/anime.json`
+- `tools/validate-data.js` -> `data/anime.json` (+ optional embedded data check)
 
-The Atom-of-Thought approach decomposes complex coding problems into irreducible logic units ("atoms") that are independently verifiable and collectively exhaustive. This reasoning happens **internally** - the user sees only the final synthesized code.
+## Runtime flows (high-signal paths)
 
----
+### Initial load and data swap
+1. `App.init()` renders loading state and loads bookmarks.
+2. `App.loadInitialData()` fetches `data/anime.preview.json` (or `ANIME_DATA` for `file://`).
+3. `App.applyCatalogPayload()` normalizes data, ensures stats, extracts filters, renders UI.
+4. `App.loadFullCatalog()` swaps in `data/anime.full.json` (or `data/anime.json` legacy) and re-renders.
 
-## Mandatory Four-Phase Process (Internal)
+### Filtering and sorting
+- Filters are stored in `App.activeFilters` and options in `App.filterOptions`.
+- `App.applyFilters()` produces `App.filteredData`, resets pagination, and re-renders.
+- Sorting uses `Recommendations.getSortOptions()` + `App.sortAnimeByMetric()`.
 
-### Phase 1: Atomic Decomposition (Internal)
-**Objective:** Mentally break the coding task into smallest functional reasoning units.
+### Search
+- `App.handleHeaderSearch()` matches against `anime.searchText` (built or derived).
+- Selecting a result triggers `data-action="open-anime"` -> `App.showAnimeDetail()`.
 
-**Internal Requirements:**
-- Each atom represents ONE of:
-  - A single requirement interpretation
-  - A design decision with clear rationale
-  - A specific algorithm step
-  - A data structure choice
-  - A function signature definition
-  - An implementation detail
-  - A test case specification
+### Detail modal and deep linking
+- `App.showAnimeDetail()` renders modal, updates URL (`?anime=...`), and sets SEO meta.
+- `App.syncModalWithUrl()` opens/closes modal on back/forward navigation.
+- Modal sections include synopsis, trailer, reviews, and similar anime.
 
-**Constraints:**
-- Atoms must be **MECE** (Mutually Exclusive, Collectively Exhaustive)
-- No overlapping logic between atoms
-- All aspects of the problem must be covered
+### Reviews and synopsis
+- `ReviewsService.fetchReviews()` calls AniList GraphQL.
+- Reviews are categorized and rendered with tabs. Synopsis uses AniList or fallback.
+- Descriptions are cached in localStorage for 30 days.
 
-**Internal Process Example:**
+### Similar anime
+- `Recommendations.getSimilarAnime()` requires at least one shared genre and theme.
+- Similarity score blends tag overlap with retention + satisfaction alignment.
+
+### Bookmarks
+- Stored in localStorage under `rekonime.bookmarks`.
+- `bookmarks.html` renders via `App.renderBookmarks()` using the same card renderer.
+
+### Trailer autoplay
+- `App.renderTrailerSection()` builds sanitized YouTube URLs.
+- `App.setupTrailerAutoplay()` uses IntersectionObserver + scroll fallback.
+
+## Data schema (core entities)
+
+### Catalog payload
+- `generatedAt`: ISO timestamp.
+- `scoreProfile`: `{ p35, p50, p65, sampleSize?, source? }`
+- `anime`: Array of Anime objects.
+
+### Anime object (normalized)
+- `id`, `title`, `titleEnglish`, `titleJapanese`
+- `malId`, `anilistId`
+- `cover`, `type`, `year`, `season`, `studio`, `source`, `demographic`
+- `genres[]`, `themes[]`
+- `synopsis`, `trailer` (YouTube info)
+- `communityScore` (MAL satisfaction)
+- `searchText` (lowercased, normalized query string)
+- `episodes[]` (each `{ episode, score }`)
+- `stats` (computed if missing)
+- `colorIndex`
+
+### Stats object (detailed)
+- `average`: Mean episode score (1-5).
+- `stdDev`: Standard deviation of episode scores (lower is more consistent).
+- `auc`: Overall score normalized to 0-100 with a strictness curve.
+- `consistency`: `{ label, class }` from `stdDev` buckets.
+- `scoreClass`: CSS class derived from `average`.
+- `episodeCount`: Count of scored episodes.
+- `highestScore`: Max episode score (1-5).
+- `lowestScore`: Min episode score (1-5).
+- `retentionScore`: 0-100 blend of hook, drop safety, momentum, and flow; opening weight scales down for long series and slow-burn can lift.
+- `malSatisfactionScore`: MAL community score (0-10) copied from `communityScore`.
+- `reliabilityScore`: 0-100; hook + session safety + low churn risk + habit safety (scaled for long series).
+- `sessionSafety`: 0-100; percent of episodes above a safety floor, blended with overall quality.
+- `threeEpisodeHook`: 0-100; strictness-adjusted average of first 3 episodes.
+- `habitBreakRisk`: 0-10; longest chain of below-median episodes per 10 eps.
+- `peakScore`: Highest episode score (1-5).
+- `finaleStrength`: 0-100 (50 is neutral); compares final quarter vs earlier episodes.
+- `worthFinishing`: 0-100; finale strength + momentum + narrative acceleration.
+- `peakEpisodeCount`: Count of perfect 5/5 episodes.
+- `momentum`: -100 to 100; last 3 episodes vs overall average.
+- `narrativeAcceleration`: Linear regression slope for second half (can be negative).
+- `comfortScore`: 0-100; flow + emotional stability + entry ease + low stress spikes.
+- `stressSpikes`: 0-10; count of >= 1.5 point drops per 10 episodes.
+- `emotionalStability`: 0-100; higher when episode-to-episode changes are smaller.
+- `barrierToEntry`: Std dev of first 5 episodes (lower is easier to get into).
+- `flowState`: 0-100; inverse of squared episode-to-episode swings.
+- `qualityTrend`: `{ slope, direction }` with direction in `improving|declining|stable`.
+- `qualityDips`: Array of `{ episode, score, deviation }` for dips >= 0.8 below series average.
+- `productionQualityIndex`: 0-100; average + consistency + trend + hook + low churn risk minus dip penalty.
+- `rollingAverage`: Array of `{ episode, rollingAvg }` with window size 3.
+- `controversyPotential`: 0-100; range plus extreme-score bonus.
+- `sharkJump`: `{ episode, dropAmount }` if a permanent rolling-average drop; otherwise `null`.
+- `churnRisk`: `{ score, label, factors }` with score 0-100 and label buckets.
+- `slowBurn`: `{ signal, isActive, momentumScore, finaleStrength }` for slow-burn indicator.
+- Note: Most 0-100 metrics use a strictness curve (`Stats.strictnessExponent`) to emphasize stronger signals.
+
+## DOM contract (IDs and data-action)
+- Key IDs: `#anime-grid`, `#recommendations-grid`, `#best-ranking-1`, `#best-ranking-2`,
+  `#filter-modal`, `#filter-sections`, `#active-filters`, `#header-search`,
+  `#detail-modal`, `#detail-content`, `#community-reviews-section`, `#similar-anime-section`,
+  `#bookmarks-section`, `#bookmarks-grid`.
+- `data-action` values used by delegation: `open-anime`, `toggle-filter`, `toggle-bookmark`, `load-more`.
+- Image fallbacks: use `data-fallback-src` on `img` tags.
+
+## CSS architecture and responsive rules
+- `css/styles.css` contains a base section and a later "Beginner-friendly UX refresh" section.
+  The refresh block redefines `:root` variables and overrides earlier selectors.
+- Theme tokens live in the refresh `:root` block (dark palette, radii, shadows).
+- Breakpoints in use: `max-width: 960px` and `max-width: 640px` (primary),
+  plus older `max-width: 768px` and `max-width: 480px` rules earlier in the file.
+  Prefer existing breakpoints; avoid inventing new ones.
+
+## External services and security constraints
+- CSP in `index.html` and `bookmarks.html` restricts remote sources:
+  - Fonts: Google Fonts
+  - Reviews: AniList GraphQL
+  - Trailers: YouTube / YouTube-nocookie
+- URL sanitization is enforced in `App` and `ReviewsService` for images and trailers.
+- If adding new remote assets or APIs, update CSP accordingly.
+
+## Data pipeline graph (tools)
+1. `tools/scraper/mal_scraper.py` -> `tools/scraper/output/*.json`
+2. `tools/merge-scores.js` -> `data/anime.json`
+3. `tools/update_metadata.js` and `tools/backfill_data.js` enrich `data/anime.json`
+4. `tools/build-catalogs.js` -> `data/anime.full.json` + `data/anime.preview.json`
+5. `tools/regenerate-data.ps1` -> `js/data.js` (embedded fallback)
+6. `tools/validate-data.js` checks required fields (use `--skip-embedded` if needed)
+
+## Notes on optional modules
+- `js/charts.js` requires Chart.js (+ ChartDataLabels) and is not included in HTML.
+  If you use it, wire scripts and canvas IDs in the page.
+
+## Maintenance (keep this file adaptive)
+- Treat this file as living documentation: update nodes, edges, flows, and schemas when code changes.
+- When adding/removing files or data flows, reflect the change in both the graph section and the flowchart below.
+- Keep sections concise and editable; prefer short bullets over long prose.
+
+## Flowchart (end-to-end codebase view)
+```mermaid
+flowchart TD
+  %% Runtime entry points
+  index[index.html] --> css[css/styles.css]
+  index --> app[js/app.js]
+  bookmarks[bookmarks.html] --> css
+  bookmarks --> app
+
+  %% Runtime module dependencies
+  app --> stats[js/stats.js]
+  app --> recs[js/recommendations.js]
+  app --> reviews[js/reviews.js]
+  app --> dataPreview[data/anime.preview.json]
+  app --> dataFull[data/anime.full.json]
+  app --> dataLegacy[data/anime.json]
+  app --> dataEmbed[js/data.js]
+  app --> storage[localStorage: rekonime.bookmarks]
+  reviews --> anilist[AniList GraphQL]
+  app --> youtube[YouTube / YouTube-nocookie]
+
+  %% Data pipeline
+  scraper[tools/scraper/*] --> scores[tools/scraper/output/*.json]
+  scores --> merge[tools/merge-scores.js]
+  merge --> raw[data/anime.json]
+  raw --> updateMeta[tools/update_metadata.js]
+  raw --> backfill[tools/backfill_data.js]
+  raw --> build[tools/build-catalogs.js]
+  build --> full[data/anime.full.json]
+  build --> preview[data/anime.preview.json]
+  full --> regen[tools/regenerate-data.ps1]
+  regen --> embed[js/data.js]
+  raw --> validate[tools/validate-data.js]
+
+  %% Optional charting (not wired by default)
+  charts[js/charts.js] -. optional .-> app
 ```
-Problem: "Create a user authentication system"
-
-[Agent thinks internally:]
-Atom 1: Parse requirement - system must validate username/password pairs
-Atom 2: Design decision - use bcrypt for password hashing (security standard)
-Atom 3: Data structure - User object contains {id, username, hashedPassword, salt}
-Atom 4: Algorithm step - hash input password with stored salt
-Atom 5: Algorithm step - compare hashed input with stored hash
-Atom 6: Return decision - return boolean authentication status
-
-[Agent outputs clean code without mentioning atoms]
-```
-
----
-
-### Phase 2: Dependency Mapping & Validation (Internal)
-**Objective:** Mentally establish execution order and verify logical soundness.
-
-For each atom, internally assess:
-
-1. **Dependencies:** Which atoms must execute first?
-2. **Logic Verification:** Is the reasoning sound? What edge cases exist?
-3. **Confidence Score:** (0.0 - 1.0)
-   - `>= 0.9`: Proceed
-   - `< 0.9`: Create corrective sub-atom
-4. **Correction Protocol:** Resolve ambiguities before coding
-
-**This entire phase is mental** - no documentation is output to the user.
-
----
-
-### Phase 3: Execution
-**Objective:** Write clean, production-ready code based on validated atoms.
-
-**Protocol:**
-1. Implement atoms in dependency order
-2. Use standard professional comments (not atom references)
-3. Write single-purpose functions/classes
-4. Let the atomic structure inform clean architecture
-
-**Code Output Style:**
-```python
-from dataclasses import dataclass
-import bcrypt
-
-@dataclass
-class User:
-    """Represents a user with authentication credentials."""
-    id: str
-    username: str
-    hashed_password: str
-    salt: str
-
-def validate_salt(salt: str | None) -> str:
-    """Ensures salt exists before hashing operation."""
-    if salt is None or salt == "":
-        raise ValueError("Salt cannot be null or empty")
-    return salt
-
-def hash_password(password: str, salt: str) -> str:
-    """Hash password using bcrypt with provided salt."""
-    validated_salt = validate_salt(salt)
-    return bcrypt.hashpw(password.encode(), validated_salt.encode()).decode()
-```
-
-**Notice:** No atom IDs, no confidence scores, no phase markers - just clean code.
-
----
-
-### Phase 4: Synthesis
-**Objective:** Combine validated atoms into cohesive solution with natural documentation.
-
-**Requirements:**
-1. Integrate all atom outputs seamlessly
-2. Use standard docstrings and comments
-3. Provide usage examples when helpful
-4. Code should appear as if written by an experienced developer who naturally thinks in clean, modular units
-
-**Example Output:**
-```python
-class AuthenticationSystem:
-    """
-    Handles user authentication with secure password hashing.
-    Uses bcrypt for password storage and constant-time comparison.
-    """
-    
-    def authenticate(self, username: str, password: str, user_db: dict[str, User]) -> bool:
-        """
-        Authenticate a user against stored credentials.
-        
-        Args:
-            username: The username to authenticate
-            password: The plaintext password to verify
-            user_db: Dictionary mapping usernames to User objects
-            
-        Returns:
-            True if authentication successful, False otherwise
-        """
-        if not username or not password:
-            return False
-        
-        user = user_db.get(username)
-        if user is None:
-            return False
-        
-        input_hash = hash_password(password, user.salt)
-        return bcrypt.checkpw(password.encode(), user.hashed_password.encode())
-
-# Usage example
-auth = AuthenticationSystem()
-result = auth.authenticate("alice", "secret123", user_database)
-```
-
----
-
-## Output Standards
-
-### What the user SHOULD see:
-✅ Clean, professional code
-✅ Standard docstrings explaining purpose
-✅ Natural inline comments for complex logic
-✅ Well-structured, modular design
-✅ Usage examples when helpful
-
-### What the user should NEVER see:
-❌ "Atom 3: User data structure"
-❌ "Confidence: 0.95"
-❌ "Dependencies: DEPENDS_ON[Atom 2]"
-❌ "Phase 1: Decomposition"
-❌ Markdown files documenting the atomic process
-❌ Comments like "# === ATOM 4: Password Hashing ==="
-
----
-
-## Atom Documentation Standard
-
-## Internal Quality Gates
-
-Before outputting code, the agent must internally verify:
-
-- [ ] All requirements decomposed into atoms mentally
-- [ ] Every atom has confidence >= 0.9
-- [ ] Dependency graph is acyclic (no circular dependencies)
-- [ ] All atoms executed in valid topological order
-- [ ] Synthesis integrates ALL atoms (no orphaned logic)
-- [ ] Each component is independently testable
-- [ ] Output contains NO atom-related documentation or comments
-
----
-
-## Internal Anti-Patterns to Avoid
-
-The agent must avoid these patterns internally:
-
-❌ **Monolithic Atoms:** "Implement entire authentication system" is NOT atomic
-✅ **Correct:** Break into requirement, design, data, algorithm, validation atoms
-
-❌ **Ambiguous Dependencies:** "Depends on earlier work"
-✅ **Correct:** Track specific atom dependencies mentally
-
-❌ **Skipping Low Confidence:** Proceeding with confidence < 0.9
-✅ **Correct:** Create sub-atom to resolve uncertainty first
-
-❌ **Implicit Atoms:** Making design decisions without validating them as atoms
-✅ **Correct:** Every decision is an explicit, validated atom (mentally)
-
-**But remember:** None of this internal process appears in the code output.
-
----
-
-## Example: Complete AoT Coding Session
-
-**Task:** Implement a function to find the second largest number in an array.
-
-### Internal Process (Not shown to user):
-```
-Phase 1: Decomposition
-  Atom 1: Parse requirement - function accepts array of numbers, returns second largest
-  Atom 2: Edge case - array length < 2 should return null
-  Atom 3: Edge case - array with duplicate max values
-  Atom 4: Algorithm - track largest and second_largest in single pass
-  Atom 5: Algorithm - handle case where all elements are equal
-  Atom 6: Return type - decide on null for invalid input
-
-Phase 2: Validation
-  Atom 1: Independent | Confidence: 1.0
-  Atom 2: DEPENDS_ON[1] | Confidence: 0.95
-  Atom 3: DEPENDS_ON[1] | Confidence: 0.85 
-    → Sub-Atom 3.1: Clarify [5,5,3] returns 5 (second max occurrence)
-  Atom 4: DEPENDS_ON[1,2,3] | Confidence: 0.95
-  Atom 5: DEPENDS_ON[4] | Confidence: 0.90
-  Atom 6: DEPENDS_ON[2] | Confidence: 0.95
-
-Phase 3 & 4: Execute and synthesize
-```
-
-### Actual Output (What user sees):
-```python
-def find_second_largest(arr: list[int | float]) -> int | float | None:
-    """
-    Find the second largest number in an array.
-    
-    Args:
-        arr: List of numbers to search
-        
-    Returns:
-        The second largest number, or None if array has fewer than 2 elements
-        or all elements are equal
-    """
-    if len(arr) < 2:
-        return None
-    
-    largest = second_largest = float('-inf')
-    
-    for num in arr:
-        if num > largest:
-            second_largest = largest
-            largest = num
-        elif num > second_largest and num != largest:
-            second_largest = num
-    
-    # Return None if all elements were equal
-    if second_largest == float('-inf'):
-        return None
-    
-    return second_largest
-
-
-# Test cases
-assert find_second_largest([1, 2, 3, 4]) == 3
-assert find_second_largest([5]) is None
-assert find_second_largest([5, 5, 3]) == 5
-assert find_second_largest([7, 7, 7]) is None
-```
-
-**Notice:** Clean, professional code with no mention of atoms, phases, or confidence scores.
-
----
-
-## Enforcement
-
-This methodology is **MANDATORY** for:
-- All new feature development
-- Bug fixes requiring logic changes  
-- Code refactoring
-- Algorithm optimization
-- API design
-
-**The AoT process happens internally.** The user receives only clean, well-architected code that naturally reflects rigorous atomic thinking.
-
-Agents that skip internal AoT decomposition will produce code that is:
-- More prone to edge case bugs
-- Harder to maintain
-- Less testable
-- Poorly structured
-
----
-
-## Benefits
-
-Code produced through internal AoT reasoning achieves:
-- Significantly reduced logic bugs
-- Better test coverage
-- Cleaner architecture
-- Fewer edge case failures
-- More maintainable structure
-
-All without burdening the user with internal reasoning artifacts.
-
----
-
-## Summary
-
-**Agent's Internal Process:**
-1. Decompose problem into atoms (MECE)
-2. Validate each atom (confidence >= 0.9)
-3. Map dependencies mentally
-4. Execute in correct order
-5. Synthesize into clean code
-
-**User Sees:**
-- Production-ready code
-- Standard professional comments
-- Natural documentation
-- Well-structured architecture
-- Usage examples
-
-**User Never Sees:**
-- Atom IDs or labels
-- Confidence scores
-- Dependency graphs
-- Phase markers
-- Internal reasoning documentation
-
----
-
-**Remember:** Think in atoms. Code in clean, professional style. The rigor is internal; the output is elegant.
