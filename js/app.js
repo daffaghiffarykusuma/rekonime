@@ -28,6 +28,9 @@ const App = {
   trailerObserver: null,
   trailerScrollHandler: null,
   trailerScrollRoot: null,
+  bookmarkStorageKey: 'rekonime.bookmarks',
+  bookmarkIds: [],
+  bookmarkIdSet: new Set(),
 
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -73,6 +76,150 @@ const App = {
     }
   },
 
+  getBookmarkStorage() {
+    try {
+      return window.localStorage;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  loadBookmarks() {
+    this.bookmarkIds = [];
+    this.bookmarkIdSet = new Set();
+
+    if (typeof window === 'undefined') return;
+    const storage = this.getBookmarkStorage();
+    if (!storage) return;
+
+    try {
+      const raw = storage.getItem(this.bookmarkStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+
+      const unique = [];
+      const seen = new Set();
+      for (const item of parsed) {
+        const key = String(item ?? '').trim();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        unique.push(key);
+      }
+
+      this.bookmarkIds = unique;
+      this.bookmarkIdSet = new Set(unique);
+    } catch (error) {
+      this.bookmarkIds = [];
+      this.bookmarkIdSet = new Set();
+    }
+  },
+
+  saveBookmarks() {
+    if (typeof window === 'undefined') return;
+    const storage = this.getBookmarkStorage();
+    if (!storage) return;
+    try {
+      storage.setItem(this.bookmarkStorageKey, JSON.stringify(this.bookmarkIds));
+    } catch (error) {
+      // Ignore storage errors (private mode, quota, etc.)
+    }
+  },
+
+  isBookmarked(animeId) {
+    const key = String(animeId ?? '').trim();
+    if (!key) return false;
+    return this.bookmarkIdSet.has(key);
+  },
+
+  addBookmark(animeId) {
+    const key = String(animeId ?? '').trim();
+    if (!key || this.bookmarkIdSet.has(key)) return false;
+    this.bookmarkIdSet.add(key);
+    this.bookmarkIds.unshift(key);
+    this.saveBookmarks();
+    return true;
+  },
+
+  removeBookmark(animeId) {
+    const key = String(animeId ?? '').trim();
+    if (!key || !this.bookmarkIdSet.has(key)) return false;
+    this.bookmarkIdSet.delete(key);
+    this.bookmarkIds = this.bookmarkIds.filter(id => id !== key);
+    this.saveBookmarks();
+    return true;
+  },
+
+  toggleBookmark(animeId) {
+    const key = String(animeId ?? '').trim();
+    if (!key) return;
+
+    if (this.isBookmarked(key)) {
+      this.removeBookmark(key);
+    } else {
+      this.addBookmark(key);
+    }
+
+    this.updateBookmarkToggle(key);
+    this.renderBookmarks();
+  },
+
+  updateBookmarkToggle(animeId) {
+    const button = document.getElementById('bookmark-toggle');
+    if (!button) return;
+
+    const key = String(animeId ?? '').trim();
+    if (!key) {
+      button.dataset.animeId = '';
+      button.classList.remove('is-bookmarked');
+      button.setAttribute('aria-pressed', 'false');
+      button.setAttribute('aria-label', 'Add bookmark');
+      button.setAttribute('title', 'Add bookmark');
+      return;
+    }
+
+    const isActive = this.isBookmarked(key);
+    button.dataset.animeId = key;
+    button.classList.toggle('is-bookmarked', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    button.setAttribute('aria-label', isActive ? 'Remove bookmark' : 'Add bookmark');
+    button.setAttribute('title', isActive ? 'Remove bookmark' : 'Add bookmark');
+  },
+
+  getBookmarkedAnime() {
+    if (!Array.isArray(this.animeData) || this.animeData.length === 0) return [];
+    if (this.bookmarkIds.length === 0) return [];
+
+    const lookup = new Map(this.animeData.map(anime => [String(anime.id), anime]));
+    const results = [];
+
+    for (const id of this.bookmarkIds) {
+      const anime = lookup.get(id);
+      if (anime) {
+        results.push(anime);
+      }
+    }
+
+    return results;
+  },
+
+  renderBookmarks() {
+    const section = document.getElementById('bookmarks-section');
+    const grid = document.getElementById('bookmarks-grid');
+    const empty = document.getElementById('bookmarks-empty');
+    if (!section || !grid || !empty) return;
+
+    const bookmarks = this.getBookmarkedAnime();
+    if (bookmarks.length === 0) {
+      section.classList.add('is-empty');
+      grid.innerHTML = '';
+      return;
+    }
+
+    section.classList.remove('is-empty');
+    grid.innerHTML = this.renderAnimeCards(bookmarks, { showBookmarkToggle: true });
+  },
+
   // Pagination state
   gridPageSize: 24,
   gridCurrentPage: 1,
@@ -109,6 +256,7 @@ const App = {
   async init() {
     try {
       this.renderLoadingState();
+      this.loadBookmarks();
 
       const requestedAnimeId = this.getAnimeIdFromUrl();
       if (requestedAnimeId) {
@@ -1260,6 +1408,7 @@ const App = {
    */
   render() {
     this.renderActiveFilters();
+    this.renderBookmarks();
     this.renderRankings();
     this.renderRecommendations();
     this.renderAnimeGrid();
@@ -1285,7 +1434,7 @@ const App = {
   /**
    * Render anime cards HTML
    */
-  renderAnimeCards(animeList) {
+  renderAnimeCards(animeList, { showBookmarkToggle = false } = {}) {
     return animeList.map((anime) => {
       const badges = Recommendations.getBadges(anime);
       const cardStats = Recommendations.getCardStats(anime);
@@ -1298,6 +1447,8 @@ const App = {
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
       const safeReason = this.escapeHtml(reason);
+      const isBookmarked = this.isBookmarked(anime.id);
+      const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
 
       return `
         <div class="anime-card"
@@ -1305,6 +1456,16 @@ const App = {
              data-anime-id="${safeId}">
           <div class="card-media">
             <img src="${safeCover}" alt="${safeTitle}" class="card-cover" loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
+            ${showBookmarkToggle ? `
+              <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"
+                      type="button"
+                      data-action="toggle-bookmark"
+                      data-anime-id="${safeId}"
+                      aria-label="${bookmarkLabel}"
+                      title="${bookmarkLabel}">
+                &#9733;
+              </button>
+            ` : ''}
           </div>
           <div class="card-body">
             <div class="card-title-row">
@@ -1660,6 +1821,14 @@ const App = {
         return;
       }
 
+      if (action === 'toggle-bookmark') {
+        const animeId = actionEl.dataset.animeId || this.currentAnimeId;
+        if (animeId) {
+          this.toggleBookmark(animeId);
+        }
+        return;
+      }
+
       if (action === 'open-anime') {
         const animeId = actionEl.dataset.animeId;
         if (animeId) {
@@ -1847,7 +2016,10 @@ const App = {
       <div class="detail-header">
         <img src="${safeCover}" alt="${safeTitle}" class="detail-cover" data-fallback-src="https://via.placeholder.com/150x210?text=No+Image">
         <div class="detail-info">
-          <h2 class="detail-title">${safeTitle}</h2>
+          <div class="detail-title-row">
+            <h2 class="detail-title">${safeTitle}</h2>
+            <button class="modal-bookmark detail-bookmark" id="bookmark-toggle" type="button" data-action="toggle-bookmark" aria-pressed="false" aria-label="Add bookmark" title="Add bookmark">&#9733;</button>
+          </div>
           ${altTitlesHtml}
           <div class="detail-meta">
             ${metaHtml}
@@ -1944,6 +2116,8 @@ const App = {
         ${similarSection}
       </div>
     `;
+
+    this.updateBookmarkToggle(anime.id);
 
     if (modalContent) {
       modalContent.scrollTop = 0;
@@ -2240,6 +2414,7 @@ const App = {
     this.teardownTrailerObserver();
     this.teardownTrailerScrollListener();
     this.currentAnimeId = null;
+    this.updateBookmarkToggle(null);
 
     if (updateUrl) {
       this.updateUrlForAnime(null);
