@@ -25,6 +25,9 @@ const App = {
     image: '',
     url: ''
   },
+  trailerObserver: null,
+  trailerScrollHandler: null,
+  trailerScrollRoot: null,
 
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -1764,6 +1767,9 @@ const App = {
    * Show anime detail modal
    */
   showAnimeDetail(animeId, { updateUrl = true } = {}) {
+    this.stopTrailerPlayback();
+    this.teardownTrailerObserver();
+
     const anime = this.animeData.find(a => a.id === animeId);
     if (!anime) {
       if (updateUrl) {
@@ -1948,6 +1954,7 @@ const App = {
     document.body.style.overflow = 'hidden';
 
     this.updateMetaForAnime(anime, synopsis);
+    this.setupTrailerAutoplay(modalContent);
 
     // Load community reviews
     this.loadCommunityReviews(anime, synopsis);
@@ -2088,10 +2095,11 @@ const App = {
         ${embedUrl
           ? `<div class="trailer-embed">
               <iframe
-                src="${safeEmbedUrl}"
+                src="about:blank"
+                data-embed-src="${safeEmbedUrl}"
                 title="${safeTitle}"
                 loading="lazy"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen>
               </iframe>
             </div>`
@@ -2101,6 +2109,121 @@ const App = {
         }
       </div>
     `;
+  },
+
+  buildAutoplayEmbedUrl(embedUrl) {
+    const safeEmbedUrl = this.sanitizeTrailerEmbedUrl(embedUrl);
+    if (!safeEmbedUrl) return '';
+
+    try {
+      const url = new URL(safeEmbedUrl);
+      url.searchParams.set('enablejsapi', '1');
+      url.searchParams.set('autoplay', '1');
+      url.searchParams.set('mute', '1');
+      url.searchParams.set('playsinline', '1');
+      return url.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
+  isElementInScrollView(element, root, threshold = 0.4) {
+    if (!element) return false;
+    const targetRect = element.getBoundingClientRect();
+    if (!root) {
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const visibleHeight = Math.max(0, Math.min(targetRect.bottom, viewportHeight) - Math.max(targetRect.top, 0));
+      return targetRect.height > 0 && (visibleHeight / targetRect.height) >= threshold;
+    }
+
+    const rootRect = root.getBoundingClientRect();
+    const visibleTop = Math.max(targetRect.top, rootRect.top);
+    const visibleBottom = Math.min(targetRect.bottom, rootRect.bottom);
+    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+    return targetRect.height > 0 && (visibleHeight / targetRect.height) >= threshold;
+  },
+
+  setupTrailerAutoplay(modalContent) {
+    this.teardownTrailerObserver();
+    this.teardownTrailerScrollListener();
+    const trailerEmbed = document.querySelector('.detail-trailer .trailer-embed');
+    if (!trailerEmbed) return;
+
+    const iframe = trailerEmbed.querySelector('iframe');
+    if (!iframe || !iframe.dataset.embedSrc) return;
+
+    const root = modalContent || document.querySelector('#detail-modal .modal-content');
+    if (!('IntersectionObserver' in window)) {
+      this.startTrailerAutoplay(iframe);
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries, activeObserver) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          this.startTrailerAutoplay(iframe);
+          activeObserver.disconnect();
+          this.trailerObserver = null;
+          this.teardownTrailerScrollListener();
+          break;
+        }
+      }
+    }, {
+      root: root || null,
+      threshold: 0.4
+    });
+
+    observer.observe(trailerEmbed);
+    this.trailerObserver = observer;
+
+    const scrollRoot = root || window;
+    const handler = () => {
+      if (this.isElementInScrollView(trailerEmbed, root || null, 0.35)) {
+        this.startTrailerAutoplay(iframe);
+        this.teardownTrailerObserver();
+        this.teardownTrailerScrollListener();
+      }
+    };
+
+    this.trailerScrollRoot = scrollRoot;
+    this.trailerScrollHandler = handler;
+    scrollRoot.addEventListener('scroll', handler, { passive: true });
+    requestAnimationFrame(handler);
+  },
+
+  startTrailerAutoplay(iframe) {
+    if (!iframe || iframe.dataset.autoplayStarted === '1') return;
+    const embedSrc = iframe.dataset.embedSrc;
+    if (!embedSrc) return;
+
+    const autoplaySrc = this.buildAutoplayEmbedUrl(embedSrc);
+    if (!autoplaySrc) return;
+
+    iframe.dataset.autoplayStarted = '1';
+    iframe.removeAttribute('loading');
+    iframe.src = autoplaySrc;
+  },
+
+  stopTrailerPlayback() {
+    const iframe = document.querySelector('.detail-trailer iframe');
+    if (!iframe) return;
+    iframe.dataset.autoplayStarted = '';
+    iframe.src = 'about:blank';
+  },
+
+  teardownTrailerObserver() {
+    if (this.trailerObserver) {
+      this.trailerObserver.disconnect();
+      this.trailerObserver = null;
+    }
+  },
+
+  teardownTrailerScrollListener() {
+    if (this.trailerScrollRoot && this.trailerScrollHandler) {
+      this.trailerScrollRoot.removeEventListener('scroll', this.trailerScrollHandler);
+    }
+    this.trailerScrollRoot = null;
+    this.trailerScrollHandler = null;
   },
 
   /**
@@ -2113,6 +2236,9 @@ const App = {
       document.body.style.overflow = '';
     }
 
+    this.stopTrailerPlayback();
+    this.teardownTrailerObserver();
+    this.teardownTrailerScrollListener();
     this.currentAnimeId = null;
 
     if (updateUrl) {
