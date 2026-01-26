@@ -53,6 +53,7 @@
 ### Filtering and sorting
 - Filters are stored in `App.activeFilters` and options in `App.filterOptions`.
 - `App.applyFilters()` produces `App.filteredData`, resets pagination, and re-renders.
+- Active filters sync to URL query params (season/year/genre/theme/etc.) for shareable states and are restored on load/history.
 - Sorting uses `Recommendations.getSortOptions()` + `App.sortAnimeByMetric()`.
 
 ### Search

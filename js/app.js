@@ -9,6 +9,7 @@ const App = {
   filterPanelOpen: false,
   currentAnimeId: null,
   siteName: 'Rekonime',
+  preferredHomePath: '/home',
   basePageUrl: '',
   embeddedDataPromise: null,
   dataSources: {
@@ -31,6 +32,26 @@ const App = {
   bookmarkStorageKey: 'rekonime.bookmarks',
   bookmarkIds: [],
   bookmarkIdSet: new Set(),
+  seoInitialized: false,
+  urlFiltersApplied: false,
+  filterQueryMap: {
+    seasonYear: 'season',
+    year: 'year',
+    studio: 'studio',
+    source: 'source',
+    genres: 'genre',
+    themes: 'theme',
+    demographic: 'demographic'
+  },
+  filterTypeLabels: {
+    genres: 'Genre',
+    themes: 'Theme',
+    demographic: 'Demographic',
+    seasonYear: 'Season',
+    year: 'Year',
+    studio: 'Studio',
+    source: 'Source'
+  },
 
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -74,6 +95,279 @@ const App = {
     } catch (error) {
       return '';
     }
+  },
+
+  shouldUseHomeAlias() {
+    return Boolean(this.preferredHomePath) && window.location.protocol !== 'file:';
+  },
+
+  normalizeHomePath(url) {
+    if (!this.shouldUseHomeAlias() || !url || !this.isCatalogPage()) return;
+    const homePath = this.preferredHomePath.startsWith('/') ? this.preferredHomePath : `/${this.preferredHomePath}`;
+    const path = url.pathname || '/';
+
+    if (path.endsWith('/index.html')) {
+      url.pathname = path.replace(/\/index\.html$/, homePath);
+      return;
+    }
+
+    if (path.endsWith('/') && !path.endsWith(`${homePath}/`) && !path.endsWith(homePath)) {
+      url.pathname = `${path.replace(/\/$/, '')}${homePath}`;
+    }
+  },
+
+  syncHomePath({ replace = true } = {}) {
+    if (!this.shouldUseHomeAlias()) return '';
+    try {
+      const url = new URL(window.location.href);
+      const original = url.toString();
+      this.normalizeHomePath(url);
+      const nextUrl = url.toString();
+      if (nextUrl !== original) {
+        const method = replace ? 'replaceState' : 'pushState';
+        window.history[method](window.history.state || {}, '', nextUrl);
+      }
+      return nextUrl;
+    } catch (error) {
+      return '';
+    }
+  },
+
+  getHomeUrl(sourceUrl) {
+    if (window.location.protocol === 'file:') {
+      return 'index.html';
+    }
+    try {
+      const url = new URL(sourceUrl || window.location.href);
+      const homePath = this.preferredHomePath.startsWith('/') ? this.preferredHomePath : `/${this.preferredHomePath}`;
+      const directory = url.pathname.endsWith('/') ? url.pathname : url.pathname.replace(/\/[^/]*$/, '/');
+      url.pathname = `${directory.replace(/\/$/, '')}${homePath}`;
+      url.search = '';
+      url.hash = '';
+      return url.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
+  updateHomeLinks() {
+    if (!this.shouldUseHomeAlias()) return;
+    const homeUrl = this.getHomeUrl();
+    if (!homeUrl) return;
+    document.querySelectorAll('[data-home-link]').forEach(link => {
+      link.setAttribute('href', homeUrl);
+    });
+  },
+
+  getFilterParamMap() {
+    return this.filterQueryMap;
+  },
+
+  getFilterParamNames() {
+    return Object.values(this.filterQueryMap);
+  },
+
+  parseFilterParamValues(values) {
+    if (!Array.isArray(values)) return [];
+    return values
+      .flatMap(value => String(value || '').split(','))
+      .map(value => value.trim())
+      .filter(Boolean);
+  },
+
+  normalizeFilterValues(type, values) {
+    const cleaned = Array.isArray(values) ? values : [];
+    if (cleaned.length === 0) return [];
+
+    const options = Array.isArray(this.filterOptions?.[type]) ? this.filterOptions[type] : [];
+    const canonicalMap = new Map(options.map(option => [String(option).toLowerCase(), String(option)]));
+    const results = [];
+    const seen = new Set();
+
+    for (const value of cleaned) {
+      const raw = String(value || '').trim();
+      if (!raw) continue;
+      const normalized = raw.toLowerCase();
+      const canonical = canonicalMap.size ? (canonicalMap.get(normalized) || raw) : raw;
+      const key = canonical.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push(canonical);
+    }
+
+    return results;
+  },
+
+  getFiltersFromUrl(sourceUrl) {
+    const filters = {
+      seasonYear: [],
+      year: [],
+      studio: [],
+      source: [],
+      genres: [],
+      themes: [],
+      demographic: []
+    };
+
+    try {
+      const url = new URL(sourceUrl || window.location.href);
+      const paramMap = this.getFilterParamMap();
+      Object.entries(paramMap).forEach(([type, param]) => {
+        const values = this.parseFilterParamValues(url.searchParams.getAll(param));
+        filters[type] = this.normalizeFilterValues(type, values);
+      });
+    } catch (error) {
+      return filters;
+    }
+
+    return filters;
+  },
+
+  hasFilterParamsInUrl(sourceUrl) {
+    try {
+      const url = new URL(sourceUrl || window.location.href);
+      return this.getFilterParamNames().some(param => url.searchParams.has(param));
+    } catch (error) {
+      return false;
+    }
+  },
+
+  areFiltersEqual(left, right) {
+    const types = Object.keys(this.activeFilters);
+    for (const type of types) {
+      const a = Array.isArray(left?.[type]) ? left[type] : [];
+      const b = Array.isArray(right?.[type]) ? right[type] : [];
+      if (a.length !== b.length) return false;
+      const setA = new Set(a.map(value => String(value).toLowerCase()));
+      for (const value of b) {
+        if (!setA.has(String(value).toLowerCase())) return false;
+      }
+    }
+    return true;
+  },
+
+  setActiveFiltersFromUrl({ updateUi = false } = {}) {
+    const nextFilters = this.getFiltersFromUrl();
+    const changed = !this.areFiltersEqual(this.activeFilters, nextFilters);
+    this.activeFilters = nextFilters;
+    if (updateUi) {
+      this.renderFilterPanel();
+      this.renderQuickFilters();
+    }
+    return changed;
+  },
+
+  getSortedFilterValues(type, values) {
+    const cleaned = Array.isArray(values) ? values.map(value => String(value)) : [];
+    const unique = [...new Set(cleaned)];
+    const options = Array.isArray(this.filterOptions?.[type]) ? this.filterOptions[type] : [];
+    if (options.length === 0) {
+      return unique.sort((a, b) => a.localeCompare(b));
+    }
+    const order = new Map(options.map((option, index) => [String(option), index]));
+    return unique.sort((a, b) => {
+      const orderA = order.has(a) ? order.get(a) : Number.POSITIVE_INFINITY;
+      const orderB = order.has(b) ? order.get(b) : Number.POSITIVE_INFINITY;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.localeCompare(b);
+    });
+  },
+
+  setFiltersOnUrl(url, filters) {
+    if (!url) return;
+    const paramMap = this.getFilterParamMap();
+    Object.values(paramMap).forEach(param => url.searchParams.delete(param));
+    Object.entries(paramMap).forEach(([type, param]) => {
+      const values = this.getSortedFilterValues(type, filters?.[type] || []);
+      values.forEach(value => url.searchParams.append(param, value));
+    });
+  },
+
+  buildFilterStateUrl(sourceUrl) {
+    try {
+      const url = new URL(sourceUrl || window.location.href);
+      this.normalizeHomePath(url);
+      this.setFiltersOnUrl(url, this.activeFilters);
+      return url.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
+  updateUrlForFilters({ replace = false } = {}) {
+    if (!this.isCatalogPage()) return '';
+    try {
+      const url = new URL(window.location.href);
+      this.normalizeHomePath(url);
+      this.setFiltersOnUrl(url, this.activeFilters);
+      const nextUrl = url.toString();
+      if (nextUrl === window.location.href) {
+        return nextUrl;
+      }
+      const method = replace ? 'replaceState' : 'pushState';
+      window.history[method](window.history.state || {}, '', nextUrl);
+      this.setCanonicalUrl(this.buildCanonicalUrl(nextUrl));
+      return nextUrl;
+    } catch (error) {
+      return '';
+    }
+  },
+
+  getActiveFilterGroups() {
+    const groups = [];
+    Object.entries(this.activeFilters).forEach(([type, values]) => {
+      const cleaned = values
+        .map(value => String(value ?? '').trim())
+        .filter(Boolean);
+      if (cleaned.length === 0) return;
+      groups.push({
+        type,
+        label: this.filterTypeLabels[type] || type,
+        values: cleaned
+      });
+    });
+    return groups;
+  },
+
+  buildFilterMeta() {
+    const groups = this.getActiveFilterGroups();
+    const summary = groups.map(group => `${group.label}: ${group.values.join(', ')}`);
+    const headline = summary.join(' | ');
+    const title = headline ? `${headline} | ${this.siteName}` : this.defaultMeta.title || this.siteName;
+    const prefix = headline ? `Anime filtered by ${summary.join(', ')}.` : '';
+    const baseDescription = this.defaultMeta.description || '';
+    const description = this.buildMetaDescription(`${prefix} ${baseDescription}`.trim());
+    return { title, description };
+  },
+
+  updateMetaForFilters() {
+    if (!this.seoInitialized || this.currentAnimeId) return;
+    const hasFilters = this.getActiveFilterGroups().length > 0;
+    if (!hasFilters) {
+      this.resetMetaToDefault();
+      return;
+    }
+
+    const { title, description } = this.buildFilterMeta();
+    const url = this.buildCanonicalUrl(this.buildFilterStateUrl());
+    this.applyMetaTags({
+      title,
+      description: description || this.defaultMeta.description,
+      image: this.defaultMeta.image,
+      url,
+      imageAlt: 'Rekonime logo'
+    });
+
+    this.updateStructuredData({
+      title,
+      description: description || this.defaultMeta.description,
+      url,
+      image: this.defaultMeta.image
+    });
+  },
+
+  isCatalogPage() {
+    return Boolean(document.getElementById('catalog-section'));
   },
 
   getBookmarkStorage() {
@@ -255,6 +549,7 @@ const App = {
    */
   async init() {
     try {
+      this.syncHomePath();
       this.renderLoadingState();
       this.loadBookmarks();
 
@@ -273,7 +568,9 @@ const App = {
 
       this.setupEventListeners();
       this.initSeo();
+      this.updateHomeLinks();
       this.syncModalWithUrl();
+      this.updateMetaForFilters();
 
       if (!requestedAnimeId && !this.isFullDataLoaded) {
         if ('requestIdleCallback' in window) {
@@ -406,10 +703,20 @@ const App = {
 
     this.ensureStats();
     this.extractFilterOptions();
+
+    if (!this.urlFiltersApplied && this.isCatalogPage()) {
+      const hasFilterParams = this.hasFilterParamsInUrl();
+      this.setActiveFiltersFromUrl();
+      this.urlFiltersApplied = true;
+      if (hasFilterParams) {
+        this.updateUrlForFilters({ replace: true });
+      }
+    }
+
     this.updateSortOptions();
     this.renderFilterPanel();
     this.renderQuickFilters();
-    this.applyFilters();
+    this.applyFilters({ syncUrl: false, updateMeta: false });
   },
 
   renderLoadingState() {
@@ -780,7 +1087,12 @@ const App = {
     }
 
     window.addEventListener('popstate', () => {
+      const filtersChanged = this.setActiveFiltersFromUrl({ updateUi: true });
+      if (filtersChanged) {
+        this.applyFilters({ syncUrl: false, updateMeta: false });
+      }
       this.syncModalWithUrl({ updateUrl: false });
+      this.updateMetaForFilters();
     });
 
     // Header search
@@ -823,7 +1135,8 @@ const App = {
     const currentTitle = document.title || this.siteName;
     const currentDescription = this.getMetaContent('description');
     const currentImage = this.getMetaContent('og:image', true);
-    const canonicalUrl = this.buildCanonicalUrl(window.location.href);
+    const syncedUrl = this.syncHomePath();
+    const canonicalUrl = this.buildCanonicalUrl(syncedUrl || window.location.href);
 
     this.basePageUrl = this.getBaseUrl(canonicalUrl);
     this.siteName = currentTitle.split(' - ')[0] || this.siteName;
@@ -849,6 +1162,8 @@ const App = {
       url: canonicalUrl,
       image: currentImage
     });
+
+    this.seoInitialized = true;
   },
 
   /**
@@ -882,6 +1197,7 @@ const App = {
     try {
       const url = new URL(sourceUrl || window.location.href);
       url.searchParams.delete('anime');
+      this.getFilterParamNames().forEach(param => url.searchParams.delete(param));
       return this.buildCanonicalUrl(url.toString());
     } catch (error) {
       return '';
@@ -892,6 +1208,7 @@ const App = {
     try {
       const url = new URL(sourceUrl || window.location.href);
       url.hash = '';
+      this.normalizeHomePath(url);
       return url.toString();
     } catch (error) {
       return '';
@@ -910,6 +1227,7 @@ const App = {
   buildUrlForAnime(animeId) {
     try {
       const url = new URL(this.basePageUrl || window.location.href);
+      this.normalizeHomePath(url);
       if (animeId) {
         url.searchParams.set('anime', animeId);
       } else {
@@ -925,6 +1243,7 @@ const App = {
     try {
       const url = new URL(window.location.href);
       const currentAnimeId = url.searchParams.get('anime');
+      this.normalizeHomePath(url);
 
       if (animeId) {
         if (currentAnimeId === animeId && !replace) return url.toString();
@@ -1336,7 +1655,7 @@ const App = {
   /**
    * Apply all active filters to data
    */
-  applyFilters() {
+  applyFilters({ syncUrl = true, replaceUrl = false, updateMeta = true } = {}) {
     this.filteredData = this.animeData.filter(anime => {
       // Check season-year filter
       if (this.activeFilters.seasonYear.length > 0) {
@@ -1400,7 +1719,13 @@ const App = {
 
     // Reset pagination when filters change
     this.resetGridPagination();
+    if (syncUrl) {
+      this.updateUrlForFilters({ replace: replaceUrl });
+    }
     this.render();
+    if (updateMeta) {
+      this.updateMetaForFilters();
+    }
   },
 
   /**
@@ -1519,16 +1844,6 @@ const App = {
     const clearBtn = document.getElementById('active-filters-clear');
     if (!container || !list || !empty || !label || !clearBtn) return;
 
-    const typeLabels = {
-      genres: 'Genre',
-      themes: 'Theme',
-      demographic: 'Demographic',
-      seasonYear: 'Season',
-      year: 'Year',
-      studio: 'Studio',
-      source: 'Source'
-    };
-
     const active = [];
     Object.entries(this.activeFilters).forEach(([type, values]) => {
       values.forEach(value => {
@@ -1536,7 +1851,7 @@ const App = {
         active.push({
           type,
           value,
-          label: typeLabels[type] || type
+          label: this.filterTypeLabels[type] || type
         });
       });
     });
@@ -2419,8 +2734,7 @@ const App = {
     if (updateUrl) {
       this.updateUrlForAnime(null);
     }
-
-    this.resetMetaToDefault();
+    this.updateMetaForFilters();
   },
 
   /**
