@@ -11,9 +11,10 @@ Rekonime is a static front-end app that renders anime data, stats, and recommend
 - `css/styles.css`: Global styling and component layouts.
 
 ## Data Flow
-1. `App.loadData()` fetches `data/anime.json` or uses `ANIME_DATA` fallback.
-2. `App.calculateAllStats()` enriches each anime with computed stats.
-3. Rendering functions update the catalog, recommendations, and modal views.
+1. `App.loadInitialData()` fetches `data/anime.preview.json` for the first render (or `ANIME_DATA` fallback for `file://`).
+2. Precomputed stats from `data/anime.full.json` are used; runtime stats are only computed when missing.
+3. `App.loadFullCatalog()` swaps in the full catalog after the initial render.
+4. Rendering functions update the catalog, recommendations, and modal views.
 
 ## Similar Anime Flow
 1. `App.renderSimilarAnimeSection()` calls `Recommendations.getSimilarAnime()`.

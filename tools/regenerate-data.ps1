@@ -1,5 +1,5 @@
 Param(
-  [string]$InputPath = "data/anime.json",
+  [string]$InputPath = "data/anime.full.json",
   [string]$OutputPath = "js/data.js"
 )
 

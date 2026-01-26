@@ -10,6 +10,15 @@ const App = {
   currentAnimeId: null,
   siteName: 'Rekonime',
   basePageUrl: '',
+  embeddedDataPromise: null,
+  dataSources: {
+    preview: 'data/anime.preview.json',
+    full: 'data/anime.full.json',
+    legacy: 'data/anime.json'
+  },
+  isFullDataLoaded: false,
+  loadingFullCatalog: false,
+  fullCatalogPromise: null,
   defaultMeta: {
     title: '',
     description: '',
@@ -96,22 +105,35 @@ const App = {
    */
   async init() {
     try {
-      await this.loadData();
-      this.calculateAllStats();
-      this.extractFilterOptions();
-      this.filteredData = [...this.animeData];
+      this.renderLoadingState();
 
-      this.updateSortOptions();
+      const requestedAnimeId = this.getAnimeIdFromUrl();
+      if (requestedAnimeId) {
+        const loaded = await this.loadFullCatalog();
+        if (!loaded) {
+          throw new Error('Failed to load full catalog');
+        }
+      } else {
+        const loaded = await this.loadInitialData();
+        if (!loaded) {
+          throw new Error('Failed to load catalog');
+        }
+      }
 
-      this.renderFilterPanel();
-      this.renderQuickFilters();
-      this.render();
       this.setupEventListeners();
       this.initSeo();
       this.syncModalWithUrl();
+
+      if (!requestedAnimeId && !this.isFullDataLoaded) {
+        if ('requestIdleCallback' in window) {
+          window.requestIdleCallback(() => this.loadFullCatalog(), { timeout: 1500 });
+        } else {
+          setTimeout(() => this.loadFullCatalog(), 0);
+        }
+      }
     } catch (error) {
       console.error('Failed to initialize app:', error);
-      this.showError('We couldn\'t load the catalog. Try refreshing—if it persists, the data might be updating.');
+      this.showError('We couldn\'t load the catalog. Try refreshing - if it persists, the data might be updating.');
     }
   },
 
@@ -135,24 +157,198 @@ const App = {
   },
 
   /**
-   * Load anime data from JSON file (with fallback for file:// protocol)
+   * Load preview data first for a faster first paint.
    */
-  async loadData() {
-    try {
-      const response = await fetch('data/anime.json');
-      if (!response.ok) {
-        throw new Error('Failed to fetch anime data');
+  async loadInitialData() {
+    if (window.location.protocol === 'file:') {
+      const loaded = await this.loadEmbeddedData();
+      if (!loaded) {
+        return false;
       }
-      const data = await response.json();
-      this.animeData = this.normalizeAnimeData(data.anime || []);
-    } catch (error) {
-      // Fallback: try loading from embedded data (for file:// protocol)
-      if (typeof ANIME_DATA !== 'undefined') {
-        this.animeData = this.normalizeAnimeData(ANIME_DATA.anime || []);
-      } else {
-        throw error;
-      }
+      this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: false });
+      return true;
     }
+
+    const previewPayload = await this.fetchCatalog(this.dataSources.preview);
+    if (previewPayload) {
+      this.applyCatalogPayload(previewPayload, { isFull: false, preserveFilters: false });
+      return true;
+    }
+
+    return this.loadFullCatalog();
+  },
+
+  async loadFullCatalog() {
+    if (this.isFullDataLoaded) {
+      return true;
+    }
+
+    if (this.fullCatalogPromise) {
+      return this.fullCatalogPromise;
+    }
+
+    this.loadingFullCatalog = true;
+    this.fullCatalogPromise = (async () => {
+      if (window.location.protocol === 'file:') {
+        const loaded = await this.loadEmbeddedData();
+        if (!loaded) {
+          return false;
+        }
+        this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
+        return true;
+      }
+
+      const fullPayload =
+        (await this.fetchCatalog(this.dataSources.full)) ||
+        (await this.fetchCatalog(this.dataSources.legacy));
+
+      if (!fullPayload) {
+        const loaded = await this.loadEmbeddedData();
+        if (!loaded) {
+          return false;
+        }
+        this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
+        return true;
+      }
+
+      this.applyCatalogPayload(fullPayload, { isFull: true, preserveFilters: true });
+      return true;
+    })();
+
+    const result = await this.fullCatalogPromise;
+    this.isFullDataLoaded = Boolean(result);
+    this.loadingFullCatalog = false;
+    this.fullCatalogPromise = null;
+    return result;
+  },
+
+  async fetchCatalog(path) {
+    if (!path) return null;
+    try {
+      const response = await fetch(path, { cache: 'force-cache' });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      return null;
+    }
+  },
+
+  applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
+    const catalog = payload?.anime || [];
+    this.scoreProfile = this.isValidScoreProfile(payload?.scoreProfile) ? payload.scoreProfile : null;
+    this.animeData = this.normalizeAnimeData(catalog);
+    this.isFullDataLoaded = isFull;
+    this.gridSortedCache = null;
+    this.gridSortedSource = null;
+
+    if (!preserveFilters) {
+      this.activeFilters = {
+        seasonYear: [],
+        year: [],
+        studio: [],
+        source: [],
+        genres: [],
+        themes: [],
+        demographic: []
+      };
+    }
+
+    this.ensureStats();
+    this.extractFilterOptions();
+    this.updateSortOptions();
+    this.renderFilterPanel();
+    this.renderQuickFilters();
+    this.applyFilters();
+  },
+
+  renderLoadingState() {
+    const recommendations = document.getElementById('recommendations-grid');
+    const rankings1 = document.getElementById('best-ranking-1');
+    const rankings2 = document.getElementById('best-ranking-2');
+    const grid = document.getElementById('anime-grid');
+
+    if (recommendations) {
+      recommendations.classList.add('is-loading');
+    }
+
+    if (grid) {
+      grid.classList.add('is-loading');
+    }
+
+    if (rankings1) {
+      rankings1.setAttribute('aria-busy', 'true');
+    }
+
+    if (rankings2) {
+      rankings2.setAttribute('aria-busy', 'true');
+    }
+  },
+
+  ensureStats() {
+    const needsStats = this.animeData.some(anime => !anime.stats);
+    if (!needsStats) {
+      this.animeData = this.animeData.map((anime, index) => ({
+        ...anime,
+        colorIndex: Number.isFinite(anime.colorIndex) ? anime.colorIndex : index
+      }));
+      return;
+    }
+
+    const scoreProfile = this.isValidScoreProfile(this.scoreProfile)
+      ? this.scoreProfile
+      : Stats.buildScoreProfile(this.animeData);
+
+    this.scoreProfile = scoreProfile;
+
+    this.animeData = this.animeData.map((anime, index) => ({
+      ...anime,
+      stats: anime.stats || Stats.calculateAllStats(anime, scoreProfile),
+      colorIndex: Number.isFinite(anime.colorIndex) ? anime.colorIndex : index
+    }));
+  },
+
+  isValidScoreProfile(profile) {
+    return Boolean(profile && Number.isFinite(profile.p35) && Number.isFinite(profile.p50) && Number.isFinite(profile.p65));
+  },
+
+  /**
+   * Load embedded data only when fetch fails (keeps initial load light).
+   */
+  async loadEmbeddedData() {
+    if (typeof ANIME_DATA !== 'undefined') {
+      this.animeData = this.normalizeAnimeData(ANIME_DATA.anime || []);
+      return true;
+    }
+
+    try {
+      await this.loadEmbeddedDataScript();
+    } catch (error) {
+      return false;
+    }
+
+    if (typeof ANIME_DATA === 'undefined') {
+      return false;
+    }
+
+    this.animeData = this.normalizeAnimeData(ANIME_DATA.anime || []);
+    return true;
+  },
+
+  loadEmbeddedDataScript() {
+    if (this.embeddedDataPromise) {
+      return this.embeddedDataPromise;
+    }
+
+    this.embeddedDataPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'js/data.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load embedded anime data'));
+      document.head.appendChild(script);
+    });
+
+    return this.embeddedDataPromise;
   },
 
   /**
@@ -165,6 +361,9 @@ const App = {
       const normalizedThemes = this.sanitizeTagList(anime?.metadata?.themes || anime?.themes || []);
       const normalizedTrailer = anime?.metadata?.trailer || anime?.trailer || null;
       const normalizedSynopsis = anime?.metadata?.synopsis || anime?.synopsis || '';
+      const existingStats = anime?.stats || anime?.metadata?.stats || null;
+      const existingColorIndex = Number.isFinite(anime?.colorIndex) ? anime.colorIndex : null;
+      const existingSearchText = anime?.searchText || '';
       const normalizedTitleEnglish =
         anime?.metadata?.title_english ||
         anime?.metadata?.titleEnglish ||
@@ -178,7 +377,7 @@ const App = {
         anime?.titleJapanese ||
         '';
       const normalizedType = anime?.metadata?.type || anime?.type || '';
-      const rawCommunityScore = anime?.metadata?.score ?? anime?.score;
+      const rawCommunityScore = anime?.communityScore ?? anime?.metadata?.score ?? anime?.score;
       const communityScore = Number.isFinite(Number(rawCommunityScore)) ? Number(rawCommunityScore) : null;
 
       // If data has nested metadata structure, flatten it
@@ -203,8 +402,10 @@ const App = {
           trailer: normalizedTrailer,
           synopsis: normalizedSynopsis,
           communityScore: communityScore,
-          searchText: this.buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
-          episodes: anime.episodes || []
+          searchText: existingSearchText || this.buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
+          episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
+          stats: existingStats,
+          colorIndex: existingColorIndex
         };
       }
       // Already flat structure, ensure all fields exist
@@ -228,8 +429,10 @@ const App = {
         trailer: normalizedTrailer,
         synopsis: normalizedSynopsis,
         communityScore: communityScore,
-        searchText: this.buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
-        episodes: anime.episodes || []
+        searchText: existingSearchText || this.buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
+        episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
+        stats: existingStats,
+        colorIndex: existingColorIndex
       };
     });
   },
@@ -1214,6 +1417,7 @@ const App = {
     const container = document.getElementById('recommendations-grid');
     const contextEl = document.getElementById('recommendations-context');
     if (!container) return;
+    container.classList.remove('is-loading');
 
     if (contextEl) {
       contextEl.textContent = 'Retention-first picks blended with MAL satisfaction for more dependable recommendations.';
@@ -1265,6 +1469,8 @@ const App = {
     const title2 = document.getElementById('ranking-title-2');
 
     if (!container1 || !container2) return;
+    container1.removeAttribute('aria-busy');
+    container2.removeAttribute('aria-busy');
 
     const dataToUse = this.filteredData;
 
@@ -1342,6 +1548,7 @@ const App = {
   renderAnimeGrid({ append = false } = {}) {
     const container = document.getElementById('anime-grid');
     if (!container) return;
+    container.classList.remove('is-loading');
 
     const sorted = this.getSortedGridData();
 
@@ -1934,6 +2141,11 @@ const App = {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  App.init();
+  const start = () => App.init();
+  if (typeof window.requestAnimationFrame === 'function') {
+    window.requestAnimationFrame(start);
+  } else {
+    setTimeout(start, 0);
+  }
 });
 

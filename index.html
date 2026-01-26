@@ -88,7 +88,12 @@
         </div>
       </div>
       <div class="recommendations-grid" id="recommendations-grid">
-        <!-- Populated by JS -->
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="skeleton-card skeleton-recommendation"></div>
       </div>
     </section>
 
@@ -96,13 +101,13 @@
       <div class="ranking-card" id="ranking-card-1">
         <h3 id="ranking-title-1">Top Retention</h3>
         <div id="best-ranking-1">
-          <!-- Populated by JS -->
+          <div class="skeleton-card skeleton-ranking"></div>
         </div>
       </div>
       <div class="ranking-card" id="ranking-card-2">
         <h3 id="ranking-title-2">Highest Satisfaction (MAL)</h3>
         <div id="best-ranking-2">
-          <!-- Populated by JS -->
+          <div class="skeleton-card skeleton-ranking"></div>
         </div>
       </div>
     </section>
@@ -115,7 +120,18 @@
         </div>
       </div>
       <div class="anime-grid" id="anime-grid">
-        <!-- Populated by JS -->
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
+        <div class="skeleton-card skeleton-grid"></div>
       </div>
     </section>
   </div>
@@ -149,12 +165,10 @@
   </div>
 
   <!-- Scripts -->
-  <!-- Embedded anime data (for file:// protocol compatibility) -->
-  <script src="js/data.js"></script>
-  <script src="js/stats.js"></script>
-  <script src="js/recommendations.js"></script>
-  <script src="js/reviews.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/stats.js" defer></script>
+  <script src="js/recommendations.js" defer></script>
+  <script src="js/reviews.js" defer></script>
+  <script src="js/app.js" defer></script>
 </body>
 </html>
 
