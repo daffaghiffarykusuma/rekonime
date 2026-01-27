@@ -64,6 +64,11 @@ const App = {
     activeIndex: -1
   },
   searchMaxResults: 8,
+  modalFocusState: {
+    activeId: null,
+    lastFocused: null,
+    handler: null
+  },
 
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -522,19 +527,192 @@ const App = {
     this.setupTrailerAutoplay(modalContent);
   },
 
+  getModalElement(modalId) {
+    if (!modalId) return null;
+    return document.getElementById(modalId);
+  },
+
+  getModalContent(modal) {
+    if (!modal) return null;
+    return modal.querySelector('.modal-content') || modal;
+  },
+
+  isModalVisible(modalId) {
+    const modal = this.getModalElement(modalId);
+    return Boolean(modal && modal.classList.contains('visible'));
+  },
+
+  getOpenModalId() {
+    const order = ['settings-modal', 'filter-modal', 'detail-modal'];
+    const openId = order.find(id => this.isModalVisible(id));
+    return openId || '';
+  },
+
+  updateBodyScrollLock() {
+    const hasOpenModal = ['detail-modal', 'filter-modal', 'settings-modal']
+      .some(id => this.isModalVisible(id));
+    document.body.style.overflow = hasOpenModal ? 'hidden' : '';
+  },
+
+  isElementVisible(element) {
+    if (!element) return false;
+    return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+  },
+
+  getFocusableElements(container) {
+    if (!container) return [];
+    const selectors = [
+      'a[href]',
+      'area[href]',
+      'button:not([disabled])',
+      'input:not([disabled]):not([type="hidden"])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      'iframe',
+      'object',
+      'embed',
+      '[contenteditable="true"]',
+      '[tabindex]:not([tabindex="-1"])'
+    ];
+
+    return Array.from(container.querySelectorAll(selectors.join(',')))
+      .filter(element => {
+        if (!this.isElementVisible(element)) return false;
+        if (element.getAttribute('aria-hidden') === 'true') return false;
+        return element.tabIndex >= 0;
+      });
+  },
+
+  activateModalFocus(modalId, { initialFocusSelector } = {}) {
+    const modal = this.getModalElement(modalId);
+    if (!modal) return;
+    const content = this.getModalContent(modal);
+    if (!content) return;
+
+    if (this.modalFocusState.activeId && this.modalFocusState.activeId !== modalId) {
+      this.deactivateModalFocus(this.modalFocusState.activeId, { returnFocus: false });
+    }
+
+    this.modalFocusState.activeId = modalId;
+    this.modalFocusState.lastFocused = document.activeElement && typeof document.activeElement.focus === 'function'
+      ? document.activeElement
+      : null;
+
+    if (!content.hasAttribute('tabindex')) {
+      content.setAttribute('tabindex', '-1');
+    }
+
+    const preferred = initialFocusSelector ? content.querySelector(initialFocusSelector) : null;
+    const focusables = this.getFocusableElements(content);
+    const target = preferred || focusables[0] || content;
+
+    requestAnimationFrame(() => {
+      if (target && typeof target.focus === 'function') {
+        target.focus({ preventScroll: true });
+      }
+    });
+
+    const handler = (event) => {
+      if (event.key !== 'Tab') return;
+      const focusable = this.getFocusableElements(content);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        content.focus({ preventScroll: true });
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (!content.contains(active)) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+        return;
+      }
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    };
+
+    modal.addEventListener('keydown', handler);
+    this.modalFocusState.handler = handler;
+  },
+
+  deactivateModalFocus(modalId, { returnFocus = true } = {}) {
+    const targetId = modalId || this.modalFocusState.activeId;
+    if (!targetId) return;
+    const modal = this.getModalElement(targetId);
+
+    if (modal && this.modalFocusState.handler) {
+      modal.removeEventListener('keydown', this.modalFocusState.handler);
+    }
+
+    const lastFocused = this.modalFocusState.lastFocused;
+    if (targetId === this.modalFocusState.activeId) {
+      this.modalFocusState.activeId = null;
+      this.modalFocusState.lastFocused = null;
+    }
+    this.modalFocusState.handler = null;
+
+    if (returnFocus && lastFocused && document.contains(lastFocused) && typeof lastFocused.focus === 'function') {
+      lastFocused.focus({ preventScroll: true });
+    }
+  },
+
+  setModalVisibility(modalId, isOpen, { initialFocusSelector, returnFocus = true } = {}) {
+    const modal = this.getModalElement(modalId);
+    if (!modal) return;
+
+    modal.classList.toggle('visible', isOpen);
+    modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+
+    if (isOpen) {
+      this.activateModalFocus(modalId, { initialFocusSelector });
+    } else {
+      this.deactivateModalFocus(modalId, { returnFocus });
+    }
+
+    this.updateBodyScrollLock();
+  },
+
+  handleGlobalEscape(event) {
+    if (!event || event.key !== 'Escape') return false;
+    const openId = this.getOpenModalId();
+    if (!openId) return false;
+
+    if (openId === 'detail-modal') {
+      this.closeDetailModal();
+      return true;
+    }
+
+    if (openId === 'filter-modal') {
+      this.closeFilterModal();
+      return true;
+    }
+
+    if (openId === 'settings-modal') {
+      this.closeSettingsModal();
+      return true;
+    }
+
+    return false;
+  },
+
   toggleSettingsModal() {
     const modal = document.getElementById('settings-modal');
     if (!modal) return;
     const isOpen = modal.classList.contains('visible');
-    modal.classList.toggle('visible', !isOpen);
-    document.body.style.overflow = !isOpen ? 'hidden' : '';
+    this.setModalVisibility('settings-modal', !isOpen, { initialFocusSelector: '#close-settings' });
   },
 
   closeSettingsModal() {
-    const modal = document.getElementById('settings-modal');
-    if (!modal) return;
-    modal.classList.remove('visible');
-    document.body.style.overflow = '';
+    this.setModalVisibility('settings-modal', false);
   },
 
   renderSettingsModal() {
@@ -1468,6 +1646,12 @@ const App = {
       this.updateSetting(key, target.checked);
     });
 
+    document.addEventListener('keydown', (event) => {
+      if (this.handleGlobalEscape(event)) {
+        event.preventDefault();
+      }
+    });
+
     window.addEventListener('popstate', () => {
       const filtersChanged = this.setActiveFiltersFromUrl({ updateUi: true });
       if (filtersChanged) {
@@ -1965,8 +2149,7 @@ const App = {
     const modal = document.getElementById('filter-modal');
     if (modal) {
       this.filterPanelOpen = !this.filterPanelOpen;
-      modal.classList.toggle('visible', this.filterPanelOpen);
-      document.body.style.overflow = this.filterPanelOpen ? 'hidden' : '';
+      this.setModalVisibility('filter-modal', this.filterPanelOpen, { initialFocusSelector: '#close-filter-modal' });
       if (this.filterPanelOpen) {
         const content = modal.querySelector('.filter-modal-content');
         if (content) {
@@ -1977,12 +2160,8 @@ const App = {
   },
 
   closeFilterModal() {
-    const modal = document.getElementById('filter-modal');
-    if (modal) {
-      this.filterPanelOpen = false;
-      modal.classList.remove('visible');
-      document.body.style.overflow = '';
-    }
+    this.filterPanelOpen = false;
+    this.setModalVisibility('filter-modal', false);
   },
 
   /**
@@ -2985,7 +3164,7 @@ const App = {
         <img src="${safeCover}" alt="${safeTitle}" class="detail-cover" data-fallback-src="https://via.placeholder.com/150x210?text=No+Image">
         <div class="detail-info">
           <div class="detail-title-row">
-            <h2 class="detail-title">${safeTitle}</h2>
+            <h2 class="detail-title" id="detail-modal-title">${safeTitle}</h2>
             <button class="modal-bookmark detail-bookmark" id="bookmark-toggle" type="button" data-action="toggle-bookmark" aria-pressed="false" aria-label="Add bookmark" title="Add bookmark">&#9733;</button>
           </div>
           ${altTitlesHtml}
@@ -3092,8 +3271,7 @@ const App = {
     }
     content.scrollTop = 0;
 
-    modal.classList.add('visible');
-    document.body.style.overflow = 'hidden';
+    this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
 
     this.updateMetaForAnime(anime, synopsis);
     this.setupTrailerAutoplay(modalContent);
@@ -3385,11 +3563,7 @@ const App = {
    * Close detail modal
    */
   closeDetailModal({ updateUrl = true } = {}) {
-    const modal = document.getElementById('detail-modal');
-    if (modal) {
-      modal.classList.remove('visible');
-      document.body.style.overflow = '';
-    }
+    this.setModalVisibility('detail-modal', false);
 
     this.stopTrailerPlayback();
     this.teardownTrailerObserver();

@@ -62,21 +62,21 @@
   </div>
 
   <!-- Detail Modal -->
-  <div class="modal-overlay" id="detail-modal">
-    <div class="modal-content">
-      <button class="modal-close" id="close-detail">&times;</button>
+  <div class="modal-overlay" id="detail-modal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" tabindex="-1">
+      <button class="modal-close" id="close-detail" type="button" aria-label="Close details">&times;</button>
       <div class="modal-body" id="detail-content">
         <!-- Populated by JS -->
       </div>
     </div>
   </div>
 
-  <div class="modal-overlay settings-modal-overlay" id="settings-modal">
-    <div class="modal-content settings-modal-content">
-      <button class="modal-close" id="close-settings">&times;</button>
+  <div class="modal-overlay settings-modal-overlay" id="settings-modal" aria-hidden="true">
+    <div class="modal-content settings-modal-content" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" tabindex="-1">
+      <button class="modal-close" id="close-settings" type="button" aria-label="Close settings">&times;</button>
       <div class="settings-modal-body">
         <div class="settings-modal-header">
-          <h2 class="settings-modal-title">Settings</h2>
+          <h2 class="settings-modal-title" id="settings-modal-title">Settings</h2>
           <p class="settings-modal-subtitle">Adjust playback and data usage.</p>
         </div>
         <div id="settings-content"></div>
