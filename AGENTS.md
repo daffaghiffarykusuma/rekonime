@@ -19,7 +19,7 @@
 - `js/app.js`: Central controller for state, rendering, filtering, search, modals, SEO, and bookmarks.
 - `js/stats.js`: Retention and scoring metrics. Builds score profiles and per-anime stats.
 - `js/recommendations.js`: Recommendation, badges, sorting options, and similarity scoring.
-- `js/reviews.js`: AniList GraphQL review fetch + rendering + synopsis utilities.
+- `js/reviews.js`: MyAnimeList (via Jikan API) review fetch + rendering + synopsis utilities.
 - `js/charts.js`: Chart.js helpers (not wired in current HTML).
 - `js/data.js`: Embedded fallback dataset (`ANIME_DATA`) for `file://` and fetch failure.
 - `data/anime.json`: Raw catalog (scraped). Source of truth for builds.
@@ -38,7 +38,7 @@
 - `js/app.js` -> `ReviewsService` (synopsis + review tabs in detail modal)
 - `js/app.js` -> localStorage (`rekonime.bookmarks`) for saved anime
 - `js/app.js` -> `data/*.json` (fetch preview/full/legacy) and `js/data.js` fallback
-- `js/reviews.js` -> AniList GraphQL (`https://graphql.anilist.co`)
+- `js/reviews.js` -> Jikan API (MyAnimeList reviews) (`https://api.jikan.moe`)
 - `js/app.js` -> YouTube (trailer links and embeds, sanitized to allowed hosts)
 - `tools/build-catalogs.js` -> `js/stats.js` (precompute stats) -> `data/anime.full.json` + `data/anime.preview.json`
 - `tools/regenerate-data.ps1` -> `data/anime.full.json` -> `js/data.js`
@@ -71,8 +71,8 @@
 - Modal sections include synopsis, trailer, reviews, and similar anime.
 
 ### Reviews and synopsis
-- `ReviewsService.fetchReviews()` calls AniList GraphQL.
-- Reviews are categorized and rendered with tabs. Synopsis uses AniList or fallback.
+- `ReviewsService.fetchReviews()` calls the Jikan API for MyAnimeList reviews.
+- Reviews are categorized and rendered with tabs. Synopsis pulls from Jikan when available or falls back to cached/local data.
 - Descriptions are cached in localStorage for 30 days.
 
 ### Similar anime
@@ -161,7 +161,7 @@
 ## External services and security constraints
 - CSP in `index.html` and `bookmarks.html` restricts remote sources:
   - Fonts: Google Fonts
-  - Reviews: AniList GraphQL
+  - Reviews: Jikan API (MyAnimeList)
   - Trailers: YouTube / YouTube-nocookie
 - URL sanitization is enforced in `App` and `ReviewsService` for images and trailers.
 - If adding new remote assets or APIs, update CSP accordingly.
@@ -203,7 +203,7 @@ flowchart TD
   app --> dataLegacy[data/anime.json]
   app --> dataEmbed[js/data.js]
   app --> storage[localStorage: rekonime.bookmarks]
-  reviews --> anilist[AniList GraphQL]
+  reviews --> jikan[Jikan API (MyAnimeList)]
   app --> youtube[YouTube / YouTube-nocookie]
 
   %% Data pipeline

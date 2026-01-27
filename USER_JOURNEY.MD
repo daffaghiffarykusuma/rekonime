@@ -44,7 +44,7 @@
 ## Detail modal experience
 - Modal shows title, metadata, synopsis, and key stats.
 - Trailer embed uses sanitized YouTube URLs.
-- Reviews load from AniList GraphQL and render in tabs.
+- Reviews load from MyAnimeList (via Jikan) and render in tabs.
 - Similar anime uses shared genres/themes plus score alignment.
 - URL updates with `?anime=...` and SEO metadata refreshes.
 

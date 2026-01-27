@@ -1,8 +1,14 @@
 ﻿/**
- * Reviews Service - Fetches and categorizes reviews from AniList
+ * Reviews Service - Fetches and categorizes reviews from MyAnimeList (via Jikan)
  */
 const ReviewsService = {
-  API_URL: 'https://graphql.anilist.co',
+  API_URL: 'https://api.jikan.moe/v4',
+  maxReviewsTotal: 9,
+  maxReviewsPerSentiment: 3,
+  minReviewLength: 120,
+  includeSpoilers: false,
+  includePreliminary: false,
+  reviewsPage: 1,
 
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -34,53 +40,160 @@ const ReviewsService = {
     }
   },
 
+  decodeHtmlEntities(text) {
+    if (!text) return '';
+    const named = {
+      amp: '&',
+      lt: '<',
+      gt: '>',
+      quot: '"',
+      apos: '\'',
+      nbsp: ' ',
+      rsquo: '\'',
+      lsquo: '\'',
+      ldquo: '"',
+      rdquo: '"',
+      mdash: '-',
+      ndash: '-',
+      hellip: '...'
+    };
+
+    let decoded = String(text);
+    for (let i = 0; i < 2; i += 1) {
+      decoded = decoded
+        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+          const code = Number.parseInt(hex, 16);
+          return Number.isFinite(code) ? String.fromCharCode(code) : _;
+        })
+        .replace(/&#(\d+);/g, (_, num) => {
+          const code = Number.parseInt(num, 10);
+          return Number.isFinite(code) ? String.fromCharCode(code) : _;
+        })
+        .replace(/&([a-z]+);/gi, (match, name) => {
+          const key = String(name || '').toLowerCase();
+          return Object.prototype.hasOwnProperty.call(named, key) ? named[key] : match;
+        });
+    }
+    return decoded;
+  },
+
+  sanitizeReviewText(text) {
+    if (!text) return '';
+    let cleaned = this.decodeHtmlEntities(String(text));
+
+    cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
+    cleaned = cleaned.replace(/<[^>]*>/g, '');
+
+    // Spoiler markup (~!spoiler!~) -> keep content without markers.
+    cleaned = cleaned.replace(/~!([\s\S]*?)!~/g, '$1');
+
+    // Remove common BBCode image embeds and markdown images.
+    cleaned = cleaned.replace(/!\[[^\]]*]\(([^)]+)\)/g, '');
+    cleaned = cleaned.replace(/\[img\][\s\S]*?\[\/img\]/gi, '');
+    cleaned = cleaned.replace(/\bimg\d*\([^)]+\)/gi, '');
+    cleaned = cleaned.replace(/\bimage\d*\([^)]+\)/gi, '');
+
+    // Remove media embeds while keeping surrounding text.
+    cleaned = cleaned.replace(/\b(?:youtube|video)\([^)]+\)/gi, '');
+
+    // Keep link text but drop the URL.
+    cleaned = cleaned.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '$1');
+
+    // Remove spoiler labels and tags.
+    cleaned = cleaned.replace(/\[\s*(no spoilers?|contains spoilers?|spoilers?|spoiler warning)\s*\]/gi, '');
+    cleaned = cleaned.replace(/^\s*(contains spoilers?|no spoilers?)\s*[:-]?\s*/gmi, '');
+    cleaned = cleaned.replace(/https?:\/\/\S+\.(png|jpe?g|gif|webp|bmp|svg)(\?\S*)?/gi, '');
+
+    const lines = cleaned.split(/\r?\n/);
+    const filtered = lines.filter(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return true;
+      if (/^(contains spoilers?|no spoilers?|spoilers?|spoiler warning|spoilers ahead)\.?$/i.test(trimmed)) {
+        return false;
+      }
+      if (/^https?:\/\/\S+\.(png|jpe?g|gif|webp|bmp|svg)(\?\S*)?$/i.test(trimmed)) {
+        return false;
+      }
+      return true;
+    });
+
+    cleaned = filtered.join('\n');
+    cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+    return cleaned.trim();
+  },
+
+  buildReviewSummary(text) {
+    const cleaned = this.sanitizeReviewText(text);
+    if (!cleaned) return '';
+    const lines = cleaned.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    const candidate = lines[0] || cleaned;
+    const sentenceMatch = candidate.match(/^(.{0,180}?[.!?])\s/);
+    let summary = sentenceMatch ? sentenceMatch[1] : candidate;
+    if (summary.length > 180) {
+      summary = `${summary.slice(0, 177).trim()}...`;
+    }
+    return summary;
+  },
+
   // Cache to avoid repeated API calls
   cache: new Map(),
   descriptionCachePrefix: 'rekonime:description:',
   descriptionCacheTtlMs: 1000 * 60 * 60 * 24 * 30,
 
-  /**
-   * GraphQL query to fetch reviews and description for an anime
-   */
-  REVIEWS_QUERY: `
-    query ($id: Int, $search: String) {
-      Media(id: $id, search: $search, type: ANIME) {
-        id
-        title {
-          romaji
-          english
-        }
-        description(asHtml: false)
-        reviews(limit: 15, sort: RATING_DESC) {
-          nodes {
-            id
-            summary
-            body
-            score
-            rating
-            ratingAmount
-            user {
-              name
-              avatar {
-                medium
-              }
-            }
-            siteUrl
-            createdAt
-          }
-        }
-      }
+  buildReviewsUrl(malId) {
+    if (!malId) return '';
+    const parsedId = Number.parseInt(malId, 10);
+    if (!Number.isFinite(parsedId)) return '';
+
+    const url = new URL(`${this.API_URL}/anime/${parsedId}/reviews`);
+    if (Number.isFinite(this.reviewsPage) && this.reviewsPage > 0) {
+      url.searchParams.set('page', String(this.reviewsPage));
     }
-  `,
+    if (this.includeSpoilers) {
+      url.searchParams.set('spoiler', 'true');
+    }
+    if (this.includePreliminary) {
+      url.searchParams.set('preliminary', 'true');
+    }
+    return url.toString();
+  },
+
+  buildAnimeUrl(malId) {
+    if (!malId) return '';
+    const parsedId = Number.parseInt(malId, 10);
+    if (!Number.isFinite(parsedId)) return '';
+    return `${this.API_URL}/anime/${parsedId}`;
+  },
+
+  async fetchSynopsis(malId) {
+    const url = this.buildAnimeUrl(malId);
+    if (!url) return '';
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      if (!response.ok) return '';
+      const data = await response.json();
+      const synopsis = data?.data?.synopsis;
+      return typeof synopsis === 'string' ? synopsis : '';
+    } catch (error) {
+      return '';
+    }
+  },
 
   /**
-   * Fetch reviews and description from AniList API
-   * @param {number|null} anilistId - AniList media ID
-   * @param {string} title - Anime title for search fallback
+   * Fetch reviews from MyAnimeList via the Jikan API.
+   * @param {number|null} malId - MyAnimeList media ID
+   * @param {string} title - Anime title for caching fallback
    * @returns {Promise<Object>} Categorized reviews and description
    */
-  async fetchReviews(anilistId, title) {
-    const cacheKey = anilistId || title;
+  async fetchReviews(malId, title) {
+    const cacheKey = malId || title;
 
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
@@ -89,18 +202,16 @@ const ReviewsService = {
     const cachedDescription = this.getCachedDescription(cacheKey);
 
     try {
-      const variables = anilistId ? { id: anilistId } : { search: title };
+      const url = this.buildReviewsUrl(malId);
+      if (!url) {
+        throw new Error('Missing MAL id for reviews');
+      }
 
-      const response = await fetch(this.API_URL, {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          query: this.REVIEWS_QUERY,
-          variables
-        })
+          'Accept': 'application/json'
+        }
       });
 
       if (!response.ok) {
@@ -108,24 +219,21 @@ const ReviewsService = {
       }
 
       const data = await response.json();
-
-      if (data.errors) {
-        throw new Error(data.errors[0]?.message || 'GraphQL error');
+      const reviews = Array.isArray(data?.data) ? data.data : [];
+      let description = cachedDescription || '';
+      if (!description) {
+        const synopsis = await this.fetchSynopsis(malId);
+        if (synopsis) {
+          description = synopsis;
+          this.setCachedDescription(cacheKey, synopsis);
+        }
       }
-
-      const media = data.data?.Media;
-      const reviews = media?.reviews?.nodes || [];
-      const description = media?.description || cachedDescription || '';
       const categorized = this.categorizeReviews(reviews);
 
       const result = {
         ...categorized,
         description
       };
-
-      if (media?.description) {
-        this.setCachedDescription(cacheKey, media.description);
-      }
 
       this.cache.set(cacheKey, result);
       return result;
@@ -202,6 +310,58 @@ const ReviewsService = {
    * @param {Array} reviews - Raw reviews from API
    * @returns {Object} Categorized reviews
    */
+  normalizeReviewScore(score) {
+    if (!Number.isFinite(score)) return null;
+    const bounded = Math.min(10, Math.max(0, score));
+    return Math.round((bounded / 10) * 100);
+  },
+
+  getReviewSentiment(scoreNormalized) {
+    if (!Number.isFinite(scoreNormalized)) return 'neutral';
+    if (scoreNormalized >= 70) return 'positive';
+    if (scoreNormalized >= 50) return 'neutral';
+    return 'negative';
+  },
+
+  getReviewUsefulness(review) {
+    const reactions = review?.reactions || {};
+    const overall = Number(reactions.overall);
+    if (Number.isFinite(overall)) return overall;
+    const keys = ['nice', 'love_it', 'funny', 'informative', 'well_written', 'creative'];
+    return keys.reduce((sum, key) => {
+      const value = Number(reactions[key]);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+  },
+
+  normalizeReview(review) {
+    if (!review) return null;
+    if (!this.includeSpoilers && review.is_spoiler) return null;
+    if (!this.includePreliminary && review.is_preliminary) return null;
+
+    const cleanedBody = this.sanitizeReviewText(review.review);
+    if (!cleanedBody || cleanedBody.length < this.minReviewLength) return null;
+
+    const scoreNormalized = this.normalizeReviewScore(review.score);
+    const dateValue = review.date ? new Date(review.date) : null;
+    const dateLabel = dateValue && !Number.isNaN(dateValue.getTime())
+      ? dateValue.toLocaleDateString()
+      : '';
+
+    return {
+      id: review.mal_id || review.id,
+      summary: this.buildReviewSummary(cleanedBody),
+      body: this.truncateText(cleanedBody, 300, { alreadyClean: true }),
+      score: scoreNormalized,
+      helpfulCount: this.getReviewUsefulness(review),
+      userName: review.user?.username || 'Anonymous',
+      userAvatar: review.user?.images?.jpg?.image_url || review.user?.images?.webp?.image_url,
+      url: review.url,
+      date: dateLabel,
+      sentiment: this.getReviewSentiment(scoreNormalized)
+    };
+  },
+
   categorizeReviews(reviews) {
     const result = {
       positive: [],
@@ -209,30 +369,71 @@ const ReviewsService = {
       negative: []
     };
 
-    reviews.forEach(review => {
-      const processed = {
-        id: review.id,
-        summary: review.summary,
-        body: this.truncateText(review.body, 300),
-        score: review.score,
-        rating: review.rating,
-        ratingAmount: review.ratingAmount,
-        userName: review.user?.name || 'Anonymous',
-        userAvatar: review.user?.avatar?.medium,
-        url: review.siteUrl,
-        date: new Date(review.createdAt * 1000).toLocaleDateString()
-      };
+    if (!Array.isArray(reviews) || reviews.length === 0) {
+      return result;
+    }
 
-      if (review.score >= 70) {
-        result.positive.push(processed);
-      } else if (review.score >= 50) {
-        result.neutral.push(processed);
-      } else {
-        result.negative.push(processed);
-      }
+    const seen = new Set();
+    const processed = [];
+
+    reviews.forEach(review => {
+      const normalized = this.normalizeReview(review);
+      if (!normalized) return;
+      const key = String(normalized.id || normalized.url || normalized.summary || '');
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      processed.push(normalized);
     });
 
-    return result;
+    const buckets = {
+      positive: [],
+      neutral: [],
+      negative: []
+    };
+
+    processed.forEach(review => {
+      const bucket = buckets[review.sentiment] || buckets.neutral;
+      bucket.push(review);
+    });
+
+    const sortByUsefulness = (a, b) => {
+      const helpfulDiff = (b.helpfulCount || 0) - (a.helpfulCount || 0);
+      if (helpfulDiff !== 0) return helpfulDiff;
+      return (b.body?.length || 0) - (a.body?.length || 0);
+    };
+
+    ['positive', 'neutral', 'negative'].forEach(key => {
+      const bucket = buckets[key].sort(sortByUsefulness);
+      result[key] = bucket.slice(0, this.maxReviewsPerSentiment);
+    });
+
+    const totalCount = result.positive.length + result.neutral.length + result.negative.length;
+    if (totalCount <= this.maxReviewsTotal) {
+      return result;
+    }
+
+    const flattened = [
+      ...result.positive.map(review => ({ ...review, _bucket: 'positive' })),
+      ...result.neutral.map(review => ({ ...review, _bucket: 'neutral' })),
+      ...result.negative.map(review => ({ ...review, _bucket: 'negative' }))
+    ].sort(sortByUsefulness);
+
+    const trimmed = {
+      positive: [],
+      neutral: [],
+      negative: []
+    };
+
+    for (const review of flattened) {
+      const bucket = trimmed[review._bucket];
+      if (bucket.length >= this.maxReviewsPerSentiment) continue;
+      bucket.push(review);
+      if (trimmed.positive.length + trimmed.neutral.length + trimmed.negative.length >= this.maxReviewsTotal) {
+        break;
+      }
+    }
+
+    return trimmed;
   },
 
   /**
@@ -241,10 +442,9 @@ const ReviewsService = {
    * @param {number} maxLength - Maximum length
    * @returns {string} Truncated text
    */
-  truncateText(text, maxLength) {
+  truncateText(text, maxLength, { alreadyClean = false } = {}) {
     if (!text) return '';
-    // Strip HTML tags
-    const stripped = text.replace(/<[^>]*>/g, '');
+    const stripped = alreadyClean ? String(text) : this.sanitizeReviewText(text);
     if (stripped.length <= maxLength) return stripped;
     return stripped.substring(0, maxLength).trim() + '...';
   },
@@ -255,11 +455,12 @@ const ReviewsService = {
    * @returns {string} HTML string
    */
   renderReviewCard(review) {
-    const numericScore = Number.isFinite(review.score) ? review.score : 0;
-    const scoreClass = numericScore >= 70 ? 'positive' : numericScore >= 50 ? 'neutral' : 'negative';
-    const scoreText = Number.isFinite(review.score) ? `${review.score}/100` : 'N/A';
-    const ratingText = Number.isFinite(review.rating) ? review.rating : 'N/A';
-    const ratingAmountText = Number.isFinite(review.ratingAmount) ? review.ratingAmount : 'N/A';
+    const hasScore = Number.isFinite(review.score);
+    const numericScore = hasScore ? review.score : 0;
+    const scoreClass = hasScore ? (numericScore >= 70 ? 'positive' : numericScore >= 50 ? 'neutral' : 'negative') : 'neutral';
+    const scoreText = hasScore ? `${review.score}/100` : 'N/A';
+    const helpfulCount = Number.isFinite(review.helpfulCount) ? review.helpfulCount : null;
+    const helpfulText = helpfulCount !== null ? `${helpfulCount} helpful reactions` : 'Helpful reactions: N/A';
     const safeUserName = this.escapeHtml(review.userName || 'Anonymous');
     const safeSummary = this.escapeHtml(review.summary || '');
     const safeBody = this.escapeHtml(review.body || '');
@@ -282,7 +483,7 @@ const ReviewsService = {
         </div>
         <div class="review-footer">
           <span class="review-date">${safeDate}</span>
-          <span class="review-helpful">${ratingText}/${ratingAmountText} found helpful</span>
+          <span class="review-helpful">${helpfulText}</span>
           ${safeUrl ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="review-link">Read full review</a>` : ''}
         </div>
       </div>
@@ -321,11 +522,11 @@ const ReviewsService = {
         <div class="reviews-container" id="reviews-container">
           ${activeReviews.length > 0
             ? activeReviews.map(r => this.renderReviewCard(r)).join('')
-            : '<p class="no-reviews">No community reviews yetâ€”be the first on AniList!</p>'
+            : '<p class="no-reviews">No community reviews yetâ€”be the first on MyAnimeList!</p>'
           }
         </div>
         <p class="reviews-attribution">
-          Reviews from <a href="https://anilist.co" target="_blank" rel="noopener noreferrer">AniList</a>
+          Reviews from <a href="https://myanimelist.net" target="_blank" rel="noopener noreferrer">MyAnimeList</a>
         </p>
       </div>
     `;
@@ -333,7 +534,7 @@ const ReviewsService = {
 
   /**
    * Render the synopsis/description section
-   * @param {string} description - Anime description from AniList
+   * @param {string} description - Anime description text
    * @returns {string} HTML string
    */
   renderSynopsis(description) {
@@ -342,7 +543,7 @@ const ReviewsService = {
     }
 
     // Clean up the description (remove any remaining HTML-like artifacts)
-    const cleanDescription = description
+    const cleanDescription = this.decodeHtmlEntities(description)
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<[^>]*>/g, '')
       .trim();
@@ -430,7 +631,7 @@ const ReviewsService = {
         const reviews = categorizedReviews[sentiment] || [];
         container.innerHTML = reviews.length > 0
           ? reviews.map(r => this.renderReviewCard(r)).join('')
-          : '<p class="no-reviews">No community reviews yetâ€”be the first on AniList!</p>';
+          : '<p class="no-reviews">No community reviews yetâ€”be the first on MyAnimeList!</p>';
         scrollTabIntoView(tab);
       });
     });

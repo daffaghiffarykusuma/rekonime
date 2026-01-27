@@ -31,7 +31,7 @@ If you want to refresh data:
 - `js/app.js`: app state, rendering, filters, modal, bookmarks, SEO.
 - `js/stats.js`: retention and scoring metrics.
 - `js/recommendations.js`: recommendation + similarity scoring logic.
-- `js/reviews.js`: AniList review fetching and rendering.
+- `js/reviews.js`: MyAnimeList (via Jikan API) review fetching and rendering.
 - `data/`: JSON catalogs (source, preview, full).
 - `tools/`: data pipeline scripts and scrapers.
 
@@ -47,7 +47,7 @@ flowchart TD
   app --> preview[data/anime.preview.json]
   app --> full[data/anime.full.json]
   full --> embed[js/data.js]
-  reviews --> anilist[AniList GraphQL]
+  reviews --> jikan[Jikan API (MyAnimeList)]
 ```
 
 ## FAQ

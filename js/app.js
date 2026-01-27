@@ -2623,14 +2623,14 @@ const App = {
   },
 
   /**
-   * Load community reviews and synopsis from AniList
+   * Load community reviews and synopsis from MyAnimeList
    */
   async loadCommunityReviews(anime, fallbackSynopsis = '') {
     const reviewsSection = document.getElementById('community-reviews-section');
     const synopsisSection = document.getElementById('synopsis-section');
 
     try {
-      const data = await ReviewsService.fetchReviews(anime.anilistId, anime.title);
+      const data = await ReviewsService.fetchReviews(anime.malId, anime.title);
 
       if (this.currentAnimeId !== anime.id) {
         return;
