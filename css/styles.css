@@ -452,7 +452,9 @@ h1, h2, h3, h4 {
 .anime-card {
   background: var(--card-bg);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   border: 1px solid var(--border-color);
@@ -462,6 +464,20 @@ h1, h2, h3, h4 {
   transform: translateY(-2px);
   border-color: var(--border-hover);
   box-shadow: var(--shadow);
+  z-index: 2;
+}
+
+.anime-card:focus-within {
+  z-index: 2;
+}
+
+.card-media {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .card-cover {
@@ -1324,7 +1340,9 @@ h1, h2, h3, h4 {
 .recommendation-card {
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -1332,6 +1350,19 @@ h1, h2, h3, h4 {
 .recommendation-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow);
+  z-index: 2;
+}
+
+.recommendation-card:focus-within {
+  z-index: 2;
+}
+
+.recommendation-media {
+  width: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .recommendation-cover {
@@ -2110,7 +2141,9 @@ h1, h2, h3, h4 {
   background: var(--card-bg);
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -2122,6 +2155,18 @@ h1, h2, h3, h4 {
   transform: translateY(-4px);
   box-shadow: var(--shadow);
   border-color: var(--border-hover);
+  z-index: 2;
+}
+
+.recommendation-card:focus-within {
+  z-index: 2;
+}
+
+.recommendation-media {
+  overflow: hidden;
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .recommendation-cover {
@@ -2224,7 +2269,9 @@ h1, h2, h3, h4 {
   background: var(--card-bg);
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -2233,11 +2280,20 @@ h1, h2, h3, h4 {
   transform: translateY(-2px);
   border-color: var(--border-hover);
   box-shadow: var(--shadow);
+  z-index: 2;
+}
+
+.anime-card:focus-within {
+  z-index: 2;
 }
 
 .card-media {
   width: 100%;
   position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .card-cover {

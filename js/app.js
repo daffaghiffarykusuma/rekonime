@@ -1957,6 +1957,12 @@ const App = {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats.retentionScore)}%` : 'N/A';
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
+      const retentionTooltipTitle = this.escapeHtml('Retention Score');
+      const retentionTooltipText = this.escapeHtml('How consistently people keep watching across episodes.');
+      const satisfactionTooltipTitle = this.escapeHtml('Satisfaction Score');
+      const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList.');
+      const safeRetention = this.escapeHtml(retention);
+      const safeSatisfaction = this.escapeHtml(malSatisfaction);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
       const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
@@ -1964,15 +1970,29 @@ const App = {
 
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}">
-          <img src="${safeCover}" alt="${safeTitle}" class="recommendation-cover" data-fallback-src="https://via.placeholder.com/180x120?text=No+Image">
+          <div class="recommendation-media">
+            <img src="${safeCover}" alt="${safeTitle}" class="recommendation-cover" data-fallback-src="https://via.placeholder.com/180x120?text=No+Image">
+          </div>
           <div class="recommendation-info">
             <div class="recommendation-title">${safeTitle}</div>
             <div class="recommendation-meta">
-              <span>Retention ${retention}</span>
-              <span>Satisfaction (MAL) ${malSatisfaction}</span>
+              <span class="recommendation-stat has-tooltip" tabindex="0">
+                Retention ${safeRetention}
+                <div class="tooltip tooltip--bottom" role="tooltip">
+                  <div class="tooltip-title">${retentionTooltipTitle}</div>
+                  <div class="tooltip-text">${retentionTooltipText}</div>
+                </div>
+              </span>
+              <span class="recommendation-stat has-tooltip" tabindex="0">
+                Satisfaction (MAL) ${safeSatisfaction}
+                <div class="tooltip tooltip--bottom" role="tooltip">
+                  <div class="tooltip-title">${satisfactionTooltipTitle}</div>
+                  <div class="tooltip-text">${satisfactionTooltipText}</div>
+                </div>
+              </span>
+              </div>
+              <div class="recommendation-reason">${safeReason}</div>
             </div>
-            <div class="recommendation-reason">${safeReason}</div>
-          </div>
         </div>
       `;
     }).join('');
