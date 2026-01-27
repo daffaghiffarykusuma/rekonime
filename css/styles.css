@@ -2959,7 +2959,7 @@ h1, h2, h3, h4 {
   }
 
   .quick-filters-track.is-active {
-    display: flex;
+    display: grid;
   }
 
   .quick-chip {

@@ -69,16 +69,16 @@
       <button class="btn btn-sm btn-outline active-filters-clear" id="active-filters-clear" type="button">Clear filters</button>
     </div>
 
-    <div class="quick-filters">
-      <div class="quick-filters-row">
-        <span class="quick-filters-label">Genre</span>
-        <div class="quick-filters-track" id="genre-chips">
+    <div class="quick-filters" id="quick-filters">
+      <div class="quick-filters-tabs" role="tablist" aria-label="Quick filters">
+        <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" aria-selected="true" aria-controls="genre-chips">Genre</button>
+        <button class="quick-tab" type="button" data-action="quick-tab" data-tab="themes" aria-selected="false" aria-controls="theme-chips">Theme</button>
+      </div>
+      <div class="quick-filters-panel">
+        <div class="quick-filters-track is-active" id="genre-chips" data-filter-group="genres" data-label="Genre">
           <!-- Populated by JS -->
         </div>
-      </div>
-      <div class="quick-filters-row">
-        <span class="quick-filters-label">Theme</span>
-        <div class="quick-filters-track" id="theme-chips">
+        <div class="quick-filters-track" id="theme-chips" data-filter-group="themes" data-label="Theme">
           <!-- Populated by JS -->
         </div>
       </div>
@@ -139,6 +139,10 @@
       </div>
     </section>
   </div>
+
+  <button class="filter-fab" id="filter-fab" type="button" data-action="scroll-to-filters" aria-label="Jump to filters">
+    Filters ↑
+  </button>
 
   <div class="modal-overlay filter-modal-overlay" id="filter-modal">
     <div class="modal-content filter-modal-content">
