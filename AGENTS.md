@@ -27,6 +27,8 @@
 - `data/anime.preview.json`: Preview subset for fast first paint (generated).
 - `tools/*.js` and `tools/*.ps1`: Data pipeline utilities.
 - `tools/scraper/*`: Python scraper + metadata enrichers for MAL/Jikan/AniList.
+- `package.json`: Dev scripts (node:test harness).
+- `test/*.test.js`: Node built-in unit tests for stats and recommendations.
 
 ### Edges (dependencies and relationships)
 - `index.html` -> `css/styles.css`
@@ -46,6 +48,9 @@
 - `tools/update_metadata.js` -> Jikan API -> `data/anime.json`
 - `tools/backfill_data.js` -> AniList + MAL HTML scraping -> `data/anime.json`
 - `tools/validate-data.js` -> `data/anime.json` (+ optional embedded data check)
+- `package.json` -> `test/*.test.js` (node:test runner)
+- `test/stats.test.js` -> `js/stats.js`
+- `test/recommendations.test.js` -> `js/recommendations.js`
 
 ## Runtime flows (high-signal paths)
 
@@ -221,6 +226,11 @@ flowchart TD
 
   %% Optional charting (not wired by default)
   charts[js/charts.js] -. optional .-> app
+
+  %% Testing (dev-only)
+  pkg[package.json] --> tests[test/*.test.js]
+  tests --> stats
+  tests --> recs
 
   %% Documentation (non-runtime)
   agentsDoc[AGENTS.md] -. guides .-> journey[USER_JOURNEY.MD]
