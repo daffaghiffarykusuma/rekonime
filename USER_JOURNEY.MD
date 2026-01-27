@@ -61,6 +61,7 @@
 ## Trailer autoplay behavior
 - Trailer section initializes with sanitized URLs.
 - Autoplay uses `IntersectionObserver` with a scroll fallback.
+- Settings allow disabling autoplay and hiding embeds (data saver).
 
 ## Error states and fallbacks
 - If `file://` or fetch fails, app uses embedded `ANIME_DATA`.

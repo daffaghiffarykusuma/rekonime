@@ -30,6 +30,8 @@ const App = {
   trailerScrollHandler: null,
   trailerScrollRoot: null,
   bookmarkStorageKey: 'rekonime.bookmarks',
+  settingsStorageKey: 'rekonime.settings',
+  settings: null,
   bookmarkIds: [],
   bookmarkIdSet: new Set(),
   seoInitialized: false,
@@ -386,12 +388,154 @@ const App = {
     return Boolean(document.getElementById('catalog-section'));
   },
 
+  isMobileViewport() {
+    if (typeof window === 'undefined') return false;
+    const query = window.matchMedia?.('(max-width: 640px)');
+    if (query) return query.matches;
+    return window.innerWidth <= 640;
+  },
+
+  getDefaultSettings() {
+    return {
+      trailerAutoplay: !this.isMobileViewport(),
+      dataSaver: false
+    };
+  },
+
+  getSettings() {
+    if (!this.settings) {
+      this.settings = this.getDefaultSettings();
+    }
+    return this.settings;
+  },
+
   getBookmarkStorage() {
     try {
       return window.localStorage;
     } catch (error) {
       return null;
     }
+  },
+
+  loadSettings() {
+    const defaults = this.getDefaultSettings();
+    this.settings = { ...defaults };
+    if (typeof window === 'undefined') return;
+    const storage = this.getBookmarkStorage();
+    if (!storage) return;
+
+    try {
+      const raw = storage.getItem(this.settingsStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      this.settings.trailerAutoplay = typeof parsed.trailerAutoplay === 'boolean'
+        ? parsed.trailerAutoplay
+        : defaults.trailerAutoplay;
+      this.settings.dataSaver = typeof parsed.dataSaver === 'boolean'
+        ? parsed.dataSaver
+        : defaults.dataSaver;
+    } catch (error) {
+      this.settings = { ...defaults };
+    }
+  },
+
+  saveSettings() {
+    if (typeof window === 'undefined') return;
+    const storage = this.getBookmarkStorage();
+    if (!storage || !this.settings) return;
+    try {
+      storage.setItem(this.settingsStorageKey, JSON.stringify(this.settings));
+    } catch (error) {
+      // Ignore storage errors (private mode, quota, etc.)
+    }
+  },
+
+  updateSettingsUi() {
+    const settings = this.getSettings();
+    document.querySelectorAll('.settings-toggle-input').forEach(input => {
+      const key = input.dataset.settingKey;
+      if (!key || !Object.prototype.hasOwnProperty.call(settings, key)) return;
+      input.checked = Boolean(settings[key]);
+    });
+  },
+
+  updateSetting(key, value) {
+    const settings = this.getSettings();
+    if (!Object.prototype.hasOwnProperty.call(settings, key)) return;
+    settings[key] = Boolean(value);
+    this.saveSettings();
+    this.updateSettingsUi();
+    this.refreshTrailerSection();
+  },
+
+  shouldEmbedTrailers() {
+    const settings = this.getSettings();
+    return !settings.dataSaver;
+  },
+
+  shouldAutoplayTrailers() {
+    const settings = this.getSettings();
+    return settings.trailerAutoplay && !settings.dataSaver;
+  },
+
+  loadTrailerEmbed(iframe) {
+    if (!iframe || iframe.dataset.embedLoaded === '1') return;
+    const embedSrc = iframe.dataset.embedSrc;
+    if (!embedSrc) return;
+    iframe.dataset.embedLoaded = '1';
+    iframe.removeAttribute('loading');
+    iframe.src = embedSrc;
+  },
+
+  refreshTrailerSection() {
+    if (!this.currentAnimeId) return;
+    const anime = this.animeData.find(item => item.id === this.currentAnimeId);
+    if (!anime) return;
+
+    this.stopTrailerPlayback();
+    this.teardownTrailerObserver();
+    this.teardownTrailerScrollListener();
+
+    const markup = this.renderTrailerSection(anime);
+    const current = document.getElementById('detail-trailer');
+    const reviewsSection = document.getElementById('community-reviews-section');
+
+    if (!markup) {
+      if (current) current.remove();
+      return;
+    }
+
+    if (current) {
+      current.outerHTML = markup;
+    } else if (reviewsSection) {
+      reviewsSection.insertAdjacentHTML('beforebegin', markup);
+    }
+
+    const modalContent = document.querySelector('#detail-modal .modal-content');
+    this.setupTrailerAutoplay(modalContent);
+  },
+
+  toggleSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+    const isOpen = modal.classList.contains('visible');
+    modal.classList.toggle('visible', !isOpen);
+    document.body.style.overflow = !isOpen ? 'hidden' : '';
+  },
+
+  closeSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+    modal.classList.remove('visible');
+    document.body.style.overflow = '';
+  },
+
+  renderSettingsModal() {
+    const container = document.getElementById('settings-content');
+    if (!container) return;
+    container.innerHTML = this.renderSettingsPanel({ includeTitle: false });
+    this.updateSettingsUi();
   },
 
   loadBookmarks() {
@@ -568,6 +712,8 @@ const App = {
       this.syncHomePath();
       this.renderLoadingState();
       this.loadBookmarks();
+      this.loadSettings();
+      this.renderSettingsModal();
 
       const requestedAnimeId = this.getAnimeIdFromUrl();
       if (requestedAnimeId) {
@@ -1102,6 +1248,37 @@ const App = {
       });
     }
 
+    const settingsToggle = document.getElementById('settings-toggle');
+    if (settingsToggle) {
+      settingsToggle.addEventListener('click', () => {
+        this.toggleSettingsModal();
+      });
+    }
+
+    const closeSettings = document.getElementById('close-settings');
+    if (closeSettings) {
+      closeSettings.addEventListener('click', () => {
+        this.closeSettingsModal();
+      });
+    }
+
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) {
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+          this.closeSettingsModal();
+        }
+      });
+    }
+
+    document.addEventListener('change', (event) => {
+      const target = event.target;
+      if (!target || !target.classList.contains('settings-toggle-input')) return;
+      const key = target.dataset.settingKey;
+      if (!key) return;
+      this.updateSetting(key, target.checked);
+    });
+
     window.addEventListener('popstate', () => {
       const filtersChanged = this.setActiveFiltersFromUrl({ updateUi: true });
       if (filtersChanged) {
@@ -1557,7 +1734,7 @@ const App = {
       { key: 'source', label: 'Source' }
     ];
 
-    container.innerHTML = filterConfig.map(config => {
+    const filtersMarkup = filterConfig.map(config => {
       const options = this.filterOptions[config.key];
       if (!options || options.length === 0) return '';
 
@@ -1580,11 +1757,13 @@ const App = {
                       data-filter-value="${safeOptionAttr}">
                 ${safeOptionText}
               </button>
-            `}).join('')}
+      `}).join('')}
           </div>
         </div>
       `;
     }).join('');
+
+    container.innerHTML = filtersMarkup;
   },
 
   /**
@@ -1936,6 +2115,43 @@ const App = {
         </div>
       `;
     }).join('');
+  },
+
+  renderSettingsPanel({ includeTitle = true } = {}) {
+    const settings = this.getSettings();
+    const autoplayEnabled = Boolean(settings.trailerAutoplay);
+    const dataSaverEnabled = Boolean(settings.dataSaver);
+    const titleMarkup = includeTitle
+      ? '<div class="filter-section-title">Settings</div>'
+      : '';
+
+    return `
+      <div class="filter-section settings-section">
+        ${titleMarkup}
+        <div class="settings-list">
+          <label class="settings-row">
+            <span class="settings-text">
+              <span class="settings-title">Trailer autoplay</span>
+              <span class="settings-description">Auto-starts trailers as you scroll. Default on desktop, off on mobile. When off, you can still press play.</span>
+            </span>
+            <span class="settings-toggle">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="trailerAutoplay" ${autoplayEnabled ? 'checked' : ''} aria-label="Toggle trailer autoplay">
+              <span class="settings-toggle-slider" aria-hidden="true"></span>
+            </span>
+          </label>
+          <label class="settings-row">
+            <span class="settings-text">
+              <span class="settings-title">Data saver</span>
+              <span class="settings-description">Disables embedded trailers to save bandwidth. You will miss inline video previews and need to open YouTube.</span>
+            </span>
+            <span class="settings-toggle">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="dataSaver" ${dataSaverEnabled ? 'checked' : ''} aria-label="Toggle data saver mode">
+              <span class="settings-toggle-slider" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+      </div>
+    `;
   },
 
   /**
@@ -2747,14 +2963,15 @@ const App = {
     const safeTitle = this.escapeAttr(title);
     const safeUrl = this.escapeAttr(url);
     const safeEmbedUrl = this.escapeAttr(embedUrl);
+    const allowEmbed = this.shouldEmbedTrailers();
 
     return `
-      <div class="detail-trailer">
+      <div class="detail-trailer" id="detail-trailer">
         <div class="detail-section-header">
           <h3>Trailer</h3>
           ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
         </div>
-        ${embedUrl
+        ${allowEmbed && embedUrl
           ? `<div class="trailer-embed">
               <iframe
                 src="about:blank"
@@ -2766,7 +2983,8 @@ const App = {
               </iframe>
             </div>`
           : `<div class="trailer-fallback">
-              <a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
+              ${allowEmbed ? '' : '<p class="trailer-note">Data Saver is on, so the embedded trailer is hidden.</p>'}
+              ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
             </div>`
         }
       </div>
@@ -2815,15 +3033,23 @@ const App = {
     if (!iframe || !iframe.dataset.embedSrc) return;
 
     const root = modalContent || document.querySelector('#detail-modal .modal-content');
+    const activateTrailer = () => {
+      if (this.shouldAutoplayTrailers()) {
+        this.startTrailerAutoplay(iframe);
+      } else {
+        this.loadTrailerEmbed(iframe);
+      }
+    };
+
     if (!('IntersectionObserver' in window)) {
-      this.startTrailerAutoplay(iframe);
+      activateTrailer();
       return;
     }
 
     const observer = new IntersectionObserver((entries, activeObserver) => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
-          this.startTrailerAutoplay(iframe);
+          activateTrailer();
           activeObserver.disconnect();
           this.trailerObserver = null;
           this.teardownTrailerScrollListener();
@@ -2841,7 +3067,7 @@ const App = {
     const scrollRoot = root || window;
     const handler = () => {
       if (this.isElementInScrollView(trailerEmbed, root || null, 0.35)) {
-        this.startTrailerAutoplay(iframe);
+        activateTrailer();
         this.teardownTrailerObserver();
         this.teardownTrailerScrollListener();
       }
@@ -2854,6 +3080,7 @@ const App = {
   },
 
   startTrailerAutoplay(iframe) {
+    if (!this.shouldAutoplayTrailers()) return;
     if (!iframe || iframe.dataset.autoplayStarted === '1') return;
     const embedSrc = iframe.dataset.embedSrc;
     if (!embedSrc) return;
@@ -2862,6 +3089,7 @@ const App = {
     if (!autoplaySrc) return;
 
     iframe.dataset.autoplayStarted = '1';
+    iframe.dataset.embedLoaded = '1';
     iframe.removeAttribute('loading');
     iframe.src = autoplaySrc;
   },
@@ -2870,6 +3098,7 @@ const App = {
     const iframe = document.querySelector('.detail-trailer iframe');
     if (!iframe) return;
     iframe.dataset.autoplayStarted = '';
+    iframe.dataset.embedLoaded = '';
     iframe.src = 'about:blank';
   },
 

@@ -56,6 +56,10 @@
         </div>
         <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Filters</button>
         <a class="btn btn-sm btn-outline bookmarks-link" href="bookmarks.html" aria-label="View bookmarks">Bookmarks &#9733;</a>
+        <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button" aria-label="Open settings" title="Settings">
+          <span class="settings-icon" aria-hidden="true">&#9881;</span>
+          <span class="settings-label">Settings</span>
+        </button>
       </div>
       </div>
     </header>
@@ -161,6 +165,19 @@
           <button class="btn btn-clear" id="clear-filters">Clear All</button>
           <button class="btn btn-primary" id="apply-filters">Apply Filters</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay settings-modal-overlay" id="settings-modal">
+    <div class="modal-content settings-modal-content">
+      <button class="modal-close" id="close-settings">&times;</button>
+      <div class="settings-modal-body">
+        <div class="settings-modal-header">
+          <h2 class="settings-modal-title">Settings</h2>
+          <p class="settings-modal-subtitle">Adjust playback and data usage.</p>
+        </div>
+        <div id="settings-content"></div>
       </div>
     </div>
   </div>

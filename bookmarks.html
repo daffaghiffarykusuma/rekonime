@@ -42,6 +42,10 @@
       </a>
       <div class="header-actions">
         <a class="btn btn-sm btn-outline" href="index.html" data-home-link aria-label="Back to catalog">Back to catalog</a>
+        <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button" aria-label="Open settings" title="Settings">
+          <span class="settings-icon" aria-hidden="true">&#9881;</span>
+          <span class="settings-label">Settings</span>
+        </button>
       </div>
     </header>
 
@@ -63,6 +67,19 @@
       <button class="modal-close" id="close-detail">&times;</button>
       <div class="modal-body" id="detail-content">
         <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay settings-modal-overlay" id="settings-modal">
+    <div class="modal-content settings-modal-content">
+      <button class="modal-close" id="close-settings">&times;</button>
+      <div class="settings-modal-body">
+        <div class="settings-modal-header">
+          <h2 class="settings-modal-title">Settings</h2>
+          <p class="settings-modal-subtitle">Adjust playback and data usage.</p>
+        </div>
+        <div id="settings-content"></div>
       </div>
     </div>
   </div>

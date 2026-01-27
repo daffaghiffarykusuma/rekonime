@@ -36,7 +36,7 @@
 - `bookmarks.html` -> same JS/CSS stack as `index.html`
 - `js/app.js` -> `Stats` (calculations) + `Recommendations` (badges/recs/similar/sort options)
 - `js/app.js` -> `ReviewsService` (synopsis + review tabs in detail modal)
-- `js/app.js` -> localStorage (`rekonime.bookmarks`) for saved anime
+- `js/app.js` -> localStorage (`rekonime.bookmarks`, `rekonime.settings`) for saved anime + user settings
 - `js/app.js` -> `data/*.json` (fetch preview/full/legacy) and `js/data.js` fallback
 - `js/reviews.js` -> Jikan API (MyAnimeList reviews) (`https://api.jikan.moe`)
 - `js/app.js` -> YouTube (trailer links and embeds, sanitized to allowed hosts)
@@ -84,8 +84,8 @@
 - `bookmarks.html` renders via `App.renderBookmarks()` using the same card renderer.
 
 ### Trailer autoplay
-- `App.renderTrailerSection()` builds sanitized YouTube URLs.
-- `App.setupTrailerAutoplay()` uses IntersectionObserver + scroll fallback.
+- `App.renderTrailerSection()` builds sanitized YouTube URLs and respects data saver settings.
+- `App.setupTrailerAutoplay()` uses IntersectionObserver + scroll fallback, gated by settings.
 
 ## Data schema (core entities)
 
@@ -202,7 +202,7 @@ flowchart TD
   app --> dataFull[data/anime.full.json]
   app --> dataLegacy[data/anime.json]
   app --> dataEmbed[js/data.js]
-  app --> storage[localStorage: rekonime.bookmarks]
+  app --> storage[localStorage: rekonime.bookmarks, rekonime.settings]
   reviews --> jikan[Jikan API (MyAnimeList)]
   app --> youtube[YouTube / YouTube-nocookie]
 
