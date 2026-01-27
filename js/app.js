@@ -52,6 +52,10 @@ const App = {
     studio: 'Studio',
     source: 'Source'
   },
+  quickFilterState: {
+    genres: { expanded: false },
+    themes: { expanded: false }
+  },
 
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -1111,6 +1115,7 @@ const App = {
     this.setupHeaderSearch();
     this.setupActionDelegates();
     this.setupImageFallbacks();
+    this.setupFilterFab();
   },
 
   /**
@@ -1411,6 +1416,10 @@ const App = {
       script = document.createElement('script');
       script.type = 'application/ld+json';
       script.id = 'structured-data';
+      const nonce = document.querySelector('meta[name="csp-nonce"]')?.getAttribute('content');
+      if (nonce) {
+        script.setAttribute('nonce', nonce);
+      }
       document.head.appendChild(script);
     }
 
@@ -1578,38 +1587,52 @@ const App = {
   renderQuickFilters() {
     const genreContainer = document.getElementById('genre-chips');
     const themeContainer = document.getElementById('theme-chips');
+    const isMobile = window.matchMedia?.('(max-width: 640px)')?.matches;
+    const genreCount = Array.isArray(this.filterOptions.genres) ? this.filterOptions.genres.length : 0;
+    const themeBase = isMobile ? (genreCount || 12) : Number.POSITIVE_INFINITY;
+    const limits = {
+      genres: Number.POSITIVE_INFINITY,
+      themes: themeBase
+    };
 
-    if (genreContainer && this.filterOptions.genres) {
-      genreContainer.innerHTML = this.filterOptions.genres.map(genre => {
-        const isActive = this.activeFilters.genres.includes(genre);
-        const safeGenreText = this.escapeHtml(genre);
-        const safeGenreAttr = this.escapeAttr(genre);
+    const renderGroup = (type, options, container) => {
+      if (!container || !options || options.length === 0) return;
+      const limit = limits[type] || 12;
+      const state = this.quickFilterState[type] || { expanded: false };
+      const expanded = type === 'genres' ? true : state.expanded;
+
+      const chipsMarkup = options.map((option, index) => {
+        const optionStr = String(option);
+        const isActive = this.activeFilters[type].includes(optionStr) || this.activeFilters[type].includes(option);
+        const safeText = this.escapeHtml(optionStr);
+        const safeAttr = this.escapeAttr(optionStr);
+        const isHidden = !expanded && index >= limit && !isActive;
         return `
-          <button class="quick-chip ${isActive ? 'active' : ''}"
+          <button class="quick-chip ${isActive ? 'active' : ''} ${isHidden ? 'is-hidden' : ''}"
                   data-action="toggle-filter"
-                  data-filter-type="genres"
-                  data-filter-value="${safeGenreAttr}">
-            ${safeGenreText}
+                  data-filter-type="${type}"
+                  data-filter-value="${safeAttr}">
+            ${safeText}
           </button>
         `;
       }).join('');
-    }
 
-    if (themeContainer && this.filterOptions.themes) {
-      themeContainer.innerHTML = this.filterOptions.themes.map(theme => {
-        const isActive = this.activeFilters.themes.includes(theme);
-        const safeThemeText = this.escapeHtml(theme);
-        const safeThemeAttr = this.escapeAttr(theme);
-        return `
-          <button class="quick-chip ${isActive ? 'active' : ''}"
-                  data-action="toggle-filter"
-                  data-filter-type="themes"
-                  data-filter-value="${safeThemeAttr}">
-            ${safeThemeText}
+      const showToggle = type !== 'genres' && options.length > limit && Number.isFinite(limit);
+      const hiddenCount = Math.max(options.length - limit, 0);
+      const toggleLabel = expanded ? 'Show less' : `Show ${hiddenCount} more`;
+      const toggleMarkup = showToggle
+        ? `
+          <button class="quick-more" type="button" data-action="toggle-quick-more" data-filter-type="${type}">
+            ${toggleLabel}
           </button>
-        `;
-      }).join('');
-    }
+        `
+        : '';
+
+      container.innerHTML = `${chipsMarkup}${toggleMarkup}`;
+    };
+
+    renderGroup('genres', this.filterOptions.genres, genreContainer);
+    renderGroup('themes', this.filterOptions.themes, themeContainer);
   },
 
   /**
@@ -1668,6 +1691,42 @@ const App = {
       behavior: prefersReducedMotion ? 'auto' : 'smooth',
       block: 'start'
     });
+  },
+
+  /**
+   * Scroll back to the quick filters section.
+   */
+  scrollToFiltersSection() {
+    const target = document.getElementById('quick-filters');
+    if (!target) return;
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    target.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start'
+    });
+  },
+
+  /**
+   * Show/hide the filter jump button on mobile.
+   */
+  setupFilterFab() {
+    const button = document.getElementById('filter-fab');
+    if (!button) return;
+    const isMobileQuery = window.matchMedia?.('(max-width: 640px)');
+    const updateVisibility = () => {
+      const isMobile = isMobileQuery ? isMobileQuery.matches : window.innerWidth <= 640;
+      if (!isMobile) {
+        button.classList.remove('is-visible');
+        return;
+      }
+      const showAfter = 320;
+      button.classList.toggle('is-visible', window.scrollY > showAfter);
+    };
+    updateVisibility();
+    window.addEventListener('scroll', updateVisibility, { passive: true });
+    if (isMobileQuery?.addEventListener) {
+      isMobileQuery.addEventListener('change', updateVisibility);
+    }
   },
 
   /**
@@ -2196,16 +2255,6 @@ const App = {
         }
         if (isQuickChip) {
           const isMobile = window.matchMedia?.('(max-width: 640px)')?.matches;
-          if (isMobile) {
-            const row = actionEl.closest('.quick-filters-row');
-            if (row) {
-              row.classList.remove('is-open');
-              const label = row.querySelector('.quick-filters-label');
-              if (label) {
-                label.setAttribute('aria-expanded', 'false');
-              }
-            }
-          }
           if (this.getActiveFilterCount() >= 2) {
             this.scrollToResultsSection();
           }
@@ -2213,21 +2262,33 @@ const App = {
         return;
       }
 
-      if (action === 'toggle-quick-filter') {
-        const isMobile = window.matchMedia?.('(max-width: 640px)')?.matches;
-        if (!isMobile) return;
-        const row = actionEl.closest('.quick-filters-row');
-        if (!row) return;
-        const isOpen = row.classList.toggle('is-open');
-        actionEl.setAttribute('aria-expanded', String(isOpen));
-        document.querySelectorAll('.quick-filters-row.is-open').forEach(other => {
-          if (other === row) return;
-          other.classList.remove('is-open');
-          const label = other.querySelector('.quick-filters-label');
-          if (label) {
-            label.setAttribute('aria-expanded', 'false');
-          }
+      if (action === 'quick-tab') {
+        const tabKey = actionEl.dataset.tab;
+        const tabs = document.querySelectorAll('.quick-tab');
+        const tracks = document.querySelectorAll('.quick-filters-track');
+        if (!tabKey || tabs.length === 0 || tracks.length === 0) return;
+        tabs.forEach(tab => {
+          const isActive = tab === actionEl;
+          tab.classList.toggle('is-active', isActive);
+          tab.setAttribute('aria-selected', String(isActive));
         });
+        tracks.forEach(track => {
+          const isActive = track.dataset.filterGroup === tabKey;
+          track.classList.toggle('is-active', isActive);
+        });
+        return;
+      }
+
+      if (action === 'toggle-quick-more') {
+        const type = actionEl.dataset.filterType;
+        if (!type || !this.quickFilterState[type]) return;
+        this.quickFilterState[type].expanded = !this.quickFilterState[type].expanded;
+        this.renderQuickFilters();
+        return;
+      }
+
+      if (action === 'scroll-to-filters') {
+        this.scrollToFiltersSection();
         return;
       }
 

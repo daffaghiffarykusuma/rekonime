@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://graphql.anilist.co; frame-src https://www.youtube.com https://www.youtube-nocookie.com">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'nonce-rekonime-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://graphql.anilist.co; frame-src https://www.youtube.com https://www.youtube-nocookie.com">
+  <meta name="csp-nonce" content="rekonime-inline">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rekonime - Find Anime You'll Actually Finish</title>
   <meta name="description" content="Discover anime worth your time. Rekonime uses Retention and Satisfaction scores to find shows that stay engaging from start to finish.">
@@ -68,20 +69,16 @@
       <button class="btn btn-sm btn-outline active-filters-clear" id="active-filters-clear" type="button">Clear filters</button>
     </div>
 
-    <div class="quick-filters">
-      <div class="quick-filters-row" data-filter-group="genres">
-        <button class="quick-filters-label" type="button" data-action="toggle-quick-filter" aria-expanded="false" aria-controls="genre-chips">
-          Genre
-        </button>
-        <div class="quick-filters-track" id="genre-chips">
+    <div class="quick-filters" id="quick-filters">
+      <div class="quick-filters-tabs" role="tablist" aria-label="Quick filters">
+        <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" aria-selected="true" aria-controls="genre-chips">Genre</button>
+        <button class="quick-tab" type="button" data-action="quick-tab" data-tab="themes" aria-selected="false" aria-controls="theme-chips">Theme</button>
+      </div>
+      <div class="quick-filters-panel">
+        <div class="quick-filters-track is-active" id="genre-chips" data-filter-group="genres" data-label="Genre">
           <!-- Populated by JS -->
         </div>
-      </div>
-      <div class="quick-filters-row" data-filter-group="themes">
-        <button class="quick-filters-label" type="button" data-action="toggle-quick-filter" aria-expanded="false" aria-controls="theme-chips">
-          Theme
-        </button>
-        <div class="quick-filters-track" id="theme-chips">
+        <div class="quick-filters-track" id="theme-chips" data-filter-group="themes" data-label="Theme">
           <!-- Populated by JS -->
         </div>
       </div>
@@ -142,6 +139,10 @@
       </div>
     </section>
   </div>
+
+  <button class="filter-fab" id="filter-fab" type="button" data-action="scroll-to-filters" aria-label="Jump to filters">
+    Filters ↑
+  </button>
 
   <div class="modal-overlay filter-modal-overlay" id="filter-modal">
     <div class="modal-content filter-modal-content">
