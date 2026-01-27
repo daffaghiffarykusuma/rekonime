@@ -1522,6 +1522,12 @@ const App = {
       this.filterPanelOpen = !this.filterPanelOpen;
       modal.classList.toggle('visible', this.filterPanelOpen);
       document.body.style.overflow = this.filterPanelOpen ? 'hidden' : '';
+      if (this.filterPanelOpen) {
+        const content = modal.querySelector('.filter-modal-content');
+        if (content) {
+          content.scrollTop = 0;
+        }
+      }
     }
   },
 
