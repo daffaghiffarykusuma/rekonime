@@ -1632,6 +1632,28 @@ h1, h2, h3, h4 {
   gap: 0.9rem;
 }
 
+.logo-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.logo-link:focus-visible {
+  outline: 2px solid rgba(0, 212, 170, 0.6);
+  outline-offset: 4px;
+  border-radius: 16px;
+}
+
+.logo-link:hover .logo-title,
+.logo-link:focus-visible .logo-title {
+  color: var(--accent-primary);
+}
+
+.logo-link:hover .logo-icon,
+.logo-link:focus-visible .logo-icon {
+  box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.2);
+}
+
 .logo-icon {
   width: 46px;
   height: 46px;

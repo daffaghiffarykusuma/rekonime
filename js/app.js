@@ -2252,6 +2252,17 @@ const App = {
       if (!actionEl) return;
 
       const action = actionEl.dataset.action;
+      if (action === 'home-shortcut') {
+        if (this.isCatalogPage()) {
+          event.preventDefault();
+          if (this.currentAnimeId) {
+            this.closeDetailModal({ updateUrl: false });
+          }
+          this.clearAllFilters();
+        }
+        return;
+      }
+
       if (action === 'toggle-filter') {
         const type = actionEl.dataset.filterType;
         const value = actionEl.dataset.filterValue;

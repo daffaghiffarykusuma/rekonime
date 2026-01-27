@@ -1,6 +1,7 @@
 # Rekonime Agent Guide
 
 ## Mandatory skills and workflow
+- Always read `USER_JOURNEY.MD` before proceeding with any task.
 - Always check the `skills/` folder at the start of a task.
 - Always apply the instructions in `skills/ATOM-OF-THOUGHT.md` for every coding task.
 - For UI or design work (layouts, styling, components, or visual changes), also apply:
@@ -11,6 +12,7 @@
 
 ### Nodes (files and modules)
 - `index.html`: Main catalog page, SEO meta, CSP, and script/style includes.
+- `USER_JOURNEY.MD`: End-to-end user experience map from entry to exit.
 - `home/index.html`: Alias entry point for `/home` (local/static fallback) using the same JS/CSS.
 - `bookmarks.html`: Bookmarks page, shares the same JS/CSS and detail modal.
 - `css/styles.css`: Global styles, component layouts, animations, and responsive rules.
@@ -29,6 +31,7 @@
 ### Edges (dependencies and relationships)
 - `index.html` -> `css/styles.css`
 - `index.html` -> `js/stats.js` -> `js/recommendations.js` -> `js/reviews.js` -> `js/app.js`
+- `AGENTS.md` -> `USER_JOURNEY.MD` (required reading before tasks)
 - `home/index.html` -> same JS/CSS stack as `index.html`
 - `bookmarks.html` -> same JS/CSS stack as `index.html`
 - `js/app.js` -> `Stats` (calculations) + `Recommendations` (badges/recs/similar/sort options)
@@ -218,4 +221,7 @@ flowchart TD
 
   %% Optional charting (not wired by default)
   charts[js/charts.js] -. optional .-> app
+
+  %% Documentation (non-runtime)
+  agentsDoc[AGENTS.md] -. guides .-> journey[USER_JOURNEY.MD]
 ```
