@@ -58,6 +58,12 @@ const App = {
     genres: { expanded: false },
     themes: { expanded: false }
   },
+  headerSearchState: {
+    query: '',
+    results: [],
+    activeIndex: -1
+  },
+  searchMaxResults: 8,
 
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -1003,6 +1009,7 @@ const App = {
       // If data has nested metadata structure, flatten it
       if (anime.metadata) {
         const resolvedTitle = anime.metadata.title || anime.title;
+        const searchIndex = this.buildSearchIndex(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese);
         return {
           id: anime.metadata.id || anime.id,
           title: resolvedTitle,
@@ -1022,7 +1029,8 @@ const App = {
           trailer: normalizedTrailer,
           synopsis: normalizedSynopsis,
           communityScore: communityScore,
-          searchText: existingSearchText || this.buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
+          searchIndex: searchIndex,
+          searchText: this.mergeSearchText(existingSearchText, searchIndex),
           episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
           stats: existingStats,
           colorIndex: existingColorIndex
@@ -1030,6 +1038,7 @@ const App = {
       }
       // Already flat structure, ensure all fields exist
       const resolvedTitle = anime.title;
+      const searchIndex = this.buildSearchIndex(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese);
       return {
         id: anime.id,
         title: resolvedTitle,
@@ -1049,7 +1058,8 @@ const App = {
         trailer: normalizedTrailer,
         synopsis: normalizedSynopsis,
         communityScore: communityScore,
-        searchText: existingSearchText || this.buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
+        searchIndex: searchIndex,
+        searchText: this.mergeSearchText(existingSearchText, searchIndex),
         episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
         stats: existingStats,
         colorIndex: existingColorIndex
@@ -1079,19 +1089,198 @@ const App = {
     return cleaned;
   },
 
-  normalizeSearchQuery(value) {
-    return String(value || '')
+  normalizeSearchQuery(value, { stripPunctuation = false, compact = false } = {}) {
+    let normalized = String(value || '')
       .toLowerCase()
-      .normalize('NFKC')
-      .replace(/\s+/g, ' ')
-      .trim();
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .normalize('NFKC');
+
+    if (stripPunctuation) {
+      normalized = normalized.replace(/[-_/\\:;,.!?'"(){}\[\]<>|~`@#$%^&*=+]/g, ' ');
+    }
+
+    normalized = normalized.replace(/\s+/g, ' ').trim();
+    if (compact) {
+      return normalized.replace(/\s+/g, '');
+    }
+    return normalized;
+  },
+
+  buildSearchIndex(title, titleEnglish, titleJapanese) {
+    const rawParts = [title, titleEnglish, titleJapanese]
+      .map(value => String(value || '').trim())
+      .filter(Boolean);
+
+    const variants = new Set();
+    const compactVariants = new Set();
+
+    rawParts.forEach(value => {
+      const normalized = this.normalizeSearchQuery(value);
+      const loose = this.normalizeSearchQuery(value, { stripPunctuation: true });
+      const compact = this.normalizeSearchQuery(value, { stripPunctuation: true, compact: true });
+      if (normalized) variants.add(normalized);
+      if (loose) variants.add(loose);
+      if (compact) compactVariants.add(compact);
+    });
+
+    const tokenSet = new Set();
+    variants.forEach(text => {
+      text.split(' ').forEach(token => {
+        if (token) tokenSet.add(token);
+      });
+    });
+
+    return {
+      variants: Array.from(variants),
+      compactVariants: Array.from(compactVariants),
+      tokenSet
+    };
+  },
+
+  mergeSearchText(existingText, searchIndex) {
+    const parts = [];
+    if (existingText) parts.push(existingText);
+    if (searchIndex?.variants) parts.push(...searchIndex.variants);
+    if (searchIndex?.compactVariants) parts.push(...searchIndex.compactVariants);
+    return [...new Set(parts.filter(Boolean))].join(' ');
   },
 
   buildSearchText(title, titleEnglish, titleJapanese) {
-    const parts = [title, titleEnglish, titleJapanese]
-      .map(value => this.normalizeSearchQuery(value))
-      .filter(Boolean);
-    return parts.join(' ');
+    const searchIndex = this.buildSearchIndex(title, titleEnglish, titleJapanese);
+    return this.mergeSearchText('', searchIndex);
+  },
+
+  prepareSearchQuery(query) {
+    const normalized = this.normalizeSearchQuery(query);
+    const loose = this.normalizeSearchQuery(query, { stripPunctuation: true });
+    const compact = this.normalizeSearchQuery(query, { stripPunctuation: true, compact: true });
+    const tokens = loose.split(' ').filter(Boolean);
+    return { normalized, loose, compact, tokens };
+  },
+
+  getSearchIndex(anime) {
+    if (anime?.searchIndex) return anime.searchIndex;
+    const index = this.buildSearchIndex(anime?.title, anime?.titleEnglish, anime?.titleJapanese);
+    if (anime) {
+      anime.searchIndex = index;
+      anime.searchText = this.mergeSearchText(anime.searchText, index);
+    }
+    return index;
+  },
+
+  scoreSearchMatch(index, queryInfo) {
+    if (!index || !queryInfo) return 0;
+    const { normalized, loose, compact, tokens } = queryInfo;
+    if (!normalized && !loose && !compact) return 0;
+
+    const variants = index.variants || [];
+    const compactVariants = index.compactVariants || [];
+    const tokenSet = index.tokenSet || new Set();
+
+    const exact = variants.some(value => value === normalized || value === loose);
+    if (exact) return 100;
+
+    const startsWith = variants.some(value => value.startsWith(normalized) || value.startsWith(loose));
+    if (startsWith) return 90;
+
+    const contains = variants.some(value => value.includes(normalized) || value.includes(loose));
+    if (contains) return 75;
+
+    if (tokens.length) {
+      const tokenMatch = tokens.every(token => tokenSet.has(token));
+      if (tokenMatch && tokens.length > 1) return 70;
+      if (tokenMatch) return 60;
+    }
+
+    if (compact) {
+      const compactMatch = compactVariants.some(value => value.includes(compact));
+      if (compactMatch) return 55;
+    }
+
+    return 0;
+  },
+
+  findSearchMatches(query) {
+    const queryInfo = this.prepareSearchQuery(query);
+    const results = [];
+
+    for (const anime of this.animeData) {
+      const index = this.getSearchIndex(anime);
+      const score = this.scoreSearchMatch(index, queryInfo);
+      if (score > 0) {
+        results.push({ anime, score });
+      }
+    }
+
+    results.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return String(a.anime.title || '').localeCompare(String(b.anime.title || ''));
+    });
+
+    return results.slice(0, this.searchMaxResults).map(item => item.anime);
+  },
+
+  updateHeaderSearchDropdownVisibility(dropdown, isVisible) {
+    if (!dropdown) return;
+    dropdown.classList.toggle('visible', isVisible);
+    const input = document.getElementById('header-search');
+    if (input) {
+      input.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
+    }
+  },
+
+  setHeaderSearchActiveIndex(index, { scroll = true } = {}) {
+    const dropdown = document.getElementById('header-search-dropdown');
+    const input = document.getElementById('header-search');
+    if (!dropdown) return;
+
+    const items = Array.from(dropdown.querySelectorAll('.search-result-item'));
+    const safeIndex = Number.isInteger(index) ? index : -1;
+    this.headerSearchState.activeIndex = safeIndex;
+
+    items.forEach((item, itemIndex) => {
+      const isActive = itemIndex === safeIndex;
+      item.classList.toggle('is-active', isActive);
+      item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    if (input) {
+      if (safeIndex >= 0 && items[safeIndex]) {
+        input.setAttribute('aria-activedescendant', items[safeIndex].id || '');
+      } else {
+        input.removeAttribute('aria-activedescendant');
+      }
+    }
+
+    if (scroll && safeIndex >= 0 && items[safeIndex]) {
+      items[safeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  },
+
+  resetHeaderSearch({ clearInput = false } = {}) {
+    const dropdown = document.getElementById('header-search-dropdown');
+    const input = document.getElementById('header-search');
+    this.headerSearchState.query = '';
+    this.headerSearchState.results = [];
+    this.headerSearchState.activeIndex = -1;
+    if (dropdown) {
+      dropdown.innerHTML = '';
+      this.updateHeaderSearchDropdownVisibility(dropdown, false);
+    }
+    if (input) {
+      if (clearInput) {
+        input.value = '';
+      }
+      input.removeAttribute('aria-activedescendant');
+    }
+  },
+
+  closeHeaderSearchDropdown() {
+    const dropdown = document.getElementById('header-search-dropdown');
+    if (!dropdown) return;
+    this.updateHeaderSearchDropdownVisibility(dropdown, false);
+    this.setHeaderSearchActiveIndex(-1, { scroll: false });
   },
 
   /**
@@ -1302,24 +1491,43 @@ const App = {
     const headerSearch = document.getElementById('header-search');
     const headerDropdown = document.getElementById('header-search-dropdown');
 
-    if (headerSearch && headerDropdown) {
-      headerSearch.addEventListener('input', (e) => {
-        this.handleHeaderSearch(e.target.value);
-      });
+    if (!headerSearch || !headerDropdown) return;
 
-      headerSearch.addEventListener('focus', () => {
-        if (headerSearch.value.length > 0) {
-          headerDropdown.classList.add('visible');
-        }
-      });
+    headerSearch.addEventListener('input', (e) => {
+      this.handleHeaderSearch(e.target.value);
+    });
 
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('.header-search-wrapper')) {
-          headerDropdown.classList.remove('visible');
-        }
-      });
-    }
+    headerSearch.addEventListener('focus', () => {
+      if (headerSearch.value.length > 0) {
+        this.handleHeaderSearch(headerSearch.value, { preserveActive: true });
+      }
+    });
+
+    headerSearch.addEventListener('keydown', (event) => {
+      this.handleHeaderSearchKeydown(event);
+    });
+
+    headerDropdown.addEventListener('mousemove', (event) => {
+      const item = event.target.closest('.search-result-item');
+      if (!item) return;
+      const index = Number(item.dataset.resultIndex);
+      if (Number.isInteger(index)) {
+        this.setHeaderSearchActiveIndex(index, { scroll: false });
+      }
+    });
+
+    headerDropdown.addEventListener('mouseleave', () => {
+      if (this.headerSearchState.activeIndex !== -1) {
+        this.setHeaderSearchActiveIndex(-1, { scroll: false });
+      }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.header-search-wrapper')) {
+        this.closeHeaderSearchDropdown();
+      }
+    });
   },
 
   /**
@@ -1638,45 +1846,62 @@ const App = {
   /**
    * Handle header search input (opens anime detail)
    */
-  handleHeaderSearch(query) {
+  handleHeaderSearch(query, { preserveActive = false } = {}) {
     const dropdown = document.getElementById('header-search-dropdown');
-    if (!dropdown) return;
+    const input = document.getElementById('header-search');
+    if (!dropdown || !input) return;
 
-    if (query.length < 2) {
-      dropdown.classList.remove('visible');
-      dropdown.innerHTML = '';
+    const trimmedQuery = String(query || '').trim();
+    const previousQuery = this.headerSearchState.query;
+    this.headerSearchState.query = trimmedQuery;
+
+    if (trimmedQuery.length < 2) {
+      this.resetHeaderSearch({ clearInput: false });
       return;
     }
 
-    const queryLower = this.normalizeSearchQuery(query);
-    const matches = this.animeData
-      .filter(anime => {
-        const haystack = anime.searchText || this.buildSearchText(anime.title, anime.titleEnglish, anime.titleJapanese);
-        return haystack.includes(queryLower);
-      })
-      .slice(0, 8);
+    const matches = this.findSearchMatches(trimmedQuery);
+    this.headerSearchState.results = matches;
+
+    if (!preserveActive || trimmedQuery !== previousQuery) {
+      this.headerSearchState.activeIndex = -1;
+    } else if (this.headerSearchState.activeIndex >= matches.length) {
+      this.headerSearchState.activeIndex = -1;
+    }
 
     if (matches.length === 0) {
-      dropdown.innerHTML = '<div class="search-no-results">No matches—try a different title</div>';
-      dropdown.classList.add('visible');
+      dropdown.innerHTML = `
+        <div class="search-no-results" role="status" aria-live="polite">
+          <div class="search-no-results-title">No matches yet.</div>
+          <div class="search-no-results-hint">Try English title or a shorter query.</div>
+          <div class="search-no-results-tips">
+            <span class="search-no-results-tip">Try English title</span>
+            <span class="search-no-results-tip">Shorter query</span>
+          </div>
+        </div>
+      `;
+      this.updateHeaderSearchDropdownVisibility(dropdown, true);
+      this.setHeaderSearchActiveIndex(-1, { scroll: false });
       return;
     }
-    dropdown.innerHTML = matches.map(anime => {
+
+    dropdown.innerHTML = matches.map((anime, index) => {
       const altTitles = [anime.titleEnglish, anime.titleJapanese]
         .map(value => String(value || '').trim())
         .filter(Boolean)
         .filter(value => value.toLowerCase() !== anime.title.toLowerCase());
       const safeAltTitles = altTitles.map(value => this.escapeHtml(value));
       const altTitleMarkup = altTitles.length
-        ? `<div class="search-result-alt">${safeAltTitles.join(' • ')}</div>`
+        ? `<div class="search-result-alt">${safeAltTitles.join(' &bull; ')}</div>`
         : '';
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
       const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
       const safeYear = this.escapeHtml(anime.year ?? 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio ?? 'Unknown');
+      const isActive = index === this.headerSearchState.activeIndex;
       return `
-      <div class="search-result-item" data-action="open-anime" data-anime-id="${safeId}">
+      <div class="search-result-item ${isActive ? 'is-active' : ''}" role="option" aria-selected="${isActive ? 'true' : 'false'}" id="search-result-${index}" data-result-index="${index}" data-action="open-anime" data-anime-id="${safeId}">
         <img src="${safeCover}" alt="${safeTitle}" class="search-result-cover" data-fallback-src="https://via.placeholder.com/40x56?text=No">
         <div class="search-result-info">
           <div class="search-result-title">${safeTitle}</div>
@@ -1687,9 +1912,52 @@ const App = {
     `;
     }).join('');
 
-    dropdown.classList.add('visible');
+    this.updateHeaderSearchDropdownVisibility(dropdown, true);
+    this.setHeaderSearchActiveIndex(this.headerSearchState.activeIndex, { scroll: false });
   },
 
+  handleHeaderSearchKeydown(event) {
+    const dropdown = document.getElementById('header-search-dropdown');
+    const input = document.getElementById('header-search');
+    if (!dropdown || !input) return;
+
+    const results = this.headerSearchState.results || [];
+    const hasResults = results.length > 0;
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (!hasResults) return;
+      event.preventDefault();
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      let nextIndex = this.headerSearchState.activeIndex;
+      if (nextIndex === -1) {
+        nextIndex = delta > 0 ? 0 : results.length - 1;
+      } else {
+        nextIndex = (nextIndex + delta + results.length) % results.length;
+      }
+      this.setHeaderSearchActiveIndex(nextIndex);
+      this.updateHeaderSearchDropdownVisibility(dropdown, true);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      if (!hasResults) return;
+      const index = this.headerSearchState.activeIndex >= 0 ? this.headerSearchState.activeIndex : 0;
+      const selected = results[index];
+      if (selected) {
+        event.preventDefault();
+        this.showAnimeDetail(selected.id);
+        this.resetHeaderSearch({ clearInput: true });
+      }
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      if (dropdown.classList.contains('visible')) {
+        event.preventDefault();
+        this.closeHeaderSearchDropdown();
+      }
+    }
+  },
   /**
    * Toggle filter panel visibility
    */
@@ -2540,11 +2808,7 @@ const App = {
         }
         const dropdown = actionEl.closest('.header-search-dropdown');
         if (dropdown) {
-          dropdown.classList.remove('visible');
-          const input = document.getElementById('header-search');
-          if (input) {
-            input.value = '';
-          }
+          this.resetHeaderSearch({ clearInput: true });
         }
         return;
       }
@@ -3165,4 +3429,5 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(start, 0);
   }
 });
+
 
