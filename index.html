@@ -58,6 +58,11 @@
             <!-- Search results populated by JS -->
           </div>
         </div>
+        <button class="btn btn-sm btn-primary surprise-btn" id="surprise-toggle" type="button"
+          aria-label="Surprise me with a random anime" title="Surprise Me">
+          <span class="surprise-icon" aria-hidden="true">🎲</span>
+          <span class="surprise-label">Surprise Me</span>
+        </button>
         <div class="header-sort">
           <label class="sort-label" for="sort-select">Sort</label>
           <div class="select-wrapper sort-select-wrapper">
@@ -139,6 +144,13 @@
       </div>
     </div>
 
+    <div class="seasonal-filters" id="seasonal-filters">
+      <div class="seasonal-filters-label">Seasonal:</div>
+      <div class="seasonal-chips" id="seasonal-chips">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
     <section class="recommendations-section" id="recommendations-section">
       <div class="recommendations-header">
         <div>
@@ -152,6 +164,12 @@
           <span>How we pick these</span>
         </button>
       </div>
+      <div class="recommendation-modes" id="recommendation-modes">
+        <span class="modes-label">Discover by:</span>
+        <div class="mode-chips" id="mode-chips">
+          <!-- Populated by JS -->
+        </div>
+      </div>
       <div class="recommendations-grid" id="recommendations-grid">
         <div class="skeleton-card skeleton-recommendation"></div>
         <div class="skeleton-card skeleton-recommendation"></div>
@@ -159,6 +177,34 @@
         <div class="skeleton-card skeleton-recommendation"></div>
         <div class="skeleton-card skeleton-recommendation"></div>
         <div class="skeleton-card skeleton-recommendation"></div>
+      </div>
+    </section>
+
+    <section class="because-you-watched-section" id="because-you-watched-section" style="display: none;">
+      <div class="byw-header">
+        <h2>Because You Watched</h2>
+        <div class="byw-seed" id="byw-seed">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+      <div class="byw-grid" id="byw-grid">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <section class="trending-section" id="trending-section">
+      <div class="trending-header">
+        <div class="trending-title-group">
+          <h2>🔥 Trending Now</h2>
+          <span class="trending-live-indicator">
+            <span class="live-dot"></span>
+            Live
+          </span>
+        </div>
+        <p class="section-subtitle">What's getting attention this week</p>
+      </div>
+      <div class="trending-grid" id="trending-grid">
+        <!-- Populated by JS -->
       </div>
     </section>
 
@@ -265,6 +311,7 @@
   <!-- Scripts -->
   <script src="js/stats.js" defer></script>
   <script src="js/recommendations.js" defer></script>
+  <script src="js/discovery.js" defer></script>
   <script src="js/reviews.js" defer></script>
   <script src="js/metricGlossary.js" defer></script>
   <script src="js/filterPresets.js" defer></script>

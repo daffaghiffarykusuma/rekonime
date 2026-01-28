@@ -1636,6 +1636,21 @@ const App = {
       });
     }
 
+    const surpriseToggle = document.getElementById('surprise-toggle');
+    if (surpriseToggle) {
+      surpriseToggle.addEventListener('click', () => {
+        const surprise = Discovery.getSurpriseMe(this.animeData, {
+          excludeIds: this.bookmarkIds,
+          useBookmarks: true
+        });
+
+        if (surprise) {
+          Discovery.trackSurpriseMe(surprise.id);
+          this.showAnimeDetail(surprise.id);
+        }
+      });
+    }
+
     const closeMetricHelp = document.getElementById('close-metric-help');
     if (closeMetricHelp) {
       closeMetricHelp.addEventListener('click', () => {
@@ -2502,9 +2517,167 @@ const App = {
   render() {
     this.renderActiveFilters();
     this.renderBookmarks();
+    this.renderSeasonalFilters();
+    this.renderRecommendationModes();
     this.renderRankings();
     this.renderRecommendations();
+    this.renderBecauseYouWatched();
+    this.renderTrending();
     this.renderAnimeGrid();
+  },
+
+  /**
+   * Render seasonal filter chips
+   */
+  renderSeasonalFilters() {
+    const container = document.getElementById('seasonal-chips');
+    if (!container || typeof Discovery === 'undefined') return;
+
+    const filters = Discovery.getSeasonalFilters(this.animeData);
+    if (filters.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = filters.map(filter => {
+      const isActive = this.activeFilters.seasonYear.includes(filter.value);
+      const highlightClass = filter.highlight ? 'is-highlight' : '';
+      const activeClass = isActive ? 'active' : '';
+      return `
+        <button class="seasonal-chip ${highlightClass} ${activeClass}"
+                data-action="apply-seasonal"
+                data-season-year="${this.escapeAttr(filter.value)}"
+                type="button">
+          ${this.escapeHtml(filter.label)}
+        </button>
+      `;
+    }).join('');
+  },
+
+  /**
+   * Apply seasonal filter
+   */
+  applySeasonalFilter(seasonYear) {
+    // Toggle the filter
+    const index = this.activeFilters.seasonYear.indexOf(seasonYear);
+    if (index > -1) {
+      this.activeFilters.seasonYear.splice(index, 1);
+    } else {
+      this.activeFilters.seasonYear = [seasonYear]; // Replace other seasons
+    }
+
+    this.applyFilters();
+    this.renderSeasonalFilters();
+  },
+
+  /**
+   * Render recommendation mode selector
+   */
+  renderRecommendationModes() {
+    const container = document.getElementById('mode-chips');
+    if (!container || typeof Recommendations === 'undefined') return;
+
+    const modes = Recommendations.modes;
+    const currentMode = Recommendations.currentMode;
+
+    container.innerHTML = Object.entries(modes).map(([key, mode]) => {
+      const isActive = key === currentMode;
+      return `
+        <button class="mode-chip ${isActive ? 'active' : ''}"
+                data-action="set-rec-mode"
+                data-mode="${this.escapeAttr(key)}"
+                title="${this.escapeAttr(mode.description)}"
+                type="button">
+          <span class="mode-icon">${mode.icon}</span>
+          <span class="mode-label">${this.escapeHtml(mode.label)}</span>
+        </button>
+      `;
+    }).join('');
+  },
+
+  /**
+   * Render Because You Watched section
+   */
+  renderBecauseYouWatched() {
+    const section = document.getElementById('because-you-watched-section');
+    const grid = document.getElementById('byw-grid');
+    const seedContainer = document.getElementById('byw-seed');
+
+    if (!section || !grid || !seedContainer || typeof Recommendations === 'undefined') return;
+
+    const { recommendations, basedOn } = Recommendations.getBecauseYouWatched(
+      this.animeData,
+      this.bookmarkIds,
+      6
+    );
+
+    if (recommendations.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'block';
+
+    // Render seed info
+    if (basedOn) {
+      seedContainer.innerHTML = `
+        <img src="${this.escapeAttr(this.sanitizeUrl(basedOn.cover))}" alt="" class="byw-seed-cover">
+        <span class="byw-seed-title">${this.escapeHtml(basedOn.title)}</span>
+      `;
+    }
+
+    // Render recommendations
+    grid.innerHTML = recommendations.map(anime => {
+      const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
+      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
+      const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
+
+      return `
+        <div class="recommendation-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}">
+          <div class="recommendation-media">
+            <img src="${this.escapeAttr(this.sanitizeUrl(anime.cover))}" alt="${this.escapeHtml(anime.title)}" class="recommendation-cover" loading="lazy">
+          </div>
+          <div class="recommendation-info">
+            <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
+            <div class="recommendation-meta">
+              <span>Retention ${retention}</span>
+              <span>MAL ${malScore}</span>
+            </div>
+            <div class="recommendation-reason">${this.escapeHtml(anime.reason || '')}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  /**
+   * Render Trending section
+   */
+  renderTrending() {
+    const grid = document.getElementById('trending-grid');
+    if (!grid || typeof Discovery === 'undefined') return;
+
+    const trending = Discovery.getTrending(this.animeData, 6);
+
+    grid.innerHTML = trending.map((anime, index) => {
+      const rank = index + 1;
+      const rankClass = rank <= 3 ? 'top-3' : '';
+      const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
+      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
+
+      return `
+        <div class="trending-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}">
+          <div class="trending-rank ${rankClass}">${rank}</div>
+          <img src="${this.escapeAttr(this.sanitizeUrl(anime.cover))}" alt="${this.escapeHtml(anime.title)}" class="trending-cover" loading="lazy">
+          <div class="trending-info">
+            <div class="trending-title">${this.escapeHtml(anime.title)}</div>
+            <div class="trending-meta">
+              ${anime.year || 'Unknown'} · Retention ${retention}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
   },
 
   /**
@@ -2703,15 +2876,16 @@ const App = {
     if (!container) return;
     container.classList.remove('is-loading');
 
-    if (contextEl) {
-      contextEl.textContent = 'Retention-first picks blended with MAL satisfaction for more dependable recommendations.';
+    // Update context based on current mode
+    if (contextEl && typeof Recommendations !== 'undefined') {
+      contextEl.textContent = Recommendations.getModeContext();
     }
 
-    // Get recommendations
-    const recommendations = Recommendations.getRecommendations(
-      this.filteredData,
-      6
-    );
+    // Get recommendations with current mode
+    const recommendations = typeof Recommendations !== 'undefined'
+      ? Recommendations.getRecommendationsWithMode(this.filteredData, Recommendations.currentMode, 6)
+      : [];
+
 
     if (recommendations.length === 0) {
       container.innerHTML = '<p class="no-data">No recommendations available</p>';
@@ -3059,6 +3233,36 @@ const App = {
 
       if (action === 'load-more') {
         this.loadMoreAnime();
+      }
+
+      if (action === 'surprise-me') {
+        const surprise = Discovery.getSurpriseMe(this.animeData, {
+          excludeIds: this.bookmarkIds,
+          useBookmarks: true
+        });
+
+        if (surprise) {
+          Discovery.trackSurpriseMe(surprise.id);
+          this.showAnimeDetail(surprise.id);
+        }
+        return;
+      }
+
+      if (action === 'set-rec-mode') {
+        const modeKey = actionEl.dataset.mode;
+        if (modeKey && Recommendations.setMode(modeKey)) {
+          this.renderRecommendationModes();
+          this.renderRecommendations();
+        }
+        return;
+      }
+
+      if (action === 'apply-seasonal') {
+        const seasonYear = actionEl.dataset.seasonYear;
+        if (seasonYear) {
+          this.applySeasonalFilter(seasonYear);
+        }
+        return;
       }
     });
   },

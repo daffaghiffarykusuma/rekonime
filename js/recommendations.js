@@ -400,8 +400,313 @@ const Recommendations = {
     if (value >= 7.5) return 'score-mid';
     if (value >= 6.5) return 'score-low';
     return 'score-poor';
+  },
+
+  // ==========================================
+  // Recommendation Modes (Gap C4)
+  // ==========================================
+
+  /**
+   * Available recommendation modes
+   */
+  modes: {
+    balanced: {
+      label: 'Balanced',
+      description: 'Best of both worlds',
+      icon: '⚖️',
+      weights: { retention: 0.75, satisfaction: 0.25 }
+    },
+    binge: {
+      label: 'Binge Mode',
+      description: 'High retention, hard to stop watching',
+      icon: '🔥',
+      weights: { retention: 0.9, satisfaction: 0.1 },
+      boosters: ['flowState', 'threeEpisodeHook']
+    },
+    quality: {
+      label: 'Critical Acclaim',
+      description: 'Highest community ratings',
+      icon: '⭐',
+      weights: { retention: 0.3, satisfaction: 0.7 }
+    },
+    discovery: {
+      label: 'Hidden Gems',
+      description: 'High retention, lower popularity',
+      icon: '💎',
+      weights: { retention: 0.8, satisfaction: 0.2 },
+      filter: (anime) => (anime.communityScore || 0) < 7.8
+    },
+    comfort: {
+      label: 'Comfort Shows',
+      description: 'Easy to watch, low stress',
+      icon: '😌',
+      weights: { retention: 0.6, satisfaction: 0.4 },
+      boosters: ['comfortScore'],
+      filter: (anime) => (anime.stats?.comfortScore || 0) > 70
+    }
+  },
+
+  currentMode: 'balanced',
+
+  /**
+   * Set recommendation mode
+   */
+  setMode(modeKey) {
+    if (this.modes[modeKey]) {
+      this.currentMode = modeKey;
+      // Persist preference
+      try {
+        localStorage.setItem('rekonime.recMode', modeKey);
+      } catch (e) {
+        // Ignore storage errors
+      }
+      return true;
+    }
+    return false;
+  },
+
+  /**
+   * Load saved mode preference
+   */
+  loadModePreference() {
+    try {
+      const saved = localStorage.getItem('rekonime.recMode');
+      if (saved && this.modes[saved]) {
+        this.currentMode = saved;
+      }
+    } catch (e) {
+      // Ignore storage errors
+    }
+  },
+
+  /**
+   * Get current mode
+   */
+  getCurrentMode() {
+    return this.modes[this.currentMode];
+  },
+
+  /**
+   * Enhanced recommendation scoring with mode support
+   */
+  scoreAnimeWithMode(anime, modeKey = this.currentMode) {
+    const mode = this.modes[modeKey];
+    if (!mode) return this.scoreAnime(anime);
+
+    // Apply mode filter if exists
+    if (mode.filter && !mode.filter(anime)) {
+      return 0;
+    }
+
+    const retentionScore = anime?.stats?.retentionScore ?? 0;
+    const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
+    const malSatisfactionScaled = malSatisfactionScore * 10;
+
+    // Base score from weights
+    let score = (retentionScore * mode.weights.retention) +
+      (malSatisfactionScaled * mode.weights.satisfaction);
+
+    // Apply boosters
+    if (mode.boosters) {
+      mode.boosters.forEach(booster => {
+        const boosterValue = anime?.stats?.[booster];
+        if (Number.isFinite(boosterValue)) {
+          score += boosterValue * 0.1; // 10% boost
+        }
+      });
+    }
+
+    return score;
+  },
+
+  /**
+   * Get recommendations with mode
+   */
+  getRecommendationsWithMode(animeList, modeKey = this.currentMode, limit = 6) {
+    const mode = this.modes[modeKey];
+    if (!mode) return this.getRecommendations(animeList, limit);
+
+    if (!animeList || animeList.length === 0) return [];
+
+    const scored = animeList.map(anime => ({
+      anime,
+      recScore: this.scoreAnimeWithMode(anime, modeKey),
+      reason: this.getRecommendationReasonForMode(anime, modeKey)
+    }));
+
+    return scored
+      .filter(s => s.recScore > 0)
+      .sort((a, b) => b.recScore - a.recScore)
+      .slice(0, limit)
+      .map(entry => ({ ...entry.anime, reason: entry.reason }));
+  },
+
+  /**
+   * Get recommendation reason based on mode
+   */
+  getRecommendationReasonForMode(anime, modeKey = this.currentMode) {
+    const stats = anime?.stats;
+
+    switch (modeKey) {
+      case 'binge':
+        if (stats?.flowState >= 85) return 'Flows perfectly - hard to pause';
+        if (stats?.threeEpisodeHook >= 85) return 'Hooks you immediately';
+        return 'Built for binge-watching';
+
+      case 'quality':
+        if (anime.communityScore >= 8.5) return 'Critically acclaimed';
+        return 'Highly rated by the community';
+
+      case 'discovery':
+        if (stats?.retentionScore >= 85) return 'Underappreciated gem';
+        return 'Worth more attention';
+
+      case 'comfort':
+        if (stats?.comfortScore >= 80) return 'Perfect comfort viewing';
+        return 'Easy, enjoyable watching';
+
+      default:
+        return this.getRecommendationReason(anime);
+    }
+  },
+
+  /**
+   * Get mode-specific context text
+   */
+  getModeContext(modeKey = this.currentMode) {
+    const contexts = {
+      balanced: 'Retention-first picks blended with MAL satisfaction for more dependable recommendations.',
+      binge: 'Shows that are hard to stop watching - high flow state and strong hooks.',
+      quality: 'Top-rated by the community - focus on critical acclaim and satisfaction.',
+      discovery: 'Hidden gems with high retention but lower mainstream popularity.',
+      comfort: 'Easy, stress-free shows perfect for relaxing and unwinding.'
+    };
+    return contexts[modeKey] || contexts.balanced;
+  },
+
+  // ==========================================
+  // Because You Watched (Gap C5)
+  // ==========================================
+
+  /**
+   * Get personalized "Because You Watched" recommendations
+   * @param {Array} animeList - Full catalog
+   * @param {Array} bookmarkedIds - User's bookmarked anime IDs
+   * @param {number} limit - Max recommendations
+   * @returns {Object} { recommendations: Array, basedOn: Object }
+   */
+  getBecauseYouWatched(animeList, bookmarkedIds, limit = 6) {
+    if (!bookmarkedIds || bookmarkedIds.length === 0) {
+      return { recommendations: [], basedOn: null };
+    }
+
+    // Get bookmarked anime data
+    const bookmarkedAnime = bookmarkedIds
+      .map(id => animeList.find(a => a.id === id))
+      .filter(Boolean);
+
+    if (bookmarkedAnime.length === 0) {
+      return { recommendations: [], basedOn: null };
+    }
+
+    // Pick a seed anime (most recent bookmark or best for recommendations)
+    const seedAnime = this.selectSeedAnime(bookmarkedAnime);
+
+    // Get recommendations based on seed
+    const similarResults = this.getSimilarAnime(
+      animeList.filter(a => !bookmarkedIds.includes(a.id)),
+      seedAnime,
+      limit + 5 // Get extra for filtering
+    );
+
+    // Filter out already bookmarked and rank by relevance
+    const filtered = similarResults
+      .filter(r => !bookmarkedIds.includes(r.anime.id))
+      .slice(0, limit);
+
+    return {
+      recommendations: filtered.map(r => ({
+        ...r.anime,
+        reason: this.getPersonalizedReason(r, seedAnime),
+        matchDetails: {
+          sharedGenres: r.sharedGenres,
+          sharedThemes: r.sharedThemes,
+          retentionAlignment: r.retentionAlignment,
+          satisfactionAlignment: r.satisfactionAlignment
+        }
+      })),
+      basedOn: seedAnime
+    };
+  },
+
+  /**
+   * Select the best seed anime from bookmarks
+   */
+  selectSeedAnime(bookmarkedAnime) {
+    // Prefer anime with both genres and themes
+    const withTags = bookmarkedAnime.filter(a =>
+      a.genres?.length > 0 && a.themes?.length > 0
+    );
+
+    if (withTags.length === 0) {
+      return bookmarkedAnime[0];
+    }
+
+    // Score each by how good it is for recommendations
+    const scored = withTags.map(anime => {
+      let score = 0;
+
+      // Prefer anime with diverse tags
+      score += (anime.genres?.length || 0) * 10;
+      score += (anime.themes?.length || 0) * 10;
+
+      // Prefer higher quality anime
+      score += (anime.stats?.retentionScore || 0) * 0.5;
+      score += (anime.communityScore || 0) * 5;
+
+      return { anime, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0].anime;
+  },
+
+  /**
+   * Generate personalized reason text
+   */
+  getPersonalizedReason(similarityResult, seedAnime) {
+    const { sharedGenres, sharedThemes, similarityScore } = similarityResult;
+
+    // High similarity
+    if (similarityScore >= 0.7 && sharedGenres.length >= 2) {
+      return `Very similar to ${seedAnime.title}`;
+    }
+
+    // Genre-focused
+    if (sharedGenres.length >= 2 && sharedThemes.length === 0) {
+      const genres = sharedGenres.slice(0, 2).join(' + ');
+      return `Same ${genres} vibes as ${seedAnime.title}`;
+    }
+
+    // Theme-focused
+    if (sharedThemes.length >= 2 && sharedGenres.length === 0) {
+      const themes = sharedThemes.slice(0, 2).join(' + ');
+      return `${themes} like ${seedAnime.title}`;
+    }
+
+    // Mixed
+    if (sharedGenres.length > 0 && sharedThemes.length > 0) {
+      return `Fans of ${seedAnime.title} also enjoy`;
+    }
+
+    return `Because you watched ${seedAnime.title}`;
   }
 };
+
+// Load saved mode preference on init
+if (typeof window !== 'undefined') {
+  Recommendations.loadModePreference();
+}
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
