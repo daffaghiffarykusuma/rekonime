@@ -209,7 +209,37 @@
    Reduced Motion
    ========================================== */
 
-@media (prefers-reduced-motion: reduce),
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* Disable particle effect */
+    .app-container::before {
+        display: none;
+    }
+
+    /* Disable floating petals */
+    .floating-petal {
+        animation: none;
+    }
+
+    /* Disable shimmer */
+    .skeleton-card::after,
+    .loading-shimmer {
+        animation: none;
+    }
+}
+
 [data-reduced-motion="true"] {
     html {
         scroll-behavior: auto;
