@@ -2193,11 +2193,11 @@ const App = {
           <div class="filter-section-title">${safeLabel}</div>
           <div class="filter-pills">
             ${options.map(option => {
-              const optionStr = String(option);
-              const isActive = this.activeFilters[config.key].includes(optionStr) || this.activeFilters[config.key].includes(option);
-              const safeOptionText = this.escapeHtml(optionStr);
-              const safeOptionAttr = this.escapeAttr(optionStr);
-              return `
+        const optionStr = String(option);
+        const isActive = this.activeFilters[config.key].includes(optionStr) || this.activeFilters[config.key].includes(option);
+        const safeOptionText = this.escapeHtml(optionStr);
+        const safeOptionAttr = this.escapeAttr(optionStr);
+        return `
               <button class="filter-pill ${isActive ? 'active' : ''}"
                       data-action="toggle-filter"
                       data-filter-type="${safeType}"
@@ -2475,8 +2475,8 @@ const App = {
    */
   getSortedGridData() {
     if (this.gridSortedCache &&
-        this.gridSortedKey === this.currentSort &&
-        this.gridSortedSource === this.filteredData) {
+      this.gridSortedKey === this.currentSort &&
+      this.gridSortedSource === this.filteredData) {
       return this.gridSortedCache;
     }
 
@@ -2535,12 +2535,12 @@ const App = {
             ` : ''}
             <div class="card-stats">
               ${cardStats.map(stat => {
-                const safeValue = this.escapeHtml(stat.value);
-                const safeSuffix = this.escapeHtml(stat.suffix || '');
-                const safeLabel = this.escapeHtml(stat.label);
-                const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
-                const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
-                return `
+        const safeValue = this.escapeHtml(stat.value);
+        const safeSuffix = this.escapeHtml(stat.suffix || '');
+        const safeLabel = this.escapeHtml(stat.label);
+        const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
+        const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
+        return `
                 <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
                   <span class="stat-value ${stat.class || ''}">${safeValue}${safeSuffix}</span>
                   <span class="stat-label">${safeLabel}</span>
@@ -2552,7 +2552,7 @@ const App = {
                   ` : ''}
                 </div>
               `;
-              }).join('')}
+      }).join('')}
             </div>
             <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
               <span class="retention-fill" style="width: ${retentionLevel}%"></span>
@@ -2607,10 +2607,10 @@ const App = {
   renderActiveFilters() {
     const container = document.getElementById('active-filters');
     const list = document.getElementById('active-filters-list');
-    const empty = document.getElementById('active-filters-empty');
+    const emptyState = document.getElementById('discovery-garden');
     const label = document.getElementById('active-filters-label');
     const clearBtn = document.getElementById('active-filters-clear');
-    if (!container || !list || !empty || !label || !clearBtn) return;
+    if (!container || !list || !emptyState || !label || !clearBtn) return;
 
     const active = [];
     Object.entries(this.activeFilters).forEach(([type, values]) => {
@@ -2626,17 +2626,17 @@ const App = {
 
     if (active.length === 0) {
       list.innerHTML = '';
-      empty.style.display = 'inline';
-      label.textContent = 'Personalize recommendations';
+      label.textContent = 'Active filters';
       clearBtn.style.display = 'none';
       container.classList.add('is-empty');
+      emptyState.classList.remove('is-hidden');
       return;
     }
 
     container.classList.remove('is-empty');
+    emptyState.classList.add('is-hidden');
     label.textContent = `Active filters (${active.length})`;
     clearBtn.style.display = 'inline-flex';
-    empty.style.display = 'none';
     list.innerHTML = active.map(item => {
       const displayValue = String(item.value);
       const safeValueText = this.escapeHtml(displayValue);
@@ -3040,21 +3040,21 @@ const App = {
         ${similarResults.length > 0 ? `
           <div class="similar-grid">
             ${similarResults.map(result => {
-              const similar = result.anime;
-              const hasEpisodes = Array.isArray(similar.episodes) && similar.episodes.length > 0;
-              const retentionScore = hasEpisodes ? Math.round(similar.stats.retentionScore) : null;
-              const satisfactionScore = Number.isFinite(similar.communityScore) ? similar.communityScore : null;
-              const retentionClass = Recommendations.getRetentionClass(retentionScore);
-              const satisfactionClass = Recommendations.getMalSatisfactionClass(satisfactionScore);
-              const sharedGenres = formatTags(result.sharedGenres);
-              const sharedThemes = formatTags(result.sharedThemes);
-              const safeId = this.escapeAttr(similar.id);
-              const safeTitle = this.escapeHtml(similar.title);
-              const safeCover = this.escapeAttr(this.sanitizeUrl(similar.cover));
-              const safeGenres = this.escapeHtml(sharedGenres);
-              const safeThemes = this.escapeHtml(sharedThemes);
+      const similar = result.anime;
+      const hasEpisodes = Array.isArray(similar.episodes) && similar.episodes.length > 0;
+      const retentionScore = hasEpisodes ? Math.round(similar.stats.retentionScore) : null;
+      const satisfactionScore = Number.isFinite(similar.communityScore) ? similar.communityScore : null;
+      const retentionClass = Recommendations.getRetentionClass(retentionScore);
+      const satisfactionClass = Recommendations.getMalSatisfactionClass(satisfactionScore);
+      const sharedGenres = formatTags(result.sharedGenres);
+      const sharedThemes = formatTags(result.sharedThemes);
+      const safeId = this.escapeAttr(similar.id);
+      const safeTitle = this.escapeHtml(similar.title);
+      const safeCover = this.escapeAttr(this.sanitizeUrl(similar.cover));
+      const safeGenres = this.escapeHtml(sharedGenres);
+      const safeThemes = this.escapeHtml(sharedThemes);
 
-              return `
+      return `
                 <div class="similar-card" data-action="open-anime" data-anime-id="${safeId}">
                   <img src="${safeCover}" alt="${safeTitle}" class="similar-cover" data-fallback-src="https://via.placeholder.com/200x140?text=No+Image">
                   <div class="similar-info">
@@ -3070,7 +3070,7 @@ const App = {
                   </div>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
           </div>
         ` : `
           <p class="similar-empty">${emptyMessage}</p>
@@ -3414,7 +3414,7 @@ const App = {
           ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
         </div>
         ${allowEmbed && embedUrl
-          ? `<div class="trailer-embed">
+        ? `<div class="trailer-embed">
               <iframe
                 src="about:blank"
                 data-embed-src="${safeEmbedUrl}"
@@ -3424,11 +3424,11 @@ const App = {
                 allowfullscreen>
               </iframe>
             </div>`
-          : `<div class="trailer-fallback">
+        : `<div class="trailer-fallback">
               ${allowEmbed ? '' : '<p class="trailer-note">Data Saver is on, so the embedded trailer is hidden.</p>'}
               ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
             </div>`
-        }
+      }
       </div>
     `;
   },
