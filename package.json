@@ -3,6 +3,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "test": "node --test test"
+    "test": "node --test test",
+    "sync:home": "powershell -ExecutionPolicy Bypass -File ./tools/sync-home-index.ps1"
   }
 }
