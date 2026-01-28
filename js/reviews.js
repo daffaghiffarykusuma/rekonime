@@ -10,6 +10,12 @@ const ReviewsService = {
   includePreliminary: false,
   reviewsPage: 1,
 
+  // Retry configuration
+  maxRetries: 3,
+  baseRetryDelay: 1000, // 1 second
+  maxRetryDelay: 8000, // 8 seconds
+  retryAttempts: new Map(), // Track retry attempts per anime
+
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
       switch (char) {
@@ -187,15 +193,84 @@ const ReviewsService = {
   },
 
   /**
-   * Fetch reviews from MyAnimeList via the Jikan API.
+   * Calculate exponential backoff delay with jitter
+   * @param {number} attempt - Current attempt number (0-indexed)
+   * @returns {number} Delay in milliseconds
+   */
+  getRetryDelay(attempt) {
+    // Exponential backoff: 1s, 2s, 4s, etc.
+    const exponentialDelay = this.baseRetryDelay * Math.pow(2, attempt);
+    // Cap at max delay
+    const cappedDelay = Math.min(exponentialDelay, this.maxRetryDelay);
+    // Add random jitter (±25%) to prevent thundering herd
+    const jitter = cappedDelay * 0.25 * (Math.random() * 2 - 1);
+    return Math.floor(cappedDelay + jitter);
+  },
+
+  /**
+   * Get current retry count for an anime
+   * @param {string|number} cacheKey - Anime identifier
+   * @returns {number} Current retry attempt count
+   */
+  getRetryCount(cacheKey) {
+    return this.retryAttempts.get(cacheKey) || 0;
+  },
+
+  /**
+   * Increment retry count for an anime
+   * @param {string|number} cacheKey - Anime identifier
+   */
+  incrementRetryCount(cacheKey) {
+    const current = this.getRetryCount(cacheKey);
+    this.retryAttempts.set(cacheKey, current + 1);
+  },
+
+  /**
+   * Reset retry count for an anime
+   * @param {string|number} cacheKey - Anime identifier
+   */
+  resetRetryCount(cacheKey) {
+    this.retryAttempts.delete(cacheKey);
+  },
+
+  /**
+   * Check if we should retry a failed request
+   * @param {string|number} cacheKey - Anime identifier
+   * @param {Error} error - The error that occurred
+   * @returns {boolean} Whether to retry
+   */
+  shouldRetry(cacheKey, error) {
+    const attemptCount = this.getRetryCount(cacheKey);
+    if (attemptCount >= this.maxRetries) {
+      return false;
+    }
+    // Retry on network errors or 5xx server errors
+    if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      return true;
+    }
+    if (error.message?.includes('API request failed')) {
+      const statusCode = parseInt(error.message.match(/\d+/)?.[0], 10);
+      return statusCode >= 500 || statusCode === 429; // Server errors or rate limit
+    }
+    return false;
+  },
+
+  /**
+   * Fetch reviews from MyAnimeList via the Jikan API with retry logic.
    * @param {number|null} malId - MyAnimeList media ID
    * @param {string} title - Anime title for caching fallback
+   * @param {boolean} isManualRetry - Whether this is a manual user-initiated retry
    * @returns {Promise<Object>} Categorized reviews and description
    */
-  async fetchReviews(malId, title) {
+  async fetchReviews(malId, title, isManualRetry = false) {
     const cacheKey = malId || title;
 
-    if (this.cache.has(cacheKey)) {
+    // Reset retry count on manual retry
+    if (isManualRetry) {
+      this.resetRetryCount(cacheKey);
+    }
+
+    if (this.cache.has(cacheKey) && !isManualRetry) {
       return this.cache.get(cacheKey);
     }
 
@@ -232,20 +307,40 @@ const ReviewsService = {
 
       const result = {
         ...categorized,
-        description
+        description,
+        retryAttempt: this.getRetryCount(cacheKey),
+        maxRetries: this.maxRetries
       };
 
+      // Reset retry count on success
+      this.resetRetryCount(cacheKey);
       this.cache.set(cacheKey, result);
       return result;
 
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
+
+      // Check if we should retry
+      if (this.shouldRetry(cacheKey, error)) {
+        this.incrementRetryCount(cacheKey);
+        const delay = this.getRetryDelay(this.getRetryCount(cacheKey) - 1);
+        console.log(`Retrying reviews fetch for ${cacheKey} in ${delay}ms (attempt ${this.getRetryCount(cacheKey)}/${this.maxRetries})`);
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.fetchReviews(malId, title, false);
+      }
+
+      // Max retries reached or non-retryable error
       return {
         positive: [],
         neutral: [],
         negative: [],
         description: cachedDescription || '',
-        error: true
+        error: true,
+        errorMessage: error.message,
+        retryAttempt: this.getRetryCount(cacheKey),
+        maxRetries: this.maxRetries,
+        canRetry: true
       };
     }
   },
@@ -504,27 +599,58 @@ const ReviewsService = {
     };
 
     const activeReviews = categorizedReviews[activeSentiment] || [];
+    const hasError = categorizedReviews.error === true;
+    const canRetry = categorizedReviews.canRetry === true;
+    const retryAttempt = categorizedReviews.retryAttempt || 0;
+    const maxRetries = categorizedReviews.maxRetries || this.maxRetries;
+
+    // Build error message if needed
+    let errorContent = '';
+    if (hasError) {
+      const isRateLimit = categorizedReviews.errorMessage?.includes('429') ||
+        categorizedReviews.errorMessage?.includes('rate limit');
+      const errorMessage = isRateLimit
+        ? 'Rate limited by MyAnimeList. Please wait a moment and try again.'
+        : 'Failed to load reviews from MyAnimeList.';
+
+      errorContent = `
+        <div class="reviews-error" role="alert">
+          <div class="reviews-error-icon">⚠️</div>
+          <div class="reviews-error-content">
+            <p class="reviews-error-message">${this.escapeHtml(errorMessage)}</p>
+            ${retryAttempt > 0 ? `<p class="reviews-error-attempts">Automatic retry ${retryAttempt}/${maxRetries} failed</p>` : ''}
+            ${canRetry ? `
+              <button class="reviews-retry-btn" data-action="retry-reviews" type="button">
+                <span class="retry-icon">🔄</span> Try Again
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="community-reviews">
         <h3>Community Reviews</h3>
-        <div class="review-tabs">
-          <button class="review-tab ${activeSentiment === 'positive' ? 'active' : ''}" data-sentiment="positive">
-            Positive <span class="tab-count">${counts.positive}</span>
-          </button>
-          <button class="review-tab ${activeSentiment === 'neutral' ? 'active' : ''}" data-sentiment="neutral">
-            Neutral <span class="tab-count">${counts.neutral}</span>
-          </button>
-          <button class="review-tab ${activeSentiment === 'negative' ? 'active' : ''}" data-sentiment="negative">
-            Negative <span class="tab-count">${counts.negative}</span>
-          </button>
-        </div>
-        <div class="reviews-container" id="reviews-container">
-          ${activeReviews.length > 0
-            ? activeReviews.map(r => this.renderReviewCard(r)).join('')
-            : '<p class="no-reviews">No community reviews yetâ€”be the first on MyAnimeList!</p>'
-          }
-        </div>
+        ${hasError ? errorContent : `
+          <div class="review-tabs">
+            <button class="review-tab ${activeSentiment === 'positive' ? 'active' : ''}" data-sentiment="positive">
+              Positive <span class="tab-count">${counts.positive}</span>
+            </button>
+            <button class="review-tab ${activeSentiment === 'neutral' ? 'active' : ''}" data-sentiment="neutral">
+              Neutral <span class="tab-count">${counts.neutral}</span>
+            </button>
+            <button class="review-tab ${activeSentiment === 'negative' ? 'active' : ''}" data-sentiment="negative">
+              Negative <span class="tab-count">${counts.negative}</span>
+            </button>
+          </div>
+          <div class="reviews-container" id="reviews-container">
+            ${activeReviews.length > 0
+          ? activeReviews.map(r => this.renderReviewCard(r)).join('')
+          : '<p class="no-reviews">No community reviews yet—be the first on MyAnimeList!</p>'
+        }
+          </div>
+        `}
         <p class="reviews-attribution">
           Reviews from <a href="https://myanimelist.net" target="_blank" rel="noopener noreferrer">MyAnimeList</a>
         </p>
@@ -593,6 +719,30 @@ const ReviewsService = {
         </div>
       </div>
     `;
+  },
+
+  /**
+   * Retry loading reviews for the currently displayed anime
+   * This should be called from the app's action delegate when retry button is clicked
+   * @param {Object} anime - The anime object with malId and title
+   * @param {Function} onSuccess - Callback when retry succeeds
+   * @param {Function} onError - Callback when retry fails
+   * @returns {Promise<void>}
+   */
+  async retryFetchReviews(anime, onSuccess, onError) {
+    if (!anime) return;
+
+    try {
+      const data = await this.fetchReviews(anime.malId, anime.title, true);
+      if (data.error) {
+        if (onError) onError(data);
+      } else {
+        if (onSuccess) onSuccess(data);
+      }
+    } catch (error) {
+      console.error('Retry failed:', error);
+      if (onError) onError({ error: true, errorMessage: error.message });
+    }
   },
 
   /**

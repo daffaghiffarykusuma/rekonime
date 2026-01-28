@@ -975,11 +975,15 @@ const App = {
       }
 
       const requestedAnimeId = this.getAnimeIdFromUrl();
+
       if (requestedAnimeId) {
-        const loaded = await this.loadFullCatalog();
-        if (!loaded) {
-          throw new Error('Failed to load full catalog');
+        // Deep link optimization: load preview first for fast skeleton display
+        const previewLoaded = await this.loadInitialData();
+        if (!previewLoaded) {
+          throw new Error('Failed to load catalog');
         }
+        // Handle deep link with skeleton-first rendering
+        await this.handleDeepLink(requestedAnimeId);
       } else {
         const loaded = await this.loadInitialData();
         if (!loaded) {
@@ -990,7 +994,12 @@ const App = {
       this.setupEventListeners();
       this.initSeo();
       this.updateHomeLinks();
-      this.syncModalWithUrl();
+
+      // Only sync modal with URL if not handling deep link
+      // (deep link is already handled above)
+      if (!requestedAnimeId) {
+        this.syncModalWithUrl();
+      }
       this.updateMetaForFilters();
 
       if (!requestedAnimeId && !this.isFullDataLoaded) {
@@ -2690,8 +2699,12 @@ const App = {
 
     // Render seed info
     if (basedOn) {
+      const { src, srcset, sizes } = this.buildImageSrcset(basedOn.cover);
+      const safeCover = this.escapeAttr(src || this.sanitizeUrl(basedOn.cover));
+      const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
+      const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       seedContainer.innerHTML = `
-        <img src="${this.escapeAttr(this.sanitizeUrl(basedOn.cover))}" alt="" class="byw-seed-cover">
+        <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="" class="byw-seed-cover">
         <span class="byw-seed-title">${this.escapeHtml(basedOn.title)}</span>
       `;
     }
@@ -2702,10 +2715,14 @@ const App = {
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
 
+      const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+      const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
+      const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
+      const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}">
           <div class="recommendation-media">
-            <img src="${this.escapeAttr(this.sanitizeUrl(anime.cover))}" alt="${this.escapeHtml(anime.title)}" class="recommendation-cover" loading="lazy">
+            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="recommendation-cover" loading="lazy">
           </div>
           <div class="recommendation-info">
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
@@ -2735,10 +2752,14 @@ const App = {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
 
+      const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+      const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
+      const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
+      const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       return `
         <div class="trending-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}">
           <div class="trending-rank ${rankClass}">${rank}</div>
-          <img src="${this.escapeAttr(this.sanitizeUrl(anime.cover))}" alt="${this.escapeHtml(anime.title)}" class="trending-cover" loading="lazy">
+          <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="trending-cover" loading="lazy">
           <div class="trending-info">
             <div class="trending-title">${this.escapeHtml(anime.title)}</div>
             <div class="trending-meta">
@@ -2779,19 +2800,24 @@ const App = {
       const reason = Recommendations.getRecommendationReason(anime);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
       const safeReason = this.escapeHtml(reason);
       const isBookmarked = this.isBookmarked(anime.id);
       const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
 
+      // Build responsive image attributes
+      const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+      const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
+      const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
+      const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+
       return `
         <div class="anime-card"
              data-action="open-anime"
              data-anime-id="${safeId}">
           <div class="card-media">
-            <img src="${safeCover}" alt="${safeTitle}" class="card-cover" loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
+            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${safeTitle}" class="card-cover" loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
             ${showBookmarkToggle ? `
               <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"
                       type="button"
@@ -3034,10 +3060,14 @@ const App = {
       const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
       const safeReason = this.escapeHtml(anime.reason || '');
 
+      const { src: recSrc, srcset: recSrcset, sizes: recSizes } = this.buildImageSrcset(anime.cover);
+      const safeRecCover = this.escapeAttr(recSrc || this.sanitizeUrl(anime.cover));
+      const recSrcsetAttr = recSrcset ? `srcset="${this.escapeAttr(recSrcset)}"` : '';
+      const recSizesAttr = recSizes ? `sizes="${this.escapeAttr(recSizes)}"` : '';
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}">
           <div class="recommendation-media">
-            <img src="${safeCover}" alt="${safeTitle}" class="recommendation-cover" data-fallback-src="https://via.placeholder.com/180x120?text=No+Image">
+            <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" data-fallback-src="https://via.placeholder.com/180x120?text=No+Image">
           </div>
           <div class="recommendation-info">
             <div class="recommendation-title">${safeTitle}</div>
@@ -3133,9 +3163,13 @@ const App = {
       valueClass = anime.stats.scoreClass;
     }
 
+    const { src: rankSrc, srcset: rankSrcset, sizes: rankSizes } = this.buildImageSrcset(anime.cover);
+    const safeRankCover = this.escapeAttr(rankSrc || this.sanitizeUrl(anime.cover));
+    const rankSrcsetAttr = rankSrcset ? `srcset="${this.escapeAttr(rankSrcset)}"` : '';
+    const rankSizesAttr = rankSizes ? `sizes="${this.escapeAttr(rankSizes)}"` : '';
     return `
       <div class="ranking-anime">
-        <img src="${this.escapeAttr(this.sanitizeUrl(anime.cover))}" alt="${this.escapeHtml(anime.title)}" class="ranking-cover" data-fallback-src="https://via.placeholder.com/60x85?text=No+Image">
+        <img src="${safeRankCover}" ${rankSrcsetAttr} ${rankSizesAttr} alt="${this.escapeHtml(anime.title)}" class="ranking-cover" data-fallback-src="https://via.placeholder.com/60x85?text=No+Image">
         <div class="ranking-info">
           <div class="ranking-title">${this.escapeHtml(anime.title)}</div>
           <div class="ranking-score ${valueClass}">
@@ -3405,6 +3439,19 @@ const App = {
         }
         return;
       }
+
+      if (action === 'close-detail') {
+        this.closeDetailModal();
+        return;
+      }
+
+      if (action === 'retry-reviews') {
+        const anime = this.animeData.find(a => a.id === this.currentAnimeId);
+        if (anime) {
+          this.loadCommunityReviews(anime, anime.synopsis, true);
+        }
+        return;
+      }
     });
   },
 
@@ -3464,9 +3511,13 @@ const App = {
       const safeGenres = this.escapeHtml(sharedGenres);
       const safeThemes = this.escapeHtml(sharedThemes);
 
+      const { src: simSrc, srcset: simSrcset, sizes: simSizes } = this.buildImageSrcset(similar.cover);
+      const safeSimCover = this.escapeAttr(simSrc || this.sanitizeUrl(similar.cover));
+      const simSrcsetAttr = simSrcset ? `srcset="${this.escapeAttr(simSrcset)}"` : '';
+      const simSizesAttr = simSizes ? `sizes="${this.escapeAttr(simSizes)}"` : '';
       return `
                 <div class="similar-card" data-action="open-anime" data-anime-id="${safeId}">
-                  <img src="${safeCover}" alt="${safeTitle}" class="similar-cover" data-fallback-src="https://via.placeholder.com/200x140?text=No+Image">
+                  <img src="${safeSimCover}" ${simSrcsetAttr} ${simSizesAttr} alt="${safeTitle}" class="similar-cover" data-fallback-src="https://via.placeholder.com/200x140?text=No+Image">
                   <div class="similar-info">
                     <div class="similar-title">${safeTitle}</div>
                     <div class="similar-tags">
@@ -3496,20 +3547,32 @@ const App = {
     this.stopTrailerPlayback();
     this.teardownTrailerObserver();
 
+    const modal = document.getElementById('detail-modal');
+    const content = document.getElementById('detail-content');
+    const modalContent = modal ? modal.querySelector('.modal-content') : null;
+
+    if (!modal || !content) return;
+
+    // Show skeleton immediately for perceived performance
+    content.innerHTML = this.renderDetailSkeleton();
+    this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+
     const anime = this.animeData.find(a => a.id === animeId);
     if (!anime) {
       if (updateUrl) {
         this.updateUrlForAnime(null, { replace: true });
       }
       this.resetMetaToDefault();
+      // Show error in modal
+      content.innerHTML = `
+        <div class="error-message">
+          <h2>Anime Not Found</h2>
+          <p>We couldn't find the anime you're looking for.</p>
+          <button class="btn btn-primary" data-action="close-detail" style="margin-top: 1rem;">Close</button>
+        </div>
+      `;
       return;
     }
-
-    const modal = document.getElementById('detail-modal');
-    const content = document.getElementById('detail-content');
-    const modalContent = modal ? modal.querySelector('.modal-content') : null;
-
-    if (!modal || !content) return;
 
     this.currentAnimeId = anime.id;
 
@@ -3548,7 +3611,10 @@ const App = {
       .filter(Boolean);
     const metaHtml = metaParts.map(part => `<span>${this.escapeHtml(part)}</span>`).join(' &bull; ');
     const safeTitle = this.escapeHtml(anime.title);
-    const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
+    const { src: detailSrc, srcset: detailSrcset, sizes: detailSizes } = this.buildImageSrcset(anime.cover);
+    const safeCover = this.escapeAttr(detailSrc || this.sanitizeUrl(anime.cover));
+    const detailSrcsetAttr = detailSrcset ? `srcset="${this.escapeAttr(detailSrcset)}"` : '';
+    const detailSizesAttr = detailSizes ? `sizes="${this.escapeAttr(detailSizes)}"` : '';
 
     const altTitles = [];
     if (anime.titleEnglish && anime.titleEnglish.toLowerCase() !== anime.title.toLowerCase()) {
@@ -3571,7 +3637,7 @@ const App = {
 
     content.innerHTML = `
       <div class="detail-header">
-        <img src="${safeCover}" alt="${safeTitle}" class="detail-cover" data-fallback-src="https://via.placeholder.com/150x210?text=No+Image">
+        <img src="${safeCover}" ${detailSrcsetAttr} ${detailSizesAttr} alt="${safeTitle}" class="detail-cover" data-fallback-src="https://via.placeholder.com/150x210?text=No+Image">
         <div class="detail-info">
           <div class="detail-title-row">
             <h2 class="detail-title" id="detail-modal-title">${safeTitle}</h2>
@@ -4091,6 +4157,214 @@ const App = {
       const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
       target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
     }
+  },
+
+  /**
+   * Build responsive image srcset for MyAnimeList CDN images
+   * Note: MAL CDN doesn't reliably support size variants, so we return original URL
+   * Returns srcset string and sizes attribute
+   */
+  buildImageSrcset(coverUrl) {
+    if (!coverUrl) return { src: '', srcset: '', sizes: '' };
+
+    // Return original URL without srcset
+    // MAL CDN doesn't consistently support size variants
+    return { src: coverUrl, srcset: '', sizes: '' };
+  },
+
+  /**
+   * Render detail modal skeleton screen for immediate visual feedback
+   * Prevents layout jump during async data loading
+   */
+  renderDetailSkeleton() {
+    return `
+      <div class="detail-skeleton">
+        <div class="detail-skeleton-header">
+          <div class="detail-skeleton-cover"></div>
+          <div class="detail-skeleton-info">
+            <div class="detail-skeleton-title"></div>
+            <div class="detail-skeleton-meta"></div>
+            <div class="detail-skeleton-tags">
+              <div class="detail-skeleton-tag"></div>
+              <div class="detail-skeleton-tag"></div>
+              <div class="detail-skeleton-tag"></div>
+            </div>
+            <div class="detail-skeleton-stats">
+              <div class="detail-skeleton-stat"></div>
+              <div class="detail-skeleton-stat"></div>
+              <div class="detail-skeleton-stat"></div>
+            </div>
+          </div>
+        </div>
+        <div class="detail-skeleton-breakdown">
+          <div class="detail-skeleton-section-title"></div>
+          <div class="detail-skeleton-row">
+            <div class="detail-skeleton-label"></div>
+            <div class="detail-skeleton-bar"></div>
+            <div class="detail-skeleton-value"></div>
+          </div>
+          <div class="detail-skeleton-row">
+            <div class="detail-skeleton-label"></div>
+            <div class="detail-skeleton-bar"></div>
+            <div class="detail-skeleton-value"></div>
+          </div>
+          <div class="detail-skeleton-row">
+            <div class="detail-skeleton-label"></div>
+            <div class="detail-skeleton-bar"></div>
+            <div class="detail-skeleton-value"></div>
+          </div>
+        </div>
+        <div class="detail-skeleton-section">
+          <div class="detail-skeleton-section-title"></div>
+          <div class="detail-skeleton-text"></div>
+          <div class="detail-skeleton-text medium"></div>
+          <div class="detail-skeleton-text short"></div>
+        </div>
+        <div class="detail-skeleton-trailer"></div>
+        <div class="detail-skeleton-reviews">
+          <div class="detail-skeleton-section-title"></div>
+          <div class="detail-skeleton-tabs">
+            <div class="detail-skeleton-tab"></div>
+            <div class="detail-skeleton-tab"></div>
+            <div class="detail-skeleton-tab"></div>
+          </div>
+          <div class="detail-skeleton-review-cards">
+            <div class="detail-skeleton-review"></div>
+            <div class="detail-skeleton-review"></div>
+          </div>
+        </div>
+        <div class="detail-skeleton-similar">
+          <div class="detail-skeleton-section-title"></div>
+          <div class="detail-skeleton-similar-grid">
+            <div class="detail-skeleton-similar-card"></div>
+            <div class="detail-skeleton-similar-card"></div>
+            <div class="detail-skeleton-similar-card"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Handle deep link navigation with preview-first loading
+   * Shows modal immediately with skeleton, then loads full data
+   */
+  async handleDeepLink(animeId) {
+    const modal = document.getElementById('detail-modal');
+    const content = document.getElementById('detail-content');
+
+    if (!modal || !content) return false;
+
+    // Show modal immediately with skeleton for perceived performance
+    content.innerHTML = this.renderDetailSkeleton();
+    this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+
+    // Try to find anime in preview data first
+    let anime = this.animeData.find(a => a.id === animeId);
+
+    // If not found and we don't have full data yet, try to load it
+    if (!anime && !this.isFullDataLoaded) {
+      // Load full catalog in background
+      const fullLoaded = await this.loadFullCatalog();
+      if (fullLoaded) {
+        anime = this.animeData.find(a => a.id === animeId);
+      }
+    }
+
+    if (anime) {
+      // Render full detail with actual data
+      this.showAnimeDetail(animeId, { updateUrl: false });
+      return true;
+    } else {
+      // Anime not found - show error in modal
+      content.innerHTML = `
+        <div class="error-message">
+          <h2>Anime Not Found</h2>
+          <p>We couldn't find the anime you're looking for. It may have been removed or the ID is incorrect.</p>
+          <button class="btn btn-primary" data-action="close-detail" style="margin-top: 1rem;">Go Back</button>
+        </div>
+      `;
+      return false;
+    }
+  },
+
+  /**
+   * Render anime card with responsive image srcset
+   */
+  renderAnimeCardWithSrcset(anime, options = {}) {
+    const { showBookmarkToggle = false } = options;
+    const badges = Recommendations.getBadges(anime);
+    const cardStats = Recommendations.getCardStats(anime);
+    const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
+    const retentionLevel = hasEpisodes ? Math.round(anime.stats.retentionScore) : 0;
+    const reason = Recommendations.getRecommendationReason(anime);
+
+    const safeId = this.escapeAttr(anime.id);
+    const safeTitle = this.escapeHtml(anime.title);
+    const safeYear = this.escapeHtml(anime.year || 'Unknown');
+    const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
+    const safeReason = this.escapeHtml(reason);
+    const isBookmarked = this.isBookmarked(anime.id);
+    const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
+
+    // Build responsive image attributes
+    const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+    const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
+    const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
+    const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+
+    return `
+      <div class="anime-card" data-action="open-anime" data-anime-id="${safeId}">
+        <div class="card-media">
+          <img
+            src="${safeCover}"
+            ${srcsetAttr}
+            ${sizesAttr}
+            alt="${safeTitle}"
+            class="card-cover"
+            loading="lazy"
+            data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
+          ${showBookmarkToggle ? `
+            <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"
+                    type="button"
+                    data-action="toggle-bookmark"
+                    data-anime-id="${safeId}"
+                    aria-label="${bookmarkLabel}"
+                    title="${bookmarkLabel}">
+              &#9733;
+            </button>
+          ` : ''}
+        </div>
+        <div class="card-body">
+          <div class="card-title-row">
+            <h3 class="card-title">${safeTitle}</h3>
+          </div>
+          <div class="card-year">${safeYear} &bull; ${safeStudio}</div>
+          ${badges.length > 0 ? `
+            <div class="card-badges">
+              ${badges.map(b => `<span class="card-badge ${b.class}">${this.escapeHtml(b.label)}</span>`).join('')}
+            </div>
+          ` : ''}
+          <div class="card-stats">
+            ${cardStats.map(stat => {
+      const safeValue = this.escapeHtml(stat.value);
+      const safeSuffix = this.escapeHtml(stat.suffix || '');
+      const safeLabel = this.escapeHtml(stat.label);
+      return `
+                <div class="stat">
+                  <span class="stat-value ${stat.class || ''}">${safeValue}${safeSuffix}</span>
+                  <span class="stat-label">${safeLabel}</span>
+                </div>
+              `;
+    }).join('')}
+          </div>
+          <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
+            <span class="retention-fill" style="width: ${retentionLevel}%"></span>
+          </div>
+          <div class="card-reason">${safeReason}</div>
+        </div>
+      </div>
+    `;
   }
 };
 

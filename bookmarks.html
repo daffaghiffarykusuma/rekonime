@@ -94,7 +94,21 @@
     </div>
   </div>
 
+  <!-- Offline/Update Notifications -->
+  <div id="offline-indicator" class="offline-indicator" role="status" aria-live="polite" aria-hidden="true">
+    <span class="offline-icon">&#9888;</span>
+    <span class="offline-text">You're offline. Some features may be limited.</span>
+  </div>
+  <div id="update-notification" class="update-notification" role="status" aria-live="polite" aria-hidden="true">
+    <div class="update-content">
+      <span class="update-text">Update available</span>
+      <button id="update-apply" class="update-btn" type="button">Update now</button>
+      <button id="update-dismiss" class="update-dismiss" type="button" aria-label="Dismiss update">&times;</button>
+    </div>
+  </div>
+
   <!-- Scripts -->
+  <script src="js/serviceWorker.js" defer></script>
   <script src="js/stats.js" defer></script>
   <script src="js/recommendations.js" defer></script>
   <script src="js/reviews.js" defer></script>

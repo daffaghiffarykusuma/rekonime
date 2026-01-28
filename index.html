@@ -309,6 +309,21 @@
     </div>
   </div>
 
+  <!-- Offline Indicator -->
+  <div class="offline-indicator" id="offline-indicator" role="status" aria-live="polite" aria-hidden="true">
+    <span class="offline-icon" aria-hidden="true">📡</span>
+    <span class="offline-text">You're offline. Some features may be limited.</span>
+  </div>
+
+  <!-- Update Notification -->
+  <div class="update-notification" id="update-notification" role="alert" aria-live="polite" aria-hidden="true">
+    <span class="update-icon" aria-hidden="true">✨</span>
+    <span class="update-text">Update available! Refresh to get the latest version.</span>
+    <button class="update-btn" id="update-btn" type="button">Update Now</button>
+    <button class="update-dismiss" id="update-dismiss" type="button"
+      aria-label="Dismiss update notification">&times;</button>
+  </div>
+
   <!-- Scripts -->
   <script src="js/stats.js" defer></script>
   <script src="js/recommendations.js" defer></script>
@@ -319,6 +334,7 @@
   <script src="js/onboarding.js" defer></script>
   <script src="js/themeManager.js" defer></script>
   <script src="js/keyboardShortcuts.js" defer></script>
+  <script src="js/serviceWorker.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 
