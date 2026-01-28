@@ -1,0 +1,683 @@
+/* ==========================================
+   Theme System for Rekonime
+   Light/Dark mode with CSS custom properties
+   ========================================== */
+
+/*
+ * Theme Variables
+ * 
+ * Dark theme is the default (defined in main styles.css :root)
+ * Light theme overrides are defined here using [data-theme="light"]
+ * 
+ * Usage: document.documentElement.setAttribute('data-theme', 'light');
+ */
+
+/* ==========================================
+   Light Theme Overrides
+   ========================================== */
+
+[data-theme="light"] {
+    /* Core Sakura Palette - adapted for light backgrounds */
+    --sakura-pink: #E89AAB;
+    --sakura-deep: #D4849C;
+    --sakura-pale: #FFE4E9;
+    --sakura-shadow: #C47A8C;
+
+    /* Twilight Accent Colors */
+    --twilight-purple: #8B6B9E;
+    --twilight-lavender: #B8A8D8;
+    --twilight-deep: #6B4E7C;
+
+    /* Natural Complements */
+    --moss-green: #7A9A7A;
+    --warm-gold: #D4A83C;
+    --paper-cream: #FDF8F5;
+
+    /* Light Mode Base - Paper/Parchment Theme */
+    --bg-primary: #FDF8F5;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F5EDEA;
+    --card-bg: #FFFFFF;
+    --bg-elevated: #FAF5F2;
+
+    /* Text Colors with Warm Undertones (reversed for light) */
+    --text-primary: #2A1F23;
+    --text-secondary: #5A4F52;
+    --text-muted: #8B7B7E;
+    --text-tertiary: #A99B9E;
+
+    /* Accent Application (similar, slightly adjusted for contrast) */
+    --accent-primary: var(--sakura-deep);
+    --accent-secondary: var(--sakura-pink);
+    --accent-hover: var(--sakura-deep);
+    --accent-brand: var(--sakura-deep);
+    --accent-glow: rgba(228, 154, 171, 0.2);
+
+    /* Semantic Colors - Warmer Palette for light */
+    --success: #5A8A5A;
+    --warning: #C9A05C;
+    --error: #C85A5A;
+    --info: #5A7AC8;
+
+    /* Semantic Background Colors */
+    --success-bg: rgba(90, 138, 90, 0.12);
+    --warning-bg: rgba(201, 160, 92, 0.12);
+    --error-bg: rgba(200, 90, 90, 0.12);
+
+    /* Border Colors */
+    --border-color: #E8D5D0;
+    --border-hover: #D8C5C0;
+
+    /* Shadows (softer for light theme) */
+    --shadow: 0 2px 8px rgba(42, 31, 35, 0.08);
+    --shadow-lg: 0 4px 16px rgba(42, 31, 35, 0.12);
+    --shadow-sakura: 0 4px 20px rgba(228, 154, 171, 0.15);
+
+    /* Focus Rings */
+    --focus-ring-strong: rgba(228, 154, 171, 0.9);
+    --focus-ring-soft: rgba(228, 154, 171, 0.2);
+}
+
+/* ==========================================
+   Light Mode Component Overrides
+   ========================================== */
+
+/* Quick filters track - override dark background */
+[data-theme="light"] .quick-filters-track {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+}
+
+[data-theme="light"] .quick-filters-track[data-filter-group="genres"],
+[data-theme="light"] .quick-filters-track[data-filter-group="themes"] {
+    background: var(--bg-tertiary);
+}
+
+/* Filter pills in modal */
+[data-theme="light"] .filter-pill {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+[data-theme="light"] .filter-pill:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .filter-pill.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+/* Quick chips */
+[data-theme="light"] .quick-chip {
+    background: linear-gradient(135deg, rgba(228, 154, 171, 0.1), rgba(139, 107, 158, 0.06));
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+[data-theme="light"] .quick-chip:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .quick-chip.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+/* Filter modal */
+[data-theme="light"] .filter-modal-content {
+    background: var(--bg-secondary);
+}
+
+[data-theme="light"] .filter-modal-header {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+[data-theme="light"] .settings-modal-content {
+    background: var(--bg-secondary);
+}
+
+/* Active filters bar */
+[data-theme="light"] .active-filters {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+/* Seasonal chips */
+[data-theme="light"] .seasonal-chip {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+}
+
+[data-theme="light"] .seasonal-chip:hover {
+    border-color: var(--accent-primary);
+}
+
+/* Modal overlay backdrop */
+[data-theme="light"] .modal-overlay {
+    background: rgba(42, 31, 35, 0.75);
+}
+
+/* ==========================================
+   High Contrast Mode
+   ========================================== */
+
+[data-high-contrast="true"] {
+    --border-color: currentColor;
+    --border-hover: currentColor;
+    --text-muted: currentColor;
+    --shadow: none;
+    --shadow-lg: none;
+}
+
+[data-high-contrast="true"] .anime-card,
+[data-high-contrast="true"] .recommendation-card,
+[data-high-contrast="true"] .modal-content,
+[data-high-contrast="true"] .ranking-card {
+    border-width: 2px;
+}
+
+/* ==========================================
+   Large Text Mode
+   ========================================== */
+
+[data-large-text="true"] {
+    --font-base-size: 18px;
+}
+
+[data-large-text="true"] html {
+    font-size: var(--font-base-size);
+}
+
+[data-large-text="true"] .card-title {
+    font-size: 1.15rem;
+}
+
+[data-large-text="true"] .detail-title {
+    font-size: 1.65rem;
+}
+
+/* ==========================================
+   Reduced Motion
+   ========================================== */
+
+@media (prefers-reduced-motion: reduce),
+[data-reduced-motion="true"] {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* Disable particle effect */
+    .app-container::before {
+        display: none;
+    }
+
+    /* Disable floating petals */
+    .floating-petal {
+        animation: none;
+    }
+
+    /* Disable shimmer */
+    .skeleton-card::after,
+    .loading-shimmer {
+        animation: none;
+    }
+}
+
+/* ==========================================
+   Data Saver Mode
+   ========================================== */
+
+[data-data-saver="true"] .app-container::before {
+    display: none;
+}
+
+[data-data-saver="true"] img[loading="lazy"]:not(.loaded) {
+    background: var(--bg-tertiary);
+}
+
+/* ==========================================
+   Enhanced Focus States
+   ========================================== */
+
+/* Base focus-visible style - remove the "outline: none" reset */
+:focus-visible {
+    outline: 2px solid var(--focus-ring-strong);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 4px var(--focus-ring-soft);
+}
+
+/* Remove focus styles for mouse users where appropriate */
+:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+}
+
+/* High contrast focus */
+[data-high-contrast="true"] :focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 4px;
+    box-shadow: none;
+}
+
+/* Specific component focus states */
+
+/* Anime cards */
+.anime-card:focus-within {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 4px;
+    transform: translateY(-4px);
+    box-shadow:
+        0 12px 24px rgba(0, 0, 0, 0.15),
+        0 0 0 2px var(--accent-primary);
+    z-index: 10;
+}
+
+/* Recommendation cards */
+.recommendation-card:focus-within {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 4px;
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg), 0 0 0 2px var(--accent-primary);
+    z-index: 10;
+}
+
+/* Quick filter chips */
+.quick-chip:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Filter pills */
+.filter-pill:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Modal close buttons */
+.modal-close:focus-visible {
+    outline: 2px solid var(--error);
+    outline-offset: 3px;
+}
+
+/* Search input */
+.header-search-input:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--focus-ring-soft);
+}
+
+/* Buttons */
+.btn:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 3px;
+}
+
+/* Links */
+.logo-link:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 4px;
+    border-radius: var(--radius);
+}
+
+/* Select dropdowns */
+.sort-select:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Bookmark toggles */
+.bookmark-card-toggle:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Theme options */
+.theme-option:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    padding: 8px;
+    text-decoration: none;
+    z-index: 10000;
+    transition: top 0.3s;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* ==========================================
+   Keyboard Hint Styles
+   ========================================== */
+
+.keyboard-hint {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 5000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+}
+
+.keyboard-hint.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.keyboard-hint-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.keyboard-hint-text kbd {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.keyboard-hint-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.keyboard-hint-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* ==========================================
+   Keyboard Shortcuts Modal Styles
+   ========================================== */
+
+.shortcuts-modal-overlay {
+    z-index: 3000;
+}
+
+.shortcuts-modal-content {
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.shortcuts-modal-body {
+    padding: 1.5rem 2rem 2rem;
+}
+
+.shortcuts-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+}
+
+.shortcuts-icon {
+    font-size: 1.75rem;
+}
+
+.shortcuts-section {
+    margin-bottom: 1.5rem;
+}
+
+.shortcuts-section:last-child {
+    margin-bottom: 0;
+}
+
+.shortcuts-section-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.shortcuts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.shortcut-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.shortcut-key {
+    min-width: 60px;
+    text-align: center;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.shortcut-description {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+}
+
+.shortcuts-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    margin-top: 1.5rem;
+}
+
+.shortcuts-tip-icon {
+    font-size: 1.25rem;
+}
+
+.shortcuts-tip span:last-child {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* ==========================================
+   Theme Selector in Settings
+   ========================================== */
+
+.theme-selector {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.theme-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 0.75rem;
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.theme-option:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border-hover);
+}
+
+.theme-option.is-active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.theme-option.is-active .theme-option-icon,
+.theme-option.is-active .theme-option-label {
+    color: var(--bg-primary);
+}
+
+.theme-option-icon {
+    font-size: 1.5rem;
+}
+
+.theme-option-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* ==========================================
+   Accessibility Settings Section
+   ========================================== */
+
+.settings-section--accessibility {
+    margin-top: 1.5rem;
+}
+
+.accessibility-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.accessibility-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.accessibility-option-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.accessibility-option-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.accessibility-option-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Toggle switch for accessibility options */
+.a11y-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.a11y-toggle-input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.a11y-toggle-slider {
+    width: 2.75rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    position: relative;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+}
+
+.a11y-toggle-slider::after {
+    content: '';
+    position: absolute;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    background: var(--text-secondary);
+    top: 50%;
+    left: 0.2rem;
+    transform: translateY(-50%);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.a11y-toggle-input:checked+.a11y-toggle-slider {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.a11y-toggle-input:checked+.a11y-toggle-slider::after {
+    background: var(--bg-primary);
+    transform: translate(1.2rem, -50%);
+}
+
+.a11y-toggle-input:focus-visible+.a11y-toggle-slider {
+    box-shadow: 0 0 0 2px var(--focus-ring-soft);
+}

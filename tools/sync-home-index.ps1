@@ -44,8 +44,8 @@ $transformations = @(
 
 # Apply transformations
 foreach ($t in $transformations) {
-    $matches = [regex]::Matches($content, $t.Pattern)
-    $count = $matches.Count
+    $patternMatches = [regex]::Matches($content, $t.Pattern)
+    $count = $patternMatches.Count
     
     if ($count -gt 0) {
         $content = $content -replace $t.Pattern, $t.Replacement
@@ -79,7 +79,8 @@ Write-Host ""
 
 if ($replacements.Count -eq 0) {
     Write-Host "No path transformations were needed (paths may already be absolute)." -ForegroundColor Yellow
-} else {
+}
+else {
     Write-Host "Total transformations: $($replacements.Count) types" -ForegroundColor Green
 }
 

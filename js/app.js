@@ -409,7 +409,11 @@ const App = {
   getDefaultSettings() {
     return {
       trailerAutoplay: !this.isMobileViewport(),
-      dataSaver: false
+      dataSaver: false,
+      // Accessibility settings
+      reducedMotion: false,
+      highContrast: false,
+      largeText: false
     };
   },
 
@@ -437,17 +441,74 @@ const App = {
 
     try {
       const raw = storage.getItem(this.settingsStorageKey);
-      if (!raw) return;
+      if (!raw) {
+        this.applyAccessibilityAttributes();
+        return;
+      }
       const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object') return;
+      if (!parsed || typeof parsed !== 'object') {
+        this.applyAccessibilityAttributes();
+        return;
+      }
+
+      // Load all settings with defaults fallback
       this.settings.trailerAutoplay = typeof parsed.trailerAutoplay === 'boolean'
         ? parsed.trailerAutoplay
         : defaults.trailerAutoplay;
       this.settings.dataSaver = typeof parsed.dataSaver === 'boolean'
         ? parsed.dataSaver
         : defaults.dataSaver;
+      this.settings.reducedMotion = typeof parsed.reducedMotion === 'boolean'
+        ? parsed.reducedMotion
+        : defaults.reducedMotion;
+      this.settings.highContrast = typeof parsed.highContrast === 'boolean'
+        ? parsed.highContrast
+        : defaults.highContrast;
+      this.settings.largeText = typeof parsed.largeText === 'boolean'
+        ? parsed.largeText
+        : defaults.largeText;
     } catch (error) {
       this.settings = { ...defaults };
+    }
+
+    this.applyAccessibilityAttributes();
+  },
+
+  /**
+   * Apply accessibility settings as data attributes on document
+   */
+  applyAccessibilityAttributes() {
+    if (typeof document === 'undefined') return;
+
+    const settings = this.getSettings();
+    const root = document.documentElement;
+
+    // Apply reduced motion
+    if (settings.reducedMotion) {
+      root.setAttribute('data-reduced-motion', 'true');
+    } else {
+      root.removeAttribute('data-reduced-motion');
+    }
+
+    // Apply high contrast
+    if (settings.highContrast) {
+      root.setAttribute('data-high-contrast', 'true');
+    } else {
+      root.removeAttribute('data-high-contrast');
+    }
+
+    // Apply large text
+    if (settings.largeText) {
+      root.setAttribute('data-large-text', 'true');
+    } else {
+      root.removeAttribute('data-large-text');
+    }
+
+    // Apply data saver
+    if (settings.dataSaver) {
+      root.setAttribute('data-data-saver', 'true');
+    } else {
+      root.removeAttribute('data-data-saver');
     }
   },
 
@@ -477,7 +538,16 @@ const App = {
     settings[key] = Boolean(value);
     this.saveSettings();
     this.updateSettingsUi();
-    this.refreshTrailerSection();
+
+    // Apply accessibility attributes if needed
+    if (['reducedMotion', 'highContrast', 'largeText', 'dataSaver'].includes(key)) {
+      this.applyAccessibilityAttributes();
+    }
+
+    // Refresh trailer if relevant setting changed
+    if (['trailerAutoplay', 'dataSaver'].includes(key)) {
+      this.refreshTrailerSection();
+    }
   },
 
   shouldEmbedTrailers() {
@@ -2778,13 +2848,27 @@ const App = {
     const settings = this.getSettings();
     const autoplayEnabled = Boolean(settings.trailerAutoplay);
     const dataSaverEnabled = Boolean(settings.dataSaver);
+    const reducedMotionEnabled = Boolean(settings.reducedMotion);
+    const highContrastEnabled = Boolean(settings.highContrast);
+    const largeTextEnabled = Boolean(settings.largeText);
+
     const titleMarkup = includeTitle
       ? '<div class="filter-section-title">Settings</div>'
+      : '';
+
+    const themeSelector = typeof ThemeManager !== 'undefined'
+      ? ThemeManager.renderThemeSelector()
       : '';
 
     return `
       <div class="filter-section settings-section">
         ${titleMarkup}
+        
+        <!-- Theme Selection -->
+        ${themeSelector}
+        
+        <!-- Playback Settings -->
+        <div class="filter-section-title" style="margin-top: 1.5rem;">Playback</div>
         <div class="settings-list">
           <label class="settings-row">
             <span class="settings-text">
@@ -2806,6 +2890,49 @@ const App = {
               <span class="settings-toggle-slider" aria-hidden="true"></span>
             </span>
           </label>
+        </div>
+        
+        <!-- Accessibility Settings -->
+        <div class="filter-section-title" style="margin-top: 1.5rem;">Accessibility</div>
+        <div class="settings-list">
+          <label class="settings-row">
+            <span class="settings-text">
+              <span class="settings-title">Reduced motion</span>
+              <span class="settings-description">Disables animations, particle effects, and transitions for a calmer experience.</span>
+            </span>
+            <span class="settings-toggle">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="reducedMotion" ${reducedMotionEnabled ? 'checked' : ''} aria-label="Toggle reduced motion">
+              <span class="settings-toggle-slider" aria-hidden="true"></span>
+            </span>
+          </label>
+          <label class="settings-row">
+            <span class="settings-text">
+              <span class="settings-title">High contrast</span>
+              <span class="settings-description">Increases contrast for better visibility. Uses stronger borders and removes shadows.</span>
+            </span>
+            <span class="settings-toggle">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="highContrast" ${highContrastEnabled ? 'checked' : ''} aria-label="Toggle high contrast">
+              <span class="settings-toggle-slider" aria-hidden="true"></span>
+            </span>
+          </label>
+          <label class="settings-row">
+            <span class="settings-text">
+              <span class="settings-title">Large text</span>
+              <span class="settings-description">Increases base font size for better readability.</span>
+            </span>
+            <span class="settings-toggle">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="largeText" ${largeTextEnabled ? 'checked' : ''} aria-label="Toggle large text">
+              <span class="settings-toggle-slider" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+        
+        <!-- Keyboard Shortcuts Hint -->
+        <div class="settings-row" style="margin-top: 1rem; background: transparent; border-style: dashed; cursor: default;">
+          <span class="settings-text">
+            <span class="settings-title">Keyboard shortcuts</span>
+            <span class="settings-description">Press <kbd style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: monospace;">?</kbd> anytime to see all keyboard shortcuts</span>
+          </span>
         </div>
       </div>
     `;
@@ -3207,6 +3334,20 @@ const App = {
         const presetKey = actionEl.dataset.preset;
         if (presetKey) {
           this.applyFilterPreset(presetKey);
+        }
+        return;
+      }
+
+      if (action === 'set-theme') {
+        const theme = actionEl.dataset.themeOption;
+        if (theme && typeof ThemeManager !== 'undefined') {
+          ThemeManager.handleThemeSelection(theme);
+          // Update UI to reflect selection
+          document.querySelectorAll('[data-theme-option]').forEach(btn => {
+            const isActive = btn.dataset.themeOption === theme;
+            btn.classList.toggle('is-active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          });
         }
         return;
       }
