@@ -65,6 +65,11 @@
           </div>
         </div>
         <div class="header-actions">
+          <button class="btn btn-sm btn-outline help-btn" id="help-toggle" type="button" aria-label="Open help and tour"
+            title="Help & Tour">
+            <span class="help-icon" aria-hidden="true">?</span>
+            <span class="help-label">Help</span>
+          </button>
           <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Filters</button>
           <a class="btn btn-sm btn-outline bookmarks-link" href="bookmarks.html" aria-label="View bookmarks">Bookmarks
             &#9733;</a>
@@ -100,6 +105,20 @@
           Like cherry blossoms, great anime moments are fleeting but unforgettable.
           Let us help you find your next favorite story.
         </p>
+        <div class="discovery-tips">
+          <div class="tip-card">
+            <span class="tip-icon">📊</span>
+            <h4>Two Numbers Matter</h4>
+            <p>Retention = consistency. Satisfaction = quality.</p>
+            <button class="tip-cta" data-action="learn-scores">Learn more</button>
+          </div>
+          <div class="tip-card">
+            <span class="tip-icon">🎭</span>
+            <h4>Filter by Mood</h4>
+            <p>Use Genre and Theme chips to find your vibe.</p>
+            <button class="tip-cta" data-action="scroll-to-filters">Try filters</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -124,9 +143,14 @@
       <div class="recommendations-header">
         <div>
           <h2>Recommended for you</h2>
-          <p class="section-subtitle" id="recommendations-context">Our top picks based on what keeps viewers watching.
+          <p class="section-subtitle" id="recommendations-context">
+            Top picks with high Retention Scores (you'll finish them) and solid MAL Satisfaction (they're actually
+            good).
           </p>
         </div>
+        <button class="help-link" data-action="explain-recommendations" aria-label="How we pick recommendations">
+          <span>How we pick these</span>
+        </button>
       </div>
       <div class="recommendations-grid" id="recommendations-grid">
         <div class="skeleton-card skeleton-recommendation"></div>
@@ -228,10 +252,23 @@
     </div>
   </div>
 
+  <!-- Metric Help Modal -->
+  <div class="modal-overlay metric-help-overlay" id="metric-help-modal" aria-hidden="true">
+    <div class="modal-content metric-help-content" role="dialog" aria-modal="true" aria-labelledby="metric-help-title">
+      <button class="modal-close" id="close-metric-help" type="button" aria-label="Close help">&times;</button>
+      <div class="metric-help-body" id="metric-help-body">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="js/stats.js" defer></script>
   <script src="js/recommendations.js" defer></script>
   <script src="js/reviews.js" defer></script>
+  <script src="js/metricGlossary.js" defer></script>
+  <script src="js/filterPresets.js" defer></script>
+  <script src="js/onboarding.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 

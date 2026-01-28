@@ -899,6 +899,11 @@ const App = {
       this.loadSettings();
       this.renderSettingsModal();
 
+      // Check and trigger onboarding for first-time users
+      if (typeof Onboarding !== 'undefined' && !Onboarding.hasCompleted()) {
+        setTimeout(() => Onboarding.startTour(), 500);
+      }
+
       const requestedAnimeId = this.getAnimeIdFromUrl();
       if (requestedAnimeId) {
         const loaded = await this.loadFullCatalog();
@@ -1622,6 +1627,31 @@ const App = {
       });
     }
 
+    const helpToggle = document.getElementById('help-toggle');
+    if (helpToggle) {
+      helpToggle.addEventListener('click', () => {
+        if (typeof Onboarding !== 'undefined') {
+          Onboarding.reopenTour();
+        }
+      });
+    }
+
+    const closeMetricHelp = document.getElementById('close-metric-help');
+    if (closeMetricHelp) {
+      closeMetricHelp.addEventListener('click', () => {
+        this.closeMetricHelpModal();
+      });
+    }
+
+    const metricHelpModal = document.getElementById('metric-help-modal');
+    if (metricHelpModal) {
+      metricHelpModal.addEventListener('click', (e) => {
+        if (e.target === metricHelpModal) {
+          this.closeMetricHelpModal();
+        }
+      });
+    }
+
     const closeSettings = document.getElementById('close-settings');
     if (closeSettings) {
       closeSettings.addEventListener('click', () => {
@@ -2171,6 +2201,12 @@ const App = {
     const container = document.getElementById('filter-sections');
     if (!container) return;
 
+    let html = '';
+
+    if (typeof FilterPresets !== 'undefined') {
+      html += FilterPresets.renderPresetSection();
+    }
+
     const filterConfig = [
       { key: 'genres', label: 'Genres' },
       { key: 'themes', label: 'Themes' },
@@ -2204,13 +2240,14 @@ const App = {
                       data-filter-value="${safeOptionAttr}">
                 ${safeOptionText}
               </button>
-      `}).join('')}
+       `}).join('')}
           </div>
         </div>
       `;
     }).join('');
 
-    container.innerHTML = filtersMarkup;
+    html += filtersMarkup;
+    container.innerHTML = html;
   },
 
   /**
@@ -2686,9 +2723,9 @@ const App = {
       const retention = hasEpisodes ? `${Math.round(anime.stats.retentionScore)}%` : 'N/A';
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const retentionTooltipTitle = this.escapeHtml('Retention Score');
-      const retentionTooltipText = this.escapeHtml('How consistently people keep watching across episodes.');
+      const retentionTooltipText = this.escapeHtml('How likely you are to finish. Based on strong starts, low drop-off risk, and consistent pacing.');
       const satisfactionTooltipTitle = this.escapeHtml('Satisfaction Score');
-      const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList.');
+      const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
       const safeRetention = this.escapeHtml(retention);
       const safeSatisfaction = this.escapeHtml(malSatisfaction);
       const safeId = this.escapeAttr(anime.id);
@@ -2712,7 +2749,7 @@ const App = {
                 </div>
               </span>
               <span class="recommendation-stat has-tooltip" tabindex="0">
-                Satisfaction (MAL) ${safeSatisfaction}
+                MAL ${safeSatisfaction}
                 <div class="tooltip tooltip--bottom" role="tooltip">
                   <div class="tooltip-title">${satisfactionTooltipTitle}</div>
                   <div class="tooltip-text">${satisfactionTooltipText}</div>
@@ -2969,6 +3006,34 @@ const App = {
 
       if (action === 'scroll-to-filters') {
         this.scrollToFiltersSection();
+        return;
+      }
+
+      if (action === 'learn-scores') {
+        if (typeof Onboarding !== 'undefined') {
+          Onboarding.reopenTour();
+        }
+        return;
+      }
+
+      if (action === 'explain-recommendations') {
+        this.showRecommendationsHelp();
+        return;
+      }
+
+      if (action === 'metric-help') {
+        const metricKey = actionEl.dataset.metric;
+        if (metricKey) {
+          this.showMetricHelp(metricKey);
+        }
+        return;
+      }
+
+      if (action === 'apply-preset') {
+        const presetKey = actionEl.dataset.preset;
+        if (presetKey) {
+          this.applyFilterPreset(presetKey);
+        }
         return;
       }
 
@@ -3590,6 +3655,96 @@ const App = {
           <p>${safeMessage}</p>
         </div>
       `;
+    }
+  },
+
+  /**
+   * Show metric help modal
+   */
+  showMetricHelp(metricKey) {
+    if (typeof MetricGlossary === 'undefined') return;
+
+    const content = MetricGlossary.getDetailedContent(metricKey);
+    if (!content) return;
+
+    const body = document.getElementById('metric-help-body');
+    const modal = document.getElementById('metric-help-modal');
+
+    if (body && modal) {
+      body.innerHTML = content;
+      this.setModalVisibility('metric-help-modal', true, { initialFocusSelector: '#close-metric-help' });
+
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'metric_help_opened', { metric: metricKey });
+      }
+    }
+  },
+
+  /**
+   * Close metric help modal
+   */
+  closeMetricHelpModal() {
+    this.setModalVisibility('metric-help-modal', false);
+  },
+
+  /**
+   * Show recommendations help
+   */
+  showRecommendationsHelp() {
+    const content = `
+      <div class="recommendations-help">
+        <h3>How We Pick Recommendations</h3>
+        <p>Our recommendation algorithm balances two key factors:</p>
+        <div class="help-factor">
+          <strong>Retention Score (60%)</strong>
+          <p>How likely you are to finish the series. Based on watch-through patterns.</p>
+        </div>
+        <div class="help-factor">
+          <strong>Satisfaction Score (40%)</strong>
+          <p>Community rating from MyAnimeList. Represents overall quality.</p>
+        </div>
+        <p class="help-note">This combination helps find anime that's both engaging and high-quality.</p>
+      </div>
+    `;
+
+    const body = document.getElementById('metric-help-body');
+    const modal = document.getElementById('metric-help-modal');
+
+    if (body && modal) {
+      body.innerHTML = content;
+      this.setModalVisibility('metric-help-modal', true, { initialFocusSelector: '#close-metric-help' });
+    }
+  },
+
+  /**
+   * Apply a filter preset
+   */
+  applyFilterPreset(presetKey) {
+    if (typeof FilterPresets === 'undefined') return;
+
+    const preset = FilterPresets.get(presetKey);
+    if (!preset) return;
+
+    FilterPresets.trackUsage(presetKey);
+
+    const filtered = FilterPresets.applyPreset(presetKey, this.animeData);
+    this.filteredData = filtered;
+
+    const sortKey = FilterPresets.getSortForPreset(presetKey);
+    this.currentSort = sortKey;
+
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+      sortSelect.value = sortKey;
+    }
+
+    this.resetGridPagination();
+    this.render();
+
+    const target = document.getElementById('catalog-section');
+    if (target) {
+      const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+      target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
     }
   }
 };
