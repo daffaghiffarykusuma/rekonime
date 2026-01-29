@@ -16,12 +16,21 @@
 - `home/index.html`: Alias entry point for `/home` (local/static fallback) using the same JS/CSS.
 - `bookmarks.html`: Bookmarks page, shares the same JS/CSS and detail modal.
 - `css/styles.css`: Global styles, component layouts, animations, and responsive rules.
+- `css/themes.css`: Theme system with light/dark modes, accessibility features, and focus states.
 - `js/app.js`: Central controller for state, rendering, filtering, search, modals, SEO, and bookmarks.
 - `js/stats.js`: Retention and scoring metrics. Builds score profiles and per-anime stats.
 - `js/recommendations.js`: Recommendation, badges, sorting options, and similarity scoring.
 - `js/reviews.js`: MyAnimeList (via Jikan API) review fetch + rendering + synopsis utilities.
+- `js/discovery.js`: Surprise Me random discovery, seasonal discovery, trending, and "Because You Watched".
+- `js/filterPresets.js`: Quick filter presets (Binge-Worthy, Critical Darlings, Hidden Gems, etc.).
+- `js/keyboardShortcuts.js`: Keyboard navigation system (? for help, / for search, arrow keys for modal).
+- `js/metricGlossary.js`: Metric definitions, tooltips, and educational content for all stats.
+- `js/onboarding.js`: First-time user tour with guided steps through key concepts.
+- `js/themeManager.js`: Light/Dark/Auto theme switching with OS preference detection.
+- `js/serviceWorker.js`: Service Worker registration, update handling, and offline indicators.
 - `js/charts.js`: Chart.js helpers (not wired in current HTML).
 - `js/data.js`: Embedded fallback dataset (`ANIME_DATA`) for `file://` and fetch failure.
+- `sw.js`: Service Worker for offline caching and background updates.
 - `data/anime.json`: Raw catalog (scraped). Source of truth for builds.
 - `data/anime.full.json`: Full catalog with stats + colorIndex (generated).
 - `data/anime.preview.json`: Preview subset for fast first paint (generated).
@@ -32,13 +41,28 @@
 
 ### Edges (dependencies and relationships)
 - `index.html` -> `css/styles.css`
+- `index.html` -> `css/themes.css`
 - `index.html` -> `js/stats.js` -> `js/recommendations.js` -> `js/reviews.js` -> `js/app.js`
+- `index.html` -> `js/discovery.js` (discovery features)
+- `index.html` -> `js/filterPresets.js` (quick filter presets)
+- `index.html` -> `js/keyboardShortcuts.js` (keyboard navigation)
+- `index.html` -> `js/metricGlossary.js` (metric tooltips and help)
+- `index.html` -> `js/onboarding.js` (first-time tour)
+- `index.html` -> `js/themeManager.js` (theme switching)
+- `index.html` -> `js/serviceWorker.js` (PWA support)
 - `AGENTS.md` -> `USER_JOURNEY.MD` (required reading before tasks)
 - `home/index.html` -> same JS/CSS stack as `index.html`
 - `bookmarks.html` -> same JS/CSS stack as `index.html`
 - `js/app.js` -> `Stats` (calculations) + `Recommendations` (badges/recs/similar/sort options)
+- `js/app.js` -> `Discovery` (surprise me, seasonal, trending)
+- `js/app.js` -> `FilterPresets` (quick filter presets)
+- `js/app.js` -> `MetricGlossary` (metric tooltips)
+- `js/app.js` -> `Onboarding` (first-time tour)
 - `js/app.js` -> `ReviewsService` (synopsis + review tabs in detail modal)
-- `js/app.js` -> localStorage (`rekonime.bookmarks`, `rekonime.settings`) for saved anime + user settings
+- `js/app.js` -> `ThemeManager` (theme switching)
+- `js/app.js` -> `KeyboardShortcuts` (keyboard navigation)
+- `js/app.js` -> `ServiceWorkerManager` (PWA features)
+- `js/app.js` -> localStorage (`rekonime.bookmarks`, `rekonime.settings`, `rekonime.theme`, `rekonime.shortcutsAcknowledged`, `rekonime.onboarding`) for saved anime + user settings
 - `js/app.js` -> `data/*.json` (fetch preview/full/legacy) and `js/data.js` fallback
 - `js/reviews.js` -> Jikan API (MyAnimeList reviews) (`https://api.jikan.moe`)
 - `js/app.js` -> YouTube (trailer links and embeds, sanitized to allowed hosts)
@@ -48,9 +72,11 @@
 - `tools/update_metadata.js` -> Jikan API -> `data/anime.json`
 - `tools/backfill_data.js` -> AniList + MAL HTML scraping -> `data/anime.json`
 - `tools/validate-data.js` -> `data/anime.json` (+ optional embedded data check)
+- `tools/sync-home-index.ps1` -> syncs `home/index.html` with `index.html`
 - `package.json` -> `test/*.test.js` (node:test runner)
 - `test/stats.test.js` -> `js/stats.js`
 - `test/recommendations.test.js` -> `js/recommendations.js`
+- `js/serviceWorker.js` -> `sw.js` (service worker registration)
 
 ## Runtime flows (high-signal paths)
 
@@ -91,6 +117,42 @@
 ### Trailer autoplay
 - `App.renderTrailerSection()` builds sanitized YouTube URLs and respects data saver settings.
 - `App.setupTrailerAutoplay()` uses IntersectionObserver + scroll fallback, gated by settings.
+
+### Discovery features
+- `Discovery.getSurpriseMe()` returns weighted random anime with quality filtering.
+- `Discovery.getSeasonalFilters()` generates "This Season", "Last Season", "Next Season" chips.
+- `Discovery.getTrending()` calculates trending scores based on recency, MAL scores, and quality metrics.
+- `Discovery.getBecauseYouWatched()` generates personalized recommendations from bookmarks.
+
+### Filter presets
+- `FilterPresets.applyPreset()` applies curated filters (Binge-Worthy, Critical Darlings, Hidden Gems, etc.).
+- Presets are rendered as chips and cards in the filter modal.
+
+### Onboarding
+- `Onboarding.startTour()` launches a 4-step guided tour (welcome, retention, satisfaction, discovery).
+- Tour progress stored in `rekonime.onboarding` and `rekonime.tourStep`.
+
+### Keyboard shortcuts
+- `?` shows the keyboard shortcuts help modal.
+- `/` focuses the search input.
+- `Escape` closes modals.
+- `b` navigates to bookmarks.
+- `f` opens filters.
+- `s` opens settings.
+- `r` triggers Surprise Me.
+- `h` goes home and clears filters.
+- Arrow keys navigate anime in detail modal.
+
+### Theme management
+- `ThemeManager.applyTheme()` switches between dark, light, and auto modes.
+- Theme preference stored in `rekonime.theme`.
+- Auto mode respects `prefers-color-scheme` OS preference.
+
+### Service Worker / PWA
+- `ServiceWorkerManager.register()` registers `sw.js` for offline caching.
+- Shows update prompt when new versions are available.
+- Displays offline indicator when connectivity is lost.
+- Caches static assets, data JSON, and images with different strategies.
 
 ## Data schema (core entities)
 
@@ -158,6 +220,9 @@
 ## CSS architecture and responsive rules
 - `css/styles.css` contains a base section and a later "Beginner-friendly UX refresh" section.
   The refresh block redefines `:root` variables and overrides earlier selectors.
+- `css/themes.css` contains theme system with light/dark mode variables, accessibility features
+  (high contrast, large text, reduced motion, data saver), focus states, keyboard shortcuts UI,
+  and theme selector styles.
 - Theme tokens live in the refresh `:root` block (dark palette, radii, shadows).
 - Breakpoints in use: `max-width: 960px` and `max-width: 640px` (primary),
   plus older `max-width: 768px` and `max-width: 480px` rules earlier in the file.
@@ -178,6 +243,7 @@
 4. `tools/build-catalogs.js` -> `data/anime.full.json` + `data/anime.preview.json`
 5. `tools/regenerate-data.ps1` -> `js/data.js` (embedded fallback)
 6. `tools/validate-data.js` checks required fields (use `--skip-embedded` if needed)
+7. `tools/sync-home-index.ps1` syncs `home/index.html` with `index.html`
 
 ## Notes on optional modules
 - `js/charts.js` requires Chart.js (+ ChartDataLabels) and is not included in HTML.
@@ -193,23 +259,34 @@
 flowchart TD
   %% Runtime entry points
   index[index.html] --> css[css/styles.css]
+  index --> themes[css/themes.css]
   index --> app[js/app.js]
   home[home/index.html] --> css
+  home --> themes
   home --> app
   bookmarks[bookmarks.html] --> css
+  bookmarks --> themes
   bookmarks --> app
 
   %% Runtime module dependencies
   app --> stats[js/stats.js]
   app --> recs[js/recommendations.js]
   app --> reviews[js/reviews.js]
+  app --> discovery[js/discovery.js]
+  app --> filterPresets[js/filterPresets.js]
+  app --> metricGlossary[js/metricGlossary.js]
+  app --> onboarding[js/onboarding.js]
+  app --> themeManager[js/themeManager.js]
+  app --> keyboardShortcuts[js/keyboardShortcuts.js]
+  app --> serviceWorkerManager[js/serviceWorker.js]
   app --> dataPreview[data/anime.preview.json]
   app --> dataFull[data/anime.full.json]
   app --> dataLegacy[data/anime.json]
   app --> dataEmbed[js/data.js]
-  app --> storage[localStorage: rekonime.bookmarks, rekonime.settings]
+  app --> storage[localStorage: rekonime.bookmarks, rekonime.settings, rekonime.theme, rekonime.shortcutsAcknowledged, rekonime.onboarding]
   reviews --> jikan[Jikan API (MyAnimeList)]
   app --> youtube[YouTube / YouTube-nocookie]
+  serviceWorkerManager --> sw[sw.js]
 
   %% Data pipeline
   scraper[tools/scraper/*] --> scores[tools/scraper/output/*.json]
@@ -223,6 +300,7 @@ flowchart TD
   full --> regen[tools/regenerate-data.ps1]
   regen --> embed[js/data.js]
   raw --> validate[tools/validate-data.js]
+  raw --> syncHome[tools/sync-home-index.ps1]
 
   %% Optional charting (not wired by default)
   charts[js/charts.js] -. optional .-> app
