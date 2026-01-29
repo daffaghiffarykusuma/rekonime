@@ -45,14 +45,16 @@ const App = {
     themes: 'theme',
     demographic: 'demographic'
   },
-  filterTypeLabels: {
-    genres: 'Genre',
-    themes: 'Theme',
-    demographic: 'Demographic',
-    seasonYear: 'Season',
-    year: 'Year',
-    studio: 'Studio',
-    source: 'Source'
+  getFilterTypeLabels() {
+    return {
+      genres: I18n.t('filters.genres'),
+      themes: I18n.t('filters.themes'),
+      demographic: I18n.t('filters.demographic'),
+      seasonYear: I18n.t('filters.season'),
+      year: I18n.t('filters.year'),
+      studio: I18n.t('filters.studio'),
+      source: I18n.t('filters.source')
+    };
   },
   quickFilterState: {
     genres: { expanded: false },
@@ -344,6 +346,7 @@ const App = {
 
   getActiveFilterGroups() {
     const groups = [];
+    const filterLabels = this.getFilterTypeLabels();
     Object.entries(this.activeFilters).forEach(([type, values]) => {
       const cleaned = values
         .map(value => String(value ?? '').trim())
@@ -351,7 +354,7 @@ const App = {
       if (cleaned.length === 0) return;
       groups.push({
         type,
-        label: this.filterTypeLabels[type] || type,
+        label: filterLabels[type] || type,
         values: cleaned
       });
     });
@@ -881,8 +884,8 @@ const App = {
       button.dataset.animeId = '';
       button.classList.remove('is-bookmarked');
       button.setAttribute('aria-pressed', 'false');
-      button.setAttribute('aria-label', 'Add bookmark');
-      button.setAttribute('title', 'Add bookmark');
+      button.setAttribute('aria-label', I18n.t('bookmarks.add'));
+      button.setAttribute('title', I18n.t('bookmarks.add'));
       return;
     }
 
@@ -890,8 +893,8 @@ const App = {
     button.dataset.animeId = key;
     button.classList.toggle('is-bookmarked', isActive);
     button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    button.setAttribute('aria-label', isActive ? 'Remove bookmark' : 'Add bookmark');
-    button.setAttribute('title', isActive ? 'Remove bookmark' : 'Add bookmark');
+    button.setAttribute('aria-label', isActive ? I18n.t('bookmarks.remove') : I18n.t('bookmarks.add'));
+    button.setAttribute('title', isActive ? I18n.t('bookmarks.remove') : I18n.t('bookmarks.add'));
   },
 
   getBookmarkedAnime() {
@@ -1011,7 +1014,7 @@ const App = {
       }
     } catch (error) {
       console.error('Failed to initialize app:', error);
-      this.showError('We couldn\'t load the catalog. Try refreshing - if it persists, the data might be updating.');
+      this.showError(I18n.t('errors.catalogLoadFailed'));
     }
   },
 
@@ -2180,11 +2183,11 @@ const App = {
     if (matches.length === 0) {
       dropdown.innerHTML = `
         <div class="search-no-results" role="status" aria-live="polite">
-          <div class="search-no-results-title">No matches yet.</div>
-          <div class="search-no-results-hint">Try English title or a shorter query.</div>
+          <div class="search-no-results-title">${I18n.t('search.noResults')}</div>
+          <div class="search-no-results-hint">${I18n.t('search.noResultsHint')}</div>
           <div class="search-no-results-tips">
-            <span class="search-no-results-tip">Try English title</span>
-            <span class="search-no-results-tip">Shorter query</span>
+            <span class="search-no-results-tip">${I18n.t('search.tipEnglish')}</span>
+            <span class="search-no-results-tip">${I18n.t('search.tipShorter')}</span>
           </div>
         </div>
       `;
@@ -2205,8 +2208,8 @@ const App = {
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
       const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
-      const safeYear = this.escapeHtml(anime.year ?? 'Unknown');
-      const safeStudio = this.escapeHtml(anime.studio ?? 'Unknown');
+      const safeYear = this.escapeHtml(anime.year ?? I18n.t('common.unknown'));
+      const safeStudio = this.escapeHtml(anime.studio ?? I18n.t('common.unknown'));
       const isActive = index === this.headerSearchState.activeIndex;
       return `
       <div class="search-result-item ${isActive ? 'is-active' : ''}" role="option" aria-selected="${isActive ? 'true' : 'false'}" id="search-result-${index}" data-result-index="${index}" data-action="open-anime" data-anime-id="${safeId}">
@@ -2382,7 +2385,7 @@ const App = {
 
       const showToggle = type !== 'genres' && options.length > limit && Number.isFinite(limit);
       const hiddenCount = Math.max(options.length - limit, 0);
-      const toggleLabel = expanded ? 'Show less' : `Show ${hiddenCount} more`;
+      const toggleLabel = expanded ? I18n.t('filters.showLess') : I18n.t('filters.showMore', { count: hiddenCount });
       const toggleMarkup = showToggle
         ? `
           <button class="quick-more" type="button" data-action="toggle-quick-more" data-filter-type="${type}">
@@ -2712,8 +2715,8 @@ const App = {
     // Render recommendations
     grid.innerHTML = recommendations.map(anime => {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
-      const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
+      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : I18n.t('common.notAvailable');
+      const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : I18n.t('common.notAvailable');
 
       const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
       const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
@@ -2727,8 +2730,8 @@ const App = {
           <div class="recommendation-info">
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
             <div class="recommendation-meta">
-              <span>Retention ${retention}</span>
-              <span>MAL ${malScore}</span>
+              <span>${I18n.t('metrics.retentionScore.shortLabel')} ${retention}</span>
+              <span>${I18n.t('common.mal')} ${malScore}</span>
             </div>
             <div class="recommendation-reason">${this.escapeHtml(anime.reason || '')}</div>
           </div>
@@ -2750,7 +2753,7 @@ const App = {
       const rank = index + 1;
       const rankClass = rank <= 3 ? 'top-3' : '';
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
+      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : I18n.t('common.notAvailable');
 
       const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
       const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
@@ -2763,7 +2766,7 @@ const App = {
           <div class="trending-info">
             <div class="trending-title">${this.escapeHtml(anime.title)}</div>
             <div class="trending-meta">
-              ${anime.year || 'Unknown'} · Retention ${retention}
+              ${anime.year || I18n.t('common.unknown')} · ${I18n.t('metrics.retentionScore.shortLabel')} ${retention}
             </div>
           </div>
         </div>
@@ -2800,11 +2803,11 @@ const App = {
       const reason = Recommendations.getRecommendationReason(anime);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const safeYear = this.escapeHtml(anime.year || 'Unknown');
-      const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
+      const safeYear = this.escapeHtml(anime.year || I18n.t('common.unknown'));
+      const safeStudio = this.escapeHtml(anime.studio || I18n.t('common.unknown'));
       const safeReason = this.escapeHtml(reason);
       const isBookmarked = this.isBookmarked(anime.id);
-      const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
+      const bookmarkLabel = isBookmarked ? I18n.t('bookmarks.remove') : I18n.t('bookmarks.add');
 
       // Build responsive image attributes
       const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
@@ -2879,86 +2882,118 @@ const App = {
     const largeTextEnabled = Boolean(settings.largeText);
 
     const titleMarkup = includeTitle
-      ? '<div class="filter-section-title">Settings</div>'
+      ? `<div class="filter-section-title">${I18n.t('settings.title')}</div>`
       : '';
 
     const themeSelector = typeof ThemeManager !== 'undefined'
       ? ThemeManager.renderThemeSelector()
       : '';
 
+    const localeSelector = typeof I18n !== 'undefined'
+      ? this.renderLocaleSelector()
+      : '';
+
     return `
       <div class="filter-section settings-section">
         ${titleMarkup}
-        
+
         <!-- Theme Selection -->
         ${themeSelector}
-        
+
+        <!-- Language Selection -->
+        ${localeSelector}
+
         <!-- Playback Settings -->
-        <div class="filter-section-title" style="margin-top: 1.5rem;">Playback</div>
+        <div class="filter-section-title" style="margin-top: 1.5rem;">${I18n.t('settings.playback.title')}</div>
         <div class="settings-list">
           <label class="settings-row">
             <span class="settings-text">
-              <span class="settings-title">Trailer autoplay</span>
-              <span class="settings-description">Auto-starts trailers as you scroll. Default on desktop, off on mobile. When off, you can still press play.</span>
+              <span class="settings-title">${I18n.t('settings.playback.trailerAutoplay')}</span>
+              <span class="settings-description">${I18n.t('settings.playback.trailerAutoplayDesc')}</span>
             </span>
             <span class="settings-toggle">
-              <input class="settings-toggle-input" type="checkbox" data-setting-key="trailerAutoplay" ${autoplayEnabled ? 'checked' : ''} aria-label="Toggle trailer autoplay">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="trailerAutoplay" ${autoplayEnabled ? 'checked' : ''} aria-label="${I18n.t('settings.playback.trailerAutoplay')}">
               <span class="settings-toggle-slider" aria-hidden="true"></span>
             </span>
           </label>
           <label class="settings-row">
             <span class="settings-text">
-              <span class="settings-title">Data saver</span>
-              <span class="settings-description">Disables embedded trailers to save bandwidth. You will miss inline video previews and need to open YouTube.</span>
+              <span class="settings-title">${I18n.t('settings.playback.dataSaver')}</span>
+              <span class="settings-description">${I18n.t('settings.playback.dataSaverDesc')}</span>
             </span>
             <span class="settings-toggle">
-              <input class="settings-toggle-input" type="checkbox" data-setting-key="dataSaver" ${dataSaverEnabled ? 'checked' : ''} aria-label="Toggle data saver mode">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="dataSaver" ${dataSaverEnabled ? 'checked' : ''} aria-label="${I18n.t('settings.playback.dataSaver')}">
               <span class="settings-toggle-slider" aria-hidden="true"></span>
             </span>
           </label>
         </div>
-        
+
         <!-- Accessibility Settings -->
-        <div class="filter-section-title" style="margin-top: 1.5rem;">Accessibility</div>
+        <div class="filter-section-title" style="margin-top: 1.5rem;">${I18n.t('settings.accessibility.title')}</div>
         <div class="settings-list">
           <label class="settings-row">
             <span class="settings-text">
-              <span class="settings-title">Reduced motion</span>
-              <span class="settings-description">Disables animations, particle effects, and transitions for a calmer experience.</span>
+              <span class="settings-title">${I18n.t('settings.accessibility.reducedMotion')}</span>
+              <span class="settings-description">${I18n.t('settings.accessibility.reducedMotionDesc')}</span>
             </span>
             <span class="settings-toggle">
-              <input class="settings-toggle-input" type="checkbox" data-setting-key="reducedMotion" ${reducedMotionEnabled ? 'checked' : ''} aria-label="Toggle reduced motion">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="reducedMotion" ${reducedMotionEnabled ? 'checked' : ''} aria-label="${I18n.t('settings.accessibility.reducedMotion')}">
               <span class="settings-toggle-slider" aria-hidden="true"></span>
             </span>
           </label>
           <label class="settings-row">
             <span class="settings-text">
-              <span class="settings-title">High contrast</span>
-              <span class="settings-description">Increases contrast for better visibility. Uses stronger borders and removes shadows.</span>
+              <span class="settings-title">${I18n.t('settings.accessibility.highContrast')}</span>
+              <span class="settings-description">${I18n.t('settings.accessibility.highContrastDesc')}</span>
             </span>
             <span class="settings-toggle">
-              <input class="settings-toggle-input" type="checkbox" data-setting-key="highContrast" ${highContrastEnabled ? 'checked' : ''} aria-label="Toggle high contrast">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="highContrast" ${highContrastEnabled ? 'checked' : ''} aria-label="${I18n.t('settings.accessibility.highContrast')}">
               <span class="settings-toggle-slider" aria-hidden="true"></span>
             </span>
           </label>
           <label class="settings-row">
             <span class="settings-text">
-              <span class="settings-title">Large text</span>
-              <span class="settings-description">Increases base font size for better readability.</span>
+              <span class="settings-title">${I18n.t('settings.accessibility.largeText')}</span>
+              <span class="settings-description">${I18n.t('settings.accessibility.largeTextDesc')}</span>
             </span>
             <span class="settings-toggle">
-              <input class="settings-toggle-input" type="checkbox" data-setting-key="largeText" ${largeTextEnabled ? 'checked' : ''} aria-label="Toggle large text">
+              <input class="settings-toggle-input" type="checkbox" data-setting-key="largeText" ${largeTextEnabled ? 'checked' : ''} aria-label="${I18n.t('settings.accessibility.largeText')}">
               <span class="settings-toggle-slider" aria-hidden="true"></span>
             </span>
           </label>
         </div>
-        
+
         <!-- Keyboard Shortcuts Hint -->
         <div class="settings-row" style="margin-top: 1rem; background: transparent; border-style: dashed; cursor: default;">
           <span class="settings-text">
-            <span class="settings-title">Keyboard shortcuts</span>
-            <span class="settings-description">Press <kbd style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: monospace;">?</kbd> anytime to see all keyboard shortcuts</span>
+            <span class="settings-title">${I18n.t('settings.keyboardShortcuts')}</span>
+            <span class="settings-description">${I18n.t('settings.keyboardShortcutsDesc', { key: '?' })}</span>
           </span>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render locale selector for language switching
+   */
+  renderLocaleSelector() {
+    const locales = I18n.getAvailableLocales();
+    const currentLocale = I18n.currentLocale;
+
+    return `
+      <div class="settings-locale">
+        <div class="filter-section-title" style="margin-top: 1.5rem;">${I18n.t('settings.language.title')}</div>
+        <div class="locale-selector">
+          ${locales.map(locale => `
+            <button class="locale-option ${locale.code === currentLocale ? 'is-active' : ''}"
+                    data-action="set-locale"
+                    data-locale="${locale.code}"
+                    aria-pressed="${locale.code === currentLocale ? 'true' : 'false'}">
+              <span class="locale-native">${locale.nativeName}</span>
+              <span class="locale-name">${locale.name}</span>
+            </button>
+          `).join('')}
         </div>
       </div>
     `;
@@ -2975,6 +3010,7 @@ const App = {
     const clearBtn = document.getElementById('active-filters-clear');
     if (!container || !list || !emptyState || !label || !clearBtn) return;
 
+    const filterLabels = this.getFilterTypeLabels();
     const active = [];
     Object.entries(this.activeFilters).forEach(([type, values]) => {
       values.forEach(value => {
@@ -2982,14 +3018,14 @@ const App = {
         active.push({
           type,
           value,
-          label: this.filterTypeLabels[type] || type
+          label: filterLabels[type] || type
         });
       });
     });
 
     if (active.length === 0) {
       list.innerHTML = '';
-      label.textContent = 'Active filters';
+      label.textContent = I18n.t('filters.active');
       clearBtn.style.display = 'none';
       container.classList.add('is-empty');
       emptyState.classList.remove('is-hidden');
@@ -2998,7 +3034,7 @@ const App = {
 
     container.classList.remove('is-empty');
     emptyState.classList.add('is-hidden');
-    label.textContent = `Active filters (${active.length})`;
+    label.textContent = I18n.t('filters.activeCount', { count: active.length });
     clearBtn.style.display = 'inline-flex';
     list.innerHTML = active.map(item => {
       const displayValue = String(item.value);
@@ -3041,7 +3077,7 @@ const App = {
 
 
     if (recommendations.length === 0) {
-      container.innerHTML = '<p class="no-data">No recommendations available</p>';
+      container.innerHTML = `<p class="no-data">${I18n.t('recommendations.noRecommendations')}</p>`;
       return;
     }
 
@@ -3049,10 +3085,10 @@ const App = {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats.retentionScore)}%` : 'N/A';
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
-      const retentionTooltipTitle = this.escapeHtml('Retention Score');
-      const retentionTooltipText = this.escapeHtml('How likely you are to finish. Based on strong starts, low drop-off risk, and consistent pacing.');
-      const satisfactionTooltipTitle = this.escapeHtml('Satisfaction Score');
-      const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
+      const retentionTooltipTitle = this.escapeHtml(I18n.t('metrics.retentionScore.shortLabel'));
+      const retentionTooltipText = this.escapeHtml(I18n.t('metrics.retentionScore.description'));
+      const satisfactionTooltipTitle = this.escapeHtml(I18n.t('metrics.satisfactionScore.shortLabel'));
+      const satisfactionTooltipText = this.escapeHtml(I18n.t('metrics.satisfactionScore.description'));
       const safeRetention = this.escapeHtml(retention);
       const safeSatisfaction = this.escapeHtml(malSatisfaction);
       const safeId = this.escapeAttr(anime.id);
@@ -3073,14 +3109,14 @@ const App = {
             <div class="recommendation-title">${safeTitle}</div>
             <div class="recommendation-meta">
               <span class="recommendation-stat has-tooltip" tabindex="0">
-                Retention ${safeRetention}
+                ${I18n.t('metrics.retentionScore.shortLabel')} ${safeRetention}
                 <div class="tooltip tooltip--bottom" role="tooltip">
                   <div class="tooltip-title">${retentionTooltipTitle}</div>
                   <div class="tooltip-text">${retentionTooltipText}</div>
                 </div>
               </span>
               <span class="recommendation-stat has-tooltip" tabindex="0">
-                MAL ${safeSatisfaction}
+                ${I18n.t('common.mal')} ${safeSatisfaction}
                 <div class="tooltip tooltip--bottom" role="tooltip">
                   <div class="tooltip-title">${satisfactionTooltipTitle}</div>
                   <div class="tooltip-text">${satisfactionTooltipText}</div>
@@ -3122,7 +3158,7 @@ const App = {
       const best = byMetric1[0];
       container1.innerHTML = this.renderRankingCard(best, rankingConfig.metric1);
     } else {
-      container1.innerHTML = '<p class="no-data">No anime match filters</p>';
+      container1.innerHTML = `<p class="no-data">${I18n.t('rankings.noMatch')}</p>`;
     }
 
     // Ranking 2
@@ -3131,7 +3167,7 @@ const App = {
       const best = byMetric2[0];
       container2.innerHTML = this.renderRankingCard(best, rankingConfig.metric2);
     } else {
-      container2.innerHTML = '<p class="no-data">No anime match filters</p>';
+      container2.innerHTML = `<p class="no-data">${I18n.t('rankings.noMatch')}</p>`;
     }
   },
 
@@ -3139,7 +3175,7 @@ const App = {
    * Render a ranking card with appropriate metric display
    */
   renderRankingCard(anime, metric) {
-    let valueDisplay = 'N/A';
+    let valueDisplay = I18n.t('common.notAvailable');
     let labelDisplay = '';
     let valueClass = '';
 
@@ -3150,16 +3186,16 @@ const App = {
         valueDisplay = `${score}%`;
         valueClass = Recommendations.getRetentionClass(score);
       }
-      labelDisplay = 'retention score';
+      labelDisplay = I18n.t('rankings.retentionLabel');
     } else if (metric === 'satisfaction') {
       if (Number.isFinite(anime.communityScore)) {
         valueDisplay = `${anime.communityScore.toFixed(1)}/10`;
         valueClass = Recommendations.getMalSatisfactionClass(anime.communityScore);
       }
-      labelDisplay = 'satisfaction score (MAL)';
+      labelDisplay = I18n.t('rankings.satisfactionLabel');
     } else {
       valueDisplay = anime.stats.average;
-      labelDisplay = 'avg score';
+      labelDisplay = I18n.t('rankings.avgScoreLabel');
       valueClass = anime.stats.scoreClass;
     }
 
@@ -3194,8 +3230,8 @@ const App = {
     if (sorted.length === 0) {
       container.innerHTML = `
         <div class="no-results">
-          <h3>No matches yet</h3>
-          <p>Try removing a filter or two—there might be a hidden gem waiting.</p>
+          <h3>${I18n.t('catalog.noResults.title')}</h3>
+          <p>${I18n.t('catalog.noResults.description')}</p>
         </div>
       `;
       return;
@@ -3224,7 +3260,7 @@ const App = {
       container.insertAdjacentHTML('beforeend', `
         <div class="load-more-container">
           <button class="load-more-btn" data-action="load-more">
-            Load More (${sorted.length - endIndex} remaining)
+            ${I18n.t('catalog.loadMore', { count: sorted.length - endIndex })}
           </button>
         </div>
       `);
@@ -3452,6 +3488,42 @@ const App = {
         }
         return;
       }
+
+      if (action === 'set-locale') {
+        const locale = actionEl.dataset.locale;
+        if (locale && typeof I18n !== 'undefined') {
+          this.handleLocaleChange(locale);
+        }
+        return;
+      }
+    });
+  },
+
+  /**
+   * Handle locale change
+   * @param {string} locale - New locale code
+   */
+  handleLocaleChange(locale) {
+    if (!locale || typeof I18n === 'undefined') return;
+
+    const previousLocale = I18n.currentLocale;
+    if (previousLocale === locale) return;
+
+    // Set the new locale
+    I18n.setLocale(locale);
+
+    // Re-render UI components
+    this.renderSettingsModal();
+    this.render();
+
+    // Update document lang attribute
+    document.documentElement.lang = locale;
+
+    // Update active state of locale buttons
+    document.querySelectorAll('.locale-option').forEach(btn => {
+      const isActive = btn.dataset.locale === locale;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
   },
 
@@ -3478,21 +3550,21 @@ const App = {
     const canMatch = hasGenres && hasThemes;
 
     const formatTags = (tags, max = 2) => {
-      if (!Array.isArray(tags) || tags.length === 0) return 'None';
+      if (!Array.isArray(tags) || tags.length === 0) return I18n.t('common.none');
       const trimmed = tags.slice(0, max);
       const extra = tags.length - trimmed.length;
       return extra > 0 ? `${trimmed.join(', ')} +${extra}` : trimmed.join(', ');
     };
 
     const emptyMessage = canMatch
-      ? 'No similar anime found yet.'
-      : 'Similar anime needs both genre and theme tags for this title.';
+      ? I18n.t('detail.similar.empty.canMatch')
+      : I18n.t('detail.similar.empty.needsTags');
 
     return `
       <div class="similar-anime">
         <div class="detail-section-header">
-          <h3>Similar Anime</h3>
-          <span class="detail-section-note">Shared genre + theme, aligned retention and satisfaction</span>
+          <h3>${I18n.t('detail.similar.title')}</h3>
+          <span class="detail-section-note">${I18n.t('detail.similar.subtitle')}</span>
         </div>
         ${similarResults.length > 0 ? `
           <div class="similar-grid">
@@ -3521,12 +3593,12 @@ const App = {
                   <div class="similar-info">
                     <div class="similar-title">${safeTitle}</div>
                     <div class="similar-tags">
-                      <span class="similar-tag">Genres: ${safeGenres}</span>
-                      <span class="similar-tag">Themes: ${safeThemes}</span>
+                      <span class="similar-tag">${I18n.t('filters.genres')}: ${safeGenres}</span>
+                      <span class="similar-tag">${I18n.t('filters.themes')}: ${safeThemes}</span>
                     </div>
                     <div class="similar-stats">
-                      <span class="similar-stat ${retentionClass}">Retention ${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
-                      <span class="similar-stat ${satisfactionClass}">Satisfaction (MAL) ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
+                      <span class="similar-stat ${retentionClass}">${I18n.t('metrics.retentionScore.shortLabel')} ${retentionScore !== null ? `${retentionScore}%` : I18n.t('common.notAvailable')}</span>
+                      <span class="similar-stat ${satisfactionClass}">${I18n.t('metrics.satisfactionScore.label')} ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : I18n.t('common.notAvailable')}</span>
                     </div>
                   </div>
                 </div>
@@ -3566,9 +3638,9 @@ const App = {
       // Show error in modal
       content.innerHTML = `
         <div class="error-message">
-          <h2>Anime Not Found</h2>
-          <p>We couldn't find the anime you're looking for.</p>
-          <button class="btn btn-primary" data-action="close-detail" style="margin-top: 1rem;">Close</button>
+          <h2>${I18n.t('detail.notFound.title')}</h2>
+          <p>${I18n.t('detail.notFound.description')}</p>
+          <button class="btn btn-primary" data-action="close-detail" style="margin-top: 1rem;">${I18n.t('common.close')}</button>
         </div>
       `;
       return;
@@ -3618,10 +3690,10 @@ const App = {
 
     const altTitles = [];
     if (anime.titleEnglish && anime.titleEnglish.toLowerCase() !== anime.title.toLowerCase()) {
-      altTitles.push({ label: 'English', value: anime.titleEnglish });
+      altTitles.push({ label: I18n.t('detail.altTitles.english'), value: anime.titleEnglish });
     }
     if (anime.titleJapanese && anime.titleJapanese.toLowerCase() !== anime.title.toLowerCase()) {
-      altTitles.push({ label: 'Japanese', value: anime.titleJapanese });
+      altTitles.push({ label: I18n.t('detail.altTitles.japanese'), value: anime.titleJapanese });
     }
     const altTitlesHtml = altTitles.length
       ? `<div class="detail-alt-titles">
@@ -3641,7 +3713,7 @@ const App = {
         <div class="detail-info">
           <div class="detail-title-row">
             <h2 class="detail-title" id="detail-modal-title">${safeTitle}</h2>
-            <button class="modal-bookmark detail-bookmark" id="bookmark-toggle" type="button" data-action="toggle-bookmark" aria-pressed="false" aria-label="Add bookmark" title="Add bookmark">&#9733;</button>
+            <button class="modal-bookmark detail-bookmark" id="bookmark-toggle" type="button" data-action="toggle-bookmark" aria-pressed="false" aria-label="${I18n.t('bookmarks.add')}" title="${I18n.t('bookmarks.add')}">&#9733;</button>
           </div>
           ${altTitlesHtml}
           <div class="detail-meta">
@@ -3652,24 +3724,24 @@ const App = {
           </div>
           <div class="detail-stats">
             <div class="detail-stat has-tooltip" tabindex="0">
-              <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
-              <span class="detail-stat-label">Retention Score</span>
+              <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : I18n.t('common.notAvailable')}</span>
+              <span class="detail-stat-label">${I18n.t('metrics.retentionScore.label')}</span>
               <div class="tooltip" role="tooltip">
-                <div class="tooltip-title">Retention Score</div>
-                <div class="tooltip-text">How consistently people keep watching across episodes. Factors in strong starts, low drop-off, and steady pacing.</div>
+                <div class="tooltip-title">${I18n.t('metrics.retentionScore.label')}</div>
+                <div class="tooltip-text">${I18n.t('metrics.retentionScore.description')}</div>
               </div>
             </div>
             <div class="detail-stat has-tooltip" tabindex="0">
-              <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
-              <span class="detail-stat-label">Satisfaction (MAL)</span>
+              <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : I18n.t('common.notAvailable')}</span>
+              <span class="detail-stat-label">${I18n.t('metrics.satisfactionScore.label')}</span>
               <div class="tooltip" role="tooltip">
-                <div class="tooltip-title">Satisfaction Score</div>
-                <div class="tooltip-text">Community rating from MyAnimeList.</div>
+                <div class="tooltip-title">${I18n.t('metrics.satisfactionScore.label')}</div>
+                <div class="tooltip-text">${I18n.t('metrics.satisfactionScore.description')}</div>
               </div>
             </div>
             <div class="detail-stat">
-              <span class="detail-stat-value">${anime.stats.episodeCount || 'N/A'}</span>
-              <span class="detail-stat-label">Episodes</span>
+              <span class="detail-stat-value">${anime.stats.episodeCount || I18n.t('common.notAvailable')}</span>
+              <span class="detail-stat-label">${I18n.t('detail.episodes')}</span>
             </div>
           </div>
         </div>
@@ -3677,15 +3749,15 @@ const App = {
       ${hasEpisodes ? `
         <div class="detail-breakdown">
           <div class="detail-section-header">
-            <h3>Why it sticks</h3>
-            <span class="detail-section-note">Start, stay, finish</span>
+            <h3>${I18n.t('detail.breakdown.title')}</h3>
+            <span class="detail-section-note">${I18n.t('detail.breakdown.subtitle')}</span>
           </div>
           <div class="breakdown-row">
             <span class="breakdown-label has-tooltip" tabindex="0">
-              Strong start
+              ${I18n.t('detail.breakdown.strongStart.label')}
               <div class="tooltip tooltip--bottom" role="tooltip">
-                <div class="tooltip-title">Strong Start</div>
-                <div class="tooltip-text">How compelling the first 3 episodes are. High scores mean the show hooks viewers early.</div>
+                <div class="tooltip-title">${I18n.t('detail.breakdown.strongStart.tooltipTitle')}</div>
+                <div class="tooltip-text">${I18n.t('detail.breakdown.strongStart.tooltipText')}</div>
               </div>
             </span>
             <div class="breakdown-bar">
@@ -3695,10 +3767,10 @@ const App = {
           </div>
           <div class="breakdown-row">
             <span class="breakdown-label has-tooltip" tabindex="0">
-              Keeps you watching
+              ${I18n.t('detail.breakdown.keepsWatching.label')}
               <div class="tooltip tooltip--bottom" role="tooltip">
-                <div class="tooltip-title">Keeps You Watching</div>
-                <div class="tooltip-text">Low drop-off probability. Measures how likely viewers are to continue without losing interest.</div>
+                <div class="tooltip-title">${I18n.t('detail.breakdown.keepsWatching.tooltipTitle')}</div>
+                <div class="tooltip-text">${I18n.t('detail.breakdown.keepsWatching.tooltipText')}</div>
               </div>
             </span>
             <div class="breakdown-bar">
@@ -3708,10 +3780,10 @@ const App = {
           </div>
           <div class="breakdown-row">
             <span class="breakdown-label has-tooltip" tabindex="0">
-              Finish payoff
+              ${I18n.t('detail.breakdown.finishPayoff.label')}
               <div class="tooltip tooltip--bottom" role="tooltip">
-                <div class="tooltip-title">Finish Payoff</div>
-                <div class="tooltip-text">How well the show sticks the landing. Combines finale strength, momentum, and narrative build-up.</div>
+                <div class="tooltip-title">${I18n.t('detail.breakdown.finishPayoff.tooltipTitle')}</div>
+                <div class="tooltip-text">${I18n.t('detail.breakdown.finishPayoff.tooltipText')}</div>
               </div>
             </span>
             <div class="breakdown-bar">
@@ -3723,9 +3795,9 @@ const App = {
       ` : `
         <div class="detail-breakdown detail-breakdown-empty">
           <div class="detail-section-header">
-            <h3>Why it sticks</h3>
+            <h3>${I18n.t('detail.breakdown.title')}</h3>
           </div>
-          <p class="detail-empty">No episode scores yet. Retention appears once episode scores are available.</p>
+          <p class="detail-empty">${I18n.t('detail.breakdown.noData')}</p>
         </div>
       `}
       <div id="synopsis-section">
@@ -3877,7 +3949,7 @@ const App = {
     const { url, embedUrl } = this.buildTrailerUrls(trailer);
     if (!url && !embedUrl) return '';
 
-    const title = anime?.title ? `Trailer for ${anime.title}` : 'Anime trailer';
+    const title = anime?.title ? `${I18n.t('detail.trailer.for')} ${anime.title}` : I18n.t('detail.trailer.defaultTitle');
     const safeTitle = this.escapeAttr(title);
     const safeUrl = this.escapeAttr(url);
     const safeEmbedUrl = this.escapeAttr(embedUrl);
@@ -3886,8 +3958,8 @@ const App = {
     return `
       <div class="detail-trailer" id="detail-trailer">
         <div class="detail-section-header">
-          <h3>Trailer</h3>
-          ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
+          <h3>${I18n.t('detail.trailer.title')}</h3>
+          ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">${I18n.t('detail.trailer.watchOnYoutube')}</a>` : ''}
         </div>
         ${allowEmbed && embedUrl
         ? `<div class="trailer-embed">
@@ -3901,8 +3973,8 @@ const App = {
               </iframe>
             </div>`
         : `<div class="trailer-fallback">
-              ${allowEmbed ? '' : '<p class="trailer-note">Data Saver is on, so the embedded trailer is hidden.</p>'}
-              ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
+              ${allowEmbed ? '' : `<p class="trailer-note">${I18n.t('detail.trailer.dataSaverNotice')}</p>`}
+              ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">${I18n.t('detail.trailer.watchOnYoutube')}</a>` : ''}
             </div>`
       }
       </div>
@@ -4104,17 +4176,17 @@ const App = {
   showRecommendationsHelp() {
     const content = `
       <div class="recommendations-help">
-        <h3>How We Pick Recommendations</h3>
-        <p>Our recommendation algorithm balances two key factors:</p>
+        <h3>${I18n.t('recommendations.help.title')}</h3>
+        <p>${I18n.t('recommendations.help.intro')}</p>
         <div class="help-factor">
-          <strong>Retention Score (60%)</strong>
-          <p>How likely you are to finish the series. Based on watch-through patterns.</p>
+          <strong>${I18n.t('recommendations.help.retention.title')}</strong>
+          <p>${I18n.t('recommendations.help.retention.description')}</p>
         </div>
         <div class="help-factor">
-          <strong>Satisfaction Score (40%)</strong>
-          <p>Community rating from MyAnimeList. Represents overall quality.</p>
+          <strong>${I18n.t('recommendations.help.satisfaction.title')}</strong>
+          <p>${I18n.t('recommendations.help.satisfaction.description')}</p>
         </div>
-        <p class="help-note">This combination helps find anime that's both engaging and high-quality.</p>
+        <p class="help-note">${I18n.t('recommendations.help.note')}</p>
       </div>
     `;
 
@@ -4279,9 +4351,9 @@ const App = {
       // Anime not found - show error in modal
       content.innerHTML = `
         <div class="error-message">
-          <h2>Anime Not Found</h2>
-          <p>We couldn't find the anime you're looking for. It may have been removed or the ID is incorrect.</p>
-          <button class="btn btn-primary" data-action="close-detail" style="margin-top: 1rem;">Go Back</button>
+          <h2>${I18n.t('detail.notFound.title')}</h2>
+          <p>${I18n.t('detail.notFound.descriptionDeepLink')}</p>
+          <button class="btn btn-primary" data-action="close-detail" style="margin-top: 1rem;">${I18n.t('common.goBack')}</button>
         </div>
       `;
       return false;
@@ -4301,11 +4373,11 @@ const App = {
 
     const safeId = this.escapeAttr(anime.id);
     const safeTitle = this.escapeHtml(anime.title);
-    const safeYear = this.escapeHtml(anime.year || 'Unknown');
-    const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
+    const safeYear = this.escapeHtml(anime.year || I18n.t('common.unknown'));
+    const safeStudio = this.escapeHtml(anime.studio || I18n.t('common.unknown'));
     const safeReason = this.escapeHtml(reason);
     const isBookmarked = this.isBookmarked(anime.id);
-    const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
+    const bookmarkLabel = isBookmarked ? I18n.t('bookmarks.remove') : I18n.t('bookmarks.add');
 
     // Build responsive image attributes
     const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);

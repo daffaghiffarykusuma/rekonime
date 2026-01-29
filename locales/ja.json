@@ -1,0 +1,502 @@
+{
+    "meta": {
+        "siteName": "Rekonime",
+        "tagline": "最後まで見られるアニメを見つけよう",
+        "description": "時間をかける価値のあるアニメを発見。Rekonimeはリテンションスコアと満足度スコアを使用して、最初から最後まで魅力的な作品を見つけます。"
+    },
+    "errors": {
+        "catalogLoadFailed": "カタログを読み込めませんでした。更新してみてください。続く場合は、データが更新中の可能性があります。",
+        "animeNotFound": "アニメが見つかりません",
+        "animeNotFoundDesc": "お探しのアニメが見つかりませんでした。",
+        "reviews": {
+            "rateLimited": "MyAnimeListのレート制限にかかりました。しばらくしてからもう一度お試しください。",
+            "loadFailed": "MyAnimeListからレビューを読み込めませんでした。",
+            "retryFailed": "再試行に失敗しました"
+        },
+        "generic": "問題が発生しました。もう一度お試しください。"
+    },
+    "search": {
+        "placeholder": "アニメを検索...",
+        "noResults": "一致するものがありません。",
+        "noResultsHint": "英語のタイトルまたは短いキーワードを試してください。",
+        "tipEnglish": "英語のタイトルを試す",
+        "tipShorter": "短いキーワード"
+    },
+    "filters": {
+        "title": "次の視聴作品を見つける",
+        "subtitle": "気分に合わせて絞り込むための組み合わせ。",
+        "clearAll": "すべてクリア",
+        "apply": "フィルターを適用",
+        "active": "有効なフィルター",
+        "activeCount": "有効なフィルター ({{count}})",
+        "genres": "ジャンル",
+        "themes": "テーマ",
+        "demographic": "対象層",
+        "season": "シーズン",
+        "year": "年",
+        "studio": "スタジオ",
+        "source": "原作",
+        "showMore": "さらに{{count}}件表示",
+        "showLess": "表示を減らす",
+        "all": "すべて"
+    },
+    "sort": {
+        "label": "並び替え",
+        "retention": "リテンションスコア順",
+        "satisfaction": "満足度スコア順 (MAL)",
+        "default": "デフォルト"
+    },
+    "bookmarks": {
+        "add": "ブックマークに追加",
+        "remove": "ブックマークから削除",
+        "view": "ブックマークを見る",
+        "empty": "ブックマークはまだありません",
+        "saved": "保存済み",
+        "pageTitle": "ブックマーク"
+    },
+    "settings": {
+        "title": "設定",
+        "subtitle": "再生とデータ使用量を調整。",
+        "playback": {
+            "title": "再生",
+            "trailerAutoplay": "トレーラー自動再生",
+            "trailerAutoplayDesc": "スクロール時にトレーラーを自動再生。デスクトップではデフォルトでオン、モバイルではオフ。オフの場合も再生ボタンで視聴可能。",
+            "dataSaver": "データセーバー",
+            "dataSaverDesc": "帯域を節約するため埋め込みトレーラーを無効化。インラインビデオプレビューは表示されず、YouTubeで開く必要があります。"
+        },
+        "accessibility": {
+            "title": "アクセシビリティ",
+            "reducedMotion": "動きを減らす",
+            "reducedMotionDesc": "アニメーション、パーティクルエフェクト、トランジションを無効化して落ち着いた体験に。",
+            "highContrast": "高コントラスト",
+            "highContrastDesc": "視認性を高めるためコントラストを強化。太い枠線を使用し、影を削除します。",
+            "largeText": "大きな文字",
+            "largeTextDesc": "読みやすさを向上させるため基本フォントサイズを拡大。"
+        },
+        "language": {
+            "title": "言語"
+        },
+        "keyboardShortcuts": "キーボードショートカット",
+        "keyboardShortcutsDesc": "{{key}}を押すと、すべてのキーボードショートカットが表示されます"
+    },
+    "recommendations": {
+        "title": "おすすめ",
+        "noRecommendations": "おすすめはありません",
+        "context": "高リテンションスコア（最後まで見られる）と高いMAL満足度（実際に良い作品）のトップピック。",
+        "howWePick": "選び方について",
+        "discoverBy": "探す：",
+        "help": {
+            "title": "おすすめの選び方",
+            "intro": "私たちの推薦アルゴリズムは2つの重要な要素のバランスを取っています：",
+            "retention": {
+                "title": "リテンションスコア (60%)",
+                "description": "シリーズを最後まで見る可能性。視聴パターンに基づく。"
+            },
+            "satisfaction": {
+                "title": "満足度スコア (40%)",
+                "description": "MyAnimeListのコミュニティ評価。全体的な品質を表す。"
+            },
+            "note": "この組み合わせにより、魅力的で高品質なアニメが見つかります。"
+        },
+        "modes": {
+            "balanced": {
+                "label": "バランス型",
+                "description": "両方の良さを兼ね備える",
+                "context": "リテンション重視の選択にMAL満足度をブレンドして、より信頼性の高い推薦に。"
+            },
+            "binge": {
+                "label": "バインチモード",
+                "description": "高リテンション、止められない",
+                "context": "止められない作品 - 高いフロー状態と強力な引き込み力。"
+            },
+            "quality": {
+                "label": "批評家絶賛",
+                "description": "最高のコミュニティ評価",
+                "context": "コミュニティで最高評価 - 批評的称賛と満足度に焦点。"
+            },
+            "discovery": {
+                "label": "隠れた名作",
+                "description": "高リテンション、低人気",
+                "context": "高リテンションだが主流の人気は低い隠れた名作。"
+            },
+            "comfort": {
+                "label": "癒し系",
+                "description": "見やすく、ストレスフリー",
+                "context": "リラックスして楽しめる、簡単でストレスフリーな作品。"
+            }
+        },
+        "badges": {
+            "keepsYouHooked": "引き込まれる",
+            "fanFavorite": "ファンのお気に入り",
+            "greatFirstImpression": "第一印象が良い",
+            "underratedPick": "過小評価されている",
+            "criticalAcclaim": "批評家絶賛",
+            "easyWatch": "見やすい",
+            "strongFinish": "強い結末"
+        },
+        "reasons": {
+            "lovedByCommunity": "コミュニティに愛されている",
+            "newEntry": "新着エントリー、後で確認してください",
+            "hardToPutDown": "止められない",
+            "viewersStickAround": "視聴者が最後まで見る",
+            "hooksYouEarly": "最初から引き込む",
+            "worthTheFinale": "結末が価値ある",
+            "smoothPacing": "スムーズな展開",
+            "communityFavorite": "コミュニティのお気に入り",
+            "reliablePick": "信頼できる選択",
+            "criticalAcclaim": "批評家絶賛",
+            "relaxingWatch": "リラックスして見られる",
+            "hiddenGem": "隠れた名作"
+        }
+    },
+    "trending": {
+        "title": "トレンド",
+        "live": "ライブ",
+        "subtitle": "今週注目を集めている作品"
+    },
+    "catalog": {
+        "title": "カタログを閲覧",
+        "subtitle": "あなたにとって重要なもので並べ替えて、すべてのタイトルを探索。",
+        "loadMore": "さらに読み込む (残り{{count}}件)",
+        "noResults": {
+            "title": "一致するものがありません",
+            "description": "フィルターをいくつか削除してみてください。隠れた名作が待っているかもしれません。"
+        }
+    },
+    "detail": {
+        "notFound": {
+            "title": "アニメが見つかりません",
+            "description": "お探しのアニメが見つかりませんでした。",
+            "descriptionDeepLink": "お探しのアニメが見つかりませんでした。削除されたか、IDが間違っている可能性があります。"
+        },
+        "altTitles": {
+            "english": "英語",
+            "japanese": "日本語"
+        },
+        "retentionScore": "リテンションスコア",
+        "retentionScoreTooltip": "エピソードを通してどれだけ一貫して視聴されているか。強いスタート、低い脱落、安定した展開を考慮。",
+        "satisfactionScore": "満足度 (MAL)",
+        "satisfactionScoreTooltip": "MyAnimeListのコミュニティ評価。",
+        "episodes": "エピソード",
+        "whyItSticks": "引き込まれる理由",
+        "startStayFinish": "始める、続ける、終える",
+        "strongStart": "強いスタート",
+        "strongStartTooltip": "最初の3エピソードがどれだけ魅力的か。高スコアは視聴者を早期に引き込むことを意味します。",
+        "keepsYouWatching": "見続けさせる",
+        "keepsYouWatchingTooltip": "低い脱落確率。視聴者が興味を失わずに続けられる可能性を測定。",
+        "finishPayoff": "結末の価値",
+        "finishPayoffTooltip": "作品が最後まで良い着地をするかどうか。結末の強さ、勢い、物語の構築を組み合わせたもの。",
+        "breakdown": {
+            "title": "引き込まれる理由",
+            "subtitle": "始める、続ける、終える",
+            "noData": "エピソードスコアはまだありません。エピソードスコアが利用可能になるとリテンションが表示されます。",
+            "strongStart": {
+                "label": "強いスタート",
+                "tooltipTitle": "強いスタート",
+                "tooltipText": "最初の3エピソードがどれだけ魅力的か。高スコアは視聴者を早期に引き込むことを意味します。"
+            },
+            "keepsWatching": {
+                "label": "見続けさせる",
+                "tooltipTitle": "見続けさせる",
+                "tooltipText": "低い脱落確率。視聴者が興味を失わずに続けられる可能性を測定。"
+            },
+            "finishPayoff": {
+                "label": "結末の価値",
+                "tooltipTitle": "結末の価値",
+                "tooltipText": "作品が最後まで良い着地をするかどうか。結末の強さ、勢い、物語の構築を組み合わせたもの。"
+            }
+        },
+        "synopsis": "あらすじ",
+        "trailer": {
+            "title": "トレーラー",
+            "for": "のトレーラー",
+            "defaultTitle": "アニメトレーラー",
+            "watchOnYoutube": "YouTubeで見る",
+            "dataSaverNotice": "データセーバーがオンになっているため、埋め込みトレーラーは非表示です。"
+        },
+        "similar": {
+            "title": "類似アニメ",
+            "subtitle": "共有ジャンル+テーマ、リテンションと満足度が一致",
+            "empty": {
+                "canMatch": "類似アニメはまだ見つかりません。",
+                "needsTags": "類似アニメには、このタイトルのジャンルとテーマの両方のタグが必要です。"
+            }
+        },
+        "similarAnime": "類似アニメ",
+        "similarAnimeNote": "共有ジャンル+テーマ、リテンションと満足度が一致",
+        "noSimilarFound": "類似アニメはまだ見つかりません。",
+        "similarNeedsTags": "類似アニメには、このタイトルのジャンルとテーマの両方のタグが必要です。",
+        "communityReviews": "コミュニティレビュー",
+        "reviewsFrom": "レビュー元",
+        "noReviews": "コミュニティレビューはまだありません。MyAnimeListで最初のレビューを書きましょう！",
+        "positive": "ポジティブ",
+        "neutral": "中立",
+        "negative": "ネガティブ",
+        "readMore": "続きを読む",
+        "showLess": "表示を減らす"
+    },
+    "metrics": {
+        "categories": {
+            "watchExperience": {
+                "title": "視聴体験",
+                "description": "カジュアル視聴者向け"
+            },
+            "completionOutlook": {
+                "完走見通し": "For completionists",
+                "description": "完走志向の方へ"
+            },
+            "qualityAnalysis": {
+                "title": "品質分析",
+                "description": "愛好家向け"
+            },
+            "riskFactors": {
+                "title": "リスク要因",
+                "description": "正直な評価"
+            }
+        },
+        "retentionScore": {
+            "title": "リテンションスコア (0-100)",
+            "shortLabel": "リテンション",
+            "label": "リテンションスコア",
+            "shortDesc": "視聴者がシリーズ全体を見続ける一貫性",
+            "fullDesc": "脱落せずにシリーズ全体を最後まで見る可能性を測定。視聴者の行動のエピソードごとの分析に基づく。",
+            "scale": {
+                "exceptional": {
+                    "label": "卓越",
+                    "desc": "脱落が稀で、非常に魅力的"
+                },
+                "great": {
+                    "label": "優秀",
+                    "desc": "ほとんどの視聴者が完走"
+                },
+                "good": {
+                    "label": "良好",
+                    "desc": "小さな弱点がある"
+                },
+                "mixed": {
+                    "label": "混在",
+                    "desc": "品質の変動が目立つ"
+                },
+                "poor": {
+                    "label": "不良",
+                    "desc": "高い脱落リスク"
+                }
+            }
+        },
+        "satisfactionScore": {
+            "title": "満足度スコア (MAL)",
+            "label": "満足度 (MAL)",
+            "shortDesc": "MyAnimeListのコミュニティ評価",
+            "fullDesc": "MyAnimeListコミュニティからの全体的な品質評価。視聴者がアニメ全体をどれだけ楽しんだかを表す。",
+            "scale": {
+                "masterpiece": {
+                    "label": "傑作",
+                    "desc": "世界的に絶賛"
+                },
+                "excellent": {
+                    "label": "優秀",
+                    "desc": "強くおすすめ"
+                },
+                "good": {
+                    "label": "良好",
+                    "desc": "見る価値あり"
+                },
+                "decent": {
+                    "label": "まあまあ",
+                    "desc": "価値はある"
+                },
+                "mixed": {
+                    "label": "混在",
+                    "desc": "賛否両論または欠陥あり"
+                }
+            }
+        }
+    },
+    "onboarding": {
+        "welcome": {
+            "title": "Rekonimeへようこそ",
+            "description": "最後まで見られるアニメを見つけよう。私たちは視聴パターンを分析して、最初から最後まで魅力的な作品をおすすめします。",
+            "retention": "リテンションスコアは完走を予測",
+            "satisfaction": "MALコミュニティからの満足度",
+            "filtering": "気分とジャンルによるスマートフィルタリング",
+            "takeTour": "簡単なツアーに参加",
+            "startExploring": "探索を始める"
+        },
+        "retention": {
+            "title": "リテンションスコアについて",
+            "description": "私たちの特徴的な指標：脱落せずに視聴者がシリーズ全体を見続ける一貫性を測定する0-100のスケール。",
+            "highRetention": "高リテンション",
+            "highRetentionDesc": "ほとんどの視聴者がシリーズ全体を完走",
+            "lowRetention": "低リテンション",
+            "lowRetentionDesc": "多くの視聴者が早期に脱落",
+            "next": "次：満足度スコア"
+        },
+        "satisfaction": {
+            "title": "満足度について",
+            "description": "世界最大のアニメデータベースであるMyAnimeList（MAL）のコミュニティ評価。これは全体的な品質と楽しさを表す。",
+            "twoScoresTitle": "なぜ2つのスコアが重要か：",
+            "retentionLabel": "リテンション",
+            "retentionDesc": "一貫性 — 最後まで見られるか？",
+            "satisfactionLabel": "満足度",
+            "satisfactionDesc": "品質 — 実際に良い作品か？",
+            "next": "次：アニメを見つける"
+        },
+        "discovery": {
+            "title": "次の視聴作品を見つける",
+            "description": "強力なフィルタリングとスマートな推薦で、気分に合ったアニメを発見。",
+            "smartSearch": "スマート検索",
+            "smartSearchDesc": "英語、日本語、ローマ字のタイトルで検索",
+            "filters": "ジャンルとテーマフィルター",
+            "filtersDesc": "組み合わせて自分の気分に合わせる",
+            "bookmarks": "ブックマーク",
+            "bookmarksDesc": "気になるタイトルを後で見るために保存",
+            "start": "探索を始める",
+            "restart": "ツアーを再開"
+        }
+    },
+    "keyboardShortcuts": {
+        "title": "キーボードショートカット",
+        "global": "グローバルショートカット",
+        "detailModal": "アニメ詳細表示時",
+        "tip": "ヒント：検索またはフィルターフィールドに入力している時を除き、これらのショートカットはサイト全体で機能します。",
+        "shortcuts": {
+            "showHelp": "キーボードショートカットを表示",
+            "focusSearch": "検索ボックスにフォーカス",
+            "closeModal": "モーダルまたはドロップダウンを閉じる",
+            "goToBookmarks": "ブックマークページへ",
+            "openFilters": "フィルターパネルを開く",
+            "toggleSettings": "設定を開く",
+            "surpriseMe": "おまかせ（ランダムアニメ）",
+            "goHome": "ホームへ / フィルターをクリア",
+            "previousAnime": "前のアニメ",
+            "nextAnime": "次のアニメ"
+        }
+    },
+    "offline": {
+        "indicator": "オフラインです。一部の機能が制限される可能性があります。",
+        "features": {
+            "browse": "閲覧",
+            "search": "検索",
+            "details": "詳細",
+            "reviews": "レビュー"
+        }
+    },
+    "update": {
+        "available": "アップデートが利用可能です！最新バージョンを取得するには更新してください。",
+        "updateNow": "今すぐ更新"
+    },
+    "discoveryGarden": {
+        "title": "次の旅を発見しよう",
+        "subtitle": "桜の花のように、素晴らしいアニメの瞬間は儚いけれど忘れられないもの。次のお気に入りの物語を見つけるお手伝いをします。",
+        "twoNumbers": {
+            "title": "2つの数字が重要",
+            "description": "リテンション = 一貫性。満足度 = 品質。",
+            "cta": "詳しく知る"
+        },
+        "filterByMood": {
+            "title": "気分でフィルター",
+            "description": "ジャンルとテーマのチップを使って自分の気分に合わせる。",
+            "cta": "フィルターを試す"
+        }
+    },
+    "rankings": {
+        "topRetention": "トップリテンション",
+        "highestSatisfaction": "最高満足度 (MAL)",
+        "noMatch": "フィルターに一致するアニメがありません",
+        "retentionLabel": "リテンションスコア",
+        "satisfactionLabel": "満足度スコア (MAL)",
+        "avgScoreLabel": "平均スコア"
+    },
+    "filterPresets": {
+        "bingeWorthy": {
+            "label": "一気見向け",
+            "description": "高いフロー状態、低いストレススパイク"
+        },
+        "criticalDarlings": {
+            "label": "批評家絶賛",
+            "description": "MALでの最高満足度スコア"
+        },
+        "hiddenGems": {
+            "label": "隠れた名作",
+            "description": "高リテンション、低いMALスコア"
+        },
+        "easyWatches": {
+            "label": "見やすい作品",
+            "description": "入りやすく、快適"
+        },
+        "strongStarters": {
+            "label": "強いスタート",
+            "description": "最初の3エピソードで引き込む"
+        },
+        "greatEndings": {
+            "label": "素晴らしい結末",
+            "description": "最後まで良い着地"
+        }
+    },
+    "stats": {
+        "consistency": {
+            "veryConsistent": "非常に一貫している",
+            "consistent": "一貫している",
+            "variable": "変動あり"
+        },
+        "churnRisk": {
+            "low": "低リスク",
+            "moderate": "中程度のリスク",
+            "high": "高リスク",
+            "critical": "重大な脱落リスク"
+        },
+        "slumpFactor": "スランプ（2連続以上の弱いエピソード）",
+        "poorRecent": "最近のエピソードが悪い（最後の2話が基準以下）",
+        "belowPeak": "全体的な品質がピーク基準以下",
+        "scoreOutOf": "{{score}}/5",
+        "episodes": "{{count}}話"
+    },
+    "themes": {
+        "dark": "ダーク",
+        "light": "ライト",
+        "auto": "自動"
+    },
+    "seasons": {
+        "winter": "冬",
+        "spring": "春",
+        "summer": "夏",
+        "fall": "秋"
+    },
+    "dates": {
+        "today": "今日",
+        "yesterday": "昨日",
+        "daysAgo": "{{count}}日前",
+        "weeksAgo": "{{count}}週間前"
+    },
+    "seasonal": {
+        "thisSeason": "今期",
+        "lastSeason": "前期",
+        "nextSeason": "来期"
+    },
+    "common": {
+        "close": "閉じる",
+        "goBack": "戻る",
+        "clear": "クリア",
+        "apply": "適用",
+        "loading": "読み込み中...",
+        "unknown": "不明",
+        "notAvailable": "N/A",
+        "none": "なし",
+        "mal": "MAL",
+        "help": "ヘルプ",
+        "surpriseMe": "おまかせ",
+        "filters": "フィルター",
+        "retry": "再試行",
+        "cancel": "キャンセル",
+        "save": "保存",
+        "back": "戻る",
+        "next": "次へ",
+        "done": "完了"
+    },
+    "navigation": {
+        "home": "ホーム",
+        "catalog": "カタログ",
+        "bookmarks": "ブックマーク",
+        "settings": "設定"
+    }
+}

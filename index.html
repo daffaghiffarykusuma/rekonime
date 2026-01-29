@@ -52,37 +52,41 @@
       </a>
       <div class="header-controls">
         <div class="header-search-wrapper">
-          <input type="text" id="header-search" class="header-search-input" placeholder="Search anime..."
-            aria-label="Search anime" aria-autocomplete="list" aria-expanded="false"
-            aria-controls="header-search-dropdown" role="combobox" autocomplete="off">
+          <input type="text" id="header-search" class="header-search-input" data-i18n-placeholder="search.placeholder"
+            data-i18n-aria-label="search.placeholder" placeholder="Search anime..." aria-label="Search anime"
+            aria-autocomplete="list" aria-expanded="false" aria-controls="header-search-dropdown" role="combobox"
+            autocomplete="off">
           <div class="header-search-dropdown" id="header-search-dropdown" role="listbox" aria-label="Search results">
             <!-- Search results populated by JS -->
           </div>
         </div>
         <button class="btn btn-sm btn-primary surprise-btn" id="surprise-toggle" type="button"
-          aria-label="Surprise me with a random anime" title="Surprise Me">
+          data-i18n-aria-label="common.surpriseMe" aria-label="Surprise me with a random anime" title="Surprise Me">
           <span class="surprise-icon" aria-hidden="true">🎲</span>
-          <span class="surprise-label">Surprise Me</span>
+          <span class="surprise-label" data-i18n="common.surpriseMe">Surprise Me</span>
         </button>
         <div class="header-sort">
-          <label class="sort-label" for="sort-select">Sort</label>
+          <label class="sort-label" for="sort-select" data-i18n="sort.label">Sort</label>
           <div class="select-wrapper sort-select-wrapper">
-            <select id="sort-select" class="sort-select" aria-label="Sort anime"></select>
+            <select id="sort-select" class="sort-select" data-i18n-aria-label="sort.label"
+              aria-label="Sort anime"></select>
           </div>
         </div>
         <div class="header-actions">
           <button class="btn btn-sm btn-outline help-btn" id="help-toggle" type="button" aria-label="Open help and tour"
             title="Help & Tour">
             <span class="help-icon" aria-hidden="true">?</span>
-            <span class="help-label">Help</span>
+            <span class="help-label" data-i18n="common.help">Help</span>
           </button>
-          <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Filters</button>
-          <a class="btn btn-sm btn-outline bookmarks-link" href="bookmarks.html" aria-label="View bookmarks">Bookmarks
-            &#9733;</a>
+          <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button"
+            data-i18n="common.filters">Filters</button>
+          <a class="btn btn-sm btn-outline bookmarks-link" href="bookmarks.html" data-i18n-aria-label="bookmarks.view"
+            aria-label="View bookmarks">
+            <span data-i18n="navigation.bookmarks">Bookmarks</span> &#9733;</a>
           <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button"
-            aria-label="Open settings" title="Settings">
+            data-i18n-aria-label="navigation.settings" aria-label="Open settings" title="Settings">
             <span class="settings-icon" aria-hidden="true">&#9881;</span>
-            <span class="settings-label">Settings</span>
+            <span class="settings-label" data-i18n="navigation.settings">Settings</span>
           </button>
         </div>
       </div>
@@ -90,11 +94,11 @@
 
     <div class="active-filters" id="active-filters">
       <div class="active-filters-content">
-        <span class="active-filters-label" id="active-filters-label">Active filters</span>
+        <span class="active-filters-label" id="active-filters-label" data-i18n="filters.active">Active filters</span>
         <div class="active-filters-list" id="active-filters-list"></div>
       </div>
-      <button class="btn btn-sm btn-outline active-filters-clear" id="active-filters-clear" type="button">Clear
-        filters</button>
+      <button class="btn btn-sm btn-outline active-filters-clear" id="active-filters-clear" type="button"
+        data-i18n="filters.clearAll">Clear All</button>
     </div>
 
     <div class="discovery-garden" id="discovery-garden">
@@ -106,23 +110,25 @@
         <span class="floating-petal petal-5">🌸</span>
       </div>
       <div class="discovery-garden-content">
-        <h3 class="discovery-title">Discover Your Next Journey</h3>
-        <p class="discovery-subtitle">
+        <h3 class="discovery-title" data-i18n="discoveryGarden.title">Discover Your Next Journey</h3>
+        <p class="discovery-subtitle" data-i18n="discoveryGarden.subtitle">
           Like cherry blossoms, great anime moments are fleeting but unforgettable.
           Let us help you find your next favorite story.
         </p>
         <div class="discovery-tips">
           <div class="tip-card">
             <span class="tip-icon">📊</span>
-            <h4>Two Numbers Matter</h4>
-            <p>Retention = consistency. Satisfaction = quality.</p>
-            <button class="tip-cta" data-action="learn-scores">Learn more</button>
+            <h4 data-i18n="discoveryGarden.twoNumbers.title">Two Numbers Matter</h4>
+            <p data-i18n="discoveryGarden.twoNumbers.description">Retention = consistency. Satisfaction = quality.</p>
+            <button class="tip-cta" data-action="learn-scores" data-i18n="discoveryGarden.twoNumbers.cta">Learn
+              more</button>
           </div>
           <div class="tip-card">
             <span class="tip-icon">🎭</span>
-            <h4>Filter by Mood</h4>
-            <p>Use Genre and Theme chips to find your vibe.</p>
-            <button class="tip-cta" data-action="scroll-to-filters">Try filters</button>
+            <h4 data-i18n="discoveryGarden.filterByMood.title">Filter by Mood</h4>
+            <p data-i18n="discoveryGarden.filterByMood.description">Use Genre and Theme chips to find your vibe.</p>
+            <button class="tip-cta" data-action="scroll-to-filters" data-i18n="discoveryGarden.filterByMood.cta">Try
+              filters</button>
           </div>
         </div>
       </div>
@@ -131,9 +137,9 @@
     <div class="quick-filters" id="quick-filters">
       <div class="quick-filters-tabs" role="tablist" aria-label="Quick filters">
         <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" aria-selected="true"
-          aria-controls="genre-chips">Genre</button>
+          aria-controls="genre-chips" data-i18n="filters.genres">Genre</button>
         <button class="quick-tab" type="button" data-action="quick-tab" data-tab="themes" aria-selected="false"
-          aria-controls="theme-chips">Theme</button>
+          aria-controls="theme-chips" data-i18n="filters.themes">Theme</button>
       </div>
       <div class="quick-filters-panel">
         <div class="quick-filters-track is-active" id="genre-chips" data-filter-group="genres" data-label="Genre">
@@ -146,7 +152,7 @@
     </div>
 
     <div class="seasonal-filters" id="seasonal-filters">
-      <div class="seasonal-filters-label">Seasonal:</div>
+      <div class="seasonal-filters-label" data-i18n="filters.season">Season:</div>
       <div class="seasonal-chips" id="seasonal-chips">
         <!-- Populated by JS -->
       </div>
@@ -155,18 +161,19 @@
     <section class="recommendations-section" id="recommendations-section">
       <div class="recommendations-header">
         <div>
-          <h2>Recommended for you</h2>
-          <p class="section-subtitle" id="recommendations-context">
+          <h2 data-i18n="recommendations.title">Recommended for you</h2>
+          <p class="section-subtitle" id="recommendations-context" data-i18n="recommendations.context">
             Top picks with high Retention Scores (you'll finish them) and solid MAL Satisfaction (they're actually
             good).
           </p>
         </div>
-        <button class="help-link" data-action="explain-recommendations" aria-label="How we pick recommendations">
-          <span>How we pick these</span>
+        <button class="help-link" data-action="explain-recommendations" data-i18n-aria-label="recommendations.howWePick"
+          aria-label="How we pick recommendations">
+          <span data-i18n="recommendations.howWePick">How we pick these</span>
         </button>
       </div>
       <div class="recommendation-modes" id="recommendation-modes">
-        <span class="modes-label">Discover by:</span>
+        <span class="modes-label" data-i18n="recommendations.discoverBy">Discover by:</span>
         <div class="mode-chips" id="mode-chips">
           <!-- Populated by JS -->
         </div>
@@ -196,13 +203,13 @@
     <section class="trending-section" id="trending-section">
       <div class="trending-header">
         <div class="trending-title-group">
-          <h2>🔥 Trending Now</h2>
+          <h2>🔥 <span data-i18n="trending.title">Trending Now</span></h2>
           <span class="trending-live-indicator">
             <span class="live-dot"></span>
-            Live
+            <span data-i18n="trending.live">Live</span>
           </span>
         </div>
-        <p class="section-subtitle">What's getting attention this week</p>
+        <p class="section-subtitle" data-i18n="trending.subtitle">What's getting attention this week</p>
       </div>
       <div class="trending-grid" id="trending-grid">
         <!-- Populated by JS -->
@@ -211,13 +218,13 @@
 
     <section class="rankings-section" id="rankings-section">
       <div class="ranking-card" id="ranking-card-1">
-        <h3 id="ranking-title-1">Top Retention</h3>
+        <h3 id="ranking-title-1" data-i18n="rankings.topRetention">Top Retention</h3>
         <div id="best-ranking-1">
           <div class="skeleton-card skeleton-ranking"></div>
         </div>
       </div>
       <div class="ranking-card" id="ranking-card-2">
-        <h3 id="ranking-title-2">Highest Satisfaction (MAL)</h3>
+        <h3 id="ranking-title-2" data-i18n="rankings.highestSatisfaction">Highest Satisfaction (MAL)</h3>
         <div id="best-ranking-2">
           <div class="skeleton-card skeleton-ranking"></div>
         </div>
@@ -227,8 +234,9 @@
     <section class="grid-section" id="catalog-section">
       <div class="section-header">
         <div>
-          <h2>Browse the catalog</h2>
-          <p class="section-subtitle">Explore all titles, sorted by what matters to you.</p>
+          <h2 data-i18n="catalog.title">Browse the catalog</h2>
+          <p class="section-subtitle" data-i18n="catalog.subtitle">Explore all titles, sorted by what matters to you.
+          </p>
         </div>
       </div>
       <div class="anime-grid" id="anime-grid">
@@ -248,8 +256,9 @@
     </section>
   </div>
 
-  <button class="filter-fab" id="filter-fab" type="button" data-action="scroll-to-filters" aria-label="Jump to filters">
-    Filters ↑
+  <button class="filter-fab" id="filter-fab" type="button" data-action="scroll-to-filters"
+    data-i18n-aria-label="common.filters" aria-label="Jump to filters">
+    <span data-i18n="common.filters">Filters</span> ↑
   </button>
 
   <div class="modal-overlay filter-modal-overlay" id="filter-modal" aria-hidden="true">
@@ -257,18 +266,21 @@
       tabindex="-1">
       <div class="filter-modal-header">
         <div>
-          <h2 class="filter-modal-title" id="filter-modal-title">Find your next watch</h2>
-          <p class="filter-modal-subtitle">Mix and match to narrow down what you're in the mood for.</p>
+          <h2 class="filter-modal-title" id="filter-modal-title" data-i18n="filters.title">Find your next watch</h2>
+          <p class="filter-modal-subtitle" data-i18n="filters.subtitle">Mix and match to narrow down what you're in the
+            mood for.</p>
         </div>
-        <button class="modal-close" id="close-filter-modal" type="button" aria-label="Close filters">&times;</button>
+        <button class="modal-close" id="close-filter-modal" type="button" data-i18n-aria-label="common.close"
+          aria-label="Close filters">&times;</button>
       </div>
       <div class="filter-modal-body">
         <div class="filter-sections" id="filter-sections">
           <!-- Populated by JS -->
         </div>
         <div class="filter-modal-actions">
-          <button class="btn btn-clear" id="clear-filters" type="button">Clear All</button>
-          <button class="btn btn-primary" id="apply-filters" type="button">Apply Filters</button>
+          <button class="btn btn-clear" id="clear-filters" type="button" data-i18n="filters.clearAll">Clear All</button>
+          <button class="btn btn-primary" id="apply-filters" type="button" data-i18n="filters.apply">Apply
+            Filters</button>
         </div>
       </div>
     </div>
@@ -277,11 +289,12 @@
   <div class="modal-overlay settings-modal-overlay" id="settings-modal" aria-hidden="true">
     <div class="modal-content settings-modal-content" role="dialog" aria-modal="true"
       aria-labelledby="settings-modal-title" tabindex="-1">
-      <button class="modal-close" id="close-settings" type="button" aria-label="Close settings">&times;</button>
+      <button class="modal-close" id="close-settings" type="button" data-i18n-aria-label="common.close"
+        aria-label="Close settings">&times;</button>
       <div class="settings-modal-body">
         <div class="settings-modal-header">
-          <h2 class="settings-modal-title" id="settings-modal-title">Settings</h2>
-          <p class="settings-modal-subtitle">Adjust playback and data usage.</p>
+          <h2 class="settings-modal-title" id="settings-modal-title" data-i18n="settings.title">Settings</h2>
+          <p class="settings-modal-subtitle" data-i18n="settings.subtitle">Adjust playback and data usage.</p>
         </div>
         <div id="settings-content"></div>
       </div>
@@ -292,7 +305,8 @@
   <!-- Detail Modal -->
   <div class="modal-overlay" id="detail-modal" aria-hidden="true">
     <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" tabindex="-1">
-      <button class="modal-close" id="close-detail" type="button" aria-label="Close details">&times;</button>
+      <button class="modal-close" id="close-detail" type="button" data-i18n-aria-label="common.close"
+        aria-label="Close details">&times;</button>
       <div class="modal-body" id="detail-content">
         <!-- Populated by JS -->
       </div>
@@ -302,7 +316,8 @@
   <!-- Metric Help Modal -->
   <div class="modal-overlay metric-help-overlay" id="metric-help-modal" aria-hidden="true">
     <div class="modal-content metric-help-content" role="dialog" aria-modal="true" aria-labelledby="metric-help-title">
-      <button class="modal-close" id="close-metric-help" type="button" aria-label="Close help">&times;</button>
+      <button class="modal-close" id="close-metric-help" type="button" data-i18n-aria-label="common.close"
+        aria-label="Close help">&times;</button>
       <div class="metric-help-body" id="metric-help-body">
         <!-- Populated by JS -->
       </div>
@@ -312,19 +327,20 @@
   <!-- Offline Indicator -->
   <div class="offline-indicator" id="offline-indicator" role="status" aria-live="polite" aria-hidden="true">
     <span class="offline-icon" aria-hidden="true">📡</span>
-    <span class="offline-text">You're offline. Some features may be limited.</span>
+    <span class="offline-text" data-i18n="offline.indicator">You're offline. Some features may be limited.</span>
   </div>
 
   <!-- Update Notification -->
   <div class="update-notification" id="update-notification" role="alert" aria-live="polite" aria-hidden="true">
     <span class="update-icon" aria-hidden="true">✨</span>
-    <span class="update-text">Update available! Refresh to get the latest version.</span>
-    <button class="update-btn" id="update-btn" type="button">Update Now</button>
-    <button class="update-dismiss" id="update-dismiss" type="button"
+    <span class="update-text" data-i18n="update.available">Update available! Refresh to get the latest version.</span>
+    <button class="update-btn" id="update-btn" type="button" data-i18n="update.updateNow">Update Now</button>
+    <button class="update-dismiss" id="update-dismiss" type="button" data-i18n-aria-label="common.close"
       aria-label="Dismiss update notification">&times;</button>
   </div>
 
   <!-- Scripts -->
+  <script src="js/i18n.js" defer></script>
   <script src="js/stats.js" defer></script>
   <script src="js/recommendations.js" defer></script>
   <script src="js/discovery.js" defer></script>

@@ -1,0 +1,502 @@
+{
+    "meta": {
+        "siteName": "Rekonime",
+        "tagline": "Find Anime You'll Actually Finish",
+        "description": "Discover anime worth your time. Rekonime uses Retention and Satisfaction scores to find shows that stay engaging from start to finish."
+    },
+    "errors": {
+        "catalogLoadFailed": "We couldn't load the catalog. Try refreshing - if it persists, the data might be updating.",
+        "animeNotFound": "Anime Not Found",
+        "animeNotFoundDesc": "We couldn't find the anime you're looking for.",
+        "reviews": {
+            "rateLimited": "Rate limited by MyAnimeList. Please wait a moment and try again.",
+            "loadFailed": "Failed to load reviews from MyAnimeList.",
+            "retryFailed": "Retry failed"
+        },
+        "generic": "Something went wrong. Please try again."
+    },
+    "search": {
+        "placeholder": "Search anime...",
+        "noResults": "No matches yet.",
+        "noResultsHint": "Try English title or a shorter query.",
+        "tipEnglish": "Try English title",
+        "tipShorter": "Shorter query"
+    },
+    "filters": {
+        "title": "Find your next watch",
+        "subtitle": "Mix and match to narrow down what you're in the mood for.",
+        "clearAll": "Clear All",
+        "apply": "Apply Filters",
+        "active": "Active filters",
+        "activeCount": "Active filters ({{count}})",
+        "genres": "Genre",
+        "themes": "Theme",
+        "demographic": "Demographic",
+        "season": "Season",
+        "year": "Year",
+        "studio": "Studios",
+        "source": "Source",
+        "showMore": "Show {{count}} more",
+        "showLess": "Show less",
+        "all": "All"
+    },
+    "sort": {
+        "label": "Sort",
+        "retention": "Sort by: Retention Score",
+        "satisfaction": "Sort by: Satisfaction Score (MAL)",
+        "default": "Default"
+    },
+    "bookmarks": {
+        "add": "Add bookmark",
+        "remove": "Remove bookmark",
+        "view": "View bookmarks",
+        "empty": "No bookmarks yet",
+        "saved": "Saved",
+        "pageTitle": "Your Bookmarks"
+    },
+    "settings": {
+        "title": "Settings",
+        "subtitle": "Adjust playback and data usage.",
+        "playback": {
+            "title": "Playback",
+            "trailerAutoplay": "Trailer autoplay",
+            "trailerAutoplayDesc": "Auto-starts trailers as you scroll. Default on desktop, off on mobile. When off, you can still press play.",
+            "dataSaver": "Data saver",
+            "dataSaverDesc": "Disables embedded trailers to save bandwidth. You will miss inline video previews and need to open YouTube."
+        },
+        "accessibility": {
+            "title": "Accessibility",
+            "reducedMotion": "Reduced motion",
+            "reducedMotionDesc": "Disables animations, particle effects, and transitions for a calmer experience.",
+            "highContrast": "High contrast",
+            "highContrastDesc": "Increases contrast for better visibility. Uses stronger borders and removes shadows.",
+            "largeText": "Large text",
+            "largeTextDesc": "Increases base font size for better readability."
+        },
+        "language": {
+            "title": "Language"
+        },
+        "keyboardShortcuts": "Keyboard shortcuts",
+        "keyboardShortcutsDesc": "Press {{key}} anytime to see all keyboard shortcuts"
+    },
+    "recommendations": {
+        "title": "Recommended for you",
+        "noRecommendations": "No recommendations available",
+        "context": "Top picks with high Retention Scores (you'll finish them) and solid MAL Satisfaction (they're actually good).",
+        "howWePick": "How we pick these",
+        "discoverBy": "Discover by:",
+        "help": {
+            "title": "How We Pick Recommendations",
+            "intro": "Our recommendation algorithm balances two key factors:",
+            "retention": {
+                "title": "Retention Score (60%)",
+                "description": "How likely you are to finish the series. Based on watch-through patterns."
+            },
+            "satisfaction": {
+                "title": "Satisfaction Score (40%)",
+                "description": "Community rating from MyAnimeList. Represents overall quality."
+            },
+            "note": "This combination helps find anime that's both engaging and high-quality."
+        },
+        "modes": {
+            "balanced": {
+                "label": "Balanced",
+                "description": "Best of both worlds",
+                "context": "Retention-first picks blended with MAL satisfaction for more dependable recommendations."
+            },
+            "binge": {
+                "label": "Binge Mode",
+                "description": "High retention, hard to stop watching",
+                "context": "Shows that are hard to stop watching - high flow state and strong hooks."
+            },
+            "quality": {
+                "label": "Critical Acclaim",
+                "description": "Highest community ratings",
+                "context": "Top-rated by the community - focus on critical acclaim and satisfaction."
+            },
+            "discovery": {
+                "label": "Hidden Gems",
+                "description": "High retention, lower popularity",
+                "context": "Hidden gems with high retention but lower mainstream popularity."
+            },
+            "comfort": {
+                "label": "Comfort Shows",
+                "description": "Easy to watch, low stress",
+                "context": "Easy, stress-free shows perfect for relaxing and unwinding."
+            }
+        },
+        "badges": {
+            "keepsYouHooked": "Keeps You Hooked",
+            "fanFavorite": "Fan Favorite",
+            "greatFirstImpression": "Great First Impression",
+            "underratedPick": "Underrated Pick",
+            "criticalAcclaim": "Critical Acclaim",
+            "easyWatch": "Easy Watch",
+            "strongFinish": "Strong Finish"
+        },
+        "reasons": {
+            "lovedByCommunity": "Loved by the community",
+            "newEntry": "New entry, check back soon",
+            "hardToPutDown": "Hard to put down",
+            "viewersStickAround": "Viewers stick around",
+            "hooksYouEarly": "Hooks you early",
+            "worthTheFinale": "Worth the finale",
+            "smoothPacing": "Smooth pacing",
+            "communityFavorite": "Community favorite",
+            "reliablePick": "Reliable pick",
+            "criticalAcclaim": "Critical acclaim",
+            "relaxingWatch": "Relaxing watch",
+            "hiddenGem": "Hidden gem"
+        }
+    },
+    "trending": {
+        "title": "Trending Now",
+        "live": "Live",
+        "subtitle": "What's getting attention this week"
+    },
+    "catalog": {
+        "title": "Browse the catalog",
+        "subtitle": "Explore all titles, sorted by what matters to you.",
+        "loadMore": "Load More ({{count}} remaining)",
+        "noResults": {
+            "title": "No matches yet",
+            "description": "Try removing a filter or two—there might be a hidden gem waiting."
+        }
+    },
+    "detail": {
+        "notFound": {
+            "title": "Anime Not Found",
+            "description": "We couldn't find the anime you're looking for.",
+            "descriptionDeepLink": "We couldn't find the anime you're looking for. It may have been removed or the ID is incorrect."
+        },
+        "altTitles": {
+            "english": "English",
+            "japanese": "Japanese"
+        },
+        "retentionScore": "Retention Score",
+        "retentionScoreTooltip": "How consistently people keep watching across episodes. Factors in strong starts, low drop-off, and steady pacing.",
+        "satisfactionScore": "Satisfaction (MAL)",
+        "satisfactionScoreTooltip": "Community rating from MyAnimeList.",
+        "episodes": "Episodes",
+        "whyItSticks": "Why it sticks",
+        "startStayFinish": "Start, stay, finish",
+        "strongStart": "Strong start",
+        "strongStartTooltip": "How compelling the first 3 episodes are. High scores mean the show hooks viewers early.",
+        "keepsYouWatching": "Keeps you watching",
+        "keepsYouWatchingTooltip": "Low drop-off probability. Measures how likely viewers are to continue without losing interest.",
+        "finishPayoff": "Finish payoff",
+        "finishPayoffTooltip": "How well the show sticks the landing. Combines finale strength, momentum, and narrative build-up.",
+        "breakdown": {
+            "title": "Why it sticks",
+            "subtitle": "Start, stay, finish",
+            "noData": "No episode scores yet. Retention appears once episode scores are available.",
+            "strongStart": {
+                "label": "Strong start",
+                "tooltipTitle": "Strong Start",
+                "tooltipText": "How compelling the first 3 episodes are. High scores mean the show hooks viewers early."
+            },
+            "keepsWatching": {
+                "label": "Keeps you watching",
+                "tooltipTitle": "Keeps You Watching",
+                "tooltipText": "Low drop-off probability. Measures how likely viewers are to continue without losing interest."
+            },
+            "finishPayoff": {
+                "label": "Finish payoff",
+                "tooltipTitle": "Finish Payoff",
+                "tooltipText": "How well the show sticks the landing. Combines finale strength, momentum, and narrative build-up."
+            }
+        },
+        "synopsis": "Synopsis",
+        "trailer": {
+            "title": "Trailer",
+            "for": "Trailer for",
+            "defaultTitle": "Anime trailer",
+            "watchOnYoutube": "Watch on YouTube",
+            "dataSaverNotice": "Data Saver is on, so the embedded trailer is hidden."
+        },
+        "similar": {
+            "title": "Similar Anime",
+            "subtitle": "Shared genre + theme, aligned retention and satisfaction",
+            "empty": {
+                "canMatch": "No similar anime found yet.",
+                "needsTags": "Similar anime needs both genre and theme tags for this title."
+            }
+        },
+        "similarAnime": "Similar Anime",
+        "similarAnimeNote": "Shared genre + theme, aligned retention and satisfaction",
+        "noSimilarFound": "No similar anime found yet.",
+        "similarNeedsTags": "Similar anime needs both genre and theme tags for this title.",
+        "communityReviews": "Community Reviews",
+        "reviewsFrom": "Reviews from",
+        "noReviews": "No community reviews yet—be the first on MyAnimeList!",
+        "positive": "Positive",
+        "neutral": "Neutral",
+        "negative": "Negative",
+        "readMore": "Read more",
+        "showLess": "Show less"
+    },
+    "metrics": {
+        "categories": {
+            "watchExperience": {
+                "title": "Watch Experience",
+                "description": "For casual viewers"
+            },
+            "completionOutlook": {
+                "title": "Completion Outlook",
+                "description": "For completionists"
+            },
+            "qualityAnalysis": {
+                "title": "Quality Analysis",
+                "description": "For enthusiasts"
+            },
+            "riskFactors": {
+                "title": "Risk Factors",
+                "description": "Honest assessment"
+            }
+        },
+        "retentionScore": {
+            "title": "Retention Score (0-100)",
+            "shortLabel": "Retention",
+            "label": "Retention Score",
+            "shortDesc": "How consistently viewers watch through the entire series",
+            "fullDesc": "Measures how likely you are to finish the entire series without dropping off. Based on episode-by-episode analysis of viewer behavior.",
+            "scale": {
+                "exceptional": {
+                    "label": "Exceptional",
+                    "desc": "Rare drop-offs, highly engaging"
+                },
+                "great": {
+                    "label": "Great",
+                    "desc": "Most viewers finish"
+                },
+                "good": {
+                    "label": "Good",
+                    "desc": "Minor weak points"
+                },
+                "mixed": {
+                    "label": "Mixed",
+                    "desc": "Notable quality swings"
+                },
+                "poor": {
+                    "label": "Poor",
+                    "desc": "High drop-off risk"
+                }
+            }
+        },
+        "satisfactionScore": {
+            "title": "Satisfaction Score (MAL)",
+            "label": "Satisfaction (MAL)",
+            "shortDesc": "Community rating from MyAnimeList",
+            "fullDesc": "Overall quality rating from the MyAnimeList community. Represents how much viewers enjoyed the anime overall.",
+            "scale": {
+                "masterpiece": {
+                    "label": "Masterpiece",
+                    "desc": "Universally acclaimed"
+                },
+                "excellent": {
+                    "label": "Excellent",
+                    "desc": "Highly recommended"
+                },
+                "good": {
+                    "label": "Good",
+                    "desc": "Worth watching"
+                },
+                "decent": {
+                    "label": "Decent",
+                    "desc": "Has merit"
+                },
+                "mixed": {
+                    "label": "Mixed",
+                    "desc": "Divisive or flawed"
+                }
+            }
+        }
+    },
+    "onboarding": {
+        "welcome": {
+            "title": "Welcome to Rekonime",
+            "description": "Find anime you'll actually finish. We analyze watch-through patterns to recommend shows that stay engaging from start to finish.",
+            "retention": "Retention Scores predict completion",
+            "satisfaction": "Satisfaction from MAL community",
+            "filtering": "Smart filtering by mood & genre",
+            "takeTour": "Take a quick tour",
+            "startExploring": "Start exploring"
+        },
+        "retention": {
+            "title": "Understanding Retention Score",
+            "description": "Our signature metric: a 0-100 scale measuring how consistently viewers watch through an entire series without dropping off.",
+            "highRetention": "High retention",
+            "highRetentionDesc": "Most viewers finish the whole series",
+            "lowRetention": "Low retention",
+            "lowRetentionDesc": "Many viewers drop off early",
+            "next": "Next: Satisfaction Score"
+        },
+        "satisfaction": {
+            "title": "Understanding Satisfaction",
+            "description": "Community ratings from MyAnimeList (MAL), the world's largest anime database. This represents overall quality and enjoyment.",
+            "twoScoresTitle": "Why two scores matter:",
+            "retentionLabel": "Retention",
+            "retentionDesc": "Consistency — will you finish?",
+            "satisfactionLabel": "Satisfaction",
+            "satisfactionDesc": "Quality — is it actually good?",
+            "next": "Next: Finding Anime"
+        },
+        "discovery": {
+            "title": "Finding Your Next Watch",
+            "description": "Discover anime that matches your mood with powerful filtering and smart recommendations.",
+            "smartSearch": "Smart Search",
+            "smartSearchDesc": "Find by English, Japanese, or romaji titles",
+            "filters": "Genre & Theme Filters",
+            "filtersDesc": "Mix and match to find your vibe",
+            "bookmarks": "Bookmarks",
+            "bookmarksDesc": "Save interesting titles for later",
+            "start": "Start exploring",
+            "restart": "Restart tour"
+        }
+    },
+    "keyboardShortcuts": {
+        "title": "Keyboard Shortcuts",
+        "global": "Global Shortcuts",
+        "detailModal": "When Viewing Anime Details",
+        "tip": "Tip: These shortcuts work anywhere on the site, except when typing in search or filter fields.",
+        "shortcuts": {
+            "showHelp": "Show keyboard shortcuts",
+            "focusSearch": "Focus search box",
+            "closeModal": "Close modal or dropdown",
+            "goToBookmarks": "Go to bookmarks page",
+            "openFilters": "Open filter panel",
+            "toggleSettings": "Open settings",
+            "surpriseMe": "Surprise me (random anime)",
+            "goHome": "Go to home / clear filters",
+            "previousAnime": "Previous anime",
+            "nextAnime": "Next anime"
+        }
+    },
+    "offline": {
+        "indicator": "You're offline. Some features may be limited.",
+        "features": {
+            "browse": "Browse",
+            "search": "Search",
+            "details": "Details",
+            "reviews": "Reviews"
+        }
+    },
+    "update": {
+        "available": "Update available! Refresh to get the latest version.",
+        "updateNow": "Update Now"
+    },
+    "discoveryGarden": {
+        "title": "Discover Your Next Journey",
+        "subtitle": "Like cherry blossoms, great anime moments are fleeting but unforgettable. Let us help you find your next favorite story.",
+        "twoNumbers": {
+            "title": "Two Numbers Matter",
+            "description": "Retention = consistency. Satisfaction = quality.",
+            "cta": "Learn more"
+        },
+        "filterByMood": {
+            "title": "Filter by Mood",
+            "description": "Use Genre and Theme chips to find your vibe.",
+            "cta": "Try filters"
+        }
+    },
+    "rankings": {
+        "topRetention": "Top Retention",
+        "highestSatisfaction": "Highest Satisfaction (MAL)",
+        "noMatch": "No anime match filters",
+        "retentionLabel": "retention score",
+        "satisfactionLabel": "satisfaction score (MAL)",
+        "avgScoreLabel": "avg score"
+    },
+    "filterPresets": {
+        "bingeWorthy": {
+            "label": "Binge-Worthy",
+            "description": "High flow state, low stress spikes"
+        },
+        "criticalDarlings": {
+            "label": "Critical Darlings",
+            "description": "Top satisfaction scores from MAL"
+        },
+        "hiddenGems": {
+            "label": "Hidden Gems",
+            "description": "High retention, lower MAL scores"
+        },
+        "easyWatches": {
+            "label": "Easy Watches",
+            "description": "Low barrier to entry, comfortable"
+        },
+        "strongStarters": {
+            "label": "Strong Starters",
+            "description": "Hook you in the first 3 episodes"
+        },
+        "greatEndings": {
+            "label": "Great Endings",
+            "description": "Stick the landing"
+        }
+    },
+    "stats": {
+        "consistency": {
+            "veryConsistent": "Very Consistent",
+            "consistent": "Consistent",
+            "variable": "Variable"
+        },
+        "churnRisk": {
+            "low": "Low Risk",
+            "moderate": "Moderate Risk",
+            "high": "High Risk",
+            "critical": "Critical Drop-off Risk"
+        },
+        "slumpFactor": "Slump (2+ consecutive weak episodes)",
+        "poorRecent": "Poor recent episodes (last 2 below baseline)",
+        "belowPeak": "Overall quality below peak baseline",
+        "scoreOutOf": "{{score}}/5",
+        "episodes": "{{count}} episodes"
+    },
+    "themes": {
+        "dark": "Dark",
+        "light": "Light",
+        "auto": "Auto"
+    },
+    "seasons": {
+        "winter": "Winter",
+        "spring": "Spring",
+        "summer": "Summer",
+        "fall": "Fall"
+    },
+    "dates": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "daysAgo": "{{count}} days ago",
+        "weeksAgo": "{{count}} weeks ago"
+    },
+    "seasonal": {
+        "thisSeason": "This Season",
+        "lastSeason": "Last Season",
+        "nextSeason": "Next Season"
+    },
+    "common": {
+        "close": "Close",
+        "goBack": "Go Back",
+        "clear": "Clear",
+        "apply": "Apply",
+        "loading": "Loading...",
+        "unknown": "Unknown",
+        "notAvailable": "N/A",
+        "none": "None",
+        "help": "Help",
+        "surpriseMe": "Surprise Me",
+        "filters": "Filters",
+        "retry": "Retry",
+        "cancel": "Cancel",
+        "save": "Save",
+        "back": "Back",
+        "next": "Next",
+        "done": "Done",
+        "mal": "MAL"
+    },
+    "navigation": {
+        "home": "Home",
+        "catalog": "Catalog",
+        "bookmarks": "Bookmarks",
+        "settings": "Settings"
+    }
+}
