@@ -150,18 +150,14 @@ const Discovery = {
         }
 
         // Store surprise history for this session
-        const cache = this.getCache();
         try {
             const history = this.getSurpriseHistory();
             history.unshift({ animeId, timestamp: Date.now() });
 
             // Keep only last 20
             const trimmed = history.slice(0, 20);
-            if (cache) {
-                cache.setJSON('rekonime.surpriseHistory', trimmed);
-            } else {
-                localStorage.setItem('rekonime.surpriseHistory', JSON.stringify(trimmed));
-            }
+            const cache = this.getCache();
+            cache.setJSON('rekonime.surpriseHistory', trimmed, { validate: true });
         } catch (e) {
             // Ignore storage errors
         }
@@ -169,14 +165,7 @@ const Discovery = {
 
     getSurpriseHistory() {
         const cache = this.getCache();
-        if (cache) {
-            return cache.getJSON('rekonime.surpriseHistory', { fallback: [] });
-        }
-        try {
-            return JSON.parse(localStorage.getItem('rekonime.surpriseHistory') || '[]');
-        } catch {
-            return [];
-        }
+        return cache.getJSON('rekonime.surpriseHistory', { fallback: [], validate: true });
     },
 
     // ==========================================

@@ -462,15 +462,7 @@ const Recommendations = {
       this.currentMode = modeKey;
       // Persist preference
       const cache = this.getCache();
-      if (cache) {
-        cache.setJSON('rekonime.recMode', modeKey);
-      } else {
-        try {
-          localStorage.setItem('rekonime.recMode', modeKey);
-        } catch (e) {
-          // Ignore storage errors
-        }
-      }
+      cache.setJSON('rekonime.recMode', modeKey, { validate: true });
       return true;
     }
     return false;
@@ -481,20 +473,9 @@ const Recommendations = {
    */
   loadModePreference() {
     const cache = this.getCache();
-    if (cache) {
-      const saved = cache.getJSON('rekonime.recMode', { fallback: '' });
-      if (saved && this.modes[saved]) {
-        this.currentMode = saved;
-      }
-      return;
-    }
-    try {
-      const saved = localStorage.getItem('rekonime.recMode');
-      if (saved && this.modes[saved]) {
-        this.currentMode = saved;
-      }
-    } catch (e) {
-      // Ignore storage errors
+    const saved = cache.getJSON('rekonime.recMode', { fallback: '', validate: true });
+    if (saved && this.modes[saved]) {
+      this.currentMode = saved;
     }
   },
 

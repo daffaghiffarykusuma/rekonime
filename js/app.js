@@ -657,37 +657,12 @@ const App = {
     return this.settings;
   },
 
-  getBookmarkStorage() {
-    const cache = this.getCache();
-    if (cache && typeof cache.getStorage === 'function') {
-      return cache.getStorage();
-    }
-    try {
-      return window.localStorage;
-    } catch (error) {
-      return null;
-    }
-  },
-
   loadSettings() {
     const defaults = this.getDefaultSettings();
     this.settings = { ...defaults };
     if (typeof window === 'undefined') return;
     const cache = this.getCache();
-    let parsed = null;
-
-    if (cache) {
-      parsed = cache.getJSON(this.settingsStorageKey, { fallback: null });
-    } else {
-      const storage = this.getBookmarkStorage();
-      if (!storage) return;
-      try {
-        const raw = storage.getItem(this.settingsStorageKey);
-        parsed = raw ? JSON.parse(raw) : null;
-      } catch (error) {
-        parsed = null;
-      }
-    }
+    const parsed = cache.getJSON(this.settingsStorageKey, { fallback: null, validate: true });
 
     if (!parsed || typeof parsed !== 'object') {
       this.applyAccessibilityAttributes();
@@ -757,17 +732,7 @@ const App = {
     if (typeof window === 'undefined') return;
     if (!this.settings) return;
     const cache = this.getCache();
-    if (cache) {
-      cache.setJSON(this.settingsStorageKey, this.settings);
-      return;
-    }
-    const storage = this.getBookmarkStorage();
-    if (!storage) return;
-    try {
-      storage.setItem(this.settingsStorageKey, JSON.stringify(this.settings));
-    } catch (error) {
-      // Ignore storage errors (private mode, quota, etc.)
-    }
+    cache.setJSON(this.settingsStorageKey, this.settings, { validate: true });
   },
 
   updateSettingsUi() {
@@ -1046,20 +1011,7 @@ const App = {
 
     if (typeof window === 'undefined') return;
     const cache = this.getCache();
-    let parsed = null;
-
-    if (cache) {
-      parsed = cache.getJSON(this.bookmarkStorageKey, { fallback: [] });
-    } else {
-      const storage = this.getBookmarkStorage();
-      if (!storage) return;
-      try {
-        const raw = storage.getItem(this.bookmarkStorageKey);
-        parsed = raw ? JSON.parse(raw) : [];
-      } catch (error) {
-        parsed = [];
-      }
-    }
+    const parsed = cache.getJSON(this.bookmarkStorageKey, { fallback: [], validate: true });
 
     try {
       if (!Array.isArray(parsed)) return;
@@ -1086,17 +1038,7 @@ const App = {
   saveBookmarks() {
     if (typeof window === 'undefined') return;
     const cache = this.getCache();
-    if (cache) {
-      cache.setJSON(this.bookmarkStorageKey, this.bookmarkIds);
-      return;
-    }
-    const storage = this.getBookmarkStorage();
-    if (!storage) return;
-    try {
-      storage.setItem(this.bookmarkStorageKey, JSON.stringify(this.bookmarkIds));
-    } catch (error) {
-      // Ignore storage errors (private mode, quota, etc.)
-    }
+    cache.setJSON(this.bookmarkStorageKey, this.bookmarkIds, { validate: true });
   },
 
   isBookmarked(animeId) {

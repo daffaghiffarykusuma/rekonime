@@ -157,6 +157,8 @@ const ReviewsService = {
   cache: new Map(),
   descriptionCachePrefix: 'rekonime:description:',
   descriptionCacheTtlMs: 1000 * 60 * 60 * 24 * 30,
+  descriptionIndexKey: 'rekonime:description:index',
+  descriptionIndexMaxEntries: 100,
 
   buildReviewsUrl(malId) {
     if (!malId) return '';
@@ -371,6 +373,50 @@ const ReviewsService = {
     return `${this.descriptionCachePrefix}${String(cacheKey)}`;
   },
 
+  getDescriptionIndex() {
+    const cache = this.getCache();
+    const stored = cache.getJSON(this.descriptionIndexKey, { fallback: [], validate: true });
+    return Array.isArray(stored) ? stored : [];
+  },
+
+  saveDescriptionIndex(index) {
+    const cache = this.getCache();
+    cache.setJSON(this.descriptionIndexKey, index, { validate: true });
+  },
+
+  pruneDescriptionIndex(index) {
+    if (!Array.isArray(index)) return;
+    const cache = this.getCache();
+    const trimmed = index.slice(0, this.descriptionIndexMaxEntries);
+    const toRemove = index.slice(this.descriptionIndexMaxEntries);
+
+    toRemove.forEach((entry) => {
+      if (entry?.key) {
+        cache.removeItem(entry.key);
+      }
+    });
+
+    this.saveDescriptionIndex(trimmed);
+  },
+
+  touchDescriptionIndex(storageKey) {
+    if (!storageKey) return;
+    const now = Date.now();
+    const index = this.getDescriptionIndex();
+    const filtered = index.filter((entry) => entry?.key && entry.key !== storageKey);
+    const updated = [{ key: storageKey, lastAccess: now }, ...filtered];
+    this.pruneDescriptionIndex(updated);
+  },
+
+  removeDescriptionIndexEntry(storageKey) {
+    if (!storageKey) return;
+    const index = this.getDescriptionIndex();
+    const next = index.filter((entry) => entry?.key && entry.key !== storageKey);
+    if (next.length !== index.length) {
+      this.saveDescriptionIndex(next);
+    }
+  },
+
   /**
    * Read a cached description if available and not expired.
    * @param {string|number} cacheKey - Anime identifier
@@ -381,33 +427,21 @@ const ReviewsService = {
     if (!storageKey) return '';
 
     const cache = this.getCache();
-    if (cache) {
-      const cached = cache.getJSON(storageKey, { fallback: '' });
-      if (typeof cached === 'string') return cached;
-      if (cached && typeof cached.description === 'string') {
-        if (cached.expiresAt && Date.now() > cached.expiresAt) {
-          cache.removeItem(storageKey);
-          return '';
-        }
-        return cached.description;
-      }
-      return '';
+    const cached = cache.getJSON(storageKey, { fallback: '' });
+    if (typeof cached === 'string') {
+      this.touchDescriptionIndex(storageKey);
+      return cached;
     }
-
-    if (typeof localStorage === 'undefined') return '';
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (!stored) return '';
-      const parsed = JSON.parse(stored);
-      if (!parsed || typeof parsed.description !== 'string') return '';
-      if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
-        localStorage.removeItem(storageKey);
+    if (cached && typeof cached.description === 'string') {
+      if (cached.expiresAt && Date.now() > cached.expiresAt) {
+        cache.removeItem(storageKey);
+        this.removeDescriptionIndexEntry(storageKey);
         return '';
       }
-      return parsed.description;
-    } catch (error) {
-      return '';
+      this.touchDescriptionIndex(storageKey);
+      return cached.description;
     }
+    return '';
   },
 
   /**
@@ -420,21 +454,8 @@ const ReviewsService = {
     if (!storageKey || !description) return;
 
     const cache = this.getCache();
-    if (cache) {
-      cache.setJSON(storageKey, description, { ttlMs: this.descriptionCacheTtlMs });
-      return;
-    }
-
-    if (typeof localStorage === 'undefined') return;
-    try {
-      const payload = {
-        description,
-        expiresAt: Date.now() + this.descriptionCacheTtlMs
-      };
-      localStorage.setItem(storageKey, JSON.stringify(payload));
-    } catch (error) {
-      // Ignore storage failures (private mode, quota, etc).
-    }
+    cache.setJSON(storageKey, description, { ttlMs: this.descriptionCacheTtlMs });
+    this.touchDescriptionIndex(storageKey);
   },
 
   /**

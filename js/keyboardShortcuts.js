@@ -96,7 +96,7 @@ const KeyboardShortcuts = {
 
         try {
             const cache = this.getCache();
-            const acknowledged = cache ? cache.getRaw(this.STORAGE_KEY) : localStorage.getItem(this.STORAGE_KEY);
+            const acknowledged = cache.getRaw(this.STORAGE_KEY, { validate: true });
             if (acknowledged) return;
 
             // Show hint after a delay
@@ -131,11 +131,7 @@ const KeyboardShortcuts = {
                 // Mark as acknowledged on first interaction
                 const markAcknowledged = () => {
                     const cache = this.getCache();
-                    if (cache) {
-                        cache.setRaw(this.STORAGE_KEY, 'true');
-                    } else {
-                        localStorage.setItem(this.STORAGE_KEY, 'true');
-                    }
+                    cache.setRaw(this.STORAGE_KEY, 'true', { validate: true });
                     document.removeEventListener('keydown', markAcknowledged);
                     document.removeEventListener('click', markAcknowledged);
                 };
@@ -245,11 +241,7 @@ const KeyboardShortcuts = {
         // Mark as acknowledged
         try {
             const cache = this.getCache();
-            if (cache) {
-                cache.setRaw(this.STORAGE_KEY, 'true');
-            } else {
-                localStorage.setItem(this.STORAGE_KEY, 'true');
-            }
+            cache.setRaw(this.STORAGE_KEY, 'true', { validate: true });
         } catch (error) {
             // Ignore
         }

@@ -26,16 +26,8 @@ const Onboarding = {
    */
   hasCompleted() {
     const cache = this.getCache();
-    if (cache) {
-      const status = cache.getRaw(this.storageKey);
-      return status === 'completed' || status === 'skipped';
-    }
-    try {
-      const status = localStorage.getItem(this.storageKey);
-      return status === 'completed' || status === 'skipped';
-    } catch (error) {
-      return true;
-    }
+    const status = cache.getRaw(this.storageKey, { validate: true });
+    return status === 'completed' || status === 'skipped';
   },
 
   /**
@@ -43,17 +35,8 @@ const Onboarding = {
    */
   markCompleted() {
     const cache = this.getCache();
-    if (cache) {
-      cache.setRaw(this.storageKey, 'completed');
-      cache.removeItem(this.stepStorageKey);
-      return;
-    }
-    try {
-      localStorage.setItem(this.storageKey, 'completed');
-      localStorage.removeItem(this.stepStorageKey);
-    } catch (error) {
-      // Ignore storage errors
-    }
+    cache.setRaw(this.storageKey, 'completed', { validate: true });
+    cache.removeItem(this.stepStorageKey);
   },
 
   /**
@@ -61,17 +44,8 @@ const Onboarding = {
    */
   markSkipped() {
     const cache = this.getCache();
-    if (cache) {
-      cache.setRaw(this.storageKey, 'skipped');
-      cache.setRaw(this.stepStorageKey, String(this.currentStep));
-      return;
-    }
-    try {
-      localStorage.setItem(this.storageKey, 'skipped');
-      localStorage.setItem(this.stepStorageKey, String(this.currentStep));
-    } catch (error) {
-      // Ignore storage errors
-    }
+    cache.setRaw(this.storageKey, 'skipped', { validate: true });
+    cache.setRaw(this.stepStorageKey, String(this.currentStep), { validate: true });
   },
 
   /**
@@ -79,16 +53,8 @@ const Onboarding = {
    */
   getSavedStep() {
     const cache = this.getCache();
-    if (cache) {
-      const saved = cache.getRaw(this.stepStorageKey);
-      return saved ? parseInt(saved, 10) : 0;
-    }
-    try {
-      const saved = localStorage.getItem(this.stepStorageKey);
-      return saved ? parseInt(saved, 10) : 0;
-    } catch (error) {
-      return 0;
-    }
+    const saved = cache.getRaw(this.stepStorageKey, { validate: true });
+    return saved ? parseInt(saved, 10) : 0;
   },
 
   /**

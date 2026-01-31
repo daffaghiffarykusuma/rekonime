@@ -37,14 +37,14 @@ const ThemeManager = {
     },
 
     /**
-     * Load theme from localStorage
+     * Load theme from cache
      */
     loadTheme() {
         if (typeof window === 'undefined') return null;
 
         try {
             const cache = this.getCache();
-            const saved = cache ? cache.getRaw(this.STORAGE_KEY) : localStorage.getItem(this.STORAGE_KEY);
+            const saved = cache.getRaw(this.STORAGE_KEY, { validate: true });
             if (saved && this.themes.includes(saved)) {
                 return saved;
             }
@@ -55,18 +55,14 @@ const ThemeManager = {
     },
 
     /**
-     * Save theme to localStorage
+     * Save theme to cache
      */
     saveTheme(theme) {
         if (typeof window === 'undefined') return;
 
         try {
             const cache = this.getCache();
-            if (cache) {
-                cache.setRaw(this.STORAGE_KEY, theme);
-            } else {
-                localStorage.setItem(this.STORAGE_KEY, theme);
-            }
+            cache.setRaw(this.STORAGE_KEY, theme, { validate: true });
         } catch (error) {
             // Ignore storage errors
         }

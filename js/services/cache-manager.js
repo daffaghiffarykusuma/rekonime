@@ -1,4 +1,5 @@
 import { DependencyContainer } from '../core/dependency-container.js';
+import { SchemaValidator } from './schema-validator.js';
 
 /**
  * Cache manager with safe localStorage access and TTL support.
@@ -20,42 +21,67 @@ const CacheManager = {
     }
   },
 
-  setRaw(key, value) {
+  setRaw(key, value, { ttlMs, validate = false, schemaKey } = {}) {
     if (!key) return false;
+    const stringValue = String(value);
+    if (validate && !SchemaValidator.validate(schemaKey || key, stringValue)) {
+      return false;
+    }
     const storage = this.getStorage();
-    if (!storage) return false;
+    if (!storage) {
+      this.setMemory(key, stringValue, { ttlMs });
+      return false;
+    }
     try {
-      storage.setItem(key, String(value));
+      storage.setItem(key, stringValue);
       return true;
     } catch (error) {
+      this.setMemory(key, stringValue, { ttlMs });
       return false;
     }
   },
 
-  getRaw(key) {
-    if (!key) return '';
+  getRaw(key, { fallback = '', allowMemory = true, allowExpired = false, validate = false, schemaKey } = {}) {
+    if (!key) return fallback;
+    let stored = null;
     const storage = this.getStorage();
-    if (!storage) return '';
     try {
-      return storage.getItem(key) || '';
+      stored = storage?.getItem(key) ?? null;
     } catch (error) {
-      return '';
+      stored = null;
     }
+
+    if (stored === null && allowMemory) {
+      const memoryValue = this.getMemory(key, { allowExpired });
+      if (typeof memoryValue === 'string') {
+        stored = memoryValue;
+      }
+    }
+
+    if (stored === null) return fallback;
+    if (validate && !SchemaValidator.validate(schemaKey || key, stored)) {
+      this.removeItem(key);
+      return fallback;
+    }
+    return stored;
   },
 
   removeItem(key) {
     if (!key) return;
     const storage = this.getStorage();
-    if (!storage) return;
     try {
-      storage.removeItem(key);
+      storage?.removeItem(key);
     } catch (error) {
       // Ignore removal failures
     }
+    this.memory.delete(key);
   },
 
-  setJSON(key, value, { ttlMs } = {}) {
+  setJSON(key, value, { ttlMs, validate = false, schemaKey } = {}) {
     if (!key) return false;
+    if (validate && !SchemaValidator.validate(schemaKey || key, value)) {
+      return false;
+    }
     const ttl = Number.isFinite(ttlMs) && ttlMs > 0 ? ttlMs : 0;
     const payload = ttl
       ? { [this.metaKey]: { expiresAt: this.now() + ttl }, value }
@@ -75,12 +101,17 @@ const CacheManager = {
     return false;
   },
 
-  getJSON(key, { fallback = null, allowRaw = true, allowExpired = false } = {}) {
+  getJSON(key, { fallback = null, allowRaw = true, allowExpired = false, validate = false, schemaKey } = {}) {
     if (!key) return fallback;
-    const raw = this.getRaw(key);
+    const raw = this.getRaw(key, { allowMemory: false });
     if (!raw) {
       const memoryValue = this.getMemory(key, { allowExpired });
-      return memoryValue === undefined ? fallback : memoryValue;
+      const resolved = memoryValue === undefined ? fallback : memoryValue;
+      if (validate && resolved !== fallback && !SchemaValidator.validate(schemaKey || key, resolved)) {
+        this.removeItem(key);
+        return fallback;
+      }
+      return resolved;
     }
 
     try {
@@ -94,11 +125,26 @@ const CacheManager = {
           }
           return fallback;
         }
-        return parsed.value;
+        const value = parsed.value;
+        if (validate && !SchemaValidator.validate(schemaKey || key, value)) {
+          this.removeItem(key);
+          return fallback;
+        }
+        return value;
       }
-      return allowRaw ? parsed : fallback;
+      const value = allowRaw ? parsed : fallback;
+      if (validate && value !== fallback && !SchemaValidator.validate(schemaKey || key, value)) {
+        this.removeItem(key);
+        return fallback;
+      }
+      return value;
     } catch (error) {
-      return allowRaw ? raw : fallback;
+      const value = allowRaw ? raw : fallback;
+      if (validate && value !== fallback && !SchemaValidator.validate(schemaKey || key, value)) {
+        this.removeItem(key);
+        return fallback;
+      }
+      return value;
     }
   },
 

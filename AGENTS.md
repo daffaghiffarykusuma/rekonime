@@ -34,6 +34,7 @@
 - `js/core/store.js`: Minimal store with reducer map and middleware support.
 - `js/services/api-client.js`: HTTP abstraction with interceptors and unified errors.
 - `js/services/cache-manager.js`: Safe localStorage access with TTL support.
+- `js/services/schema-validator.js`: Schema validation for persisted storage payloads.
 - `js/services/analytics-service.js`: Analytics abstraction (gtag wrapper).
 - `js/services/error-handler.js`: Centralized error reporting with listeners.
 - `js/charts.js`: Chart.js helpers (not wired in current HTML).
@@ -78,6 +79,7 @@
 - `js/filterPresets.js` -> `AnalyticsService` (preset usage)
 - `js/keyboardShortcuts.js` -> `CacheManager` (acknowledgement flag)
 - `js/themeManager.js` -> `CacheManager` (theme preference)
+- `js/services/cache-manager.js` -> `js/services/schema-validator.js` (storage schema validation)
 - `js/app.js` -> YouTube (trailer links and embeds, sanitized to allowed hosts)
 - `tools/build-catalogs.js` -> `js/stats.js` (precompute stats) -> `data/anime.full.json` + `data/anime.preview.json`
 - `tools/regenerate-data.ps1` -> `data/anime.full.json` -> `js/data.js`
@@ -300,6 +302,7 @@ flowchart TD
   app --> eventBus[js/core/event-bus.js]
   app --> store[js/core/store.js]
   app --> cache[js/services/cache-manager.js]
+  cache --> schemaValidator[js/services/schema-validator.js]
   app --> analytics[js/services/analytics-service.js]
   app --> api[js/services/api-client.js]
   app --> errors[js/services/error-handler.js]
