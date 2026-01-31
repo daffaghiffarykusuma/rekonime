@@ -1,3 +1,17 @@
+import { Stats } from './stats.js';
+import { Recommendations } from './recommendations.js';
+import { Discovery } from './discovery.js';
+import { ReviewsService } from './reviews.js';
+import { FilterPresets } from './filterPresets.js';
+import { MetricGlossary } from './metricGlossary.js';
+import { Onboarding } from './onboarding.js';
+import { ThemeManager } from './themeManager.js';
+import { CacheManager } from './services/cache-manager.js';
+import { AnalyticsService } from './services/analytics-service.js';
+import { ApiClient } from './services/api-client.js';
+import { Store } from './core/store.js';
+import { DependencyContainer } from './core/dependency-container.js';
+
 /**
  * Main application logic for Anime Scoring Dashboard
  */
@@ -68,6 +82,225 @@ const App = {
     activeId: null,
     lastFocused: null,
     handler: null
+  },
+
+  store: null,
+  storeBindingsApplied: false,
+
+  getDefaultActiveFilters() {
+    return {
+      seasonYear: [],
+      year: [],
+      studio: [],
+      source: [],
+      genres: [],
+      themes: [],
+      demographic: []
+    };
+  },
+
+  getDefaultFilterOptions() {
+    return {
+      seasonYear: [],
+      year: [],
+      studio: [],
+      source: [],
+      genres: [],
+      themes: [],
+      demographic: []
+    };
+  },
+
+  cloneFilterMap(map, fallback) {
+    const base = fallback || this.getDefaultActiveFilters();
+    const next = {};
+    Object.keys(base).forEach((key) => {
+      const value = map?.[key];
+      next[key] = Array.isArray(value) ? [...value] : [];
+    });
+    return next;
+  },
+
+  getCache() {
+    return CacheManager;
+  },
+
+  getAnalytics() {
+    return AnalyticsService;
+  },
+
+  getApiClient() {
+    return ApiClient;
+  },
+
+  dispatchStore(action) {
+    if (this.store && typeof this.store.dispatch === 'function') {
+      this.store.dispatch(action);
+    }
+  },
+
+  bindStoreState() {
+    if (!this.store || this.storeBindingsApplied) return;
+    this.storeBindingsApplied = true;
+
+    const bindings = {
+      animeData: { slice: 'catalog', key: 'items', action: 'catalog/setItems' },
+      filteredData: { slice: 'catalog', key: 'filtered', action: 'catalog/setFiltered' },
+      scoreProfile: { slice: 'catalog', key: 'scoreProfile', action: 'catalog/setScoreProfile' },
+      isFullDataLoaded: { slice: 'catalog', key: 'isFullLoaded', action: 'catalog/setFullLoaded' },
+      loadingFullCatalog: { slice: 'catalog', key: 'isLoadingFull', action: 'catalog/setLoadingFull' },
+      activeFilters: { slice: 'filters', key: 'active', action: 'filters/setActive' },
+      filterOptions: { slice: 'filters', key: 'options', action: 'filters/setOptions' },
+      currentSort: { slice: 'ui', key: 'currentSort', action: 'ui/setSort' },
+      filterPanelOpen: { slice: 'ui', key: 'filterPanelOpen', action: 'ui/setFilterPanelOpen' },
+      currentAnimeId: { slice: 'ui', key: 'currentAnimeId', action: 'ui/setCurrentAnimeId' }
+    };
+
+    Object.entries(bindings).forEach(([prop, config]) => {
+      let localValue = this[prop];
+      Object.defineProperty(this, prop, {
+        configurable: true,
+        enumerable: true,
+        get: () => {
+          if (!this.store) return localValue;
+          const state = this.store.getState();
+          const slice = state?.[config.slice];
+          if (!slice || !(config.key in slice)) return localValue;
+          return slice[config.key];
+        },
+        set: (value) => {
+          localValue = value;
+          if (this.store) {
+            this.dispatchStore({ type: config.action, payload: value });
+          }
+        }
+      });
+    });
+  },
+
+  initializeStore() {
+    if (this.store) return;
+
+    const defaultSettings = this.getDefaultSettings();
+    const defaultActiveFilters = this.getDefaultActiveFilters();
+    const defaultFilterOptions = this.getDefaultFilterOptions();
+
+    const normalizeFilters = (value, fallback) => this.cloneFilterMap(value, fallback);
+
+    const reducers = {
+      settings: (state = defaultSettings, action) => {
+        if (!action) return state;
+        if (action.type === 'settings/loaded') {
+          return { ...state, ...(action.payload || {}) };
+        }
+        if (action.type === 'settings/updated') {
+          return { ...state, ...(action.payload || {}) };
+        }
+        return state;
+      },
+      bookmarks: (state = { ids: [] }, action) => {
+        if (!action) return state;
+        if (action.type === 'bookmarks/loaded') {
+          return { ...state, ids: Array.isArray(action.payload?.ids) ? action.payload.ids : [] };
+        }
+        if (action.type === 'bookmarks/added') {
+          const id = action.payload?.id;
+          if (!id) return state;
+          const filtered = state.ids.filter(existing => existing !== id);
+          return { ...state, ids: [id, ...filtered] };
+        }
+        if (action.type === 'bookmarks/removed') {
+          const id = action.payload?.id;
+          if (!id) return state;
+          return { ...state, ids: state.ids.filter(existing => existing !== id) };
+        }
+        return state;
+      },
+      catalog: (state = {
+        items: Array.isArray(this.animeData) ? this.animeData : [],
+        filtered: Array.isArray(this.filteredData) ? this.filteredData : [],
+        scoreProfile: this.scoreProfile || null,
+        isFullLoaded: Boolean(this.isFullDataLoaded),
+        isLoadingFull: Boolean(this.loadingFullCatalog)
+      }, action) => {
+        if (!action) return state;
+        switch (action.type) {
+          case 'catalog/setItems':
+            return { ...state, items: Array.isArray(action.payload) ? action.payload : [] };
+          case 'catalog/setFiltered':
+            return { ...state, filtered: Array.isArray(action.payload) ? action.payload : [] };
+          case 'catalog/setScoreProfile':
+            return { ...state, scoreProfile: action.payload || null };
+          case 'catalog/setFullLoaded':
+            return { ...state, isFullLoaded: Boolean(action.payload) };
+          case 'catalog/setLoadingFull':
+            return { ...state, isLoadingFull: Boolean(action.payload) };
+          default:
+            return state;
+        }
+      },
+      filters: (state = {
+        active: normalizeFilters(this.activeFilters, defaultActiveFilters),
+        options: normalizeFilters(this.filterOptions, defaultFilterOptions)
+      }, action) => {
+        if (!action) return state;
+        switch (action.type) {
+          case 'filters/setActive':
+            return { ...state, active: normalizeFilters(action.payload, defaultActiveFilters) };
+          case 'filters/setOptions':
+            return { ...state, options: normalizeFilters(action.payload, defaultFilterOptions) };
+          case 'filters/reset':
+            return { ...state, active: normalizeFilters(defaultActiveFilters, defaultActiveFilters) };
+          default:
+            return state;
+        }
+      },
+      ui: (state = {
+        currentSort: this.currentSort,
+        filterPanelOpen: Boolean(this.filterPanelOpen),
+        currentAnimeId: this.currentAnimeId || null
+      }, action) => {
+        if (!action) return state;
+        switch (action.type) {
+          case 'ui/setSort':
+            return { ...state, currentSort: action.payload || state.currentSort };
+          case 'ui/setFilterPanelOpen':
+            return { ...state, filterPanelOpen: Boolean(action.payload) };
+          case 'ui/setCurrentAnimeId':
+            return { ...state, currentAnimeId: action.payload || null };
+          default:
+            return state;
+        }
+      }
+    };
+
+    this.store = Store.createStore({
+      initialState: {
+        settings: defaultSettings,
+        bookmarks: { ids: [] },
+        catalog: {
+          items: Array.isArray(this.animeData) ? this.animeData : [],
+          filtered: Array.isArray(this.filteredData) ? this.filteredData : [],
+          scoreProfile: this.scoreProfile || null,
+          isFullLoaded: Boolean(this.isFullDataLoaded),
+          isLoadingFull: Boolean(this.loadingFullCatalog)
+        },
+        filters: {
+          active: normalizeFilters(this.activeFilters, defaultActiveFilters),
+          options: normalizeFilters(this.filterOptions, defaultFilterOptions)
+        },
+        ui: {
+          currentSort: this.currentSort,
+          filterPanelOpen: Boolean(this.filterPanelOpen),
+          currentAnimeId: this.currentAnimeId || null
+        }
+      },
+      reducers
+    });
+
+    this.bindStoreState();
+
+    DependencyContainer.register('appStore', this.store);
   },
 
   escapeHtml(value) {
@@ -425,6 +658,10 @@ const App = {
   },
 
   getBookmarkStorage() {
+    const cache = this.getCache();
+    if (cache && typeof cache.getStorage === 'function') {
+      return cache.getStorage();
+    }
     try {
       return window.localStorage;
     } catch (error) {
@@ -436,42 +673,46 @@ const App = {
     const defaults = this.getDefaultSettings();
     this.settings = { ...defaults };
     if (typeof window === 'undefined') return;
-    const storage = this.getBookmarkStorage();
-    if (!storage) return;
+    const cache = this.getCache();
+    let parsed = null;
 
-    try {
-      const raw = storage.getItem(this.settingsStorageKey);
-      if (!raw) {
-        this.applyAccessibilityAttributes();
-        return;
+    if (cache) {
+      parsed = cache.getJSON(this.settingsStorageKey, { fallback: null });
+    } else {
+      const storage = this.getBookmarkStorage();
+      if (!storage) return;
+      try {
+        const raw = storage.getItem(this.settingsStorageKey);
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        parsed = null;
       }
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object') {
-        this.applyAccessibilityAttributes();
-        return;
-      }
-
-      // Load all settings with defaults fallback
-      this.settings.trailerAutoplay = typeof parsed.trailerAutoplay === 'boolean'
-        ? parsed.trailerAutoplay
-        : defaults.trailerAutoplay;
-      this.settings.dataSaver = typeof parsed.dataSaver === 'boolean'
-        ? parsed.dataSaver
-        : defaults.dataSaver;
-      this.settings.reducedMotion = typeof parsed.reducedMotion === 'boolean'
-        ? parsed.reducedMotion
-        : defaults.reducedMotion;
-      this.settings.highContrast = typeof parsed.highContrast === 'boolean'
-        ? parsed.highContrast
-        : defaults.highContrast;
-      this.settings.largeText = typeof parsed.largeText === 'boolean'
-        ? parsed.largeText
-        : defaults.largeText;
-    } catch (error) {
-      this.settings = { ...defaults };
     }
 
+    if (!parsed || typeof parsed !== 'object') {
+      this.applyAccessibilityAttributes();
+      return;
+    }
+
+    // Load all settings with defaults fallback
+    this.settings.trailerAutoplay = typeof parsed.trailerAutoplay === 'boolean'
+      ? parsed.trailerAutoplay
+      : defaults.trailerAutoplay;
+    this.settings.dataSaver = typeof parsed.dataSaver === 'boolean'
+      ? parsed.dataSaver
+      : defaults.dataSaver;
+    this.settings.reducedMotion = typeof parsed.reducedMotion === 'boolean'
+      ? parsed.reducedMotion
+      : defaults.reducedMotion;
+    this.settings.highContrast = typeof parsed.highContrast === 'boolean'
+      ? parsed.highContrast
+      : defaults.highContrast;
+    this.settings.largeText = typeof parsed.largeText === 'boolean'
+      ? parsed.largeText
+      : defaults.largeText;
+
     this.applyAccessibilityAttributes();
+    this.dispatchStore({ type: 'settings/loaded', payload: { ...this.settings } });
   },
 
   /**
@@ -514,8 +755,14 @@ const App = {
 
   saveSettings() {
     if (typeof window === 'undefined') return;
+    if (!this.settings) return;
+    const cache = this.getCache();
+    if (cache) {
+      cache.setJSON(this.settingsStorageKey, this.settings);
+      return;
+    }
     const storage = this.getBookmarkStorage();
-    if (!storage || !this.settings) return;
+    if (!storage) return;
     try {
       storage.setItem(this.settingsStorageKey, JSON.stringify(this.settings));
     } catch (error) {
@@ -538,6 +785,7 @@ const App = {
     settings[key] = Boolean(value);
     this.saveSettings();
     this.updateSettingsUi();
+    this.dispatchStore({ type: 'settings/updated', payload: { [key]: settings[key] } });
 
     // Apply accessibility attributes if needed
     if (['reducedMotion', 'highContrast', 'largeText', 'dataSaver'].includes(key)) {
@@ -797,13 +1045,23 @@ const App = {
     this.bookmarkIdSet = new Set();
 
     if (typeof window === 'undefined') return;
-    const storage = this.getBookmarkStorage();
-    if (!storage) return;
+    const cache = this.getCache();
+    let parsed = null;
+
+    if (cache) {
+      parsed = cache.getJSON(this.bookmarkStorageKey, { fallback: [] });
+    } else {
+      const storage = this.getBookmarkStorage();
+      if (!storage) return;
+      try {
+        const raw = storage.getItem(this.bookmarkStorageKey);
+        parsed = raw ? JSON.parse(raw) : [];
+      } catch (error) {
+        parsed = [];
+      }
+    }
 
     try {
-      const raw = storage.getItem(this.bookmarkStorageKey);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return;
 
       const unique = [];
@@ -821,10 +1079,17 @@ const App = {
       this.bookmarkIds = [];
       this.bookmarkIdSet = new Set();
     }
+
+    this.dispatchStore({ type: 'bookmarks/loaded', payload: { ids: [...this.bookmarkIds] } });
   },
 
   saveBookmarks() {
     if (typeof window === 'undefined') return;
+    const cache = this.getCache();
+    if (cache) {
+      cache.setJSON(this.bookmarkStorageKey, this.bookmarkIds);
+      return;
+    }
     const storage = this.getBookmarkStorage();
     if (!storage) return;
     try {
@@ -846,6 +1111,7 @@ const App = {
     this.bookmarkIdSet.add(key);
     this.bookmarkIds.unshift(key);
     this.saveBookmarks();
+    this.dispatchStore({ type: 'bookmarks/added', payload: { id: key } });
     return true;
   },
 
@@ -855,6 +1121,7 @@ const App = {
     this.bookmarkIdSet.delete(key);
     this.bookmarkIds = this.bookmarkIds.filter(id => id !== key);
     this.saveBookmarks();
+    this.dispatchStore({ type: 'bookmarks/removed', payload: { id: key } });
     return true;
   },
 
@@ -965,12 +1232,16 @@ const App = {
     try {
       this.syncHomePath();
       this.renderLoadingState();
+      this.initializeStore();
       this.loadBookmarks();
+      Discovery.setBookmarkProvider({
+        getBookmarkedAnime: () => this.getBookmarkedAnime()
+      });
       this.loadSettings();
       this.renderSettingsModal();
 
       // Check and trigger onboarding for first-time users
-      if (typeof Onboarding !== 'undefined' && !Onboarding.hasCompleted()) {
+      if (!Onboarding.hasCompleted()) {
         setTimeout(() => Onboarding.startTour(), 500);
       }
 
@@ -1103,7 +1374,12 @@ const App = {
   async fetchCatalog(path) {
     if (!path) return null;
     try {
-      const response = await fetch(this.getAssetPath(path), { cache: 'force-cache' });
+      const url = this.getAssetPath(path);
+      const apiClient = this.getApiClient();
+      if (apiClient) {
+        return await apiClient.getJson(url, { cache: 'force-cache' });
+      }
+      const response = await fetch(url, { cache: 'force-cache' });
       if (!response.ok) return null;
       return await response.json();
     } catch (error) {
@@ -1120,15 +1396,7 @@ const App = {
     this.gridSortedSource = null;
 
     if (!preserveFilters) {
-      this.activeFilters = {
-        seasonYear: [],
-        year: [],
-        studio: [],
-        source: [],
-        genres: [],
-        themes: [],
-        demographic: []
-      };
+      this.activeFilters = this.getDefaultActiveFilters();
     }
 
     this.ensureStats();
@@ -1709,9 +1977,7 @@ const App = {
     const helpToggle = document.getElementById('help-toggle');
     if (helpToggle) {
       helpToggle.addEventListener('click', () => {
-        if (typeof Onboarding !== 'undefined') {
-          Onboarding.reopenTour();
-        }
+        Onboarding.reopenTour();
       });
     }
 
@@ -2297,9 +2563,7 @@ const App = {
 
     let html = '';
 
-    if (typeof FilterPresets !== 'undefined') {
-      html += FilterPresets.renderPresetSection();
-    }
+    html += FilterPresets.renderPresetSection();
 
     const filterConfig = [
       { key: 'genres', label: 'Genres' },
@@ -2403,12 +2667,12 @@ const App = {
    */
   toggleFilter(type, value) {
     const valueStr = String(value);
-    const index = this.activeFilters[type].indexOf(valueStr);
-    if (index > -1) {
-      this.activeFilters[type].splice(index, 1);
-    } else {
-      this.activeFilters[type].push(valueStr);
-    }
+    const currentValues = Array.isArray(this.activeFilters[type]) ? this.activeFilters[type] : [];
+    const index = currentValues.indexOf(valueStr);
+    const nextValues = index > -1
+      ? currentValues.filter(item => item !== valueStr)
+      : [...currentValues, valueStr];
+    this.activeFilters = { ...this.activeFilters, [type]: nextValues };
 
     // Update pill state in modal
     const safeType = this.escapeCssValue(type);
@@ -2496,15 +2760,7 @@ const App = {
    * Clear all active filters
    */
   clearAllFilters() {
-    this.activeFilters = {
-      seasonYear: [],
-      year: [],
-      studio: [],
-      source: [],
-      genres: [],
-      themes: [],
-      demographic: []
-    };
+    this.activeFilters = this.getDefaultActiveFilters();
 
     // Update all pills and quick chips
     document.querySelectorAll('.filter-pill.active, .quick-chip.active').forEach(el => {
@@ -2610,7 +2866,7 @@ const App = {
    */
   renderSeasonalFilters() {
     const container = document.getElementById('seasonal-chips');
-    if (!container || typeof Discovery === 'undefined') return;
+    if (!container) return;
 
     const filters = Discovery.getSeasonalFilters(this.animeData);
     if (filters.length === 0) {
@@ -2638,12 +2894,12 @@ const App = {
    */
   applySeasonalFilter(seasonYear) {
     // Toggle the filter
-    const index = this.activeFilters.seasonYear.indexOf(seasonYear);
-    if (index > -1) {
-      this.activeFilters.seasonYear.splice(index, 1);
-    } else {
-      this.activeFilters.seasonYear = [seasonYear]; // Replace other seasons
-    }
+    const currentValues = Array.isArray(this.activeFilters.seasonYear)
+      ? this.activeFilters.seasonYear
+      : [];
+    const index = currentValues.indexOf(seasonYear);
+    const nextValues = index > -1 ? currentValues.filter(item => item !== seasonYear) : [seasonYear];
+    this.activeFilters = { ...this.activeFilters, seasonYear: nextValues };
 
     this.applyFilters();
     this.renderSeasonalFilters();
@@ -2654,7 +2910,7 @@ const App = {
    */
   renderRecommendationModes() {
     const container = document.getElementById('mode-chips');
-    if (!container || typeof Recommendations === 'undefined') return;
+    if (!container) return;
 
     const modes = Recommendations.modes;
     const currentMode = Recommendations.currentMode;
@@ -2682,7 +2938,7 @@ const App = {
     const grid = document.getElementById('byw-grid');
     const seedContainer = document.getElementById('byw-seed');
 
-    if (!section || !grid || !seedContainer || typeof Recommendations === 'undefined') return;
+    if (!section || !grid || !seedContainer) return;
 
     const { recommendations, basedOn } = Recommendations.getBecauseYouWatched(
       this.animeData,
@@ -2742,7 +2998,7 @@ const App = {
    */
   renderTrending() {
     const grid = document.getElementById('trending-grid');
-    if (!grid || typeof Discovery === 'undefined') return;
+    if (!grid) return;
 
     const trending = Discovery.getTrending(this.animeData, 6);
 
@@ -2882,9 +3138,7 @@ const App = {
       ? '<div class="filter-section-title">Settings</div>'
       : '';
 
-    const themeSelector = typeof ThemeManager !== 'undefined'
-      ? ThemeManager.renderThemeSelector()
-      : '';
+    const themeSelector = ThemeManager.renderThemeSelector();
 
     return `
       <div class="filter-section settings-section">
@@ -3030,14 +3284,13 @@ const App = {
     container.classList.remove('is-loading');
 
     // Update context based on current mode
-    if (contextEl && typeof Recommendations !== 'undefined') {
+    if (contextEl) {
       contextEl.textContent = Recommendations.getModeContext();
     }
 
     // Get recommendations with current mode
-    const recommendations = typeof Recommendations !== 'undefined'
-      ? Recommendations.getRecommendationsWithMode(this.filteredData, Recommendations.currentMode, 6)
-      : [];
+    const recommendations =
+      Recommendations.getRecommendationsWithMode(this.filteredData, Recommendations.currentMode, 6);
 
 
     if (recommendations.length === 0) {
@@ -3345,9 +3598,7 @@ const App = {
       }
 
       if (action === 'learn-scores') {
-        if (typeof Onboarding !== 'undefined') {
-          Onboarding.reopenTour();
-        }
+        Onboarding.reopenTour();
         return;
       }
 
@@ -3374,7 +3625,7 @@ const App = {
 
       if (action === 'set-theme') {
         const theme = actionEl.dataset.themeOption;
-        if (theme && typeof ThemeManager !== 'undefined') {
+        if (theme) {
           ThemeManager.handleThemeSelection(theme);
           // Update UI to reflect selection
           document.querySelectorAll('[data-theme-option]').forEach(btn => {
@@ -4073,8 +4324,6 @@ const App = {
    * Show metric help modal
    */
   showMetricHelp(metricKey) {
-    if (typeof MetricGlossary === 'undefined') return;
-
     const content = MetricGlossary.getDetailedContent(metricKey);
     if (!content) return;
 
@@ -4085,8 +4334,9 @@ const App = {
       body.innerHTML = content;
       this.setModalVisibility('metric-help-modal', true, { initialFocusSelector: '#close-metric-help' });
 
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'metric_help_opened', { metric: metricKey });
+      const analytics = this.getAnalytics();
+      if (analytics) {
+        analytics.track('metric_help_opened', { metric: metricKey });
       }
     }
   },
@@ -4131,8 +4381,6 @@ const App = {
    * Apply a filter preset
    */
   applyFilterPreset(presetKey) {
-    if (typeof FilterPresets === 'undefined') return;
-
     const preset = FilterPresets.get(presetKey);
     if (!preset) return;
 
@@ -4368,14 +4616,7 @@ const App = {
   }
 };
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  const start = () => App.init();
-  if (typeof window.requestAnimationFrame === 'function') {
-    window.requestAnimationFrame(start);
-  } else {
-    setTimeout(start, 0);
-  }
-});
+export { App };
+export default App;
 
 

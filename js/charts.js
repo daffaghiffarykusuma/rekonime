@@ -1143,7 +1143,5 @@ const Charts = {
   }
 };
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = Charts;
-}
+export { Charts };
+export default Charts;

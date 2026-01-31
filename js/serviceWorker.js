@@ -170,15 +170,5 @@ const ServiceWorkerManager = {
     }
 };
 
-// Auto-register when DOM is ready
-if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            ServiceWorkerManager.register();
-            ServiceWorkerManager.initConnectivityListeners();
-        });
-    } else {
-        ServiceWorkerManager.register();
-        ServiceWorkerManager.initConnectivityListeners();
-    }
-}
+export { ServiceWorkerManager };
+export default ServiceWorkerManager;

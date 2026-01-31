@@ -1,9 +1,14 @@
+import { AnalyticsService } from './services/analytics-service.js';
+
 /**
  * Filter Presets - Quick starting points for discovering anime
  * Pre-configured filter combinations for common use cases
  */
 
 const FilterPresets = {
+    getAnalytics() {
+        return AnalyticsService;
+    },
     /**
      * Preset definitions with labels, descriptions, and configurations
      */
@@ -213,11 +218,12 @@ const FilterPresets = {
      * Track preset usage
      */
     trackUsage(key) {
-        if (typeof gtag !== 'undefined') {
-            gtag('event', 'filter_preset_used', { preset: key });
+        const analytics = this.getAnalytics();
+        if (analytics) {
+            analytics.track('filter_preset_used', { preset: key });
         }
     }
 };
 
-// Expose to global scope
-window.FilterPresets = FilterPresets;
+export { FilterPresets };
+export default FilterPresets;

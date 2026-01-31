@@ -1,6 +1,6 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const Stats = require('../js/stats');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Stats } from '../js/stats.js';
 
 test('calculateAverage rounds to 2 decimals', () => {
   const episodes = [{ score: 3 }, { score: 4 }, { score: 5 }];

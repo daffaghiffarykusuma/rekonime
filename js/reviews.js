@@ -1,4 +1,7 @@
-﻿/**
+﻿import { ApiClient } from './services/api-client.js';
+import { CacheManager } from './services/cache-manager.js';
+
+/**
  * Reviews Service - Fetches and categorizes reviews from MyAnimeList (via Jikan)
  */
 const ReviewsService = {
@@ -15,6 +18,14 @@ const ReviewsService = {
   baseRetryDelay: 1000, // 1 second
   maxRetryDelay: 8000, // 8 seconds
   retryAttempts: new Map(), // Track retry attempts per anime
+
+  getApiClient() {
+    return ApiClient;
+  },
+
+  getCache() {
+    return CacheManager;
+  },
 
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -177,14 +188,15 @@ const ReviewsService = {
     if (!url) return '';
 
     try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      if (!response.ok) return '';
-      const data = await response.json();
+      const apiClient = this.getApiClient();
+      const data = apiClient
+        ? await apiClient.getJson(url)
+        : await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          }).then((response) => response.ok ? response.json() : null);
       const synopsis = data?.data?.synopsis;
       return typeof synopsis === 'string' ? synopsis : '';
     } catch (error) {
@@ -248,9 +260,10 @@ const ReviewsService = {
     if (error.message?.includes('network') || error.message?.includes('fetch')) {
       return true;
     }
-    if (error.message?.includes('API request failed')) {
-      const statusCode = parseInt(error.message.match(/\d+/)?.[0], 10);
-      return statusCode >= 500 || statusCode === 429; // Server errors or rate limit
+    const statusCode = Number(error.status || error.response?.status) ||
+      parseInt(error.message?.match(/\d+/)?.[0], 10);
+    if (Number.isFinite(statusCode)) {
+      return statusCode >= 500 || statusCode === 429;
     }
     return false;
   },
@@ -282,18 +295,21 @@ const ReviewsService = {
         throw new Error('Missing MAL id for reviews');
       }
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const apiClient = this.getApiClient();
+      const data = apiClient
+        ? await apiClient.getJson(url)
+        : await (async () => {
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json'
+              }
+            });
+            if (!response.ok) {
+              throw new Error(`API request failed: ${response.status}`);
+            }
+            return response.json();
+          })();
       const reviews = Array.isArray(data?.data) ? data.data : [];
       let description = cachedDescription || '';
       if (!description) {
@@ -346,7 +362,7 @@ const ReviewsService = {
   },
 
   /**
-   * Build a stable localStorage key for cached descriptions.
+   * Build a stable storage key for cached descriptions.
    * @param {string|number} cacheKey - Anime identifier
    * @returns {string} Storage key
    */
@@ -362,8 +378,23 @@ const ReviewsService = {
    */
   getCachedDescription(cacheKey) {
     const storageKey = this.getDescriptionCacheKey(cacheKey);
-    if (!storageKey || typeof localStorage === 'undefined') return '';
+    if (!storageKey) return '';
 
+    const cache = this.getCache();
+    if (cache) {
+      const cached = cache.getJSON(storageKey, { fallback: '' });
+      if (typeof cached === 'string') return cached;
+      if (cached && typeof cached.description === 'string') {
+        if (cached.expiresAt && Date.now() > cached.expiresAt) {
+          cache.removeItem(storageKey);
+          return '';
+        }
+        return cached.description;
+      }
+      return '';
+    }
+
+    if (typeof localStorage === 'undefined') return '';
     try {
       const stored = localStorage.getItem(storageKey);
       if (!stored) return '';
@@ -386,8 +417,15 @@ const ReviewsService = {
    */
   setCachedDescription(cacheKey, description) {
     const storageKey = this.getDescriptionCacheKey(cacheKey);
-    if (!storageKey || typeof localStorage === 'undefined' || !description) return;
+    if (!storageKey || !description) return;
 
+    const cache = this.getCache();
+    if (cache) {
+      cache.setJSON(storageKey, description, { ttlMs: this.descriptionCacheTtlMs });
+      return;
+    }
+
+    if (typeof localStorage === 'undefined') return;
     try {
       const payload = {
         description,
@@ -788,8 +826,6 @@ const ReviewsService = {
   }
 };
 
-// Export for use in app.js
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = ReviewsService;
-}
+export { ReviewsService };
+export default ReviewsService;
 

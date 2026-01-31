@@ -1,3 +1,6 @@
+import { CacheManager } from './services/cache-manager.js';
+import { AnalyticsService } from './services/analytics-service.js';
+
 /**
  * Discovery module - Surprise Me, Seasonal Discovery, and Trending features
  * Addresses Category C gaps: C1, C3, C6
@@ -9,6 +12,24 @@ const Discovery = {
         minRetention: 70,
         minSatisfaction: 7.0,
         minEpisodes: 3
+    },
+
+    getCache() {
+        return CacheManager;
+    },
+
+    getAnalytics() {
+        return AnalyticsService;
+    },
+
+    bookmarkProvider: null,
+
+    setBookmarkProvider(provider) {
+        this.bookmarkProvider = provider;
+    },
+
+    getBookmarkProvider() {
+        return this.bookmarkProvider;
     },
 
     /**
@@ -47,8 +68,12 @@ const Discovery = {
         });
 
         // Weight by bookmark preferences if available
-        if (useBookmarks && typeof App !== 'undefined' && App.bookmarkIds?.length > 0) {
-            candidates = this.weightByBookmarkPreferences(candidates);
+        const provider = this.getBookmarkProvider();
+        if (useBookmarks && provider && typeof provider.getBookmarkedAnime === 'function') {
+            const bookmarked = provider.getBookmarkedAnime();
+            if (Array.isArray(bookmarked) && bookmarked.length > 0) {
+                candidates = this.weightByBookmarkPreferences(candidates);
+            }
         }
 
         if (candidates.length === 0) return null;
@@ -61,11 +86,12 @@ const Discovery = {
      * Weight candidates based on bookmark genre/theme preferences
      */
     weightByBookmarkPreferences(candidates) {
-        if (typeof App === 'undefined' || !App.getBookmarkedAnime) {
+        const provider = this.getBookmarkProvider();
+        if (!provider || typeof provider.getBookmarkedAnime !== 'function') {
             return candidates.map(anime => ({ anime, weight: 1 }));
         }
 
-        const bookmarkedAnime = App.getBookmarkedAnime();
+        const bookmarkedAnime = provider.getBookmarkedAnime();
         if (bookmarkedAnime.length === 0) {
             return candidates.map(anime => ({ anime, weight: 1 }));
         }
@@ -115,27 +141,37 @@ const Discovery = {
      * Track surprise me usage for analytics
      */
     trackSurpriseMe(animeId, source = 'random') {
-        if (typeof gtag !== 'undefined') {
-            gtag('event', 'surprise_me_used', {
+        const analytics = this.getAnalytics();
+        if (analytics) {
+            analytics.track('surprise_me_used', {
                 anime_id: animeId,
                 source: source
             });
         }
 
-        // Store in localStorage for session history
+        // Store surprise history for this session
+        const cache = this.getCache();
         try {
             const history = this.getSurpriseHistory();
             history.unshift({ animeId, timestamp: Date.now() });
 
             // Keep only last 20
             const trimmed = history.slice(0, 20);
-            localStorage.setItem('rekonime.surpriseHistory', JSON.stringify(trimmed));
+            if (cache) {
+                cache.setJSON('rekonime.surpriseHistory', trimmed);
+            } else {
+                localStorage.setItem('rekonime.surpriseHistory', JSON.stringify(trimmed));
+            }
         } catch (e) {
             // Ignore storage errors
         }
     },
 
     getSurpriseHistory() {
+        const cache = this.getCache();
+        if (cache) {
+            return cache.getJSON('rekonime.surpriseHistory', { fallback: [] });
+        }
         try {
             return JSON.parse(localStorage.getItem('rekonime.surpriseHistory') || '[]');
         } catch {
@@ -398,10 +434,5 @@ const Discovery = {
     }
 };
 
-// Expose to global scope
-window.Discovery = Discovery;
-
-// Export for Node.js testing
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Discovery;
-}
+export { Discovery };
+export default Discovery;

@@ -1,3 +1,5 @@
+import { CacheManager } from './services/cache-manager.js';
+
 /**
  * Theme Manager for Rekonime
  * Handles light/dark/auto theme switching with OS preference detection
@@ -8,6 +10,10 @@ const ThemeManager = {
     themes: ['dark', 'light', 'auto'],
     currentTheme: 'dark',
     osPreferenceQuery: null,
+
+    getCache() {
+        return CacheManager;
+    },
 
     /**
      * Initialize the theme manager
@@ -37,7 +43,8 @@ const ThemeManager = {
         if (typeof window === 'undefined') return null;
 
         try {
-            const saved = localStorage.getItem(this.STORAGE_KEY);
+            const cache = this.getCache();
+            const saved = cache ? cache.getRaw(this.STORAGE_KEY) : localStorage.getItem(this.STORAGE_KEY);
             if (saved && this.themes.includes(saved)) {
                 return saved;
             }
@@ -54,7 +61,12 @@ const ThemeManager = {
         if (typeof window === 'undefined') return;
 
         try {
-            localStorage.setItem(this.STORAGE_KEY, theme);
+            const cache = this.getCache();
+            if (cache) {
+                cache.setRaw(this.STORAGE_KEY, theme);
+            } else {
+                localStorage.setItem(this.STORAGE_KEY, theme);
+            }
         } catch (error) {
             // Ignore storage errors
         }
@@ -186,7 +198,5 @@ const ThemeManager = {
     }
 };
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    ThemeManager.init();
-});
+export { ThemeManager };
+export default ThemeManager;

@@ -1,3 +1,6 @@
+import { CacheManager } from './services/cache-manager.js';
+import { AnalyticsService } from './services/analytics-service.js';
+
 /**
  * Onboarding system for first-time users
  * Provides a guided tour through key concepts
@@ -10,10 +13,23 @@ const Onboarding = {
   currentStep: 0,
   isActive: false,
 
+  getCache() {
+    return CacheManager;
+  },
+
+  getAnalytics() {
+    return AnalyticsService;
+  },
+
   /**
    * Check if user has completed or skipped onboarding
    */
   hasCompleted() {
+    const cache = this.getCache();
+    if (cache) {
+      const status = cache.getRaw(this.storageKey);
+      return status === 'completed' || status === 'skipped';
+    }
     try {
       const status = localStorage.getItem(this.storageKey);
       return status === 'completed' || status === 'skipped';
@@ -26,6 +42,12 @@ const Onboarding = {
    * Mark onboarding as completed
    */
   markCompleted() {
+    const cache = this.getCache();
+    if (cache) {
+      cache.setRaw(this.storageKey, 'completed');
+      cache.removeItem(this.stepStorageKey);
+      return;
+    }
     try {
       localStorage.setItem(this.storageKey, 'completed');
       localStorage.removeItem(this.stepStorageKey);
@@ -38,6 +60,12 @@ const Onboarding = {
    * Mark onboarding as skipped
    */
   markSkipped() {
+    const cache = this.getCache();
+    if (cache) {
+      cache.setRaw(this.storageKey, 'skipped');
+      cache.setRaw(this.stepStorageKey, String(this.currentStep));
+      return;
+    }
     try {
       localStorage.setItem(this.storageKey, 'skipped');
       localStorage.setItem(this.stepStorageKey, String(this.currentStep));
@@ -50,6 +78,11 @@ const Onboarding = {
    * Get the saved step if user previously skipped
    */
   getSavedStep() {
+    const cache = this.getCache();
+    if (cache) {
+      const saved = cache.getRaw(this.stepStorageKey);
+      return saved ? parseInt(saved, 10) : 0;
+    }
     try {
       const saved = localStorage.getItem(this.stepStorageKey);
       return saved ? parseInt(saved, 10) : 0;
@@ -429,11 +462,12 @@ const Onboarding = {
    * Track events for analytics
    */
   trackEvent(eventName, data = {}) {
-    if (typeof gtag !== 'undefined') {
-      gtag('event', eventName, data);
+    const analytics = this.getAnalytics();
+    if (analytics) {
+      analytics.track(eventName, data);
     }
   }
 };
 
-// Expose to global scope for App integration
-window.Onboarding = Onboarding;
+export { Onboarding };
+export default Onboarding;

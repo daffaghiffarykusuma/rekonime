@@ -1,5 +1,9 @@
-const fs = require("fs");
-const path = require("path");
+﻿import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DEFAULT_DATA_PATH = path.join(__dirname, "..", "data", "anime.json");
 const DEFAULT_INDEX_PATH = path.join(__dirname, "..", "index.html");
@@ -239,3 +243,4 @@ function main() {
 }
 
 main();
+

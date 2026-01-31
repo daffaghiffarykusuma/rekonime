@@ -1104,7 +1104,5 @@ const Stats = {
   }
 };
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = Stats;
-}
+export { Stats };
+export default Stats;

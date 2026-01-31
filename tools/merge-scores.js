@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Merge scraped episode scores into anime.json
  *
  * Usage:
@@ -11,8 +11,12 @@
  *   --add-new        Add new anime if not found (requires manual id)
  */
 
-const fs = require("fs");
-const path = require("path");
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -218,3 +222,4 @@ if (stats.errors.length > 0) {
 if (options.dryRun) {
   console.log("\n[Dry run - no files modified]");
 }
+

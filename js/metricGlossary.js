@@ -335,5 +335,5 @@ const MetricGlossary = {
     }
 };
 
-// Expose to global scope
-window.MetricGlossary = MetricGlossary;
+export { MetricGlossary };
+export default MetricGlossary;

@@ -1,3 +1,5 @@
+import { CacheManager } from './services/cache-manager.js';
+
 /**
  * Recommendations module for beginner-friendly anime suggestions
  */
@@ -448,6 +450,10 @@ const Recommendations = {
 
   currentMode: 'balanced',
 
+  getCache() {
+    return CacheManager;
+  },
+
   /**
    * Set recommendation mode
    */
@@ -455,10 +461,15 @@ const Recommendations = {
     if (this.modes[modeKey]) {
       this.currentMode = modeKey;
       // Persist preference
-      try {
-        localStorage.setItem('rekonime.recMode', modeKey);
-      } catch (e) {
-        // Ignore storage errors
+      const cache = this.getCache();
+      if (cache) {
+        cache.setJSON('rekonime.recMode', modeKey);
+      } else {
+        try {
+          localStorage.setItem('rekonime.recMode', modeKey);
+        } catch (e) {
+          // Ignore storage errors
+        }
       }
       return true;
     }
@@ -469,6 +480,14 @@ const Recommendations = {
    * Load saved mode preference
    */
   loadModePreference() {
+    const cache = this.getCache();
+    if (cache) {
+      const saved = cache.getJSON('rekonime.recMode', { fallback: '' });
+      if (saved && this.modes[saved]) {
+        this.currentMode = saved;
+      }
+      return;
+    }
     try {
       const saved = localStorage.getItem('rekonime.recMode');
       if (saved && this.modes[saved]) {
@@ -703,12 +722,5 @@ const Recommendations = {
   }
 };
 
-// Load saved mode preference on init
-if (typeof window !== 'undefined') {
-  Recommendations.loadModePreference();
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = Recommendations;
-}
+export { Recommendations };
+export default Recommendations;

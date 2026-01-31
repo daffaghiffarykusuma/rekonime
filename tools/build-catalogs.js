@@ -1,6 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const Stats = require('../js/stats.js');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Stats } from '../js/stats.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const inputPath = process.argv[2] || path.join(__dirname, '..', 'data', 'anime.json');
 const fullOutputPath = process.argv[3] || path.join(__dirname, '..', 'data', 'anime.full.json');

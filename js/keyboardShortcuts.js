@@ -1,3 +1,5 @@
+import { CacheManager } from './services/cache-manager.js';
+
 /**
  * Keyboard Shortcuts System for Rekonime
  * Provides discoverable keyboard navigation throughout the app
@@ -6,6 +8,19 @@
 const KeyboardShortcuts = {
     STORAGE_KEY: 'rekonime.shortcutsAcknowledged',
     isModalOpen: false,
+    appRef: null,
+
+    setApp(app) {
+        this.appRef = app;
+    },
+
+    getApp() {
+        return this.appRef;
+    },
+
+    getCache() {
+        return CacheManager;
+    },
 
     // Define all keyboard shortcuts
     shortcuts: {
@@ -80,7 +95,8 @@ const KeyboardShortcuts = {
         if (typeof window === 'undefined') return;
 
         try {
-            const acknowledged = localStorage.getItem(this.STORAGE_KEY);
+            const cache = this.getCache();
+            const acknowledged = cache ? cache.getRaw(this.STORAGE_KEY) : localStorage.getItem(this.STORAGE_KEY);
             if (acknowledged) return;
 
             // Show hint after a delay
@@ -114,7 +130,12 @@ const KeyboardShortcuts = {
 
                 // Mark as acknowledged on first interaction
                 const markAcknowledged = () => {
-                    localStorage.setItem(this.STORAGE_KEY, 'true');
+                    const cache = this.getCache();
+                    if (cache) {
+                        cache.setRaw(this.STORAGE_KEY, 'true');
+                    } else {
+                        localStorage.setItem(this.STORAGE_KEY, 'true');
+                    }
                     document.removeEventListener('keydown', markAcknowledged);
                     document.removeEventListener('click', markAcknowledged);
                 };
@@ -223,7 +244,12 @@ const KeyboardShortcuts = {
 
         // Mark as acknowledged
         try {
-            localStorage.setItem(this.STORAGE_KEY, 'true');
+            const cache = this.getCache();
+            if (cache) {
+                cache.setRaw(this.STORAGE_KEY, 'true');
+            } else {
+                localStorage.setItem(this.STORAGE_KEY, 'true');
+            }
         } catch (error) {
             // Ignore
         }
@@ -377,9 +403,10 @@ const KeyboardShortcuts = {
         }
 
         // Use App's modal handling if available
-        if (typeof App !== 'undefined' && App.handleGlobalEscape) {
+        const app = this.getApp();
+        if (app && typeof app.handleGlobalEscape === 'function') {
             const event = { key: 'Escape' };
-            App.handleGlobalEscape(event);
+            app.handleGlobalEscape(event);
         }
     },
 
@@ -394,8 +421,9 @@ const KeyboardShortcuts = {
      * Open filter panel
      */
     openFilters() {
-        if (typeof App !== 'undefined' && App.toggleFilterPanel) {
-            App.toggleFilterPanel();
+        const app = this.getApp();
+        if (app && typeof app.toggleFilterPanel === 'function') {
+            app.toggleFilterPanel();
         }
     },
 
@@ -403,8 +431,9 @@ const KeyboardShortcuts = {
      * Toggle settings modal
      */
     toggleSettings() {
-        if (typeof App !== 'undefined' && App.toggleSettingsModal) {
-            App.toggleSettingsModal();
+        const app = this.getApp();
+        if (app && typeof app.toggleSettingsModal === 'function') {
+            app.toggleSettingsModal();
         }
     },
 
@@ -422,8 +451,9 @@ const KeyboardShortcuts = {
      * Go to home and clear filters
      */
     goHome() {
-        if (typeof App !== 'undefined' && App.clearAllFilters) {
-            App.clearAllFilters();
+        const app = this.getApp();
+        if (app && typeof app.clearAllFilters === 'function') {
+            app.clearAllFilters();
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
@@ -432,15 +462,16 @@ const KeyboardShortcuts = {
      * Navigate to previous/next anime in detail modal
      */
     navigateAnime(direction) {
-        if (typeof App === 'undefined' || !App.currentAnimeId || !App.animeData) return;
+        const app = this.getApp();
+        if (!app || !app.currentAnimeId || !app.animeData) return;
 
-        const currentIndex = App.animeData.findIndex(a => a.id === App.currentAnimeId);
+        const currentIndex = app.animeData.findIndex(a => a.id === app.currentAnimeId);
         if (currentIndex === -1) return;
 
         const newIndex = currentIndex + direction;
-        if (newIndex >= 0 && newIndex < App.animeData.length) {
-            const nextAnime = App.animeData[newIndex];
-            App.showAnimeDetail(nextAnime.id);
+        if (newIndex >= 0 && newIndex < app.animeData.length) {
+            const nextAnime = app.animeData[newIndex];
+            app.showAnimeDetail(nextAnime.id);
         }
     },
 
@@ -454,7 +485,5 @@ const KeyboardShortcuts = {
     }
 };
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    KeyboardShortcuts.init();
-});
+export { KeyboardShortcuts };
+export default KeyboardShortcuts;

@@ -1,5 +1,9 @@
-﻿const fs = require('fs');
-const path = require('path');
+﻿import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DATA_PATH = path.join(__dirname, '..', 'data', 'anime.json');
 const ANILIST_ENDPOINT = 'https://graphql.anilist.co';
@@ -254,3 +258,4 @@ async function fetchEpisodeScores(malId, slug) {
   console.log(`AniList updates: ${anilistUpdated}`);
   console.log(`Episode updates: ${episodeUpdated}`);
 })();
+

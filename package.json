@@ -1,9 +1,15 @@
 {
   "name": "rekonime",
   "private": true,
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
-    "test": "node --test test",
+    "dev": "vite",
+    "build": "vite build && node tools/copy-static.js",
+    "preview": "vite preview",
+    "test": "node --test test/*.test.js",
     "sync:home": "powershell -ExecutionPolicy Bypass -File ./tools/sync-home-index.ps1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
   }
 }
