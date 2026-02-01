@@ -6,11 +6,24 @@
 const ServiceWorkerManager = {
     registration: null,
     updateAvailable: false,
+    isLocalhost() {
+        if (typeof window === 'undefined') return false;
+        const host = window.location.hostname;
+        return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
+    },
 
     /**
      * Register the service worker
      */
     async register() {
+        if (this.isLocalhost()) {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                registrations.forEach(registration => registration.unregister());
+            }
+            console.log('[SW] Skipping registration on localhost');
+            return false;
+        }
         if (!('serviceWorker' in navigator)) {
             console.log('[SW] Service Worker not supported');
             return false;

@@ -5348,6 +5348,82 @@ summary:focus-visible,
   letter-spacing: 0.01em;
 }
 
+/* Health Indicator */
+.health-indicator {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-lg);
+  max-width: 20rem;
+  font-size: 0.85rem;
+  z-index: 9998;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.health-indicator.offline {
+  background: var(--error-bg);
+  border-color: var(--error);
+}
+
+.health-indicator.degraded {
+  background: var(--warning-bg);
+  border-color: var(--warning);
+}
+
+.health-icon {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.health-message {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.health-title {
+  font-weight: 600;
+}
+
+.health-detail {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.health-retry {
+  margin-left: auto;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.health-retry:hover,
+.health-retry:focus-visible {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 640px) {
+  .health-indicator {
+    left: 1rem;
+    right: 1rem;
+    max-width: none;
+  }
+}
+
 /* Update Notification */
 .update-notification {
   position: fixed;

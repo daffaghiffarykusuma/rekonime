@@ -11,6 +11,7 @@ import { AnalyticsService } from './services/analytics-service.js';
 import { ApiClient } from './services/api-client.js';
 import { Store } from './core/store.js';
 import { DependencyContainer } from './core/dependency-container.js';
+import { HealthMonitor } from './healthMonitor.js';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -31,6 +32,13 @@ const App = {
     full: 'data/anime.full.json',
     legacy: 'data/anime.json'
   },
+  fetchConfig: {
+    maxRetries: 3,
+    baseDelay: 500,
+    maxDelay: 4000,
+    timeoutMs: 12000
+  },
+  fullCatalogTimeoutMs: 30000,
   isFullDataLoaded: false,
   loadingFullCatalog: false,
   fullCatalogPromise: null,
@@ -87,6 +95,7 @@ const App = {
     handler: null
   },
   registeredListeners: [],
+  healthMonitorUnsubscribe: null,
   animeCardTemplate: null,
   gridDomCache: new Map(),
   detailCache: new Map(),
@@ -1261,6 +1270,7 @@ const App = {
       }
 
       this.setupEventListeners();
+      this.setupHealthMonitoring();
       this.setupIntelligentPrefetching();
       this.initSeo();
       this.updateHomeLinks();
@@ -1385,7 +1395,7 @@ const App = {
     return this.loadFullCatalog();
   },
 
-  async loadFullCatalog() {
+  async loadFullCatalog(options = {}) {
     if (this.isFullDataLoaded) {
       return true;
     }
@@ -1394,68 +1404,199 @@ const App = {
       return this.fullCatalogPromise;
     }
 
+    const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : this.fullCatalogTimeoutMs;
+    const controller = new AbortController();
+    const timeoutId = Number.isFinite(timeoutMs)
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : null;
+
     this.loadingFullCatalog = true;
     this.fullCatalogPromise = (async () => {
-      if (window.location.protocol === 'file:') {
-        const loaded = await this.loadEmbeddedData();
-        if (!loaded) {
-          return false;
+      try {
+        if (window.location.protocol === 'file:') {
+          const loaded = await this.loadEmbeddedData();
+          if (!loaded) {
+            return false;
+          }
+          this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
+          return true;
         }
-        this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
+
+        let fullPayload = null;
+        if (this.features.parallelLoading) {
+          const [fullResult, legacyResult] = await Promise.allSettled([
+            this.fetchCatalog(this.dataSources.full, { signal: controller.signal }),
+            this.fetchCatalog(this.dataSources.legacy, { signal: controller.signal })
+          ]);
+          if (controller.signal.aborted) {
+            return this.isFullDataLoaded;
+          }
+          if (fullResult.status === 'fulfilled' && fullResult.value) {
+            fullPayload = fullResult.value;
+          } else if (legacyResult.status === 'fulfilled' && legacyResult.value) {
+            fullPayload = legacyResult.value;
+          }
+        } else {
+          fullPayload = await this.fetchCatalog(this.dataSources.full, { signal: controller.signal });
+          if (!controller.signal.aborted && !fullPayload) {
+            fullPayload = await this.fetchCatalog(this.dataSources.legacy, { signal: controller.signal });
+          }
+        }
+
+        if (controller.signal.aborted) {
+          return this.isFullDataLoaded;
+        }
+
+        if (!fullPayload) {
+          const loaded = await this.loadEmbeddedData();
+          if (!loaded || controller.signal.aborted) {
+            return this.isFullDataLoaded;
+          }
+          this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
+          return true;
+        }
+
+        this.applyCatalogPayload(fullPayload, { isFull: true, preserveFilters: true });
         return true;
-      }
-
-      let fullPayload = null;
-      if (this.features.parallelLoading) {
-        const [fullResult, legacyResult] = await Promise.allSettled([
-          this.fetchCatalog(this.dataSources.full),
-          this.fetchCatalog(this.dataSources.legacy)
-        ]);
-        if (fullResult.status === 'fulfilled' && fullResult.value) {
-          fullPayload = fullResult.value;
-        } else if (legacyResult.status === 'fulfilled' && legacyResult.value) {
-          fullPayload = legacyResult.value;
+      } catch (error) {
+        if (error?.name === 'AbortError' || controller.signal.aborted) {
+          console.warn('[loadFullCatalog] Timed out');
+          return this.isFullDataLoaded;
         }
-      } else {
-        fullPayload =
-          (await this.fetchCatalog(this.dataSources.full)) ||
-          (await this.fetchCatalog(this.dataSources.legacy));
-      }
-
-      if (!fullPayload) {
-        const loaded = await this.loadEmbeddedData();
-        if (!loaded) {
-          return false;
+        throw error;
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
         }
-        this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
-        return true;
       }
-
-      this.applyCatalogPayload(fullPayload, { isFull: true, preserveFilters: true });
-      return true;
     })();
 
-    const result = await this.fullCatalogPromise;
-    this.isFullDataLoaded = Boolean(result);
-    this.loadingFullCatalog = false;
-    this.fullCatalogPromise = null;
+    let result = false;
+    try {
+      result = await this.fullCatalogPromise;
+    } catch (error) {
+      console.error('[loadFullCatalog] Unexpected error:', error);
+      result = false;
+    } finally {
+      this.loadingFullCatalog = false;
+      this.fullCatalogPromise = null;
+    }
+
+    this.isFullDataLoaded = Boolean(result) || this.isFullDataLoaded;
     return result;
   },
 
-  async fetchCatalog(path) {
+  async fetchCatalog(path, options = {}) {
     if (!path) return null;
-    try {
-      const url = this.getAssetPath(path);
-      const apiClient = this.getApiClient();
-      if (apiClient) {
-        return await apiClient.getJson(url, { cache: 'force-cache' });
+    const url = this.getAssetPath(path);
+    const maxRetries = Number.isFinite(options.maxRetries) ? options.maxRetries : this.fetchConfig.maxRetries;
+    const baseDelay = Number.isFinite(options.baseDelay) ? options.baseDelay : this.fetchConfig.baseDelay;
+    const maxDelay = Number.isFinite(options.maxDelay) ? options.maxDelay : this.fetchConfig.maxDelay;
+    const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : this.fetchConfig.timeoutMs;
+    const externalSignal = options.signal;
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      if (externalSignal?.aborted) {
+        return null;
       }
-      const response = await fetch(url, { cache: 'force-cache' });
-      if (!response.ok) return null;
-      return await response.json();
-    } catch (error) {
-      return null;
+      const controller = new AbortController();
+      const onExternalAbort = () => controller.abort();
+      if (externalSignal) {
+        externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+      }
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const fetchOptions = {
+          cache: attempt === 0 ? 'force-cache' : 'no-cache',
+          signal: controller.signal
+        };
+        const apiClient = this.getApiClient();
+        const data = apiClient
+          ? await apiClient.getJson(url, fetchOptions)
+          : await (async () => {
+              const response = await fetch(url, fetchOptions);
+              if (!response.ok) {
+                const error = new Error(`HTTP ${response.status}`);
+                error.status = response.status;
+                error.response = response;
+                throw error;
+              }
+              return response.json();
+            })();
+
+        if (!this.isValidCatalogPayload(data)) {
+          throw new Error('Invalid catalog payload');
+        }
+
+        clearTimeout(timeoutId);
+        if (externalSignal) {
+          externalSignal.removeEventListener('abort', onExternalAbort);
+        }
+        return data;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (externalSignal) {
+          externalSignal.removeEventListener('abort', onExternalAbort);
+        }
+        lastError = error;
+        if (!this.shouldRetryCatalog(error, attempt, maxRetries)) {
+          break;
+        }
+        const delay = this.getCatalogRetryDelay(baseDelay, attempt, maxDelay);
+        await this.delay(delay);
+      }
     }
+
+    if (lastError) {
+      console.error('[fetchCatalog] Failed to load catalog:', lastError);
+    }
+    return null;
+  },
+
+  getCatalogRetryDelay(baseDelay, attempt, maxDelay) {
+    const jitter = Math.random() * 120;
+    return Math.min(baseDelay * (2 ** attempt) + jitter, maxDelay);
+  },
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  },
+
+  getErrorStatus(error) {
+    if (!error) return null;
+    const status = Number(error.status || error.response?.status);
+    if (Number.isFinite(status)) return status;
+    const match = String(error.message || '').match(/\b(\d{3})\b/);
+    return match ? Number.parseInt(match[1], 10) : null;
+  },
+
+  shouldRetryCatalog(error, attempt, maxRetries) {
+    if (attempt >= maxRetries) return false;
+    if (error?.name === 'AbortError') return false;
+    if (error instanceof TypeError) return true;
+
+    const status = this.getErrorStatus(error);
+    if (Number.isFinite(status)) {
+      return status >= 500 || status === 429;
+    }
+
+    const message = String(error?.message || '').toLowerCase();
+    if (message.includes('network') || message.includes('fetch')) {
+      return true;
+    }
+
+    return false;
+  },
+
+  isValidCatalogPayload(payload) {
+    if (!payload || typeof payload !== 'object') return false;
+    if (!Array.isArray(payload.anime)) return false;
+    if (payload.anime.length === 0) return true;
+    const firstItem = payload.anime[0];
+    if (!firstItem) return false;
+    return typeof firstItem.id !== 'undefined' && typeof firstItem.title === 'string';
   },
 
   applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
@@ -1468,6 +1609,13 @@ const App = {
     this.gridDomCache.clear();
     this.detailCache.clear();
     this.visibleCardIds.clear();
+
+    if (HealthMonitor?.markDataFresh) {
+      HealthMonitor.markDataFresh('catalog');
+      if (HealthMonitor.performHealthChecks) {
+        HealthMonitor.performHealthChecks();
+      }
+    }
 
     if (!preserveFilters) {
       this.activeFilters = this.getDefaultActiveFilters();
@@ -1514,6 +1662,74 @@ const App = {
     }
   },
 
+  setupHealthMonitoring() {
+    if (!HealthMonitor?.init || typeof document === 'undefined') return;
+    HealthMonitor.init();
+
+    if (typeof this.healthMonitorUnsubscribe === 'function') {
+      this.healthMonitorUnsubscribe();
+      this.healthMonitorUnsubscribe = null;
+    }
+
+    this.healthMonitorUnsubscribe = HealthMonitor.subscribe((event, data) => {
+      if (event === 'connectivity' && data?.online && HealthMonitor.isDataStale?.('catalog')) {
+        this.loadFullCatalog({ timeoutMs: this.fullCatalogTimeoutMs });
+      }
+      this.renderHealthIndicator();
+    });
+
+    this.renderHealthIndicator();
+  },
+
+  renderHealthIndicator() {
+    if (!HealthMonitor?.getStatus || typeof document === 'undefined') return;
+    const status = HealthMonitor.getStatus();
+    const existing = document.getElementById('health-indicator');
+
+    if (status.online && status.healthy) {
+      if (existing) {
+        existing.remove();
+      }
+      return;
+    }
+
+    const indicator = existing || document.createElement('div');
+    indicator.id = 'health-indicator';
+    indicator.className = `health-indicator ${status.online ? 'degraded' : 'offline'}`;
+    indicator.setAttribute('role', 'status');
+    indicator.setAttribute('aria-live', 'polite');
+
+    const unhealthyServices = status.services
+      .filter(service => !service.healthy)
+      .map(service => service.label || service.name);
+
+    let title = 'Service degraded';
+    let detail = 'Some services are temporarily unavailable.';
+    let icon = '!';
+
+    if (!status.online) {
+      title = 'Offline';
+      detail = 'Using cached data until you reconnect.';
+      icon = 'x';
+    } else if (unhealthyServices.length > 0) {
+      detail = `Unavailable: ${unhealthyServices.join(', ')}`;
+    }
+
+    const retryButton = '<button class="health-retry" type="button" data-action="check-connectivity">Retry</button>';
+    indicator.innerHTML = `
+      <span class="health-icon" aria-hidden="true">${icon}</span>
+      <div class="health-message">
+        <div class="health-title">${title}</div>
+        <div class="health-detail">${detail}</div>
+      </div>
+      ${retryButton}
+    `;
+
+    if (!existing) {
+      document.body.appendChild(indicator);
+    }
+  },
+
   ensureStats() {
     const needsStats = this.animeData.some(anime => !anime.stats);
     if (!needsStats) {
@@ -1546,17 +1762,29 @@ const App = {
    */
   async loadEmbeddedData() {
     if (typeof ANIME_DATA !== 'undefined') {
-      this.animeData = this.normalizeAnimeData(ANIME_DATA.anime || []);
-      return true;
+      const validation = this.validateAnimeData(ANIME_DATA.anime);
+      if (validation.isValid) {
+        this.animeData = this.normalizeAnimeData(ANIME_DATA.anime || []);
+        return true;
+      }
+      console.warn('[loadEmbeddedData] Existing embedded data invalid:', validation.errors);
     }
 
     try {
       await this.loadEmbeddedDataScript();
     } catch (error) {
+      console.error('[loadEmbeddedData] Failed to load embedded data script:', error);
       return false;
     }
 
     if (typeof ANIME_DATA === 'undefined') {
+      console.error('[loadEmbeddedData] ANIME_DATA not defined after script load');
+      return false;
+    }
+
+    const validation = this.validateAnimeData(ANIME_DATA.anime);
+    if (!validation.isValid) {
+      console.error('[loadEmbeddedData] Embedded data validation failed:', validation.errors);
       return false;
     }
 
@@ -1570,15 +1798,63 @@ const App = {
     }
 
     this.embeddedDataPromise = new Promise((resolve, reject) => {
+      const timeoutMs = 10000;
       const script = document.createElement('script');
       script.src = this.getAssetPath('js/data.js');
       script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load embedded anime data'));
+      const timeoutId = setTimeout(() => {
+        cleanup();
+        reject(new Error('Embedded data script load timed out'));
+      }, timeoutMs);
+      const cleanup = () => {
+        clearTimeout(timeoutId);
+        script.onload = null;
+        script.onerror = null;
+      };
+      script.onload = () => {
+        cleanup();
+        resolve();
+      };
+      script.onerror = () => {
+        cleanup();
+        reject(new Error('Failed to load embedded anime data'));
+      };
       document.head.appendChild(script);
     });
 
-    return this.embeddedDataPromise;
+    return this.embeddedDataPromise
+      .catch((error) => {
+        this.embeddedDataPromise = null;
+        throw error;
+      });
+  },
+
+  validateAnimeData(animeList) {
+    const errors = [];
+    if (!Array.isArray(animeList)) {
+      return { isValid: false, errors: ['anime is not an array'] };
+    }
+    if (animeList.length === 0) {
+      return { isValid: true, errors: [], isEmpty: true };
+    }
+
+    const sampleSize = Math.min(animeList.length, 5);
+    for (let i = 0; i < sampleSize; i += 1) {
+      const anime = animeList[i];
+      if (!anime) {
+        errors.push(`Item ${i} is null or undefined`);
+        continue;
+      }
+      if (typeof anime.id === 'undefined') {
+        errors.push(`Item ${i} missing id`);
+      }
+      if (!anime.title || typeof anime.title !== 'string') {
+        errors.push(`Item ${i} missing or invalid title`);
+      }
+    }
+
+    const isValid = errors.length < Math.ceil(sampleSize * 0.2);
+    return { isValid, errors, itemCount: animeList.length };
   },
 
   /**
@@ -3941,6 +4217,14 @@ const App = {
             this.closeDetailModal({ updateUrl: false });
           }
           this.clearAllFilters();
+        }
+        return;
+      }
+
+      if (action === 'check-connectivity') {
+        event.preventDefault();
+        if (HealthMonitor?.performHealthChecks) {
+          HealthMonitor.performHealthChecks();
         }
         return;
       }

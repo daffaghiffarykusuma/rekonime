@@ -29,6 +29,8 @@
 - `js/onboarding.js`: First-time user tour with guided steps through key concepts.
 - `js/themeManager.js`: Light/Dark/Auto theme switching with OS preference detection.
 - `js/serviceWorker.js`: Service Worker registration, update handling, and offline indicators.
+- `js/circuitBreaker.js`: Circuit breaker for external API resilience.
+- `js/healthMonitor.js`: Connectivity + data freshness monitor with health status reporting.
 - `js/core/dependency-container.js`: Lightweight dependency registry for shared services.
 - `js/core/event-bus.js`: Pub/sub bus for cross-module signals.
 - `js/core/store.js`: Minimal store with reducer map and middleware support.
@@ -69,12 +71,15 @@
 - `js/app.js` -> `ThemeManager` (theme switching)
 - `js/app.js` -> `KeyboardShortcuts` (keyboard navigation)
 - `js/app.js` -> `ServiceWorkerManager` (PWA features)
+- `js/app.js` -> `HealthMonitor` (health status + indicator)
 - `js/app.js` -> `CacheManager` -> localStorage (settings/bookmarks)
 - `js/app.js` -> `data/*.json` (fetch preview/full/legacy) and `js/data.js` fallback
 - `js/recommendations.js` -> `CacheManager` (mode preference)
 - `js/discovery.js` -> `AnalyticsService` + `CacheManager` (surprise tracking)
 - `js/reviews.js` -> Jikan API (MyAnimeList reviews) (`https://api.jikan.moe`)
 - `js/reviews.js` -> `ApiClient` + `CacheManager` (reviews/synopsis + synopsis cache)
+- `js/reviews.js` -> `CircuitBreaker` (Jikan API resilience)
+- `js/healthMonitor.js` -> `CircuitBreaker` (reviews health status)
 - `js/onboarding.js` -> `AnalyticsService` + `CacheManager` (tour state)
 - `js/filterPresets.js` -> `AnalyticsService` (preset usage)
 - `js/keyboardShortcuts.js` -> `CacheManager` (acknowledgement flag)
@@ -169,6 +174,11 @@
 - Shows update prompt when new versions are available.
 - Displays offline indicator when connectivity is lost.
 - Caches static assets, data JSON, and images with different strategies.
+
+### Health monitoring
+- `HealthMonitor.init()` starts during `App.init()` and tracks connectivity + catalog freshness.
+- Health indicator appears when degraded/offline and includes a retry action.
+- Reconnection triggers a full catalog refresh if data is stale.
 
 ## Data schema (core entities)
 
@@ -293,6 +303,7 @@ flowchart TD
   app --> stats[js/stats.js]
   app --> recs[js/recommendations.js]
   app --> reviews[js/reviews.js]
+  app --> health[js/healthMonitor.js]
   app --> discovery[js/discovery.js]
   app --> filterPresets[js/filterPresets.js]
   app --> metricGlossary[js/metricGlossary.js]
@@ -312,8 +323,10 @@ flowchart TD
   app --> dataEmbed[js/data.js]
   app --> storage[localStorage (via CacheManager)]
   reviews --> jikan[Jikan API (MyAnimeList)]
+  reviews --> circuit[js/circuitBreaker.js]
   reviews --> api
   reviews --> cache
+  health --> circuit
   discovery --> analytics
   filterPresets --> analytics
   onboarding --> analytics

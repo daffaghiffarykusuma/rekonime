@@ -1,5 +1,6 @@
 ﻿import { ApiClient } from './services/api-client.js';
 import { CacheManager } from './services/cache-manager.js';
+import { CircuitBreaker } from './circuitBreaker.js';
 
 /**
  * Reviews Service - Fetches and categorizes reviews from MyAnimeList (via Jikan)
@@ -334,11 +335,32 @@ const ReviewsService = {
     // Reset retry count on manual retry
     if (isManualRetry) {
       this.resetRetryCount(cacheKey);
+      CircuitBreaker.reset('jikan-api');
     }
 
     const cached = this.getCacheEntry(cacheKey);
     if (cached && !isManualRetry) {
       return cached;
+    }
+
+    const circuitCheck = CircuitBreaker.canExecute('jikan-api');
+    if (!circuitCheck.allowed) {
+      const cachedDescription = this.getCachedDescription(cacheKey);
+      const retryAfter =
+        Number.isFinite(circuitCheck.retryAfterMs) ? Math.ceil(circuitCheck.retryAfterMs / 1000) : null;
+      return {
+        positive: [],
+        neutral: [],
+        negative: [],
+        description: cachedDescription || '',
+        error: true,
+        errorMessage: 'Reviews are temporarily unavailable. Please try again shortly.',
+        circuitOpen: true,
+        retryAfter,
+        retryAttempt: this.getRetryCount(cacheKey),
+        maxRetries: this.maxRetries,
+        canRetry: false
+      };
     }
 
     const cachedDescription = this.getCachedDescription(cacheKey);
@@ -383,6 +405,7 @@ const ReviewsService = {
       };
 
       // Reset retry count on success
+      CircuitBreaker.recordSuccess('jikan-api');
       this.resetRetryCount(cacheKey);
       this.setCacheEntry(cacheKey, result);
       return result;
@@ -401,6 +424,9 @@ const ReviewsService = {
       }
 
       // Max retries reached or non-retryable error
+      CircuitBreaker.recordFailure('jikan-api');
+      const circuitStatus = CircuitBreaker.getStatus('jikan-api');
+      const circuitOpen = circuitStatus.state === CircuitBreaker.states.OPEN;
       return {
         positive: [],
         neutral: [],
@@ -408,9 +434,10 @@ const ReviewsService = {
         description: cachedDescription || '',
         error: true,
         errorMessage: error.message,
+        circuitOpen,
         retryAttempt: this.getRetryCount(cacheKey),
         maxRetries: this.maxRetries,
-        canRetry: true
+        canRetry: !circuitOpen && this.getRetryCount(cacheKey) < this.maxRetries
       };
     }
   },

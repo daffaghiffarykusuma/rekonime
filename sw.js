@@ -3,10 +3,11 @@
  * Provides offline caching and data persistence
  */
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v6';
 const STATIC_CACHE = `rekonime-static-${CACHE_VERSION}`;
 const DATA_CACHE = `rekonime-data-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rekonime-images-${CACHE_VERSION}`;
+const IS_LOCALHOST = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
 const STATIC_ASSETS = [
     './',
@@ -22,6 +23,10 @@ const STATIC_ASSETS = [
 
 // Install: Cache static assets
 self.addEventListener('install', (event) => {
+    if (IS_LOCALHOST) {
+        self.skipWaiting();
+        return;
+    }
     event.waitUntil(
         caches.open(STATIC_CACHE)
             .then((cache) => {
@@ -37,6 +42,10 @@ self.addEventListener('install', (event) => {
 
 // Activate: Clean up old caches
 self.addEventListener('activate', (event) => {
+    if (IS_LOCALHOST) {
+        event.waitUntil(self.registration.unregister().then(() => self.clients.claim()));
+        return;
+    }
     event.waitUntil(
         caches.keys()
             .then((cacheNames) => {
@@ -58,6 +67,9 @@ self.addEventListener('activate', (event) => {
 
 // Fetch: Handle requests with appropriate strategies
 self.addEventListener('fetch', (event) => {
+    if (IS_LOCALHOST) {
+        return;
+    }
     const { request } = event;
     const url = new URL(request.url);
 
