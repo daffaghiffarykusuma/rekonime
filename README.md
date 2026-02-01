@@ -30,6 +30,8 @@ If you want to refresh data:
 1) Update or merge source data in `data/anime.json`.
 2) Build the preview/full catalogs:
    - `node tools/build-catalogs.js`
+     - Optional: `--report` writes a quality report. Override its location with `--report-path <path>`.
+     - Optional: `--incremental` uses `.build-state.json` to skip unchanged builds. Override its location with `--state <path>`.
 3) Regenerate the embedded fallback:
    - `powershell -File tools/regenerate-data.ps1`
 

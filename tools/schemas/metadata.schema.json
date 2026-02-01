@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Anime Metadata",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "title_english": { "type": "string" },
+    "title_japanese": { "type": "string" },
+    "titleEnglish": { "type": "string" },
+    "titleJapanese": { "type": "string" },
+    "malId": { "type": ["integer", "null"] },
+    "anilistId": { "type": ["integer", "null"] },
+    "cover": { "type": "string", "minLength": 1 },
+    "year": { "type": ["integer", "null"] },
+    "season": { "type": "string" },
+    "studio": { "type": "string" },
+    "source": { "type": "string" },
+    "type": { "type": "string" },
+    "demographic": { "type": "string" },
+    "score": { "type": ["number", "null"] },
+    "episodes_count": { "type": ["integer", "null"] },
+    "genres": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "themes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "synopsis": { "type": "string" },
+    "trailer": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

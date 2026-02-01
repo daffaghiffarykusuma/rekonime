@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Anime Episode",
+  "type": "object",
+  "required": [
+    "episode",
+    "score"
+  ],
+  "properties": {
+    "episode": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "score": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,14 +1,26 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Stats } from '../js/stats.js';
+import { Stats, StatsCalculationError as StatsCoreError } from '../js/stats.js';
+import { validateCatalog } from './lib/schema-validator.js';
+import { checkReferentialIntegrity } from './lib/integrity-checker.js';
+import { BuildState } from './lib/build-state.js';
+import { buildQualityReport, runQualityGates } from './lib/quality-reporter.js';
+import {
+  ValidationError,
+  DataIntegrityError,
+  StatsCalculationError,
+  BuildError
+} from './lib/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const inputPath = process.argv[2] || path.join(__dirname, '..', 'data', 'anime.json');
-const fullOutputPath = process.argv[3] || path.join(__dirname, '..', 'data', 'anime.full.json');
-const previewOutputPath = process.argv[4] || path.join(__dirname, '..', 'data', 'anime.preview.json');
+const DEFAULT_INPUT = path.join(__dirname, '..', 'data', 'anime.json');
+const DEFAULT_FULL_OUTPUT = path.join(__dirname, '..', 'data', 'anime.full.json');
+const DEFAULT_PREVIEW_OUTPUT = path.join(__dirname, '..', 'data', 'anime.preview.json');
+const DEFAULT_REPORT_OUTPUT = path.join(__dirname, '..', 'data', 'build-report.json');
+const DEFAULT_BUILD_STATE = path.join(__dirname, '..', '.build-state.json');
 
 const PREVIEW_LIMIT = 200;
 const PREVIEW_BUCKET = 80;
@@ -117,51 +129,221 @@ const normalizeAnime = (anime) => {
 
 const byNumberDesc = (a, b) => (Number.isFinite(b) ? b : 0) - (Number.isFinite(a) ? a : 0);
 
-const raw = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
-const normalized = (raw.anime || []).map(normalizeAnime);
-const scoreProfile = Stats.buildScoreProfile(normalized);
+const parseArgs = (args) => {
+  const flags = new Set();
+  const values = {};
+  const positional = [];
+  const valueFlags = new Set(['state', 'report-path']);
 
-const fullCatalog = normalized.map((anime, index) => ({
-  ...anime,
-  stats: Stats.calculateAllStats(anime, scoreProfile),
-  colorIndex: index
-}));
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) {
+      positional.push(arg);
+      continue;
+    }
 
-const withEpisodes = fullCatalog.filter(anime => Array.isArray(anime.episodes) && anime.episodes.length > 0);
-const byRetention = [...withEpisodes].sort((a, b) => byNumberDesc(a.stats?.retentionScore, b.stats?.retentionScore)).slice(0, PREVIEW_BUCKET);
-const bySatisfaction = [...fullCatalog]
-  .filter(anime => Number.isFinite(anime.communityScore))
-  .sort((a, b) => byNumberDesc(a.communityScore, b.communityScore))
-  .slice(0, PREVIEW_BUCKET);
-const byRecent = [...fullCatalog]
-  .sort((a, b) => byNumberDesc(a.year, b.year))
-  .slice(0, PREVIEW_BUCKET);
+    const [rawKey, inlineValue] = arg.replace(/^--/, '').split('=');
+    if (valueFlags.has(rawKey)) {
+      if (inlineValue !== undefined) {
+        values[rawKey] = inlineValue;
+      } else if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
+        values[rawKey] = args[i + 1];
+        i += 1;
+      } else {
+        values[rawKey] = '';
+      }
+      continue;
+    }
 
-const previewMap = new Map();
-[...byRetention, ...bySatisfaction, ...byRecent].forEach(anime => {
-  if (anime?.id && !previewMap.has(anime.id)) {
-    previewMap.set(anime.id, anime);
+    flags.add(rawKey);
   }
-});
 
-const previewCatalog = [...previewMap.values()]
-  .sort((a, b) => byNumberDesc(a.stats?.retentionScore, b.stats?.retentionScore))
-  .slice(0, PREVIEW_LIMIT);
-
-const fullPayload = {
-  generatedAt: new Date().toISOString(),
-  scoreProfile,
-  anime: fullCatalog
+  return { flags, values, positional };
 };
 
-const previewPayload = {
-  generatedAt: fullPayload.generatedAt,
-  scoreProfile,
-  anime: previewCatalog
+const formatIssue = (issue) => {
+  const id = issue.animeId ? `(${issue.animeId})` : '';
+  return `${issue.field || 'unknown'} ${id}: ${issue.message}`;
 };
 
-fs.writeFileSync(fullOutputPath, JSON.stringify(fullPayload));
-fs.writeFileSync(previewOutputPath, JSON.stringify(previewPayload));
+const logIssues = (label, issues, { warnOnly = false } = {}) => {
+  if (!issues.length) return;
+  const logger = warnOnly ? console.warn : console.error;
+  logger(`${label}: ${issues.length}`);
+  issues.slice(0, 15).forEach((issue) => {
+    logger(`  - ${formatIssue(issue)}`);
+  });
+  if (issues.length > 15) {
+    logger(`  ... ${issues.length - 15} more`);
+  }
+};
 
-console.log(`Wrote ${fullCatalog.length} entries to ${fullOutputPath}`);
-console.log(`Wrote ${previewCatalog.length} entries to ${previewOutputPath}`);
+const main = () => {
+  const startedAt = Date.now();
+  const { flags, values, positional } = parseArgs(process.argv.slice(2));
+  const strict = flags.has('strict');
+  const incremental = flags.has('incremental');
+  const force = flags.has('force');
+  const emitReport = flags.has('report');
+
+  const inputPath = positional[0] || DEFAULT_INPUT;
+  const fullOutputPath = positional[1] || DEFAULT_FULL_OUTPUT;
+  const previewOutputPath = positional[2] || DEFAULT_PREVIEW_OUTPUT;
+  const reportOutputPath = values['report-path'] || DEFAULT_REPORT_OUTPUT;
+  const stateFile = values.state || DEFAULT_BUILD_STATE;
+
+  const buildState = new BuildState({ stateFile });
+  const dependencies = [
+    inputPath,
+    __filename,
+    path.join(__dirname, '..', 'js', 'stats.js'),
+    path.join(__dirname, 'lib', 'schema-validator.js'),
+    path.join(__dirname, 'lib', 'integrity-checker.js'),
+    path.join(__dirname, 'lib', 'quality-reporter.js')
+  ];
+
+  const outputsMissing = [fullOutputPath, previewOutputPath].some((filePath) => !fs.existsSync(filePath));
+  const depsChanged = dependencies.some((dep) => buildState.hasChanged(dep));
+
+  if (incremental && !force && !outputsMissing && !depsChanged) {
+    console.log('No changes detected, skipping build.');
+    return;
+  }
+
+  const raw = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+  const animeList = Array.isArray(raw.anime) ? raw.anime : [];
+
+  const validation = validateCatalog(animeList, { strict });
+  logIssues('Validation errors', validation.errors);
+  logIssues('Validation warnings', validation.warnings, { warnOnly: true });
+
+  if (!validation.valid && strict) {
+    throw new ValidationError('Build failed due to validation errors', {
+      errorCount: validation.errors.length,
+      warningCount: validation.warnings.length
+    });
+  }
+
+  const integrityIssues = checkReferentialIntegrity(animeList);
+  const integrityErrors = integrityIssues.filter(issue => issue.severity === 'error');
+  const integrityWarnings = integrityIssues.filter(issue => issue.severity !== 'error');
+
+  logIssues('Integrity errors', integrityErrors);
+  logIssues('Integrity warnings', integrityWarnings, { warnOnly: true });
+
+  if (integrityErrors.length && strict) {
+    throw new DataIntegrityError('Build failed due to integrity errors', {
+      errorCount: integrityErrors.length
+    });
+  }
+
+  const normalized = animeList.map(normalizeAnime);
+  const scoreProfile = Stats.buildScoreProfile(normalized);
+
+  const fullCatalog = normalized.map((anime, index) => {
+    try {
+      return {
+        ...anime,
+        stats: Stats.calculateAllStats(anime, scoreProfile, { strict }),
+        colorIndex: index
+      };
+    } catch (error) {
+      if (error instanceof StatsCoreError || error?.name === 'StatsCalculationError') {
+        throw new StatsCalculationError('Stats calculation failed', {
+          animeId: anime?.id || anime?.metadata?.id || `index-${index}`
+        }, { cause: error });
+      }
+      throw error;
+    }
+  });
+
+  const withEpisodes = fullCatalog.filter(anime => Array.isArray(anime.episodes) && anime.episodes.length > 0);
+  const byRetention = [...withEpisodes]
+    .sort((a, b) => byNumberDesc(a.stats?.retentionScore, b.stats?.retentionScore))
+    .slice(0, PREVIEW_BUCKET);
+  const bySatisfaction = [...fullCatalog]
+    .filter(anime => Number.isFinite(anime.communityScore))
+    .sort((a, b) => byNumberDesc(a.communityScore, b.communityScore))
+    .slice(0, PREVIEW_BUCKET);
+  const byRecent = [...fullCatalog]
+    .sort((a, b) => byNumberDesc(a.year, b.year))
+    .slice(0, PREVIEW_BUCKET);
+
+  const previewMap = new Map();
+  [...byRetention, ...bySatisfaction, ...byRecent].forEach(anime => {
+    if (anime?.id && !previewMap.has(anime.id)) {
+      previewMap.set(anime.id, anime);
+    }
+  });
+
+  const previewCatalog = [...previewMap.values()]
+    .sort((a, b) => byNumberDesc(a.stats?.retentionScore, b.stats?.retentionScore))
+    .slice(0, PREVIEW_LIMIT);
+
+  const fullPayload = {
+    generatedAt: new Date().toISOString(),
+    scoreProfile,
+    anime: fullCatalog
+  };
+
+  const previewPayload = {
+    generatedAt: fullPayload.generatedAt,
+    scoreProfile,
+    anime: previewCatalog
+  };
+
+  fs.writeFileSync(fullOutputPath, JSON.stringify(fullPayload));
+  fs.writeFileSync(previewOutputPath, JSON.stringify(previewPayload));
+
+  const durationMs = Date.now() - startedAt;
+  const report = buildQualityReport({
+    anime: fullCatalog,
+    validation,
+    integrityIssues,
+    scoreProfile,
+    durationMs
+  });
+
+  const gateResults = runQualityGates(report, { strict });
+  if (gateResults.length) {
+    gateResults.forEach((gate) => {
+      const logger = gate.severity === 'error' ? console.error : console.warn;
+      logger(`Quality gate ${gate.name}: ${gate.message}`);
+    });
+  }
+
+  const failingGates = gateResults.filter(gate => gate.severity === 'error');
+  if (failingGates.length) {
+    throw new BuildError('Build failed due to quality gates', { gates: failingGates });
+  }
+
+  if (emitReport) {
+    fs.writeFileSync(reportOutputPath, JSON.stringify(report, null, 2));
+    console.log(`Wrote quality report to ${reportOutputPath}`);
+  }
+
+  buildState.updateFile(inputPath);
+  dependencies
+    .filter(dep => dep !== inputPath)
+    .forEach(dep => buildState.updateFile(dep));
+  buildState.updateFile(fullOutputPath);
+  buildState.updateFile(previewOutputPath);
+  buildState.markBuildComplete();
+
+  console.log(`Wrote ${fullCatalog.length} entries to ${fullOutputPath}`);
+  console.log(`Wrote ${previewCatalog.length} entries to ${previewOutputPath}`);
+};
+
+try {
+  main();
+} catch (error) {
+  if (error instanceof BuildError || error instanceof ValidationError || error instanceof DataIntegrityError) {
+    console.error(error.message);
+    if (error.details) {
+      console.error(JSON.stringify(error.details, null, 2));
+    }
+  } else {
+    console.error('Build failed unexpectedly:', error);
+  }
+  process.exitCode = 1;
+}

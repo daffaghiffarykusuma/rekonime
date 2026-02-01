@@ -2,6 +2,14 @@
  * Statistics module for anime scoring calculations
  */
 
+class StatsCalculationError extends Error {
+  constructor(message, details = {}) {
+    super(message);
+    this.name = 'StatsCalculationError';
+    this.details = details;
+  }
+}
+
 const Stats = {
   strictnessExponent: 1.35,
   defaultScoreProfile: { p35: 3.2, p50: 3.6, p65: 4.0 },
@@ -208,6 +216,56 @@ const Stats = {
     if (!episodes || episodes.length === 0) return 0;
     const sum = episodes.reduce((acc, ep) => acc + ep.score, 0);
     return Math.round((sum / episodes.length) * 100) / 100;
+  },
+
+  /**
+   * Normalize and validate episode data before calculations
+   * @param {Array} episodes - Raw episode data
+   * @param {Object} options - Validation options
+   * @returns {Array} Sanitized episode objects
+   */
+  normalizeEpisodes(episodes, options = {}) {
+    const strict = Boolean(options.strict);
+    if (!Array.isArray(episodes)) {
+      if (strict) {
+        throw new StatsCalculationError('Episodes must be an array', { episodesType: typeof episodes });
+      }
+      return [];
+    }
+
+    const cleaned = [];
+    episodes.forEach((episode, index) => {
+      if (!episode || typeof episode !== 'object') {
+        if (strict) {
+          throw new StatsCalculationError('Episode entry is invalid', { index, episode });
+        }
+        return;
+      }
+
+      const score = Number(episode.score);
+      if (!Number.isFinite(score) || score < 1 || score > 5) {
+        if (strict) {
+          throw new StatsCalculationError('Episode score out of range', {
+            index,
+            score: episode.score
+          });
+        }
+        return;
+      }
+
+      const episodeNumber = Number(episode.episode);
+      cleaned.push({
+        ...episode,
+        episode: Number.isFinite(episodeNumber) ? episodeNumber : index + 1,
+        score
+      });
+    });
+
+    if (strict && episodes.length > 0 && cleaned.length === 0) {
+      throw new StatsCalculationError('No valid episodes available', { total: episodes.length });
+    }
+
+    return cleaned;
   },
 
   /**
@@ -899,8 +957,8 @@ const Stats = {
    * @param {Object} anime - Anime object with episodes array
    * @returns {Object} Object containing all calculated statistics
    */
-  calculateAllStats(anime, scoreProfile) {
-    const episodes = anime.episodes || [];
+  calculateAllStats(anime, scoreProfile, options = {}) {
+    const episodes = this.normalizeEpisodes(anime?.episodes || [], options);
     const profile = this.resolveScoreProfile(scoreProfile);
     const avg = this.calculateAverage(episodes);
     const stdDev = this.calculateStdDev(episodes);
@@ -1104,5 +1162,5 @@ const Stats = {
   }
 };
 
-export { Stats };
+export { Stats, StatsCalculationError };
 export default Stats;

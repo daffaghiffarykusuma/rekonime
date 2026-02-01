@@ -51,13 +51,21 @@
 - `data/anime.json`: Raw catalog (scraped). Source of truth for builds.
 - `data/anime.full.json`: Full catalog with stats + colorIndex (generated).
 - `data/anime.preview.json`: Preview subset for fast first paint (generated).
+- `data/build-report.json`: Build quality report output (generated, optional).
 - `tools/*.js` and `tools/*.ps1`: Data pipeline utilities.
+- `tools/lib/schema-validator.js`: Build-time catalog validation (schema + custom checks).
+- `tools/lib/integrity-checker.js`: Build-time referential integrity checks.
+- `tools/lib/build-state.js`: Incremental build state tracker (hashes + timestamps).
+- `tools/lib/quality-reporter.js`: Quality report generator + gate evaluation.
+- `tools/lib/errors.js`: Build-time error classes.
+- `tools/schemas/*.json`: JSON schema inputs for pipeline validation.
 - `tools/generate-version.js`: Auto-generates cache version + build metadata.
 - `tools/deploy-data.js`: Data backup + rollback helper.
 - `tools/scraper/*`: Python scraper + metadata enrichers for MAL/Jikan/AniList.
+- `.build-state.json`: Incremental build state (generated).
 - `package.json`: Dev scripts (node:test harness).
 - `vite.config.js`: Vite multi-page build config.
-- `test/*.test.js`: Node built-in unit tests for stats and recommendations.
+- `test/*.test.js`: Node built-in unit/integration tests (stats, recommendations, pipeline).
 
 ### Edges (dependencies and relationships)
 - `index.html` -> `css/styles.css`
@@ -104,7 +112,13 @@
 - `js/services/error-handler.js` -> `Logger` (structured logging)
 - `js/performanceMonitor.js` -> `AnalyticsService` (metric reporting)
 - `js/app.js` -> YouTube (trailer links and embeds, sanitized to allowed hosts)
+- `tools/build-catalogs.js` -> `tools/lib/schema-validator.js` + `tools/schemas/*.json` (build validation)
+- `tools/build-catalogs.js` -> `tools/lib/integrity-checker.js` (referential checks)
+- `tools/build-catalogs.js` -> `tools/lib/quality-reporter.js` (quality report + gates)
+- `tools/build-catalogs.js` -> `tools/lib/build-state.js` -> `.build-state.json` (incremental tracking)
+- `tools/build-catalogs.js` -> `tools/lib/errors.js` (build errors)
 - `tools/build-catalogs.js` -> `js/stats.js` (precompute stats) -> `data/anime.full.json` + `data/anime.preview.json`
+- `tools/build-catalogs.js` -> `data/build-report.json` (optional report output)
 - `tools/generate-version.js` -> `sw.js` + `version.json`
 - `tools/deploy-data.js` -> `data/anime*.json` (backup/rollback)
 - `tools/regenerate-data.ps1` -> `data/anime.full.json` -> `js/data.js`
@@ -116,6 +130,7 @@
 - `package.json` -> `test/*.test.js` (node:test runner)
 - `test/stats.test.js` -> `js/stats.js`
 - `test/recommendations.test.js` -> `js/recommendations.js`
+- `test/integration/build-catalogs.test.js` -> `tools/build-catalogs.js`
 - `js/serviceWorker.js` -> `sw.js` (service worker registration)
 - `health.html` -> `data/anime.full.json` + Jikan API + service worker registration status
 
@@ -292,7 +307,7 @@
 1. `tools/scraper/mal_scraper.py` -> `tools/scraper/output/*.json`
 2. `tools/merge-scores.js` -> `data/anime.json`
 3. `tools/update_metadata.js` and `tools/backfill_data.js` enrich `data/anime.json`
-4. `tools/build-catalogs.js` -> `data/anime.full.json` + `data/anime.preview.json`
+4. `tools/build-catalogs.js` (schema + integrity + quality gates, incremental state) -> `data/anime.full.json` + `data/anime.preview.json` (+ optional `data/build-report.json` + `.build-state.json`)
 5. `tools/regenerate-data.ps1` -> `js/data.js` (embedded fallback)
 6. `tools/validate-data.js` checks required fields (use `--skip-embedded` if needed)
 7. `tools/sync-home-index.ps1` syncs `home/index.html` with `index.html`
@@ -385,6 +400,12 @@ flowchart TD
   raw --> updateMeta[tools/update_metadata.js]
   raw --> backfill[tools/backfill_data.js]
   raw --> build[tools/build-catalogs.js]
+  build --> schemaTools[tools/lib/schema-validator.js]
+  build --> schemaFiles[tools/schemas/*.json]
+  build --> integrityTools[tools/lib/integrity-checker.js]
+  build --> qualityTools[tools/lib/quality-reporter.js]
+  build --> buildState[.build-state.json]
+  build --> buildReport[data/build-report.json]
   build --> full[data/anime.full.json]
   build --> preview[data/anime.preview.json]
   full --> regen[tools/regenerate-data.ps1]
@@ -402,6 +423,7 @@ flowchart TD
   pkg[package.json] --> tests[test/*.test.js]
   tests --> stats
   tests --> recs
+  tests --> build
 
   %% Documentation (non-runtime)
   agentsDoc[AGENTS.md] -. guides .-> journey[USER_JOURNEY.MD]
