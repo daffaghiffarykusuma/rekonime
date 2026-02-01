@@ -144,7 +144,7 @@ const Onboarding = {
           <div class="onboarding-retention-demo">
             <div class="retention-demo-high">
               <div class="retention-demo-bar">
-                <span class="retention-demo-fill" style="width: 92%"></span>
+                <progress class="retention-demo-progress" value="92" max="100" aria-label="High retention example"></progress>
               </div>
               <div class="retention-demo-info">
                 <span class="retention-demo-score">92%</span>
@@ -154,7 +154,7 @@ const Onboarding = {
             </div>
             <div class="retention-demo-low">
               <div class="retention-demo-bar">
-                <span class="retention-demo-fill is-low" style="width: 45%"></span>
+                <progress class="retention-demo-progress is-low" value="45" max="100" aria-label="Low retention example"></progress>
               </div>
               <div class="retention-demo-info">
                 <span class="retention-demo-score">45%</span>

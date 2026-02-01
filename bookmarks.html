@@ -4,8 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'nonce-rekonime-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.jikan.moe; frame-src https://www.youtube.com https://www.youtube-nocookie.com">
+    content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'nonce-rekonime-inline'; style-src 'self' 'nonce-rekonime-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://cdn.myanimelist.net https://myanimelist.cdn-dena.com https://via.placeholder.com https://i.ytimg.com data:; connect-src 'self' https://api.jikan.moe; frame-src https://www.youtube.com https://www.youtube-nocookie.com; form-action 'self'; upgrade-insecure-requests">
   <meta name="csp-nonce" content="rekonime-inline">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bookmarks - Rekonime</title>
   <meta name="description" content="Your saved anime on Rekonime.">

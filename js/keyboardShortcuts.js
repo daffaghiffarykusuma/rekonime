@@ -299,7 +299,7 @@ const KeyboardShortcuts = {
     `;
 
         document.body.appendChild(modal);
-        document.body.style.overflow = 'hidden';
+        document.body.classList.add('is-scroll-locked');
 
         // Animate in
         requestAnimationFrame(() => {
@@ -342,11 +342,12 @@ const KeyboardShortcuts = {
         if (!modal) return;
 
         modal.classList.remove('visible');
-        document.body.style.overflow = '';
-
         setTimeout(() => {
             modal.remove();
             this.isModalOpen = false;
+            if (!document.querySelector('.modal-overlay.visible')) {
+                document.body.classList.remove('is-scroll-locked');
+            }
         }, 300);
     },
 

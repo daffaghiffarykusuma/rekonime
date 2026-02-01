@@ -347,6 +347,37 @@ const App = {
     }
   },
 
+  sanitizeImageUrl(rawUrl, { allowRelative = true } = {}) {
+    if (!rawUrl) return '';
+    const value = String(rawUrl).trim();
+    if (!value) return '';
+
+    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value);
+    if (!hasScheme) {
+      return allowRelative ? value : '';
+    }
+
+    try {
+      const parsed = new URL(value, window.location.href);
+      if (parsed.protocol !== 'https:') return '';
+      const host = parsed.hostname.toLowerCase();
+      const allowedHosts = [
+        'cdn.myanimelist.net',
+        'myanimelist.cdn-dena.com',
+        'via.placeholder.com',
+        'i.ytimg.com'
+      ];
+
+      const isAllowed = allowedHosts.some(allowed =>
+        host === allowed || host.endsWith(`.${allowed}`)
+      );
+
+      return isAllowed ? parsed.toString() : '';
+    } catch (error) {
+      return '';
+    }
+  },
+
   getAssetPath(path) {
     if (!path) return '';
     if (window.location.protocol === 'file:') {
@@ -832,9 +863,8 @@ const App = {
   },
 
   updateBodyScrollLock() {
-    const hasOpenModal = ['detail-modal', 'filter-modal', 'settings-modal']
-      .some(id => this.isModalVisible(id));
-    document.body.style.overflow = hasOpenModal ? 'hidden' : '';
+    const hasOpenModal = Boolean(document.querySelector('.modal-overlay.visible'));
+    document.body.classList.toggle('is-scroll-locked', hasOpenModal);
   },
 
   isElementVisible(element) {
@@ -2412,7 +2442,7 @@ const App = {
         : '';
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
+      const safeCover = this.escapeAttr(this.sanitizeImageUrl(anime.cover));
       const safeYear = this.escapeHtml(anime.year ?? 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio ?? 'Unknown');
       const isActive = index === this.headerSearchState.activeIndex;
@@ -2889,16 +2919,16 @@ const App = {
     );
 
     if (recommendations.length === 0) {
-      section.style.display = 'none';
+      section.classList.add('is-hidden');
       return;
     }
 
-    section.style.display = 'block';
+    section.classList.remove('is-hidden');
 
     // Render seed info
     if (basedOn) {
       const { src, srcset, sizes } = this.buildImageSrcset(basedOn.cover);
-      const safeCover = this.escapeAttr(src || this.sanitizeUrl(basedOn.cover));
+      const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(basedOn.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       seedContainer.innerHTML = `
@@ -2914,7 +2944,7 @@ const App = {
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
 
       const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
-      const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
+      const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       return `
@@ -2951,7 +2981,7 @@ const App = {
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
 
       const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
-      const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
+      const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       return `
@@ -3006,7 +3036,7 @@ const App = {
 
       // Build responsive image attributes
       const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
-      const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
+      const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
 
@@ -3059,7 +3089,7 @@ const App = {
       }).join('')}
             </div>
             <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-              <span class="retention-fill" style="width: ${retentionLevel}%"></span>
+              <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Retention score"></progress>
             </div>
             <div class="card-reason">${safeReason}</div>
           </div>
@@ -3090,7 +3120,7 @@ const App = {
         ${themeSelector}
         
         <!-- Playback Settings -->
-        <div class="filter-section-title" style="margin-top: 1.5rem;">Playback</div>
+        <div class="filter-section-title filter-section-title--spaced">Playback</div>
         <div class="settings-list">
           <label class="settings-row">
             <span class="settings-text">
@@ -3115,7 +3145,7 @@ const App = {
         </div>
         
         <!-- Accessibility Settings -->
-        <div class="filter-section-title" style="margin-top: 1.5rem;">Accessibility</div>
+        <div class="filter-section-title filter-section-title--spaced">Accessibility</div>
         <div class="settings-list">
           <label class="settings-row">
             <span class="settings-text">
@@ -3150,10 +3180,10 @@ const App = {
         </div>
         
         <!-- Keyboard Shortcuts Hint -->
-        <div class="settings-row" style="margin-top: 1rem; background: transparent; border-style: dashed; cursor: default;">
+        <div class="settings-row settings-row--note">
           <span class="settings-text">
             <span class="settings-title">Keyboard shortcuts</span>
-            <span class="settings-description">Press <kbd style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: monospace;">?</kbd> anytime to see all keyboard shortcuts</span>
+            <span class="settings-description">Press <kbd class="settings-kbd">?</kbd> anytime to see all keyboard shortcuts</span>
           </span>
         </div>
       </div>
@@ -3186,7 +3216,7 @@ const App = {
     if (active.length === 0) {
       list.innerHTML = '';
       label.textContent = 'Active filters';
-      clearBtn.style.display = 'none';
+      clearBtn.classList.add('is-hidden');
       container.classList.add('is-empty');
       emptyState.classList.remove('is-hidden');
       return;
@@ -3195,7 +3225,7 @@ const App = {
     container.classList.remove('is-empty');
     emptyState.classList.add('is-hidden');
     label.textContent = `Active filters (${active.length})`;
-    clearBtn.style.display = 'inline-flex';
+    clearBtn.classList.remove('is-hidden');
     list.innerHTML = active.map(item => {
       const displayValue = String(item.value);
       const safeValueText = this.escapeHtml(displayValue);
@@ -3252,11 +3282,11 @@ const App = {
       const safeSatisfaction = this.escapeHtml(malSatisfaction);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const safeCover = this.escapeAttr(this.sanitizeUrl(anime.cover));
+      const safeCover = this.escapeAttr(this.sanitizeImageUrl(anime.cover));
       const safeReason = this.escapeHtml(anime.reason || '');
 
       const { src: recSrc, srcset: recSrcset, sizes: recSizes } = this.buildImageSrcset(anime.cover);
-      const safeRecCover = this.escapeAttr(recSrc || this.sanitizeUrl(anime.cover));
+      const safeRecCover = this.escapeAttr(recSrc || this.sanitizeImageUrl(anime.cover));
       const recSrcsetAttr = recSrcset ? `srcset="${this.escapeAttr(recSrcset)}"` : '';
       const recSizesAttr = recSizes ? `sizes="${this.escapeAttr(recSizes)}"` : '';
       return `
@@ -3359,7 +3389,7 @@ const App = {
     }
 
     const { src: rankSrc, srcset: rankSrcset, sizes: rankSizes } = this.buildImageSrcset(anime.cover);
-    const safeRankCover = this.escapeAttr(rankSrc || this.sanitizeUrl(anime.cover));
+    const safeRankCover = this.escapeAttr(rankSrc || this.sanitizeImageUrl(anime.cover));
     const rankSrcsetAttr = rankSrcset ? `srcset="${this.escapeAttr(rankSrcset)}"` : '';
     const rankSizesAttr = rankSizes ? `sizes="${this.escapeAttr(rankSizes)}"` : '';
     return `
@@ -3700,12 +3730,12 @@ const App = {
       const sharedThemes = formatTags(result.sharedThemes);
       const safeId = this.escapeAttr(similar.id);
       const safeTitle = this.escapeHtml(similar.title);
-      const safeCover = this.escapeAttr(this.sanitizeUrl(similar.cover));
+      const safeCover = this.escapeAttr(this.sanitizeImageUrl(similar.cover));
       const safeGenres = this.escapeHtml(sharedGenres);
       const safeThemes = this.escapeHtml(sharedThemes);
 
       const { src: simSrc, srcset: simSrcset, sizes: simSizes } = this.buildImageSrcset(similar.cover);
-      const safeSimCover = this.escapeAttr(simSrc || this.sanitizeUrl(similar.cover));
+      const safeSimCover = this.escapeAttr(simSrc || this.sanitizeImageUrl(similar.cover));
       const simSrcsetAttr = simSrcset ? `srcset="${this.escapeAttr(simSrcset)}"` : '';
       const simSizesAttr = simSizes ? `sizes="${this.escapeAttr(simSizes)}"` : '';
       return `
@@ -3761,7 +3791,7 @@ const App = {
         <div class="error-message">
           <h2>Anime Not Found</h2>
           <p>We couldn't find the anime you're looking for.</p>
-          <button class="btn btn-primary" data-action="close-detail" style="margin-top: 1rem;">Close</button>
+          <button class="btn btn-primary detail-close-button" data-action="close-detail">Close</button>
         </div>
       `;
       return;
@@ -3805,7 +3835,7 @@ const App = {
     const metaHtml = metaParts.map(part => `<span>${this.escapeHtml(part)}</span>`).join(' &bull; ');
     const safeTitle = this.escapeHtml(anime.title);
     const { src: detailSrc, srcset: detailSrcset, sizes: detailSizes } = this.buildImageSrcset(anime.cover);
-    const safeCover = this.escapeAttr(detailSrc || this.sanitizeUrl(anime.cover));
+    const safeCover = this.escapeAttr(detailSrc || this.sanitizeImageUrl(anime.cover));
     const detailSrcsetAttr = detailSrcset ? `srcset="${this.escapeAttr(detailSrcset)}"` : '';
     const detailSizesAttr = detailSizes ? `sizes="${this.escapeAttr(detailSizes)}"` : '';
 
@@ -3881,9 +3911,7 @@ const App = {
                 <div class="tooltip-text">How compelling the first 3 episodes are. High scores mean the show hooks viewers early.</div>
               </div>
             </span>
-            <div class="breakdown-bar">
-              <span class="breakdown-fill" style="width: ${startScore}%"></span>
-            </div>
+            <progress class="breakdown-progress" value="${startScore}" max="100" aria-label="Strong start score"></progress>
             <span class="breakdown-value">${startScore}%</span>
           </div>
           <div class="breakdown-row">
@@ -3894,9 +3922,7 @@ const App = {
                 <div class="tooltip-text">Low drop-off probability. Measures how likely viewers are to continue without losing interest.</div>
               </div>
             </span>
-            <div class="breakdown-bar">
-              <span class="breakdown-fill" style="width: ${stayScore}%"></span>
-            </div>
+            <progress class="breakdown-progress" value="${stayScore}" max="100" aria-label="Keeps you watching score"></progress>
             <span class="breakdown-value">${stayScore}%</span>
           </div>
           <div class="breakdown-row">
@@ -3907,9 +3933,7 @@ const App = {
                 <div class="tooltip-text">How well the show sticks the landing. Combines finale strength, momentum, and narrative build-up.</div>
               </div>
             </span>
-            <div class="breakdown-bar">
-              <span class="breakdown-fill" style="width: ${finishScore}%"></span>
-            </div>
+            <progress class="breakdown-progress" value="${finishScore}" max="100" aria-label="Finish payoff score"></progress>
             <span class="breakdown-value">${finishScore}%</span>
           </div>
         </div>
@@ -4036,9 +4060,15 @@ const App = {
 
     try {
       const parsed = new URL(rawUrl);
-      if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+      if (parsed.protocol !== 'https:') return '';
       const host = parsed.hostname.toLowerCase();
-      if (!host.includes('youtube.com') && !host.includes('youtu.be')) return '';
+      const allowedHosts = new Set([
+        'youtube.com',
+        'www.youtube.com',
+        'm.youtube.com',
+        'youtu.be'
+      ]);
+      if (!allowedHosts.has(host)) return '';
       return parsed.toString();
     } catch (error) {
       return '';
@@ -4050,9 +4080,15 @@ const App = {
 
     try {
       const parsed = new URL(rawUrl);
-      if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+      if (parsed.protocol !== 'https:') return '';
       const host = parsed.hostname.toLowerCase();
-      if (!host.includes('youtube.com') && !host.includes('youtube-nocookie.com')) return '';
+      const allowedHosts = new Set([
+        'youtube.com',
+        'www.youtube.com',
+        'youtube-nocookie.com',
+        'www.youtube-nocookie.com'
+      ]);
+      if (!allowedHosts.has(host)) return '';
       parsed.searchParams.delete('autoplay');
       return parsed.toString();
     } catch (error) {
@@ -4080,7 +4116,7 @@ const App = {
       <div class="detail-trailer" id="detail-trailer">
         <div class="detail-section-header">
           <h3>Trailer</h3>
-          ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
+          ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">Watch on YouTube</a>` : ''}
         </div>
         ${allowEmbed && embedUrl
         ? `<div class="trailer-embed">
@@ -4089,13 +4125,14 @@ const App = {
                 data-embed-src="${safeEmbedUrl}"
                 title="${safeTitle}"
                 loading="lazy"
+                sandbox="allow-scripts allow-same-origin allow-presentation"
                 allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen>
               </iframe>
             </div>`
         : `<div class="trailer-fallback">
               ${allowEmbed ? '' : '<p class="trailer-note">Data Saver is on, so the embedded trailer is hidden.</p>'}
-              ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>` : ''}
+              ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">Watch on YouTube</a>` : ''}
             </div>`
       }
       </div>
@@ -4359,7 +4396,9 @@ const App = {
 
     // Return original URL without srcset
     // MAL CDN doesn't consistently support size variants
-    return { src: coverUrl, srcset: '', sizes: '' };
+    const sanitized = this.sanitizeImageUrl(coverUrl);
+    if (!sanitized) return { src: '', srcset: '', sizes: '' };
+    return { src: sanitized, srcset: '', sizes: '' };
   },
 
   /**
@@ -4471,7 +4510,7 @@ const App = {
         <div class="error-message">
           <h2>Anime Not Found</h2>
           <p>We couldn't find the anime you're looking for. It may have been removed or the ID is incorrect.</p>
-          <button class="btn btn-primary" data-action="close-detail" style="margin-top: 1rem;">Go Back</button>
+          <button class="btn btn-primary detail-close-button" data-action="close-detail">Go Back</button>
         </div>
       `;
       return false;
@@ -4499,7 +4538,7 @@ const App = {
 
     // Build responsive image attributes
     const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
-    const safeCover = this.escapeAttr(src || this.sanitizeUrl(anime.cover));
+    const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
     const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
     const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
 
@@ -4549,7 +4588,7 @@ const App = {
     }).join('')}
           </div>
           <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-            <span class="retention-fill" style="width: ${retentionLevel}%"></span>
+            <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Retention score"></progress>
           </div>
           <div class="card-reason">${safeReason}</div>
         </div>

@@ -50,8 +50,31 @@ const ReviewsService = {
     if (!value) return '';
     try {
       const parsed = new URL(value, window.location.href);
-      if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+      if (parsed.protocol !== 'https:') return '';
       return parsed.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
+  sanitizeImageUrl(rawUrl) {
+    if (!rawUrl) return '';
+    const value = String(rawUrl).trim();
+    if (!value) return '';
+    try {
+      const parsed = new URL(value, window.location.href);
+      if (parsed.protocol !== 'https:') return '';
+      const host = parsed.hostname.toLowerCase();
+      const allowedHosts = [
+        'cdn.myanimelist.net',
+        'myanimelist.cdn-dena.com',
+        'via.placeholder.com',
+        'i.ytimg.com'
+      ];
+      const isAllowed = allowedHosts.some(allowed =>
+        host === allowed || host.endsWith(`.${allowed}`)
+      );
+      return isAllowed ? parsed.toString() : '';
     } catch (error) {
       return '';
     }
@@ -619,7 +642,7 @@ const ReviewsService = {
     const safeSummary = this.escapeHtml(review.summary || '');
     const safeBody = this.escapeHtml(review.body || '');
     const safeDate = this.escapeHtml(review.date || '');
-    const safeAvatar = this.escapeAttr(this.sanitizeUrl(review.userAvatar));
+    const safeAvatar = this.escapeAttr(this.sanitizeImageUrl(review.userAvatar));
     const safeUrl = this.escapeAttr(this.sanitizeUrl(review.url));
 
     return `
@@ -638,7 +661,7 @@ const ReviewsService = {
         <div class="review-footer">
           <span class="review-date">${safeDate}</span>
           <span class="review-helpful">${helpfulText}</span>
-          ${safeUrl ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="review-link">Read full review</a>` : ''}
+          ${safeUrl ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin" class="review-link">Read full review</a>` : ''}
         </div>
       </div>
     `;
@@ -711,7 +734,7 @@ const ReviewsService = {
           </div>
         `}
         <p class="reviews-attribution">
-          Reviews from <a href="https://myanimelist.net" target="_blank" rel="noopener noreferrer">MyAnimeList</a>
+          Reviews from <a href="https://myanimelist.net" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">MyAnimeList</a>
         </p>
       </div>
     `;
