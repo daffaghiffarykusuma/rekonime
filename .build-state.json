@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "files": {
+    "data\\anime.json": {
+      "hash": "ef0ade74b94bd19814d5685b5789de031b0dfe55",
+      "timestamp": 1769978270490
+    },
+    "tools\\build-catalogs.js": {
+      "hash": "b19618dadd9ddc38fcd8620315772f58dfcf9c98",
+      "timestamp": 1769978270491
+    },
+    "js\\stats.js": {
+      "hash": "09a204bef1d43ee3bbb3d8f8ceed4b1883f31a38",
+      "timestamp": 1769978270491
+    },
+    "tools\\lib\\schema-validator.js": {
+      "hash": "3f78b67b601d5db42a15476c82a821eb0f76fede",
+      "timestamp": 1769978270492
+    },
+    "tools\\lib\\integrity-checker.js": {
+      "hash": "30a3651dcf0e21b2081d4897c54aba032a0c99bf",
+      "timestamp": 1769978270492
+    },
+    "tools\\lib\\quality-reporter.js": {
+      "hash": "cdde5058aafdf60677106db05fa6386cb958b26a",
+      "timestamp": 1769978270492
+    },
+    "data\\anime.full.json": {
+      "hash": "fa30b0a43b50c7d7f222f24dd70189f2f3ca48a7",
+      "timestamp": 1769978270521
+    },
+    "data\\anime.preview.json": {
+      "hash": "dcba2bc84dd77712ada93c60f593eed782d89967",
+      "timestamp": 1769978270523
+    }
+  },
+  "lastBuild": 1769978270523
+}
