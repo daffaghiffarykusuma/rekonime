@@ -100,6 +100,8 @@ const App = {
   gridDomCache: new Map(),
   detailCache: new Map(),
   detailCacheMaxSize: 10,
+  toastRegionId: 'toast-region',
+  toastTimers: new Map(),
   gridObserver: null,
   visibleCardIds: new Set(),
   prefetchObserver: null,
@@ -839,9 +841,12 @@ const App = {
     if (!iframe || iframe.dataset.embedLoaded === '1') return;
     const embedSrc = iframe.dataset.embedSrc;
     if (!embedSrc) return;
+    const safeEmbedSrc = this.buildEmbedUrlWithApi(embedSrc);
+    if (!safeEmbedSrc) return;
     iframe.dataset.embedLoaded = '1';
     iframe.removeAttribute('loading');
-    iframe.src = embedSrc;
+    iframe.src = safeEmbedSrc;
+    this.setTrailerPaused(iframe, true);
   },
 
   refreshTrailerSection() {
@@ -1140,6 +1145,14 @@ const App = {
 
     this.updateBookmarkToggle(key);
     this.renderBookmarks();
+
+    const anime = this.animeData.find(item => String(item.id) === key);
+    const title = anime?.title || 'Anime';
+    const isBookmarked = this.isBookmarked(key);
+    const message = isBookmarked
+      ? `${title} added to bookmarks`
+      : `${title} removed from bookmarks`;
+    this.showToast(message, { type: 'success' });
   },
 
   updateBookmarkToggle(animeId) {
@@ -1153,15 +1166,24 @@ const App = {
       button.setAttribute('aria-pressed', 'false');
       button.setAttribute('aria-label', 'Add bookmark');
       button.setAttribute('title', 'Add bookmark');
+      const hiddenText = button.querySelector('.visually-hidden');
+      if (hiddenText) {
+        hiddenText.textContent = 'Add bookmark';
+      }
       return;
     }
 
     const isActive = this.isBookmarked(key);
+    const label = isActive ? 'Remove bookmark' : 'Add bookmark';
     button.dataset.animeId = key;
     button.classList.toggle('is-bookmarked', isActive);
     button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    button.setAttribute('aria-label', isActive ? 'Remove bookmark' : 'Add bookmark');
-    button.setAttribute('title', isActive ? 'Remove bookmark' : 'Add bookmark');
+    button.setAttribute('aria-label', label);
+    button.setAttribute('title', label);
+    const hiddenText = button.querySelector('.visually-hidden');
+    if (hiddenText) {
+      hiddenText.textContent = label;
+    }
   },
 
   getBookmarkedAnime() {
@@ -1647,10 +1669,12 @@ const App = {
 
     if (recommendations) {
       recommendations.classList.add('is-loading');
+      recommendations.setAttribute('aria-busy', 'true');
     }
 
     if (grid) {
       grid.classList.add('is-loading');
+      grid.setAttribute('aria-busy', 'true');
     }
 
     if (rankings1) {
@@ -2942,11 +2966,14 @@ const App = {
         const isActive = this.activeFilters[config.key].includes(optionStr) || this.activeFilters[config.key].includes(option);
         const safeOptionText = this.escapeHtml(optionStr);
         const safeOptionAttr = this.escapeAttr(optionStr);
+        const ariaLabel = this.escapeAttr(`${isActive ? 'Remove' : 'Add'} ${optionStr} filter`);
         return `
               <button class="filter-pill ${isActive ? 'active' : ''}"
                       data-action="toggle-filter"
                       data-filter-type="${safeType}"
-                      data-filter-value="${safeOptionAttr}">
+                      data-filter-value="${safeOptionAttr}"
+                      aria-pressed="${isActive ? 'true' : 'false'}"
+                      aria-label="${ariaLabel}">
                 ${safeOptionText}
               </button>
        `}).join('')}
@@ -2985,11 +3012,14 @@ const App = {
         const safeText = this.escapeHtml(optionStr);
         const safeAttr = this.escapeAttr(optionStr);
         const isHidden = !expanded && index >= limit && !isActive;
+        const ariaLabel = this.escapeAttr(`${isActive ? 'Remove' : 'Add'} ${optionStr} filter`);
         return `
           <button class="quick-chip ${isActive ? 'active' : ''} ${isHidden ? 'is-hidden' : ''}"
                   data-action="toggle-filter"
                   data-filter-type="${type}"
-                  data-filter-value="${safeAttr}">
+                  data-filter-value="${safeAttr}"
+                  aria-pressed="${isActive ? 'true' : 'false'}"
+                  aria-label="${ariaLabel}">
             ${safeText}
           </button>
         `;
@@ -3024,20 +3054,26 @@ const App = {
       ? currentValues.filter(item => item !== valueStr)
       : [...currentValues, valueStr];
     this.activeFilters = { ...this.activeFilters, [type]: nextValues };
+    const isActive = nextValues.includes(valueStr);
+    const ariaLabel = `${isActive ? 'Remove' : 'Add'} ${valueStr} filter`;
 
     // Update pill state in modal
     const safeType = this.escapeCssValue(type);
     const pillCandidates = document.querySelectorAll(`.filter-pill[data-filter-type="${safeType}"]`);
     const pill = Array.from(pillCandidates).find(el => el.dataset.filterValue === valueStr);
     if (pill) {
-      pill.classList.toggle('active');
+      pill.classList.toggle('active', isActive);
+      pill.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      pill.setAttribute('aria-label', ariaLabel);
     }
 
     // Update quick chip state
     const chipCandidates = document.querySelectorAll(`.quick-chip[data-filter-type="${safeType}"]`);
     const chip = Array.from(chipCandidates).find(el => el.dataset.filterValue === valueStr);
     if (chip) {
-      chip.classList.toggle('active');
+      chip.classList.toggle('active', isActive);
+      chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      chip.setAttribute('aria-label', ariaLabel);
     }
 
     this.applyFilters();
@@ -3386,13 +3422,16 @@ const App = {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
+      const labelTitle = anime.title || 'this anime';
+      const labelYear = anime.year ? `, ${anime.year}` : '';
+      const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
       const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
       const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       return `
-        <div class="recommendation-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}">
+        <div class="recommendation-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="recommendation-media">
             <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="recommendation-cover" loading="lazy">
           </div>
@@ -3423,13 +3462,16 @@ const App = {
       const rankClass = rank <= 3 ? 'top-3' : '';
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
+      const labelTitle = anime.title || 'this anime';
+      const labelYear = anime.year ? `, ${anime.year}` : '';
+      const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
       const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
       const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       return `
-        <div class="trending-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}">
+        <div class="trending-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="trending-rank ${rankClass}">${rank}</div>
           <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="trending-cover" loading="lazy">
           <div class="trending-info">
@@ -3472,10 +3514,13 @@ const App = {
     if (this.animeCardTemplate || typeof document === 'undefined') return;
     const template = document.createElement('template');
     template.innerHTML = `
-      <div class="anime-card" data-action="open-anime">
+      <div class="anime-card" data-action="open-anime" role="button" tabindex="0" aria-label="View details">
         <div class="card-media">
           <img class="card-cover" loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
-          <button class="bookmark-card-toggle" type="button" data-action="toggle-bookmark">&#9733;</button>
+          <button class="bookmark-card-toggle" type="button" data-action="toggle-bookmark">
+            <span aria-hidden="true">&#9733;</span>
+            <span class="visually-hidden">Add bookmark</span>
+          </button>
         </div>
         <div class="card-body">
           <div class="card-title-row">
@@ -3515,6 +3560,13 @@ const App = {
     const safeTitle = this.escapeHtml(anime.title);
     const safeYear = this.escapeHtml(anime.year || 'Unknown');
     const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
+    const labelTitle = anime.title || 'this anime';
+    const labelYear = anime.year ? `, ${anime.year}` : '';
+    const cardLabel = `View details for ${labelTitle}${labelYear}`;
+
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', cardLabel);
 
     const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
     const coverUrl = src || this.sanitizeImageUrl(anime.cover);
@@ -3554,6 +3606,10 @@ const App = {
         bookmarkBtn.classList.toggle('is-bookmarked', isBookmarked);
         bookmarkBtn.setAttribute('aria-label', bookmarkLabel);
         bookmarkBtn.setAttribute('title', bookmarkLabel);
+        const bookmarkText = bookmarkBtn.querySelector('.visually-hidden');
+        if (bookmarkText) {
+          bookmarkText.textContent = bookmarkLabel;
+        }
       }
     } else if (bookmarkBtn) {
       bookmarkBtn.remove();
@@ -3674,6 +3730,9 @@ const App = {
       const safeReason = this.escapeHtml(reason);
       const isBookmarked = this.isBookmarked(anime.id);
       const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
+      const labelTitle = anime.title || 'this anime';
+      const labelYear = anime.year ? `, ${anime.year}` : '';
+      const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
       // Build responsive image attributes
       const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
@@ -3686,7 +3745,10 @@ const App = {
       return `
         <div class="anime-card"
              data-action="open-anime"
-             data-anime-id="${safeId}">
+             data-anime-id="${safeId}"
+             role="button"
+             tabindex="0"
+             aria-label="${cardLabel}">
           <div class="card-media">
             <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${safeTitle}" class="card-cover" loading="${loadingAttrs.loading}" decoding="${loadingAttrs.decoding}" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
             ${showBookmarkToggle ? `
@@ -3696,7 +3758,8 @@ const App = {
                       data-anime-id="${safeId}"
                       aria-label="${bookmarkLabel}"
                       title="${bookmarkLabel}">
-                &#9733;
+                <span aria-hidden="true">&#9733;</span>
+                <span class="visually-hidden">${bookmarkLabel}</span>
               </button>
             ` : ''}
           </div>
@@ -3897,6 +3960,7 @@ const App = {
     const contextEl = document.getElementById('recommendations-context');
     if (!container) return;
     container.classList.remove('is-loading');
+    container.removeAttribute('aria-busy');
 
     // Update context based on current mode
     if (contextEl) {
@@ -3927,13 +3991,16 @@ const App = {
       const safeTitle = this.escapeHtml(anime.title);
       const safeCover = this.escapeAttr(this.sanitizeImageUrl(anime.cover));
       const safeReason = this.escapeHtml(anime.reason || '');
+      const labelTitle = anime.title || 'this anime';
+      const labelYear = anime.year ? `, ${anime.year}` : '';
+      const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
       const { src: recSrc, srcset: recSrcset, sizes: recSizes } = this.buildImageSrcset(anime.cover);
       const safeRecCover = this.escapeAttr(recSrc || this.sanitizeImageUrl(anime.cover));
       const recSrcsetAttr = recSrcset ? `srcset="${this.escapeAttr(recSrcset)}"` : '';
       const recSizesAttr = recSizes ? `sizes="${this.escapeAttr(recSizes)}"` : '';
       return `
-        <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}">
+        <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="recommendation-media">
             <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" data-fallback-src="https://via.placeholder.com/180x120?text=No+Image">
           </div>
@@ -4056,6 +4123,7 @@ const App = {
     const container = document.getElementById('anime-grid');
     if (!container) return;
     container.classList.remove('is-loading');
+    container.removeAttribute('aria-busy');
 
     const sorted = this.getSortedGridData();
 
@@ -4323,6 +4391,11 @@ const App = {
         return;
       }
 
+      if (action === 'toggle-trailer') {
+        this.toggleTrailerPlayback();
+        return;
+      }
+
       if (action === 'open-anime') {
         const animeId = actionEl.dataset.animeId;
         if (animeId) {
@@ -4382,6 +4455,16 @@ const App = {
         return;
       }
     });
+
+    this.addTrackedListener(document, 'keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const actionEl = event.target.closest('[data-action="open-anime"]');
+      if (!actionEl || actionEl !== event.target) return;
+      if (event.key === ' ') {
+        event.preventDefault();
+      }
+      actionEl.click();
+    });
   },
 
   setupImageFallbacks() {
@@ -4439,13 +4522,16 @@ const App = {
       const safeCover = this.escapeAttr(this.sanitizeImageUrl(similar.cover));
       const safeGenres = this.escapeHtml(sharedGenres);
       const safeThemes = this.escapeHtml(sharedThemes);
+      const labelTitle = similar.title || 'this anime';
+      const labelYear = similar.year ? `, ${similar.year}` : '';
+      const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
       const { src: simSrc, srcset: simSrcset, sizes: simSizes } = this.buildImageSrcset(similar.cover);
       const safeSimCover = this.escapeAttr(simSrc || this.sanitizeImageUrl(similar.cover));
       const simSrcsetAttr = simSrcset ? `srcset="${this.escapeAttr(simSrcset)}"` : '';
       const simSizesAttr = simSizes ? `sizes="${this.escapeAttr(simSizes)}"` : '';
       return `
-                <div class="similar-card" data-action="open-anime" data-anime-id="${safeId}">
+                <div class="similar-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
                   <img src="${safeSimCover}" ${simSrcsetAttr} ${simSizesAttr} alt="${safeTitle}" class="similar-cover" data-fallback-src="https://via.placeholder.com/200x140?text=No+Image">
                   <div class="similar-info">
                     <div class="similar-title">${safeTitle}</div>
@@ -4622,7 +4708,10 @@ const App = {
         <div class="detail-info">
           <div class="detail-title-row">
             <h2 class="detail-title" id="detail-modal-title">${safeTitle}</h2>
-            <button class="modal-bookmark detail-bookmark" id="bookmark-toggle" type="button" data-action="toggle-bookmark" aria-pressed="false" aria-label="Add bookmark" title="Add bookmark">&#9733;</button>
+            <button class="modal-bookmark detail-bookmark" id="bookmark-toggle" type="button" data-action="toggle-bookmark" aria-pressed="false" aria-label="Add bookmark" title="Add bookmark">
+              <span aria-hidden="true">&#9733;</span>
+              <span class="visually-hidden">Add bookmark</span>
+            </button>
           </div>
           ${altTitlesHtml}
           <div class="detail-meta">
@@ -4869,12 +4958,20 @@ const App = {
     const safeUrl = this.escapeAttr(url);
     const safeEmbedUrl = this.escapeAttr(embedUrl);
     const allowEmbed = this.shouldEmbedTrailers();
+    const showEmbed = Boolean(allowEmbed && embedUrl);
 
     return `
       <div class="detail-trailer" id="detail-trailer">
         <div class="detail-section-header">
           <h3>Trailer</h3>
-          ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">Watch on YouTube</a>` : ''}
+          <div class="trailer-controls">
+            ${showEmbed ? `
+              <button class="trailer-control-btn" id="trailer-toggle" type="button" data-action="toggle-trailer" aria-pressed="false" aria-label="Pause trailer" title="Pause trailer">
+                <span class="trailer-control-label">Pause</span>
+              </button>
+            ` : ''}
+            ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">Watch on YouTube</a>` : ''}
+          </div>
         </div>
         ${allowEmbed && embedUrl
         ? `<div class="trailer-embed">
@@ -4898,14 +4995,26 @@ const App = {
   },
 
   buildAutoplayEmbedUrl(embedUrl) {
+    const safeEmbedUrl = this.buildEmbedUrlWithApi(embedUrl);
+    if (!safeEmbedUrl) return '';
+
+    try {
+      const url = new URL(safeEmbedUrl);
+      url.searchParams.set('autoplay', '1');
+      url.searchParams.set('mute', '1');
+      return url.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
+  buildEmbedUrlWithApi(embedUrl) {
     const safeEmbedUrl = this.sanitizeTrailerEmbedUrl(embedUrl);
     if (!safeEmbedUrl) return '';
 
     try {
       const url = new URL(safeEmbedUrl);
       url.searchParams.set('enablejsapi', '1');
-      url.searchParams.set('autoplay', '1');
-      url.searchParams.set('mute', '1');
       url.searchParams.set('playsinline', '1');
       return url.toString();
     } catch (error) {
@@ -4929,6 +5038,77 @@ const App = {
     return targetRect.height > 0 && (visibleHeight / targetRect.height) >= threshold;
   },
 
+  setTrailerControlState(isPaused) {
+    const button = document.getElementById('trailer-toggle');
+    if (!button) return;
+    const label = isPaused ? 'Play trailer' : 'Pause trailer';
+    button.setAttribute('aria-pressed', isPaused ? 'true' : 'false');
+    button.setAttribute('aria-label', label);
+    button.setAttribute('title', label);
+    const text = button.querySelector('.trailer-control-label');
+    if (text) {
+      text.textContent = isPaused ? 'Play' : 'Pause';
+    }
+  },
+
+  setTrailerPaused(iframe, isPaused) {
+    if (!iframe) return;
+    iframe.dataset.paused = isPaused ? '1' : '';
+    this.setTrailerControlState(isPaused);
+  },
+
+  sendTrailerCommand(iframe, command) {
+    if (!iframe || !iframe.contentWindow) return;
+    iframe.contentWindow.postMessage(JSON.stringify({
+      event: 'command',
+      func: command,
+      args: []
+    }), '*');
+  },
+
+  toggleTrailerPlayback() {
+    const iframe = document.querySelector('.detail-trailer iframe');
+    if (!iframe) return;
+    const isPaused = iframe.dataset.paused === '1';
+    if (isPaused) {
+      this.resumeTrailerPlayback(iframe);
+    } else {
+      this.pauseTrailerPlayback(iframe);
+    }
+  },
+
+  pauseTrailerPlayback(iframe) {
+    if (!iframe) return;
+    const embedSrc = iframe.dataset.embedSrc;
+    if (!embedSrc) return;
+
+    this.sendTrailerCommand(iframe, 'pauseVideo');
+    const safeEmbedSrc = this.buildEmbedUrlWithApi(embedSrc);
+    if (safeEmbedSrc) {
+      iframe.dataset.embedLoaded = '1';
+      iframe.removeAttribute('loading');
+      iframe.src = safeEmbedSrc;
+    }
+    iframe.dataset.autoplayStarted = '';
+    this.setTrailerPaused(iframe, true);
+  },
+
+  resumeTrailerPlayback(iframe) {
+    if (!iframe) return;
+    const embedSrc = iframe.dataset.embedSrc;
+    if (!embedSrc) return;
+
+    const autoplaySrc = this.buildAutoplayEmbedUrl(embedSrc);
+    const safeEmbedSrc = autoplaySrc || this.buildEmbedUrlWithApi(embedSrc);
+    if (!safeEmbedSrc) return;
+
+    iframe.dataset.autoplayStarted = '1';
+    iframe.dataset.embedLoaded = '1';
+    iframe.removeAttribute('loading');
+    iframe.src = safeEmbedSrc;
+    this.setTrailerPaused(iframe, false);
+  },
+
   setupTrailerAutoplay(modalContent) {
     this.teardownTrailerObserver();
     this.teardownTrailerScrollListener();
@@ -4938,9 +5118,14 @@ const App = {
 
     const iframe = trailerEmbed.querySelector('iframe');
     if (!iframe || !iframe.dataset.embedSrc) return;
+    this.setTrailerPaused(iframe, !this.shouldAutoplayTrailers());
 
     const root = modalContent || document.querySelector('#detail-modal .modal-content');
     const activateTrailer = () => {
+      if (iframe.dataset.paused === '1') {
+        this.loadTrailerEmbed(iframe);
+        return;
+      }
       if (this.shouldAutoplayTrailers()) {
         this.startTrailerAutoplay(iframe);
       } else {
@@ -4995,6 +5180,10 @@ const App = {
   startTrailerAutoplay(iframe) {
     if (!this.shouldAutoplayTrailers()) return;
     if (!iframe || iframe.dataset.autoplayStarted === '1') return;
+    if (iframe.dataset.paused === '1') {
+      this.loadTrailerEmbed(iframe);
+      return;
+    }
     const embedSrc = iframe.dataset.embedSrc;
     if (!embedSrc) return;
 
@@ -5005,6 +5194,7 @@ const App = {
     iframe.dataset.embedLoaded = '1';
     iframe.removeAttribute('loading');
     iframe.src = autoplaySrc;
+    this.setTrailerPaused(iframe, false);
   },
 
   stopTrailerPlayback() {
@@ -5013,6 +5203,7 @@ const App = {
     iframe.dataset.autoplayStarted = '';
     iframe.dataset.embedLoaded = '';
     iframe.src = 'about:blank';
+    this.setTrailerPaused(iframe, true);
   },
 
   teardownTrailerObserver() {
@@ -5067,6 +5258,66 @@ const App = {
         </div>
       `;
     }
+  },
+
+  ensureToastRegion() {
+    if (typeof document === 'undefined') return null;
+    let region = document.getElementById(this.toastRegionId);
+    if (region) return region;
+    region = document.createElement('div');
+    region.id = this.toastRegionId;
+    region.className = 'toast-region';
+    region.setAttribute('role', 'region');
+    region.setAttribute('aria-label', 'Notifications');
+    document.body.appendChild(region);
+    return region;
+  },
+
+  showToast(message, { type = 'info', duration = 4500 } = {}) {
+    if (typeof document === 'undefined') return '';
+    if (!message) return '';
+    const region = this.ensureToastRegion();
+    if (!region) return '';
+
+    const toastId = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const toast = document.createElement('div');
+    const ariaLive = type === 'error' || type === 'success' ? 'assertive' : 'polite';
+
+    toast.id = toastId;
+    toast.className = `toast toast--${type}`;
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', ariaLive);
+    toast.setAttribute('aria-atomic', 'true');
+    toast.textContent = message;
+
+    region.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.classList.add('is-visible');
+    });
+
+    const timeoutId = window.setTimeout(() => this.dismissToast(toastId), duration);
+    this.toastTimers.set(toastId, timeoutId);
+    return toastId;
+  },
+
+  dismissToast(toastId) {
+    const toast = document.getElementById(toastId);
+    if (!toast) return;
+
+    const timeoutId = this.toastTimers.get(toastId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      this.toastTimers.delete(toastId);
+    }
+
+    toast.classList.remove('is-visible');
+    window.setTimeout(() => {
+      toast.remove();
+      const region = document.getElementById(this.toastRegionId);
+      if (region && region.childElementCount === 0) {
+        region.remove();
+      }
+    }, 250);
   },
 
   /**
@@ -5305,6 +5556,9 @@ const App = {
     const safeReason = this.escapeHtml(reason);
     const isBookmarked = this.isBookmarked(anime.id);
     const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
+    const labelTitle = anime.title || 'this anime';
+    const labelYear = anime.year ? `, ${anime.year}` : '';
+    const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
     // Build responsive image attributes
     const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
@@ -5314,7 +5568,7 @@ const App = {
 
     const loadingAttrs = this.getImageLoadingAttrs(index);
     return `
-      <div class="anime-card" data-action="open-anime" data-anime-id="${safeId}">
+      <div class="anime-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
         <div class="card-media">
           <img
             src="${safeCover}"
@@ -5332,7 +5586,8 @@ const App = {
                     data-anime-id="${safeId}"
                     aria-label="${bookmarkLabel}"
                     title="${bookmarkLabel}">
-              &#9733;
+              <span aria-hidden="true">&#9733;</span>
+              <span class="visually-hidden">${bookmarkLabel}</span>
             </button>
           ` : ''}
         </div>

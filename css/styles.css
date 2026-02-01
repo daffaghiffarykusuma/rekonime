@@ -63,6 +63,18 @@ body.is-scroll-locked {
   display: none;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Typography - Headings */
 h1,
 h2,
@@ -1084,6 +1096,45 @@ h4 {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.trailer-controls {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trailer-control-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trailer-control-btn:hover,
+.trailer-control-btn:focus-visible {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border-color: var(--accent-primary);
+}
+
+.trailer-control-btn[aria-pressed="true"] {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
 }
 
 .trailer-link {
@@ -5490,6 +5541,55 @@ summary:focus-visible,
 
 .update-dismiss:hover {
   color: var(--text-primary);
+}
+
+/* Toast Notifications */
+.toast-region {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 9998;
+  max-width: 20rem;
+}
+
+.toast {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(0.75rem);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast--success {
+  border-color: var(--success);
+  background: var(--success-bg);
+}
+
+.toast--error {
+  border-color: var(--error);
+  background: var(--error-bg);
+}
+
+@media (max-width: 640px) {
+  .toast-region {
+    left: 1rem;
+    right: 1rem;
+    max-width: none;
+  }
 }
 
 /* Detail Modal Skeleton Screens */
