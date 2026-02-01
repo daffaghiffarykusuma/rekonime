@@ -147,11 +147,14 @@ const ServiceWorkerManager = {
             indicator = document.createElement('div');
             indicator.id = 'offline-indicator';
             indicator.className = 'offline-indicator';
-            indicator.innerHTML = '📡 Offline Mode - Using cached data';
+            indicator.innerHTML = "<span class=\"offline-icon\" aria-hidden=\"true\">!</span><div class=\"offline-content\"><span class=\"offline-title\">You're offline</span><span class=\"offline-features\">Checking offline features...</span></div>";
             document.body.appendChild(indicator);
         }
 
         indicator.classList.add('visible');
+        indicator.setAttribute('aria-hidden', 'false');
+        this.setOfflineState(true);
+        this.updateOfflineIndicator(indicator);
     },
 
     /**
@@ -161,7 +164,91 @@ const ServiceWorkerManager = {
         const indicator = document.getElementById('offline-indicator');
         if (indicator) {
             indicator.classList.remove('visible');
+            indicator.setAttribute('aria-hidden', 'true');
         }
+        this.setOfflineState(false);
+    },
+
+    setOfflineState(isOffline) {
+        const root = document.documentElement;
+        if (!root) return;
+        if (isOffline) {
+            root.setAttribute('data-offline', 'true');
+        } else {
+            root.removeAttribute('data-offline');
+        }
+    },
+
+    async getOfflineCapabilities() {
+        const root = document.documentElement;
+        const catalogStatus = root?.dataset?.catalogStatus;
+        const hasLoadedData = catalogStatus === 'preview' || catalogStatus === 'full';
+        let hasCachedData = false;
+
+        if ('caches' in window) {
+            try {
+                const cacheNames = await caches.keys();
+                const dataCacheName = cacheNames.find(name => name.startsWith('rekonime-data-'));
+                if (dataCacheName) {
+                    const cache = await caches.open(dataCacheName);
+                    const candidates = [
+                        './data/anime.full.json',
+                        'data/anime.full.json',
+                        '/data/anime.full.json',
+                        './data/anime.preview.json',
+                        'data/anime.preview.json',
+                        '/data/anime.preview.json'
+                    ];
+                    for (const candidate of candidates) {
+                        const match = await cache.match(candidate);
+                        if (match) {
+                            hasCachedData = true;
+                            break;
+                        }
+                    }
+                }
+            } catch (error) {
+                hasCachedData = false;
+            }
+        }
+
+        const canBrowse = hasLoadedData || hasCachedData;
+        return {
+            canBrowse,
+            canSearch: canBrowse,
+            canDetails: canBrowse,
+            canReviews: false
+        };
+    },
+
+    formatOfflineFeatures(capabilities) {
+        const yes = '&#10003;';
+        const no = '&#10007;';
+        const render = (label, ok) => `
+      <span class="offline-feature ${ok ? 'is-available' : 'is-unavailable'}">
+        ${label} ${ok ? yes : no}
+      </span>
+    `;
+        return [
+            render('Browse', capabilities.canBrowse),
+            render('Search', capabilities.canSearch),
+            render('Details', capabilities.canDetails),
+            render('Reviews', capabilities.canReviews)
+        ].join('');
+    },
+
+    async updateOfflineIndicator(indicator) {
+        const target = indicator || document.getElementById('offline-indicator');
+        if (!target) return;
+        const capabilities = await this.getOfflineCapabilities();
+        const features = this.formatOfflineFeatures(capabilities);
+        target.innerHTML = `
+      <span class="offline-icon" aria-hidden="true">!</span>
+      <div class="offline-content">
+        <span class="offline-title">You're offline</span>
+        <span class="offline-features">${features}</span>
+      </div>
+    `;
     },
 
     /**
@@ -187,3 +274,4 @@ const ServiceWorkerManager = {
 
 export { ServiceWorkerManager };
 export default ServiceWorkerManager;
+

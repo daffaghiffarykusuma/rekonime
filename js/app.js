@@ -567,6 +567,15 @@ const App = {
     return filters;
   },
 
+  getSearchQueryFromUrl(sourceUrl) {
+    try {
+      const url = new URL(sourceUrl || window.location.href);
+      return String(url.searchParams.get('search') || '').trim();
+    } catch (error) {
+      return '';
+    }
+  },
+
   hasFilterParamsInUrl(sourceUrl) {
     try {
       const url = new URL(sourceUrl || window.location.href);
@@ -633,6 +642,30 @@ const App = {
       this.normalizeHomePath(url);
       this.setFiltersOnUrl(url, this.activeFilters);
       return url.toString();
+    } catch (error) {
+      return '';
+    }
+  },
+
+  updateUrlForSearch(query, { replace = false } = {}) {
+    if (!this.isCatalogPage()) return '';
+    try {
+      const url = new URL(window.location.href);
+      this.normalizeHomePath(url);
+      const trimmed = String(query || '').trim();
+      if (trimmed) {
+        url.searchParams.set('search', trimmed);
+      } else {
+        url.searchParams.delete('search');
+      }
+      const nextUrl = url.toString();
+      if (nextUrl === window.location.href) {
+        return nextUrl;
+      }
+      const method = replace ? 'replaceState' : 'pushState';
+      window.history[method](window.history.state || {}, '', nextUrl);
+      this.setCanonicalUrl(this.buildCanonicalUrl(nextUrl));
+      return nextUrl;
     } catch (error) {
       return '';
     }
@@ -1120,9 +1153,9 @@ const App = {
   },
 
   saveBookmarks() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return false;
     const cache = this.getCache();
-    cache.setJSON(this.bookmarkStorageKey, this.bookmarkIds, { validate: true });
+    return cache.setJSON(this.bookmarkStorageKey, this.bookmarkIds, { validate: true });
   },
 
   isBookmarked(animeId) {
@@ -1136,9 +1169,9 @@ const App = {
     if (!key || this.bookmarkIdSet.has(key)) return false;
     this.bookmarkIdSet.add(key);
     this.bookmarkIds.unshift(key);
-    this.saveBookmarks();
+    const persisted = this.saveBookmarks();
     this.dispatchStore({ type: 'bookmarks/added', payload: { id: key } });
-    return true;
+    return { changed: true, persisted };
   },
 
   removeBookmark(animeId) {
@@ -1146,20 +1179,19 @@ const App = {
     if (!key || !this.bookmarkIdSet.has(key)) return false;
     this.bookmarkIdSet.delete(key);
     this.bookmarkIds = this.bookmarkIds.filter(id => id !== key);
-    this.saveBookmarks();
+    const persisted = this.saveBookmarks();
     this.dispatchStore({ type: 'bookmarks/removed', payload: { id: key } });
-    return true;
+    return { changed: true, persisted };
   },
 
   toggleBookmark(animeId) {
     const key = String(animeId ?? '').trim();
     if (!key) return;
 
-    if (this.isBookmarked(key)) {
-      this.removeBookmark(key);
-    } else {
-      this.addBookmark(key);
-    }
+    const result = this.isBookmarked(key)
+      ? this.removeBookmark(key)
+      : this.addBookmark(key);
+    if (!result || !result.changed) return;
 
     this.updateBookmarkToggle(key);
     this.renderBookmarks();
@@ -1167,10 +1199,17 @@ const App = {
     const anime = this.animeData.find(item => String(item.id) === key);
     const title = anime?.title || 'Anime';
     const isBookmarked = this.isBookmarked(key);
-    const message = isBookmarked
-      ? `${title} added to bookmarks`
-      : `${title} removed from bookmarks`;
-    this.showToast(message, { type: 'success' });
+    if (result.persisted) {
+      const message = isBookmarked
+        ? `${title} added to bookmarks`
+        : `${title} removed from bookmarks`;
+      this.showToast(message, { type: 'success' });
+    } else {
+      const message = isBookmarked
+        ? `${title} saved for this session only (storage unavailable).`
+        : `${title} removed for this session only (storage unavailable).`;
+      this.showToast(message, { type: 'error' });
+    }
   },
 
   updateBookmarkToggle(animeId) {
@@ -1318,6 +1357,7 @@ const App = {
       // Only sync modal with URL if not handling deep link
       // (deep link is already handled above)
       if (!requestedAnimeId) {
+        this.syncSearchWithUrl();
         this.syncModalWithUrl();
       }
       this.updateMetaForFilters();
@@ -1693,6 +1733,11 @@ const App = {
       DataValidator.validateCatalog(this.animeData, { source: isFull ? 'full' : 'preview' });
     }
     this.isFullDataLoaded = isFull;
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      root.dataset.catalogStatus = isFull ? 'full' : 'preview';
+      root.dataset.catalogReady = 'true';
+    }
     this.gridSortedCache = null;
     this.gridSortedSource = null;
     this.gridDomCache.clear();
@@ -2504,6 +2549,7 @@ const App = {
       if (filtersChanged) {
         this.applyFilters({ syncUrl: false, updateMeta: false });
       }
+      this.syncSearchWithUrl({ openDropdown: false });
       this.syncModalWithUrl({ updateUrl: false });
       this.updateMetaForFilters();
     });
@@ -2521,6 +2567,7 @@ const App = {
   setupHeaderSearch() {
     const headerSearch = document.getElementById('header-search');
     const headerDropdown = document.getElementById('header-search-dropdown');
+    const headerForm = document.getElementById('header-search-form');
 
     if (!headerSearch || !headerDropdown) return;
 
@@ -2559,6 +2606,51 @@ const App = {
         this.closeHeaderSearchDropdown();
       }
     });
+
+    if (headerForm) {
+      this.addTrackedListener(headerForm, 'submit', (event) => {
+        event.preventDefault();
+        const query = String(headerSearch.value || '').trim();
+        if (query.length >= 2) {
+          this.updateUrlForSearch(query, { replace: true });
+          this.handleHeaderSearch(query);
+        } else {
+          this.updateUrlForSearch('', { replace: true });
+          this.resetHeaderSearch({ clearInput: false });
+        }
+      });
+    }
+  },
+
+  syncSearchWithUrl({ openDropdown = true } = {}) {
+    if (!this.isCatalogPage()) return false;
+    const headerSearch = document.getElementById('header-search');
+    if (!headerSearch) return false;
+
+    const rawQuery = this.getSearchQueryFromUrl();
+    const query = String(rawQuery || '').slice(0, 120).trim();
+
+    if (!query) {
+      if (headerSearch.value) {
+        this.resetHeaderSearch({ clearInput: true });
+      }
+      return false;
+    }
+
+    if (headerSearch.value !== query) {
+      headerSearch.value = query;
+    }
+
+    if (query.length >= 2) {
+      this.handleHeaderSearch(query, { preserveActive: false });
+      if (!openDropdown) {
+        this.closeHeaderSearchDropdown();
+      }
+      return true;
+    }
+
+    this.resetHeaderSearch({ clearInput: false });
+    return false;
   },
 
   /**
@@ -4673,7 +4765,7 @@ const App = {
   /**
    * Show anime detail modal
    */
-  showAnimeDetail(animeId, { updateUrl = true } = {}) {
+  showAnimeDetail(animeId, { updateUrl = true, skipModalOpen = false } = {}) {
     const renderStart = this.getPerformanceNow();
     this.stopTrailerPlayback();
     this.teardownTrailerObserver();
@@ -4697,10 +4789,12 @@ const App = {
 
     if (hasCachedDetail) {
       content.innerHTML = cachedDetail;
-    } else {
+    } else if (!skipModalOpen) {
       content.innerHTML = this.renderDetailSkeleton();
     }
-    this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+    if (!skipModalOpen) {
+      this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+    }
 
     const anime = this.animeData.find(a => a.id === animeId);
     if (!anime) {
@@ -5622,7 +5716,7 @@ const App = {
 
     if (anime) {
       // Render full detail with actual data
-      this.showAnimeDetail(animeId, { updateUrl: false });
+      this.showAnimeDetail(animeId, { updateUrl: false, skipModalOpen: true });
       return true;
     } else {
       // Anime not found - show error in modal

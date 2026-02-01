@@ -71,6 +71,17 @@
           <p class="section-subtitle" id="bookmarks-subtitle">Save titles with the star to keep them here.</p>
         </div>
       </div>
+      <noscript>
+        <div class="bookmarks-no-js">
+          <h3>Bookmarks require JavaScript</h3>
+          <p>Rekonime stores bookmarks locally in your browser, which needs JavaScript.</p>
+          <ol>
+            <li>Enable JavaScript in your browser settings.</li>
+            <li>Browse the <a href="index.html">catalog</a>.</li>
+            <li>Tap the star on any title to save it here.</li>
+          </ol>
+        </div>
+      </noscript>
       <div class="anime-grid bookmarks-grid" id="bookmarks-grid"></div>
       <p class="bookmarks-empty" id="bookmarks-empty">No bookmarks yet. Star any anime to pin it here.</p>
     </section>
@@ -102,8 +113,11 @@
 
   <!-- Offline/Update Notifications -->
   <div id="offline-indicator" class="offline-indicator" role="status" aria-live="polite" aria-hidden="true">
-    <span class="offline-icon">&#9888;</span>
-    <span class="offline-text">You're offline. Some features may be limited.</span>
+    <span class="offline-icon" aria-hidden="true">!</span>
+    <div class="offline-content">
+      <span class="offline-title">You're offline</span>
+      <span class="offline-features">Checking offline features...</span>
+    </div>
   </div>
   <div id="update-notification" class="update-notification" role="status" aria-live="polite" aria-hidden="true">
     <div class="update-content">

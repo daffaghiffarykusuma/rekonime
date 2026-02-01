@@ -33,9 +33,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.myanimelist.net" crossorigin>
   <link rel="dns-prefetch" href="https://api.jikan.moe">
-  <link rel="preload" href="../data/anime.preview.json" as="fetch" crossorigin="anonymous">
-  <link rel="prefetch" href="../bookmarks.html">
-  <link rel="prefetch" href="../data/anime.full.json">
+  <link rel="preload" href="data/anime.preview.json" as="fetch" crossorigin="anonymous">
+  <link rel="prefetch" href="/bookmarks.html">
+  <link rel="prefetch" href="data/anime.full.json">
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
     rel="stylesheet">
@@ -58,9 +58,14 @@
       </a>
       <div class="header-controls">
         <div class="header-search-wrapper">
-          <input type="text" id="header-search" class="header-search-input" placeholder="Search anime..."
-            aria-label="Search anime" aria-autocomplete="list" aria-expanded="false"
-            aria-controls="header-search-dropdown" role="combobox" autocomplete="off">
+          <form class="search-form" id="header-search-form" action="" method="GET" role="search">
+            <input type="text" id="header-search" name="search" class="header-search-input"
+              placeholder="Search anime..." aria-label="Search anime" aria-autocomplete="list" aria-expanded="false"
+              aria-controls="header-search-dropdown" role="combobox" autocomplete="off">
+            <noscript>
+              <button class="btn btn-sm btn-outline search-submit" type="submit">Search</button>
+            </noscript>
+          </form>
           <div class="header-search-dropdown" id="header-search-dropdown" role="listbox" aria-label="Search results">
             <!-- Search results populated by JS -->
           </div>
@@ -238,6 +243,88 @@
         </div>
       </div>
       <div class="anime-grid" id="anime-grid">
+        <noscript>
+          <style nonce="rekonime-inline">
+            .skeleton-card {
+              display: none !important;
+            }
+            #recommendations-section,
+            #rankings-section,
+            #trending-section,
+            #because-you-watched-section,
+            .active-filters,
+            .quick-filters,
+            .seasonal-filters,
+            .filter-fab {
+              display: none !important;
+            }
+          </style>
+          <div class="no-js-catalog">
+            <div class="no-js-notice">
+              <h3>JavaScript is required for the full Rekonime experience.</h3>
+              <p>Here are a few featured titles to get you started:</p>
+            </div>
+            <div class="no-js-cards">
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/13/18301l.jpg" alt="Bakusou Kyoudai Let's &amp; Go MAX" loading="lazy">
+                <div class="no-js-card-body">
+                  <h4>Bakusou Kyoudai Let's &amp; Go MAX</h4>
+                  <p>1998 &bull; Xebec</p>
+                  <a href="index.html?anime=bakusou-kyoudai-lets-go-max">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/2/74246l.jpg" alt="Q Transformers: Saranaru Ninki Mono e no Michi" loading="lazy">
+                <div class="no-js-card-body">
+                  <h4>Q Transformers: Saranaru Ninki Mono e no Michi</h4>
+                  <p>2015 &bull; DLE</p>
+                  <a href="index.html?anime=q-transformers-saranaru-ninki-mono-e-no-michi">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/1753/147435l.jpg" alt="Tenkai Knights" loading="lazy">
+                <div class="no-js-card-body">
+                  <h4>Tenkai Knights</h4>
+                  <p>2014 &bull; Bones</p>
+                  <a href="index.html?anime=tenkai-knights">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/7/81992l.jpg" alt="Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou" loading="lazy">
+                <div class="no-js-card-body">
+                  <h4>Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou</h4>
+                  <p>2016 &bull; Production I.G</p>
+                  <a href="index.html?anime=haikyuu-karasuno-koukou-vs-shiratorizawa-gakuen-koukou">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/1921/154528l.jpg" alt="Sousou no Frieren 2nd Season" loading="lazy">
+                <div class="no-js-card-body">
+                  <h4>Sousou no Frieren 2nd Season</h4>
+                  <p>2026 &bull; Madhouse</p>
+                  <a href="index.html?anime=sousou-no-frieren-2nd-season">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/3/45028l.jpg" alt="Ashita no Joe 2" loading="lazy">
+                <div class="no-js-card-body">
+                  <h4>Ashita no Joe 2</h4>
+                  <p>1980 &bull; Tokyo Movie Shinsha</p>
+                  <a href="index.html?anime=ashita-no-joe-2">View details</a>
+                </div>
+              </article>
+            </div>
+            <div class="no-js-links">
+              <span>Popular filters:</span>
+              <a href="index.html?genre=Action">Action</a>
+              <a href="index.html?genre=Drama">Drama</a>
+              <a href="index.html?genre=Fantasy">Fantasy</a>
+              <a href="index.html?genre=Comedy">Comedy</a>
+              <a href="index.html?genre=Romance">Romance</a>
+              <a href="index.html?theme=Isekai">Isekai</a>
+            </div>
+          </div>
+        </noscript>
         <div class="skeleton-card skeleton-grid"></div>
         <div class="skeleton-card skeleton-grid"></div>
         <div class="skeleton-card skeleton-grid"></div>
@@ -315,8 +402,27 @@
     </div>
   </div>
 
+  <!-- Offline Indicator -->
+  <div class="offline-indicator" id="offline-indicator" role="status" aria-live="polite" aria-hidden="true">
+    <span class="offline-icon" aria-hidden="true">!</span>
+    <div class="offline-content">
+      <span class="offline-title">You're offline</span>
+      <span class="offline-features">Checking offline features...</span>
+    </div>
+  </div>
+
+  <!-- Update Notification -->
+  <div class="update-notification" id="update-notification" role="alert" aria-live="polite" aria-hidden="true">
+    <span class="update-icon" aria-hidden="true">✨</span>
+    <span class="update-text">Update available! Refresh to get the latest version.</span>
+    <button class="update-btn" id="update-btn" type="button">Update Now</button>
+    <button class="update-dismiss" id="update-dismiss" type="button"
+      aria-label="Dismiss update notification">&times;</button>
+  </div>
+
   <!-- Scripts -->
   <script type="module" src="/js/main.js"></script>
 </body>
 
 </html>
+
