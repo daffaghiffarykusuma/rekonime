@@ -108,6 +108,48 @@
       type: 'string',
       enum: ['true']
     });
+
+    this.register('rekonime.analyticsQueue', {
+      type: 'array',
+      maxItems: 200,
+      items: {
+        type: 'object',
+        required: ['name', 'params'],
+        properties: {
+          name: { type: 'string', minLength: 1 },
+          params: { type: 'object', additionalProperties: true },
+          queuedAt: { type: 'string', minLength: 1 }
+        },
+        additionalProperties: true
+      }
+    });
+
+    this.register('rekonime.logs', {
+      type: 'array',
+      maxItems: 200,
+      items: {
+        type: 'object',
+        required: ['timestamp', 'level', 'message'],
+        properties: {
+          timestamp: { type: 'string', minLength: 1 },
+          level: { type: 'string', minLength: 1 },
+          message: { type: 'string', minLength: 1 },
+          context: { type: 'object', additionalProperties: true }
+        },
+        additionalProperties: true
+      }
+    });
+
+    this.register('rekonime.anime', {
+      type: 'object',
+      required: ['id', 'title', 'cover'],
+      properties: {
+        id: { type: 'string', minLength: 1 },
+        title: { type: 'string', minLength: 1 },
+        cover: { type: 'string', minLength: 1 }
+      },
+      additionalProperties: true
+    });
   },
 
   validate(key, value) {

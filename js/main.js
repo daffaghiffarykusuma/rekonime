@@ -3,8 +3,14 @@ import { ThemeManager } from './themeManager.js';
 import { Recommendations } from './recommendations.js';
 import { KeyboardShortcuts } from './keyboardShortcuts.js';
 import { ServiceWorkerManager } from './serviceWorker.js';
+import { AnalyticsService } from './services/analytics-service.js';
+import { Logger } from './services/logger.js';
+import { PerformanceMonitor } from './performanceMonitor.js';
 
 const bootstrap = () => {
+  Logger.init({ level: 'info', captureGlobalErrors: true });
+  AnalyticsService.init();
+  PerformanceMonitor.init();
   ThemeManager.init();
   Recommendations.loadModePreference();
   KeyboardShortcuts.setApp(App);

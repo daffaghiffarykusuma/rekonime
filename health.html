@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rekonime Health Status</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Albert+Sans:wght@300;400;600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3efe7;
+        --bg-accent: #e5dccb;
+        --ink: #1a1712;
+        --muted: #5b5248;
+        --accent: #0f7a66;
+        --accent-2: #b6532e;
+        --warning: #d88922;
+        --danger: #c4452e;
+        --card: #fffaf2;
+        --shadow: 0 20px 40px rgba(26, 23, 18, 0.12);
+        --radius: 20px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Albert Sans', 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top, var(--bg), var(--bg-accent));
+        color: var(--ink);
+        min-height: 100vh;
+      }
+
+      .page {
+        padding: 2rem 1.5rem 3rem;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .hero {
+        display: grid;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 2.5rem;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-family: 'Unbounded', 'Segoe UI', sans-serif;
+        font-size: clamp(2rem, 4vw, 3rem);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .hero p {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--muted);
+        max-width: 60ch;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        font-size: 0.95rem;
+      }
+
+      .hero-meta span {
+        background: rgba(15, 122, 102, 0.1);
+        color: var(--accent);
+        padding: 0.4rem 0.8rem;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+
+      .grid {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .status-card {
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(26, 23, 18, 0.08);
+        display: grid;
+        gap: 0.75rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .status-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, rgba(15, 122, 102, 0.1), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .status-card[data-status="healthy"]::after {
+        opacity: 1;
+      }
+
+      .status-card[data-status="degraded"]::after {
+        background: linear-gradient(120deg, rgba(216, 137, 34, 0.2), transparent);
+        opacity: 1;
+      }
+
+      .status-card[data-status="down"]::after {
+        background: linear-gradient(120deg, rgba(196, 69, 46, 0.2), transparent);
+        opacity: 1;
+      }
+
+      .status-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .status-pill {
+        padding: 0.35rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .status-pill.pending {
+        background: rgba(26, 23, 18, 0.1);
+        color: var(--muted);
+      }
+
+      .status-pill.healthy {
+        background: rgba(15, 122, 102, 0.15);
+        color: var(--accent);
+      }
+
+      .status-pill.degraded {
+        background: rgba(216, 137, 34, 0.2);
+        color: var(--warning);
+      }
+
+      .status-pill.down {
+        background: rgba(196, 69, 46, 0.2);
+        color: var(--danger);
+      }
+
+      .status-detail {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.98rem;
+      }
+
+      .status-meta {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      @media (min-width: 640px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 960px) {
+        .hero {
+          grid-template-columns: 1.2fr 0.8fr;
+        }
+        .grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <h1>Rekonime Health</h1>
+          <p>Operational heartbeat for Rekonime. This page checks catalog availability, MyAnimeList reviews API reachability, and service worker status.</p>
+        </div>
+        <div class="hero-meta">
+          <span id="last-check">Last check: --</span>
+          <span id="auto-refresh">Auto refresh: 30s</span>
+        </div>
+      </header>
+
+      <section class="grid" aria-live="polite">
+        <article class="status-card" id="data-status" data-status="pending">
+          <div class="status-title">
+            Catalog Data
+            <span class="status-pill pending">Checking</span>
+          </div>
+          <p class="status-detail">Looking for the latest full catalog payload.</p>
+          <div class="status-meta" data-meta>--</div>
+        </article>
+
+        <article class="status-card" id="api-status" data-status="pending">
+          <div class="status-title">
+            Jikan API
+            <span class="status-pill pending">Checking</span>
+          </div>
+          <p class="status-detail">Verifying MyAnimeList reviews API health.</p>
+          <div class="status-meta" data-meta>--</div>
+        </article>
+
+        <article class="status-card" id="sw-status" data-status="pending">
+          <div class="status-title">
+            Service Worker
+            <span class="status-pill pending">Checking</span>
+          </div>
+          <p class="status-detail">Ensuring offline cache and updates are active.</p>
+          <div class="status-meta" data-meta>--</div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const updateStatus = (element, status, title, detail, meta) => {
+        if (!element) return;
+        element.dataset.status = status;
+        const pill = element.querySelector('.status-pill');
+        if (pill) {
+          pill.className = `status-pill ${status}`;
+          pill.textContent = title;
+        }
+        const detailNode = element.querySelector('.status-detail');
+        if (detailNode && detail) {
+          detailNode.textContent = detail;
+        }
+        const metaNode = element.querySelector('[data-meta]');
+        if (metaNode) {
+          metaNode.textContent = meta || '--';
+        }
+      };
+
+      const formatTime = (date) => {
+        if (!date) return '--';
+        return new Intl.DateTimeFormat('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }).format(date);
+      };
+
+      const checkHealth = async () => {
+        const now = new Date();
+        const lastCheck = document.getElementById('last-check');
+        if (lastCheck) {
+          lastCheck.textContent = `Last check: ${formatTime(now)}`;
+        }
+
+        const dataStatus = document.getElementById('data-status');
+        try {
+          const response = await fetch('data/anime.full.json', { method: 'HEAD', cache: 'no-store' });
+          updateStatus(
+            dataStatus,
+            response.ok ? 'healthy' : 'degraded',
+            response.ok ? 'Healthy' : 'Degraded',
+            response.ok ? 'Catalog data reachable.' : 'Catalog data returned an error.',
+            response.ok ? `Status ${response.status}` : `Status ${response.status}`
+          );
+        } catch (error) {
+          updateStatus(dataStatus, 'down', 'Down', 'Catalog data unavailable.', 'Network error');
+        }
+
+        const apiStatus = document.getElementById('api-status');
+        try {
+          const response = await fetch('https://api.jikan.moe/v4/health', { cache: 'no-store' });
+          updateStatus(
+            apiStatus,
+            response.ok ? 'healthy' : 'degraded',
+            response.ok ? 'Healthy' : 'Degraded',
+            response.ok ? 'Jikan API is responding.' : 'Jikan API responded with issues.',
+            response.ok ? `Status ${response.status}` : `Status ${response.status}`
+          );
+        } catch (error) {
+          updateStatus(apiStatus, 'down', 'Down', 'Jikan API unreachable.', 'Network error');
+        }
+
+        const swStatus = document.getElementById('sw-status');
+        if ('serviceWorker' in navigator) {
+          try {
+            const registration = await navigator.serviceWorker.getRegistration();
+            updateStatus(
+              swStatus,
+              registration ? 'healthy' : 'degraded',
+              registration ? 'Healthy' : 'Degraded',
+              registration ? 'Service worker registered.' : 'Service worker not registered.',
+              registration ? `Scope: ${registration.scope}` : 'No registration found'
+            );
+          } catch (error) {
+            updateStatus(swStatus, 'degraded', 'Degraded', 'Unable to check service worker.', 'Check failed');
+          }
+        } else {
+          updateStatus(swStatus, 'degraded', 'Degraded', 'Service workers not supported.', 'Unsupported');
+        }
+      };
+
+      checkHealth();
+      setInterval(checkHealth, 30000);
+    </script>
+  </body>
+</html>

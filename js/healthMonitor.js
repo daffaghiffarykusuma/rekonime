@@ -1,4 +1,5 @@
 import { CircuitBreaker } from './circuitBreaker.js';
+import { Logger } from './services/logger.js';
 
 /**
  * Health Monitor - tracks connectivity and data freshness.
@@ -12,6 +13,7 @@ const HealthMonitor = {
   isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
   lastCheckAt: null,
   dataFreshness: new Map(),
+  serviceMetrics: new Map(),
   listeners: [],
   checkIntervalId: null,
   serviceLabels: {
@@ -30,7 +32,10 @@ const HealthMonitor = {
       state: CircuitBreaker.states.CLOSED,
       failures: 0,
       lastFailureTime: null,
-      lastCheck: null
+      lastCheck: null,
+      latencyMs: null,
+      lastLatencyAt: null,
+      lastError: null
     }
   },
 
@@ -95,13 +100,29 @@ const HealthMonitor = {
 
   updateReviewService() {
     const status = CircuitBreaker.getStatus('jikan-api');
+    const metrics = this.serviceMetrics.get('reviews') || {};
     this.services.reviews = {
       healthy: status.healthy,
       state: status.state,
       failures: status.failures,
       lastFailureTime: status.lastFailureTime,
-      lastCheck: Date.now()
+      lastCheck: Date.now(),
+      latencyMs: Number.isFinite(metrics.latencyMs) ? metrics.latencyMs : null,
+      lastLatencyAt: metrics.lastLatencyAt || null,
+      lastError: metrics.lastError || null
     };
+  },
+
+  recordServiceLatency(serviceName, latencyMs, { success = true, errorMessage } = {}) {
+    if (!serviceName || !Number.isFinite(latencyMs)) return;
+    this.serviceMetrics.set(serviceName, {
+      latencyMs: Math.round(latencyMs),
+      lastLatencyAt: Date.now(),
+      lastError: success ? null : errorMessage || 'unknown'
+    });
+    if (serviceName === 'reviews') {
+      this.updateReviewService();
+    }
   },
 
   async performHealthChecks() {
@@ -142,7 +163,11 @@ const HealthMonitor = {
       try {
         callback(event, data);
       } catch (error) {
-        console.error('[HealthMonitor] Listener error:', error);
+        if (Logger?.warn) {
+          Logger.warn('[HealthMonitor] Listener error', { error });
+        } else {
+          console.error('[HealthMonitor] Listener error:', error);
+        }
       }
     });
   }

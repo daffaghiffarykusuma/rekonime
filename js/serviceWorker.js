@@ -3,6 +3,8 @@
  * Handles SW registration, updates, and offline indicators
  */
 
+import { Logger } from './services/logger.js';
+
 const ServiceWorkerManager = {
     registration: null,
     updateAvailable: false,
@@ -21,11 +23,11 @@ const ServiceWorkerManager = {
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 registrations.forEach(registration => registration.unregister());
             }
-            console.log('[SW] Skipping registration on localhost');
+            Logger?.info ? Logger.info('[SW] Skipping registration on localhost') : console.log('[SW] Skipping registration on localhost');
             return false;
         }
         if (!('serviceWorker' in navigator)) {
-            console.log('[SW] Service Worker not supported');
+            Logger?.info ? Logger.info('[SW] Service Worker not supported') : console.log('[SW] Service Worker not supported');
             return false;
         }
 
@@ -33,7 +35,7 @@ const ServiceWorkerManager = {
             const registration = await navigator.serviceWorker.register('./sw.js');
             this.registration = registration;
 
-            console.log('[SW] Registered successfully:', registration.scope);
+            Logger?.info ? Logger.info('[SW] Registered successfully', { scope: registration.scope }) : console.log('[SW] Registered successfully:', registration.scope);
 
             // Handle updates
             this.handleUpdates(registration);
@@ -45,20 +47,20 @@ const ServiceWorkerManager = {
 
             // Listen for controller change (new SW activated)
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                console.log('[SW] New controller activated');
+                Logger?.info ? Logger.info('[SW] New controller activated') : console.log('[SW] New controller activated');
                 window.location.reload();
             });
 
             // Listen for messages from SW
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data.type === 'CACHE_UPDATED') {
-                    console.log('[SW] Cache updated:', event.data.url);
+                    Logger?.info ? Logger.info('[SW] Cache updated', { url: event.data.url }) : console.log('[SW] Cache updated:', event.data.url);
                 }
             });
 
             return true;
         } catch (error) {
-            console.error('[SW] Registration failed:', error);
+            Logger?.error ? Logger.error('[SW] Registration failed', { error }) : console.error('[SW] Registration failed:', error);
             return false;
         }
     },
@@ -69,20 +71,20 @@ const ServiceWorkerManager = {
     handleUpdates(registration) {
         registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
-            console.log('[SW] Update found, installing...');
+            Logger?.info ? Logger.info('[SW] Update found, installing...') : console.log('[SW] Update found, installing...');
 
             newWorker.addEventListener('statechange', () => {
-                console.log('[SW] Worker state:', newWorker.state);
+                Logger?.info ? Logger.info('[SW] Worker state', { state: newWorker.state }) : console.log('[SW] Worker state:', newWorker.state);
 
                 if (newWorker.state === 'installed') {
                     if (navigator.serviceWorker.controller) {
                         // New update available
-                        console.log('[SW] New version available');
+                        Logger?.info ? Logger.info('[SW] New version available') : console.log('[SW] New version available');
                         this.updateAvailable = true;
                         this.showUpdatePrompt();
                     } else {
                         // First install
-                        console.log('[SW] First install complete');
+                        Logger?.info ? Logger.info('[SW] First install complete') : console.log('[SW] First install complete');
                     }
                 }
             });
@@ -167,12 +169,12 @@ const ServiceWorkerManager = {
      */
     initConnectivityListeners() {
         window.addEventListener('online', () => {
-            console.log('[SW] App is online');
+            Logger?.info ? Logger.info('[SW] App is online') : console.log('[SW] App is online');
             this.hideOfflineIndicator();
         });
 
         window.addEventListener('offline', () => {
-            console.log('[SW] App is offline');
+            Logger?.warn ? Logger.warn('[SW] App is offline') : console.log('[SW] App is offline');
             this.showOfflineIndicator();
         });
 

@@ -42,3 +42,12 @@ test('HealthMonitor subscribe notifies listeners', async () => {
 
   assert.equal(events, 1);
 });
+
+test('HealthMonitor records service latency', () => {
+  HealthMonitor.recordServiceLatency('reviews', 123, { success: false, errorMessage: 'oops' });
+  const status = HealthMonitor.getStatus();
+  const reviews = status.services.find(service => service.name === 'reviews');
+  assert.ok(reviews);
+  assert.equal(reviews.latencyMs, 123);
+  assert.equal(reviews.lastError, 'oops');
+});

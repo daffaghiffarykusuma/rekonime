@@ -1,9 +1,11 @@
-﻿import { ApiClient } from './services/api-client.js';
+import { ApiClient } from './services/api-client.js';
 import { CacheManager } from './services/cache-manager.js';
 import { ErrorHandler } from './services/error-handler.js';
+import { Logger } from './services/logger.js';
 import { RateLimiter } from './services/rate-limiter.js';
 import { SchemaValidator } from './services/schema-validator.js';
 import { CircuitBreaker } from './circuitBreaker.js';
+import { HealthMonitor } from './healthMonitor.js';
 
 /**
  * Reviews Service - Fetches and categorizes reviews from MyAnimeList (via Jikan)
@@ -41,6 +43,21 @@ const ReviewsService = {
 
   getSchemaValidator() {
     return SchemaValidator;
+  },
+
+  getPerformanceNow() {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+      return performance.now();
+    }
+    return Date.now();
+  },
+
+  recordReviewLatency(duration, { success = true, error } = {}) {
+    if (!Number.isFinite(duration) || !HealthMonitor?.recordServiceLatency) return;
+    HealthMonitor.recordServiceLatency('reviews', duration, {
+      success,
+      errorMessage: error?.message
+    });
   },
 
   validateApiResponse(schemaKey, payload, context = {}) {
@@ -305,7 +322,7 @@ const ReviewsService = {
     const exponentialDelay = this.baseRetryDelay * Math.pow(2, attempt);
     // Cap at max delay
     const cappedDelay = Math.min(exponentialDelay, this.maxRetryDelay);
-    // Add random jitter (±25%) to prevent thundering herd
+    // Add random jitter (�25%) to prevent thundering herd
     const jitter = cappedDelay * 0.25 * (Math.random() * 2 - 1);
     return Math.floor(cappedDelay + jitter);
   },
@@ -394,6 +411,7 @@ const ReviewsService = {
    */
   async fetchReviews(malId, title, isManualRetry = false) {
     const cacheKey = malId || title;
+    const requestStart = this.getPerformanceNow();
 
     // Reset retry count on manual retry
     if (isManualRetry) {
@@ -488,16 +506,31 @@ const ReviewsService = {
       CircuitBreaker.recordSuccess('jikan-api');
       this.resetRetryCount(cacheKey);
       this.setCacheEntry(cacheKey, result);
+      this.recordReviewLatency(this.getPerformanceNow() - requestStart, { success: true });
       return result;
 
     } catch (error) {
-      console.error('Failed to fetch reviews:', error);
+      if (Logger?.error) {
+        Logger.error('Failed to fetch reviews', { error });
+      } else {
+        console.error('Failed to fetch reviews:', error);
+      }
+      this.recordReviewLatency(this.getPerformanceNow() - requestStart, { success: false, error });
 
       // Check if we should retry
       if (this.shouldRetry(cacheKey, error)) {
         this.incrementRetryCount(cacheKey);
         const delay = this.getRetryDelay(this.getRetryCount(cacheKey) - 1);
-        console.log(`Retrying reviews fetch for ${cacheKey} in ${delay}ms (attempt ${this.getRetryCount(cacheKey)}/${this.maxRetries})`);
+        if (Logger?.info) {
+          Logger.info('Retrying reviews fetch', {
+            cacheKey,
+            delayMs: delay,
+            attempt: this.getRetryCount(cacheKey),
+            maxRetries: this.maxRetries
+          });
+        } else {
+          console.log(`Retrying reviews fetch for ${cacheKey} in ${delay}ms (attempt ${this.getRetryCount(cacheKey)}/${this.maxRetries})`);
+        }
 
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.fetchReviews(malId, title, false);
@@ -833,13 +866,13 @@ const ReviewsService = {
 
       errorContent = `
         <div class="reviews-error" role="alert">
-          <div class="reviews-error-icon">⚠️</div>
+          <div class="reviews-error-icon">??</div>
           <div class="reviews-error-content">
             <p class="reviews-error-message">${this.escapeHtml(errorMessage)}</p>
             ${retryAttempt > 0 ? `<p class="reviews-error-attempts">Automatic retry ${retryAttempt}/${maxRetries} failed</p>` : ''}
             ${canRetry ? `
               <button class="reviews-retry-btn" data-action="retry-reviews" type="button">
-                <span class="retry-icon">🔄</span> Try Again
+                <span class="retry-icon">??</span> Try Again
               </button>
             ` : ''}
           </div>
@@ -865,7 +898,7 @@ const ReviewsService = {
           <div class="reviews-container" id="reviews-container">
             ${activeReviews.length > 0
           ? activeReviews.map(r => this.renderReviewCard(r)).join('')
-          : '<p class="no-reviews">No community reviews yet—be the first on MyAnimeList!</p>'
+          : '<p class="no-reviews">No community reviews yet�be the first on MyAnimeList!</p>'
         }
           </div>
         `}
@@ -958,7 +991,11 @@ const ReviewsService = {
         if (onSuccess) onSuccess(data);
       }
     } catch (error) {
-      console.error('Retry failed:', error);
+      if (Logger?.error) {
+        Logger.error('Retry failed', { error });
+      } else {
+        console.error('Retry failed:', error);
+      }
       if (onError) onError({ error: true, errorMessage: error.message });
     }
   },
@@ -999,7 +1036,7 @@ const ReviewsService = {
         const reviews = categorizedReviews[sentiment] || [];
         container.innerHTML = reviews.length > 0
           ? reviews.map(r => this.renderReviewCard(r)).join('')
-          : '<p class="no-reviews">No community reviews yetâ€”be the first on MyAnimeList!</p>';
+          : '<p class="no-reviews">No community reviews yet—be the first on MyAnimeList!</p>';
         scrollTabIntoView(tab);
       });
     });
@@ -1008,4 +1045,14 @@ const ReviewsService = {
 
 export { ReviewsService };
 export default ReviewsService;
+
+
+
+
+
+
+
+
+
+
 

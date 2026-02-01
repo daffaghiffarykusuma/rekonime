@@ -9,6 +9,8 @@ import { ThemeManager } from './themeManager.js';
 import { CacheManager } from './services/cache-manager.js';
 import { AnalyticsService } from './services/analytics-service.js';
 import { ApiClient } from './services/api-client.js';
+import { DataValidator } from './services/data-validator.js';
+import { Logger } from './services/logger.js';
 import { Store } from './core/store.js';
 import { DependencyContainer } from './core/dependency-container.js';
 import { HealthMonitor } from './healthMonitor.js';
@@ -162,8 +164,24 @@ const App = {
     return AnalyticsService;
   },
 
+  getLogger() {
+    return Logger;
+  },
+
   getApiClient() {
     return ApiClient;
+  },
+
+  getPerformanceNow() {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+      return performance.now();
+    }
+    return Date.now();
+  },
+
+  emitAppEvent(name, detail = {}) {
+    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+    window.dispatchEvent(new CustomEvent(name, { detail }));
   },
 
   dispatchStore(action) {
@@ -1312,7 +1330,12 @@ const App = {
         }
       }
     } catch (error) {
-      console.error('Failed to initialize app:', error);
+      const logger = this.getLogger();
+      if (logger?.error) {
+        logger.error('Failed to initialize app', { error });
+      } else {
+        console.error('Failed to initialize app:', error);
+      }
       this.showError('We couldn\'t load the catalog. Try refreshing - if it persists, the data might be updating.');
     }
   },
@@ -1396,24 +1419,47 @@ const App = {
     if (this.features.parallelLoading) {
       this.addPreloadHints();
     }
+    const source = window.location.protocol === 'file:' ? 'embedded' : 'preview';
+    const loadStart = this.getPerformanceNow();
+    this.emitAppEvent('rekonime:data-load-start', { source });
     if (window.location.protocol === 'file:') {
       const loaded = await this.loadEmbeddedData();
       if (!loaded) {
+        this.emitAppEvent('rekonime:data-load-end', {
+          source,
+          durationMs: this.getPerformanceNow() - loadStart,
+          status: 'failed'
+        });
         return false;
       }
       this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: false });
+      this.emitAppEvent('rekonime:data-load-end', {
+        source,
+        durationMs: this.getPerformanceNow() - loadStart,
+        status: 'ok'
+      });
       return true;
     }
 
     const previewPayload = await this.fetchCatalog(this.dataSources.preview);
     if (previewPayload) {
       this.applyCatalogPayload(previewPayload, { isFull: false, preserveFilters: false });
+      this.emitAppEvent('rekonime:data-load-end', {
+        source,
+        durationMs: this.getPerformanceNow() - loadStart,
+        status: 'ok'
+      });
       if (this.features.parallelLoading) {
         this.preloadFullCatalog();
       }
       return true;
     }
 
+    this.emitAppEvent('rekonime:data-load-end', {
+      source,
+      durationMs: this.getPerformanceNow() - loadStart,
+      status: 'failed'
+    });
     return this.loadFullCatalog();
   },
 
@@ -1425,6 +1471,9 @@ const App = {
     if (this.fullCatalogPromise) {
       return this.fullCatalogPromise;
     }
+
+    const loadStart = this.getPerformanceNow();
+    this.emitAppEvent('rekonime:data-load-start', { source: 'full' });
 
     const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : this.fullCatalogTimeoutMs;
     const controller = new AbortController();
@@ -1497,11 +1546,21 @@ const App = {
     try {
       result = await this.fullCatalogPromise;
     } catch (error) {
-      console.error('[loadFullCatalog] Unexpected error:', error);
+      const logger = this.getLogger();
+      if (logger?.error) {
+        logger.error('[loadFullCatalog] Unexpected error', { error });
+      } else {
+        console.error('[loadFullCatalog] Unexpected error:', error);
+      }
       result = false;
     } finally {
       this.loadingFullCatalog = false;
       this.fullCatalogPromise = null;
+      this.emitAppEvent('rekonime:data-load-end', {
+        source: 'full',
+        durationMs: this.getPerformanceNow() - loadStart,
+        status: result ? 'ok' : 'failed'
+      });
     }
 
     this.isFullDataLoaded = Boolean(result) || this.isFullDataLoaded;
@@ -1572,7 +1631,12 @@ const App = {
     }
 
     if (lastError) {
-      console.error('[fetchCatalog] Failed to load catalog:', lastError);
+      const logger = this.getLogger();
+      if (logger?.error) {
+        logger.error('[fetchCatalog] Failed to load catalog', { error: lastError });
+      } else {
+        console.error('[fetchCatalog] Failed to load catalog:', lastError);
+      }
     }
     return null;
   },
@@ -1625,6 +1689,9 @@ const App = {
     const catalog = payload?.anime || [];
     this.scoreProfile = this.isValidScoreProfile(payload?.scoreProfile) ? payload.scoreProfile : null;
     this.animeData = this.normalizeAnimeData(catalog);
+    if (DataValidator?.validateCatalog) {
+      DataValidator.validateCatalog(this.animeData, { source: isFull ? 'full' : 'preview' });
+    }
     this.isFullDataLoaded = isFull;
     this.gridSortedCache = null;
     this.gridSortedSource = null;
@@ -1797,18 +1864,33 @@ const App = {
     try {
       await this.loadEmbeddedDataScript();
     } catch (error) {
-      console.error('[loadEmbeddedData] Failed to load embedded data script:', error);
+      const logger = this.getLogger();
+      if (logger?.error) {
+        logger.error('[loadEmbeddedData] Failed to load embedded data script', { error });
+      } else {
+        console.error('[loadEmbeddedData] Failed to load embedded data script:', error);
+      }
       return false;
     }
 
     if (typeof ANIME_DATA === 'undefined') {
-      console.error('[loadEmbeddedData] ANIME_DATA not defined after script load');
+      const logger = this.getLogger();
+      if (logger?.error) {
+        logger.error('[loadEmbeddedData] ANIME_DATA not defined after script load');
+      } else {
+        console.error('[loadEmbeddedData] ANIME_DATA not defined after script load');
+      }
       return false;
     }
 
     const validation = this.validateAnimeData(ANIME_DATA.anime);
     if (!validation.isValid) {
-      console.error('[loadEmbeddedData] Embedded data validation failed:', validation.errors);
+      const logger = this.getLogger();
+      if (logger?.error) {
+        logger.error('[loadEmbeddedData] Embedded data validation failed', { errors: validation.errors });
+      } else {
+        console.error('[loadEmbeddedData] Embedded data validation failed:', validation.errors);
+      }
       return false;
     }
 
@@ -4592,6 +4674,7 @@ const App = {
    * Show anime detail modal
    */
   showAnimeDetail(animeId, { updateUrl = true } = {}) {
+    const renderStart = this.getPerformanceNow();
     this.stopTrailerPlayback();
     this.teardownTrailerObserver();
 
@@ -4603,6 +4686,14 @@ const App = {
 
     const cachedDetail = this.getCachedDetail(animeId);
     const hasCachedDetail = Boolean(cachedDetail);
+    const reportModalOpened = (detail = {}) => {
+      this.emitAppEvent('rekonime:modal-opened', {
+        animeId,
+        durationMs: Math.round(this.getPerformanceNow() - renderStart),
+        cached: hasCachedDetail,
+        ...detail
+      });
+    };
 
     if (hasCachedDetail) {
       content.innerHTML = cachedDetail;
@@ -4625,6 +4716,7 @@ const App = {
           <button class="btn btn-primary detail-close-button" data-action="close-detail">Close</button>
         </div>
       `;
+      reportModalOpened({ status: 'not_found' });
       return;
     }
 
@@ -4645,6 +4737,7 @@ const App = {
       this.setupTrailerAutoplay(modalContent);
       this.loadCommunityReviews(anime, synopsis);
       this.updatePrefetchObserving();
+      reportModalOpened({ status: 'ok' });
       return;
     }
 
@@ -4818,6 +4911,7 @@ const App = {
     // Load community reviews
     this.loadCommunityReviews(anime, synopsis);
     this.updatePrefetchObserving();
+    reportModalOpened({ status: 'ok' });
   },
 
   /**
@@ -4855,7 +4949,12 @@ const App = {
         this.updateMetaForAnime(anime, data.description);
       }
     } catch (error) {
-      console.error('Failed to load reviews:', error);
+      const logger = this.getLogger();
+      if (logger?.error) {
+        logger.error('Failed to load reviews', { error });
+      } else {
+        console.error('Failed to load reviews:', error);
+      }
 
       // Clear synopsis loading state on error
       if (synopsisSection) {

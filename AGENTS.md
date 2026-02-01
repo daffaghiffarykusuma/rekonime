@@ -29,6 +29,7 @@
 - `js/onboarding.js`: First-time user tour with guided steps through key concepts.
 - `js/themeManager.js`: Light/Dark/Auto theme switching with OS preference detection.
 - `js/serviceWorker.js`: Service Worker registration, update handling, and offline indicators.
+- `js/performanceMonitor.js`: Core Web Vitals + custom performance timing reporter.
 - `js/circuitBreaker.js`: Circuit breaker for external API resilience.
 - `js/healthMonitor.js`: Connectivity + data freshness monitor with health status reporting.
 - `js/core/dependency-container.js`: Lightweight dependency registry for shared services.
@@ -38,15 +39,21 @@
 - `js/services/rate-limiter.js`: Token bucket rate limiter for external API pacing.
 - `js/services/cache-manager.js`: Safe localStorage access with TTL support.
 - `js/services/schema-validator.js`: Schema validation for persisted storage payloads.
-- `js/services/analytics-service.js`: Analytics abstraction (gtag wrapper).
+- `js/services/analytics-service.js`: Analytics abstraction with queue + gtag wrapper.
 - `js/services/error-handler.js`: Centralized error reporting with listeners.
+- `js/services/logger.js`: Structured logger with buffering and persistence.
+- `js/services/data-validator.js`: Runtime catalog validation.
 - `js/charts.js`: Chart.js helpers (not wired in current HTML).
 - `js/data.js`: Embedded fallback dataset (`ANIME_DATA`) for `file://` and fetch failure.
+- `health.html`: Standalone operational health status page.
 - `sw.js`: Service Worker for offline caching and background updates.
+- `version.json`: Build metadata for cache/version tracking (generated).
 - `data/anime.json`: Raw catalog (scraped). Source of truth for builds.
 - `data/anime.full.json`: Full catalog with stats + colorIndex (generated).
 - `data/anime.preview.json`: Preview subset for fast first paint (generated).
 - `tools/*.js` and `tools/*.ps1`: Data pipeline utilities.
+- `tools/generate-version.js`: Auto-generates cache version + build metadata.
+- `tools/deploy-data.js`: Data backup + rollback helper.
 - `tools/scraper/*`: Python scraper + metadata enrichers for MAL/Jikan/AniList.
 - `package.json`: Dev scripts (node:test harness).
 - `vite.config.js`: Vite multi-page build config.
@@ -56,7 +63,7 @@
 - `index.html` -> `css/styles.css`
 - `index.html` -> `css/themes.css`
 - `index.html` -> `js/main.js` (module entrypoint)
-- `js/main.js` -> `ThemeManager`, `Recommendations`, `KeyboardShortcuts`, `ServiceWorkerManager`, `App`
+- `js/main.js` -> `ThemeManager`, `Recommendations`, `KeyboardShortcuts`, `ServiceWorkerManager`, `App`, `AnalyticsService`, `Logger`, `PerformanceMonitor`
 - `AGENTS.md` -> `USER_JOURNEY.MD` (required reading before tasks)
 - `home/index.html` -> same JS/CSS stack as `index.html`
 - `bookmarks.html` -> same JS/CSS stack as `index.html`
@@ -73,6 +80,8 @@
 - `js/app.js` -> `KeyboardShortcuts` (keyboard navigation)
 - `js/app.js` -> `ServiceWorkerManager` (PWA features)
 - `js/app.js` -> `HealthMonitor` (health status + indicator)
+- `js/app.js` -> `DataValidator` (runtime catalog validation)
+- `js/app.js` -> `Logger` (structured error logging)
 - `js/app.js` -> `CacheManager` -> localStorage (settings/bookmarks)
 - `js/app.js` -> `data/*.json` (fetch preview/full/legacy) and `js/data.js` fallback
 - `js/recommendations.js` -> `CacheManager` (mode preference)
@@ -82,14 +91,22 @@
 - `js/reviews.js` -> `CircuitBreaker` (Jikan API resilience)
 - `js/reviews.js` -> `RateLimiter` (Jikan request pacing)
 - `js/reviews.js` -> `SchemaValidator` + `ErrorHandler` (API response validation)
+- `js/reviews.js` -> `HealthMonitor` (latency tracking)
 - `js/healthMonitor.js` -> `CircuitBreaker` (reviews health status)
+- `js/healthMonitor.js` -> `Logger` (listener error logging)
 - `js/onboarding.js` -> `AnalyticsService` + `CacheManager` (tour state)
 - `js/filterPresets.js` -> `AnalyticsService` (preset usage)
 - `js/keyboardShortcuts.js` -> `CacheManager` (acknowledgement flag)
 - `js/themeManager.js` -> `CacheManager` (theme preference)
 - `js/services/cache-manager.js` -> `js/services/schema-validator.js` (storage schema validation)
+- `js/services/analytics-service.js` -> `CacheManager` (queue persistence)
+- `js/services/logger.js` -> `CacheManager` (log buffering)
+- `js/services/error-handler.js` -> `Logger` (structured logging)
+- `js/performanceMonitor.js` -> `AnalyticsService` (metric reporting)
 - `js/app.js` -> YouTube (trailer links and embeds, sanitized to allowed hosts)
 - `tools/build-catalogs.js` -> `js/stats.js` (precompute stats) -> `data/anime.full.json` + `data/anime.preview.json`
+- `tools/generate-version.js` -> `sw.js` + `version.json`
+- `tools/deploy-data.js` -> `data/anime*.json` (backup/rollback)
 - `tools/regenerate-data.ps1` -> `data/anime.full.json` -> `js/data.js`
 - `tools/merge-scores.js` -> `tools/scraper/output/*.json` -> `data/anime.json`
 - `tools/update_metadata.js` -> Jikan API -> `data/anime.json`
@@ -100,14 +117,15 @@
 - `test/stats.test.js` -> `js/stats.js`
 - `test/recommendations.test.js` -> `js/recommendations.js`
 - `js/serviceWorker.js` -> `sw.js` (service worker registration)
+- `health.html` -> `data/anime.full.json` + Jikan API + service worker registration status
 
 ## Runtime flows (high-signal paths)
 
 ### Initial load and data swap
-1. `main.js` initializes theme, recommendations mode, keyboard shortcuts, and service worker, then calls `App.init()`.
+1. `main.js` initializes logger, analytics, performance monitoring, theme, recommendations mode, keyboard shortcuts, and service worker, then calls `App.init()`.
 2. `App.init()` renders loading state and loads bookmarks.
 3. `App.loadInitialData()` fetches `data/anime.preview.json` via `ApiClient` (or `ANIME_DATA` for `file://`).
-4. `App.applyCatalogPayload()` normalizes data, ensures stats, extracts filters, renders UI.
+4. `App.applyCatalogPayload()` normalizes data, runs runtime validation, ensures stats, extracts filters, renders UI.
 5. `App.loadFullCatalog()` swaps in `data/anime.full.json` (or `data/anime.json` legacy) and re-renders.
 
 ### Filtering and sorting
@@ -124,6 +142,11 @@
 - `App.showAnimeDetail()` renders modal, updates URL (`?anime=...`), and sets SEO meta.
 - `App.syncModalWithUrl()` opens/closes modal on back/forward navigation.
 - Modal sections include synopsis, trailer, reviews, and similar anime.
+
+### Observability hooks
+- `App` emits `rekonime:data-load-start/end` and `rekonime:modal-opened` for custom performance timings.
+- `PerformanceMonitor` listens for these events and reports metrics via `AnalyticsService`.
+- `ReviewsService` records API latency to `HealthMonitor` for the reviews service.
 
 ### Reviews and synopsis
 - `ReviewsService.fetchReviews()` calls the Jikan API for MyAnimeList reviews via `ApiClient`.
@@ -303,10 +326,14 @@ flowchart TD
   main --> keyboardShortcuts[js/keyboardShortcuts.js]
   main --> serviceWorkerManager[js/serviceWorker.js]
   main --> recs[js/recommendations.js]
+  main --> perf[js/performanceMonitor.js]
+  main --> logger[js/services/logger.js]
+  main --> analytics[js/services/analytics-service.js]
   app --> stats[js/stats.js]
   app --> recs[js/recommendations.js]
   app --> reviews[js/reviews.js]
   app --> health[js/healthMonitor.js]
+  app --> dataValidator[js/services/data-validator.js]
   app --> discovery[js/discovery.js]
   app --> filterPresets[js/filterPresets.js]
   app --> metricGlossary[js/metricGlossary.js]
@@ -332,7 +359,9 @@ flowchart TD
   reviews --> schemaValidator
   reviews --> rateLimiter[js/services/rate-limiter.js]
   reviews --> errors
+  reviews --> health
   health --> circuit
+  health --> logger
   discovery --> analytics
   filterPresets --> analytics
   onboarding --> analytics
@@ -340,8 +369,14 @@ flowchart TD
   themeManager --> cache
   keyboardShortcuts --> cache
   recs --> cache
+  analytics --> cache
+  logger --> cache
+  errors --> logger
   app --> youtube[YouTube / YouTube-nocookie]
   serviceWorkerManager --> sw[sw.js]
+  healthPage[health.html] --> dataFull
+  healthPage --> jikan
+  healthPage --> sw
 
   %% Data pipeline
   scraper[tools/scraper/*] --> scores[tools/scraper/output/*.json]
@@ -356,6 +391,9 @@ flowchart TD
   regen --> embed[js/data.js]
   raw --> validate[tools/validate-data.js]
   raw --> syncHome[tools/sync-home-index.ps1]
+  versioner[tools/generate-version.js] --> sw
+  versioner --> versionMeta[version.json]
+  deployData[tools/deploy-data.js] --> raw
 
   %% Optional charting (not wired by default)
   charts[js/charts.js] -. optional .-> app

@@ -19,7 +19,10 @@ const ErrorHandler = {
       timestamp: new Date().toISOString()
     };
 
-    if (typeof console !== 'undefined' && console.error) {
+    const logger = DependencyContainer.resolve('logger');
+    if (logger?.error) {
+      logger.error('Error captured', { error, ...context });
+    } else if (typeof console !== 'undefined' && console.error) {
       console.error('[Rekonime]', error, context);
     }
 
@@ -27,7 +30,9 @@ const ErrorHandler = {
       try {
         listener(payload);
       } catch (listenerError) {
-        if (typeof console !== 'undefined' && console.warn) {
+        if (logger?.warn) {
+          logger.warn('Error handler listener failed', { error: listenerError });
+        } else if (typeof console !== 'undefined' && console.warn) {
           console.warn('[Rekonime] Error handler failed', listenerError);
         }
       }
