@@ -10,6 +10,6 @@
     "sync:home": "powershell -ExecutionPolicy Bypass -File ./tools/sync-home-index.ps1"
   },
   "devDependencies": {
-    "vite": "^5.4.0"
+    "vite": "^7.3.1"
   }
 }

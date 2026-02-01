@@ -2989,6 +2989,11 @@ h4 {
   animation: bloom-in 0.6s var(--ease-bloom) both;
 }
 
+.anime-card.is-virtual {
+  content-visibility: auto;
+  contain-intrinsic-size: 16rem 24rem;
+}
+
 /* Staggered card entrance animations */
 .anime-card:nth-child(1) {
   animation-delay: 0.05s;

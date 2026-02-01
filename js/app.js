@@ -34,6 +34,8 @@ const App = {
   isFullDataLoaded: false,
   loadingFullCatalog: false,
   fullCatalogPromise: null,
+  fullCatalogPreloadPromise: null,
+  preloadHintsAdded: false,
   defaultMeta: {
     title: '',
     description: '',
@@ -43,6 +45,7 @@ const App = {
   trailerObserver: null,
   trailerScrollHandler: null,
   trailerScrollRoot: null,
+  trailerCleanup: null,
   bookmarkStorageKey: 'rekonime.bookmarks',
   settingsStorageKey: 'rekonime.settings',
   settings: null,
@@ -82,6 +85,25 @@ const App = {
     activeId: null,
     lastFocused: null,
     handler: null
+  },
+  registeredListeners: [],
+  animeCardTemplate: null,
+  gridDomCache: new Map(),
+  detailCache: new Map(),
+  detailCacheMaxSize: 10,
+  gridObserver: null,
+  visibleCardIds: new Set(),
+  prefetchObserver: null,
+  prefetchQueue: new Set(),
+  prefetchLimit: 10,
+  eagerImageCount: 12,
+  features: {
+    diffRendering: true,
+    templatePooling: true,
+    virtualScrolling: true,
+    parallelLoading: true,
+    smartImageLoading: true,
+    intelligentPrefetching: true
   },
 
   store: null,
@@ -1164,7 +1186,11 @@ const App = {
     }
 
     section.classList.remove('is-empty');
-    grid.innerHTML = this.renderAnimeCards(bookmarks, { showBookmarkToggle: true });
+    if (this.features.templatePooling) {
+      grid.replaceChildren(this.renderAnimeCardsDom(bookmarks, { showBookmarkToggle: true, startIndex: 0 }));
+    } else {
+      grid.innerHTML = this.renderAnimeCards(bookmarks, { showBookmarkToggle: true, startIndex: 0 });
+    }
   },
 
   // Pagination state
@@ -1235,6 +1261,7 @@ const App = {
       }
 
       this.setupEventListeners();
+      this.setupIntelligentPrefetching();
       this.initSeo();
       this.updateHomeLinks();
 
@@ -1277,10 +1304,66 @@ const App = {
     select.value = this.currentSort;
   },
 
+  addTrackedListener(target, event, handler, options) {
+    if (!target || typeof target.addEventListener !== 'function') return;
+    target.addEventListener(event, handler, options);
+    this.registeredListeners.push({ target, event, handler, options });
+  },
+
+  removeAllListeners() {
+    this.registeredListeners.forEach(({ target, event, handler, options }) => {
+      if (target && typeof target.removeEventListener === 'function') {
+        target.removeEventListener(event, handler, options);
+      }
+    });
+    this.registeredListeners = [];
+  },
+
+  addPreloadHints() {
+    if (this.preloadHintsAdded || typeof document === 'undefined') return;
+    const previewPath = this.getAssetPath(this.dataSources.preview);
+    const fullPath = this.getAssetPath(this.dataSources.full);
+    const hints = [
+      { rel: 'preconnect', href: 'https://cdn.myanimelist.net', crossorigin: 'anonymous' },
+      { rel: 'dns-prefetch', href: 'https://api.jikan.moe' },
+      { rel: 'preload', href: previewPath, as: 'fetch', crossorigin: 'anonymous' },
+      { rel: 'prefetch', href: fullPath, as: 'fetch', crossorigin: 'anonymous' }
+    ];
+
+    hints.forEach((hint) => {
+      if (!hint.href) return;
+      if (document.querySelector(`link[rel="${hint.rel}"][href="${hint.href}"]`)) return;
+      const link = document.createElement('link');
+      Object.entries(hint).forEach(([key, value]) => {
+        link.setAttribute(key, value);
+      });
+      document.head.appendChild(link);
+    });
+
+    this.preloadHintsAdded = true;
+  },
+
+  preloadFullCatalog() {
+    if (this.fullCatalogPreloadPromise || this.isFullDataLoaded) return;
+    this.fullCatalogPreloadPromise = (async () => {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        await new Promise(resolve => window.requestIdleCallback(resolve, { timeout: 2000 }));
+      }
+      await this.loadFullCatalog();
+    })()
+      .catch(() => null)
+      .finally(() => {
+        this.fullCatalogPreloadPromise = null;
+      });
+  },
+
   /**
    * Load preview data first for a faster first paint.
    */
   async loadInitialData() {
+    if (this.features.parallelLoading) {
+      this.addPreloadHints();
+    }
     if (window.location.protocol === 'file:') {
       const loaded = await this.loadEmbeddedData();
       if (!loaded) {
@@ -1293,6 +1376,9 @@ const App = {
     const previewPayload = await this.fetchCatalog(this.dataSources.preview);
     if (previewPayload) {
       this.applyCatalogPayload(previewPayload, { isFull: false, preserveFilters: false });
+      if (this.features.parallelLoading) {
+        this.preloadFullCatalog();
+      }
       return true;
     }
 
@@ -1319,9 +1405,22 @@ const App = {
         return true;
       }
 
-      const fullPayload =
-        (await this.fetchCatalog(this.dataSources.full)) ||
-        (await this.fetchCatalog(this.dataSources.legacy));
+      let fullPayload = null;
+      if (this.features.parallelLoading) {
+        const [fullResult, legacyResult] = await Promise.allSettled([
+          this.fetchCatalog(this.dataSources.full),
+          this.fetchCatalog(this.dataSources.legacy)
+        ]);
+        if (fullResult.status === 'fulfilled' && fullResult.value) {
+          fullPayload = fullResult.value;
+        } else if (legacyResult.status === 'fulfilled' && legacyResult.value) {
+          fullPayload = legacyResult.value;
+        }
+      } else {
+        fullPayload =
+          (await this.fetchCatalog(this.dataSources.full)) ||
+          (await this.fetchCatalog(this.dataSources.legacy));
+      }
 
       if (!fullPayload) {
         const loaded = await this.loadEmbeddedData();
@@ -1366,6 +1465,9 @@ const App = {
     this.isFullDataLoaded = isFull;
     this.gridSortedCache = null;
     this.gridSortedSource = null;
+    this.gridDomCache.clear();
+    this.detailCache.clear();
+    this.visibleCardIds.clear();
 
     if (!preserveFilters) {
       this.activeFilters = this.getDefaultActiveFilters();
@@ -1862,10 +1964,11 @@ const App = {
    * Setup event listeners
    */
   setupEventListeners() {
+    this.removeAllListeners();
     // Sort dropdown
     const sortSelect = document.getElementById('sort-select');
     if (sortSelect) {
-      sortSelect.addEventListener('change', (e) => {
+      this.addTrackedListener(sortSelect, 'change', (e) => {
         this.currentSort = e.target.value;
         this.resetGridPagination();
         this.renderAnimeGrid();
@@ -1875,7 +1978,7 @@ const App = {
     // Filter toggle
     const filterToggle = document.getElementById('filter-toggle');
     if (filterToggle) {
-      filterToggle.addEventListener('click', () => {
+      this.addTrackedListener(filterToggle, 'click', () => {
         this.toggleFilterPanel();
       });
     }
@@ -1883,14 +1986,14 @@ const App = {
     // Clear all filters
     const clearFilters = document.getElementById('clear-filters');
     if (clearFilters) {
-      clearFilters.addEventListener('click', () => {
+      this.addTrackedListener(clearFilters, 'click', () => {
         this.clearAllFilters();
       });
     }
 
     const clearActiveFilters = document.getElementById('active-filters-clear');
     if (clearActiveFilters) {
-      clearActiveFilters.addEventListener('click', () => {
+      this.addTrackedListener(clearActiveFilters, 'click', () => {
         this.clearAllFilters();
       });
     }
@@ -1898,7 +2001,7 @@ const App = {
     // Close detail modal
     const closeDetail = document.getElementById('close-detail');
     if (closeDetail) {
-      closeDetail.addEventListener('click', () => {
+      this.addTrackedListener(closeDetail, 'click', () => {
         this.closeDetailModal();
       });
     }
@@ -1906,7 +2009,7 @@ const App = {
     // Click outside modal to close
     const modal = document.getElementById('detail-modal');
     if (modal) {
-      modal.addEventListener('click', (e) => {
+      this.addTrackedListener(modal, 'click', (e) => {
         if (e.target === modal) {
           this.closeDetailModal();
         }
@@ -1916,7 +2019,7 @@ const App = {
     // Filter modal close button
     const closeFilterModal = document.getElementById('close-filter-modal');
     if (closeFilterModal) {
-      closeFilterModal.addEventListener('click', () => {
+      this.addTrackedListener(closeFilterModal, 'click', () => {
         this.closeFilterModal();
       });
     }
@@ -1924,7 +2027,7 @@ const App = {
     // Click outside filter modal to close
     const filterModal = document.getElementById('filter-modal');
     if (filterModal) {
-      filterModal.addEventListener('click', (e) => {
+      this.addTrackedListener(filterModal, 'click', (e) => {
         if (e.target === filterModal) {
           this.closeFilterModal();
         }
@@ -1934,28 +2037,28 @@ const App = {
     // Apply filters button
     const applyFilters = document.getElementById('apply-filters');
     if (applyFilters) {
-      applyFilters.addEventListener('click', () => {
+      this.addTrackedListener(applyFilters, 'click', () => {
         this.closeFilterModal();
       });
     }
 
     const settingsToggle = document.getElementById('settings-toggle');
     if (settingsToggle) {
-      settingsToggle.addEventListener('click', () => {
+      this.addTrackedListener(settingsToggle, 'click', () => {
         this.toggleSettingsModal();
       });
     }
 
     const helpToggle = document.getElementById('help-toggle');
     if (helpToggle) {
-      helpToggle.addEventListener('click', () => {
+      this.addTrackedListener(helpToggle, 'click', () => {
         Onboarding.reopenTour();
       });
     }
 
     const surpriseToggle = document.getElementById('surprise-toggle');
     if (surpriseToggle) {
-      surpriseToggle.addEventListener('click', () => {
+      this.addTrackedListener(surpriseToggle, 'click', () => {
         const surprise = Discovery.getSurpriseMe(this.animeData, {
           excludeIds: this.bookmarkIds,
           useBookmarks: true
@@ -1970,14 +2073,14 @@ const App = {
 
     const closeMetricHelp = document.getElementById('close-metric-help');
     if (closeMetricHelp) {
-      closeMetricHelp.addEventListener('click', () => {
+      this.addTrackedListener(closeMetricHelp, 'click', () => {
         this.closeMetricHelpModal();
       });
     }
 
     const metricHelpModal = document.getElementById('metric-help-modal');
     if (metricHelpModal) {
-      metricHelpModal.addEventListener('click', (e) => {
+      this.addTrackedListener(metricHelpModal, 'click', (e) => {
         if (e.target === metricHelpModal) {
           this.closeMetricHelpModal();
         }
@@ -1986,21 +2089,21 @@ const App = {
 
     const closeSettings = document.getElementById('close-settings');
     if (closeSettings) {
-      closeSettings.addEventListener('click', () => {
+      this.addTrackedListener(closeSettings, 'click', () => {
         this.closeSettingsModal();
       });
     }
 
     const settingsModal = document.getElementById('settings-modal');
     if (settingsModal) {
-      settingsModal.addEventListener('click', (e) => {
+      this.addTrackedListener(settingsModal, 'click', (e) => {
         if (e.target === settingsModal) {
           this.closeSettingsModal();
         }
       });
     }
 
-    document.addEventListener('change', (event) => {
+    this.addTrackedListener(document, 'change', (event) => {
       const target = event.target;
       if (!target || !target.classList.contains('settings-toggle-input')) return;
       const key = target.dataset.settingKey;
@@ -2008,13 +2111,13 @@ const App = {
       this.updateSetting(key, target.checked);
     });
 
-    document.addEventListener('keydown', (event) => {
+    this.addTrackedListener(document, 'keydown', (event) => {
       if (this.handleGlobalEscape(event)) {
         event.preventDefault();
       }
     });
 
-    window.addEventListener('popstate', () => {
+    this.addTrackedListener(window, 'popstate', () => {
       const filtersChanged = this.setActiveFiltersFromUrl({ updateUi: true });
       if (filtersChanged) {
         this.applyFilters({ syncUrl: false, updateMeta: false });
@@ -2039,21 +2142,21 @@ const App = {
 
     if (!headerSearch || !headerDropdown) return;
 
-    headerSearch.addEventListener('input', (e) => {
+    this.addTrackedListener(headerSearch, 'input', (e) => {
       this.handleHeaderSearch(e.target.value);
     });
 
-    headerSearch.addEventListener('focus', () => {
+    this.addTrackedListener(headerSearch, 'focus', () => {
       if (headerSearch.value.length > 0) {
         this.handleHeaderSearch(headerSearch.value, { preserveActive: true });
       }
     });
 
-    headerSearch.addEventListener('keydown', (event) => {
+    this.addTrackedListener(headerSearch, 'keydown', (event) => {
       this.handleHeaderSearchKeydown(event);
     });
 
-    headerDropdown.addEventListener('mousemove', (event) => {
+    this.addTrackedListener(headerDropdown, 'mousemove', (event) => {
       const item = event.target.closest('.search-result-item');
       if (!item) return;
       const index = Number(item.dataset.resultIndex);
@@ -2062,14 +2165,14 @@ const App = {
       }
     });
 
-    headerDropdown.addEventListener('mouseleave', () => {
+    this.addTrackedListener(headerDropdown, 'mouseleave', () => {
       if (this.headerSearchState.activeIndex !== -1) {
         this.setHeaderSearchActiveIndex(-1, { scroll: false });
       }
     });
 
     // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
+    this.addTrackedListener(document, 'click', (e) => {
       if (!e.target.closest('.header-search-wrapper')) {
         this.closeHeaderSearchDropdown();
       }
@@ -2722,10 +2825,74 @@ const App = {
       button.classList.toggle('is-visible', window.scrollY > showAfter);
     };
     updateVisibility();
-    window.addEventListener('scroll', updateVisibility, { passive: true });
+    this.addTrackedListener(window, 'scroll', updateVisibility, { passive: true });
     if (isMobileQuery?.addEventListener) {
-      isMobileQuery.addEventListener('change', updateVisibility);
+      this.addTrackedListener(isMobileQuery, 'change', updateVisibility);
     }
+  },
+
+  setupIntelligentPrefetching() {
+    if (!this.features.intelligentPrefetching) return;
+    if (this.prefetchObserver || typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+
+    this.prefetchObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const card = entry.target;
+        const animeId = card?.dataset?.animeId;
+        if (animeId) {
+          this.queuePrefetch(animeId);
+        }
+      });
+    }, {
+      root: null,
+      rootMargin: '200px',
+      threshold: 0
+    });
+
+    this.updatePrefetchObserving();
+  },
+
+  updatePrefetchObserving() {
+    if (!this.prefetchObserver) return;
+    if (typeof document === 'undefined') return;
+    this.prefetchObserver.disconnect();
+    document.querySelectorAll('.recommendation-card, .trending-card, .similar-card')
+      .forEach(card => this.prefetchObserver.observe(card));
+  },
+
+  queuePrefetch(animeId) {
+    const key = String(animeId ?? '').trim();
+    if (!key) return;
+    if (this.prefetchQueue.has(key)) return;
+    if (this.prefetchQueue.size >= this.prefetchLimit) return;
+    this.prefetchQueue.add(key);
+
+    const work = () => this.prefetchAnime(key);
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(work, { timeout: 2000 });
+    } else {
+      setTimeout(work, 200);
+    }
+  },
+
+  prefetchAnime(animeId) {
+    const anime = this.animeData.find(a => String(a.id) === String(animeId));
+    if (!anime) {
+      this.prefetchQueue.delete(animeId);
+      return;
+    }
+
+    const url = this.sanitizeImageUrl(anime.cover);
+    if (url && typeof document !== 'undefined') {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.as = 'image';
+      link.href = url;
+      document.head.appendChild(link);
+    }
+
+    this.prefetchQueue.delete(animeId);
   },
 
   /**
@@ -2831,6 +2998,7 @@ const App = {
     this.renderBecauseYouWatched();
     this.renderTrending();
     this.renderAnimeGrid();
+    this.updatePrefetchObserving();
   },
 
   /**
@@ -3016,11 +3184,208 @@ const App = {
     return sorted;
   },
 
+  getImageLoadingAttrs(index = 0) {
+    const shouldEager = this.features.smartImageLoading && index < this.eagerImageCount;
+    return {
+      loading: shouldEager ? 'eager' : 'lazy',
+      decoding: shouldEager ? 'sync' : 'async'
+    };
+  },
+
+  initCardTemplate() {
+    if (this.animeCardTemplate || typeof document === 'undefined') return;
+    const template = document.createElement('template');
+    template.innerHTML = `
+      <div class="anime-card" data-action="open-anime">
+        <div class="card-media">
+          <img class="card-cover" loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
+          <button class="bookmark-card-toggle" type="button" data-action="toggle-bookmark">&#9733;</button>
+        </div>
+        <div class="card-body">
+          <div class="card-title-row">
+            <h3 class="card-title"></h3>
+          </div>
+          <div class="card-year"></div>
+          <div class="card-badges"></div>
+          <div class="card-stats"></div>
+          <div class="retention-meter">
+            <progress class="retention-progress" value="0" max="100" aria-label="Retention score"></progress>
+          </div>
+          <div class="card-reason"></div>
+        </div>
+      </div>
+    `;
+    this.animeCardTemplate = template;
+  },
+
+  createAnimeCardElement(anime, { showBookmarkToggle = false, index = 0 } = {}) {
+    this.initCardTemplate();
+    const fragment = this.animeCardTemplate.content.cloneNode(true);
+    const card = fragment.querySelector('.anime-card');
+    this.updateAnimeCardElement(card, anime, { showBookmarkToggle, index });
+    return card;
+  },
+
+  updateAnimeCardElement(card, anime, { showBookmarkToggle = false, index = 0 } = {}) {
+    if (!card || !anime) return;
+    const rawId = String(anime.id ?? '');
+    card.dataset.animeId = rawId;
+
+    const badges = Recommendations.getBadges(anime);
+    const cardStats = Recommendations.getCardStats(anime);
+    const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
+    const retentionLevel = hasEpisodes ? Math.round(anime.stats.retentionScore) : 0;
+    const reason = Recommendations.getRecommendationReason(anime);
+    const safeTitle = this.escapeHtml(anime.title);
+    const safeYear = this.escapeHtml(anime.year || 'Unknown');
+    const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
+
+    const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+    const coverUrl = src || this.sanitizeImageUrl(anime.cover);
+
+    const img = card.querySelector('.card-cover');
+    if (img) {
+      if (coverUrl) {
+        img.src = coverUrl;
+      } else {
+        img.removeAttribute('src');
+      }
+      if (srcset) {
+        img.setAttribute('srcset', srcset);
+      } else {
+        img.removeAttribute('srcset');
+      }
+      if (sizes) {
+        img.setAttribute('sizes', sizes);
+      } else {
+        img.removeAttribute('sizes');
+      }
+      img.alt = anime.title || '';
+      const loadAttrs = this.getImageLoadingAttrs(index);
+      img.setAttribute('loading', loadAttrs.loading);
+      img.setAttribute('decoding', loadAttrs.decoding);
+      if (!img.dataset.fallbackSrc) {
+        img.dataset.fallbackSrc = 'https://via.placeholder.com/120x170?text=No+Image';
+      }
+    }
+
+    const bookmarkBtn = card.querySelector('.bookmark-card-toggle');
+    if (showBookmarkToggle) {
+      if (bookmarkBtn) {
+        const isBookmarked = this.isBookmarked(anime.id);
+        const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
+        bookmarkBtn.dataset.animeId = rawId;
+        bookmarkBtn.classList.toggle('is-bookmarked', isBookmarked);
+        bookmarkBtn.setAttribute('aria-label', bookmarkLabel);
+        bookmarkBtn.setAttribute('title', bookmarkLabel);
+      }
+    } else if (bookmarkBtn) {
+      bookmarkBtn.remove();
+    }
+
+    const titleEl = card.querySelector('.card-title');
+    if (titleEl) {
+      titleEl.textContent = anime.title || '';
+    }
+
+    const yearEl = card.querySelector('.card-year');
+    if (yearEl) {
+      yearEl.innerHTML = `${safeYear} &bull; ${safeStudio}`;
+    }
+
+    const badgesContainer = card.querySelector('.card-badges');
+    if (badgesContainer) {
+      if (badges.length > 0) {
+        badgesContainer.innerHTML = badges
+          .map(badge => `<span class="card-badge ${badge.class}">${this.escapeHtml(badge.label)}</span>`)
+          .join('');
+        badgesContainer.hidden = false;
+      } else {
+        badgesContainer.innerHTML = '';
+        badgesContainer.hidden = true;
+      }
+    }
+
+    const statsContainer = card.querySelector('.card-stats');
+    if (statsContainer) {
+      statsContainer.innerHTML = cardStats.map(stat => {
+        const safeValue = this.escapeHtml(stat.value);
+        const safeSuffix = this.escapeHtml(stat.suffix || '');
+        const safeLabel = this.escapeHtml(stat.label);
+        const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
+        const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
+        return `
+          <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
+            <span class="stat-value ${stat.class || ''}">${safeValue}${safeSuffix}</span>
+            <span class="stat-label">${safeLabel}</span>
+            ${stat.tooltip ? `
+              <div class="tooltip tooltip--bottom" role="tooltip">
+                <div class="tooltip-title">${safeTooltipTitle}</div>
+                <div class="tooltip-text">${safeTooltipText}</div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    const meter = card.querySelector('.retention-meter');
+    const progress = card.querySelector('.retention-progress');
+    if (progress) {
+      progress.value = retentionLevel;
+    }
+    if (meter) {
+      meter.classList.toggle('is-muted', !hasEpisodes);
+    }
+
+    const reasonEl = card.querySelector('.card-reason');
+    if (reasonEl) {
+      reasonEl.textContent = reason || '';
+    }
+  },
+
+  renderAnimeCardsDom(animeList, { showBookmarkToggle = false, startIndex = 0 } = {}) {
+    const fragment = document.createDocumentFragment();
+    animeList.forEach((anime, localIndex) => {
+      const card = this.createAnimeCardElement(anime, {
+        showBookmarkToggle,
+        index: startIndex + localIndex
+      });
+      fragment.appendChild(card);
+    });
+    return fragment;
+  },
+
+  getGridCardElement(anime, { index = 0 } = {}) {
+    const key = String(anime?.id ?? '');
+    if (!key) return null;
+    let card = this.gridDomCache.get(key);
+    if (!card) {
+      card = this.createAnimeCardElement(anime, { index });
+      this.gridDomCache.set(key, card);
+    } else {
+      this.updateAnimeCardElement(card, anime, { index });
+    }
+    return card;
+  },
+
+  diffRenderAnimeGrid(container, newAnimeList, { startIndex = 0 } = {}) {
+    if (!container) return;
+    const fragment = document.createDocumentFragment();
+    newAnimeList.forEach((anime, localIndex) => {
+      const card = this.getGridCardElement(anime, { index: startIndex + localIndex });
+      if (card) {
+        fragment.appendChild(card);
+      }
+    });
+    container.replaceChildren(fragment);
+  },
+
   /**
    * Render anime cards HTML
    */
-  renderAnimeCards(animeList, { showBookmarkToggle = false } = {}) {
-    return animeList.map((anime) => {
+  renderAnimeCards(animeList, { showBookmarkToggle = false, startIndex = 0 } = {}) {
+    return animeList.map((anime, localIndex) => {
       const badges = Recommendations.getBadges(anime);
       const cardStats = Recommendations.getCardStats(anime);
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
@@ -3040,12 +3405,14 @@ const App = {
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
 
+      const index = startIndex + localIndex;
+      const loadingAttrs = this.getImageLoadingAttrs(index);
       return `
         <div class="anime-card"
              data-action="open-anime"
              data-anime-id="${safeId}">
           <div class="card-media">
-            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${safeTitle}" class="card-cover" loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
+            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${safeTitle}" class="card-cover" loading="${loadingAttrs.loading}" decoding="${loadingAttrs.decoding}" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
             ${showBookmarkToggle ? `
               <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"
                       type="button"
@@ -3433,13 +3800,21 @@ const App = {
     const hasMore = endIndex < sorted.length;
 
     if (!shouldAppend) {
-      container.innerHTML = this.renderAnimeCards(visibleAnime);
+      if (this.features.templatePooling && this.features.diffRendering) {
+        this.diffRenderAnimeGrid(container, visibleAnime, { startIndex });
+      } else {
+        container.innerHTML = this.renderAnimeCards(visibleAnime, { startIndex });
+      }
     } else if (visibleAnime.length > 0) {
       const loadMoreEl = container.querySelector('.load-more-container');
       if (loadMoreEl) {
         loadMoreEl.remove();
       }
-      container.insertAdjacentHTML('beforeend', this.renderAnimeCards(visibleAnime));
+      if (this.features.templatePooling) {
+        container.appendChild(this.renderAnimeCardsDom(visibleAnime, { startIndex }));
+      } else {
+        container.insertAdjacentHTML('beforeend', this.renderAnimeCards(visibleAnime, { startIndex }));
+      }
     }
 
     this.gridRenderedCount = endIndex;
@@ -3455,6 +3830,53 @@ const App = {
       `);
     }
 
+    this.setupVirtualScrolling(container);
+  },
+
+  setupVirtualScrolling(container) {
+    if (!this.features.virtualScrolling) return;
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+    if (!this.gridObserver) {
+      this.gridObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          const card = entry.target;
+          if (!card) return;
+          const cardId = card.dataset.animeId;
+          if (entry.isIntersecting) {
+            card.classList.remove('is-virtual');
+            if (cardId) {
+              this.visibleCardIds.add(cardId);
+            }
+          } else {
+            card.classList.add('is-virtual');
+            if (cardId) {
+              this.visibleCardIds.delete(cardId);
+            }
+          }
+        });
+      }, {
+        root: null,
+        rootMargin: '120px',
+        threshold: 0
+      });
+    }
+    this.observeGridCards(container);
+  },
+
+  observeGridCards(container) {
+    if (!this.gridObserver || !container) return;
+    this.gridObserver.disconnect();
+    container.querySelectorAll('.anime-card').forEach(card => {
+      this.gridObserver.observe(card);
+    });
+  },
+
+  teardownVirtualScrolling() {
+    if (this.gridObserver) {
+      this.gridObserver.disconnect();
+      this.gridObserver = null;
+    }
+    this.visibleCardIds.clear();
   },
 
   /**
@@ -3507,7 +3929,7 @@ const App = {
   },
 
   setupActionDelegates() {
-    document.addEventListener('click', (event) => {
+    this.addTrackedListener(document, 'click', (event) => {
       const actionEl = event.target.closest('[data-action]');
       if (!actionEl) return;
 
@@ -3679,7 +4101,7 @@ const App = {
   },
 
   setupImageFallbacks() {
-    document.addEventListener('error', (event) => {
+    this.addTrackedListener(document, 'error', (event) => {
       const target = event.target;
       if (!target || target.tagName !== 'IMG') return;
       const fallback = target.dataset.fallbackSrc;
@@ -3763,6 +4185,39 @@ const App = {
     `;
   },
 
+  isDetailCached(animeId) {
+    const key = String(animeId ?? '').trim();
+    if (!key) return false;
+    return this.detailCache.has(key);
+  },
+
+  getCachedDetail(animeId) {
+    const key = String(animeId ?? '').trim();
+    if (!key) return '';
+    const entry = this.detailCache.get(key);
+    if (!entry) return '';
+    this.detailCache.delete(key);
+    this.detailCache.set(key, entry);
+    return entry;
+  },
+
+  cacheDetail(animeId, html) {
+    const key = String(animeId ?? '').trim();
+    if (!key || !html) return;
+    if (this.detailCache.has(key)) {
+      this.detailCache.delete(key);
+    }
+    while (this.detailCache.size >= this.detailCacheMaxSize) {
+      const firstKey = this.detailCache.keys().next().value;
+      if (firstKey) {
+        this.detailCache.delete(firstKey);
+      } else {
+        break;
+      }
+    }
+    this.detailCache.set(key, html);
+  },
+
   /**
    * Show anime detail modal
    */
@@ -3776,8 +4231,14 @@ const App = {
 
     if (!modal || !content) return;
 
-    // Show skeleton immediately for perceived performance
-    content.innerHTML = this.renderDetailSkeleton();
+    const cachedDetail = this.getCachedDetail(animeId);
+    const hasCachedDetail = Boolean(cachedDetail);
+
+    if (hasCachedDetail) {
+      content.innerHTML = cachedDetail;
+    } else {
+      content.innerHTML = this.renderDetailSkeleton();
+    }
     this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
 
     const anime = this.animeData.find(a => a.id === animeId);
@@ -3803,6 +4264,20 @@ const App = {
       this.updateUrlForAnime(anime.id);
     }
 
+    const synopsis = this.getSynopsisForAnime(anime);
+    if (hasCachedDetail) {
+      this.updateBookmarkToggle(anime.id);
+      if (modalContent) {
+        modalContent.scrollTop = 0;
+      }
+      content.scrollTop = 0;
+      this.updateMetaForAnime(anime, synopsis);
+      this.setupTrailerAutoplay(modalContent);
+      this.loadCommunityReviews(anime, synopsis);
+      this.updatePrefetchObserving();
+      return;
+    }
+
     // Build genres and themes tags
     const genreTags = anime.genres && anime.genres.length > 0
       ? anime.genres.map(g => `<span class="detail-tag">${this.escapeHtml(g)}</span>`).join('')
@@ -3811,7 +4286,6 @@ const App = {
       ? anime.themes.map(t => `<span class="detail-tag">${this.escapeHtml(t)}</span>`).join('')
       : '';
 
-    const synopsis = this.getSynopsisForAnime(anime);
     const synopsisMarkup = ReviewsService.renderSynopsis(synopsis);
     const synopsisSection = synopsisMarkup || ReviewsService.renderSynopsisLoading();
     const trailerSection = this.renderTrailerSection(anime);
@@ -3957,6 +4431,7 @@ const App = {
       </div>
     `;
 
+    this.cacheDetail(anime.id, content.innerHTML);
     this.updateBookmarkToggle(anime.id);
 
     if (modalContent) {
@@ -3964,13 +4439,12 @@ const App = {
     }
     content.scrollTop = 0;
 
-    this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
-
     this.updateMetaForAnime(anime, synopsis);
     this.setupTrailerAutoplay(modalContent);
 
     // Load community reviews
     this.loadCommunityReviews(anime, synopsis);
+    this.updatePrefetchObserving();
   },
 
   /**
@@ -4174,6 +4648,7 @@ const App = {
   setupTrailerAutoplay(modalContent) {
     this.teardownTrailerObserver();
     this.teardownTrailerScrollListener();
+    this.trailerCleanup = null;
     const trailerEmbed = document.querySelector('.detail-trailer .trailer-embed');
     if (!trailerEmbed) return;
 
@@ -4225,6 +4700,12 @@ const App = {
     this.trailerScrollHandler = handler;
     scrollRoot.addEventListener('scroll', handler, { passive: true });
     requestAnimationFrame(handler);
+
+    this.trailerCleanup = () => {
+      this.teardownTrailerObserver();
+      this.teardownTrailerScrollListener();
+      this.stopTrailerPlayback();
+    };
   },
 
   startTrailerAutoplay(iframe) {
@@ -4271,9 +4752,14 @@ const App = {
   closeDetailModal({ updateUrl = true } = {}) {
     this.setModalVisibility('detail-modal', false);
 
-    this.stopTrailerPlayback();
-    this.teardownTrailerObserver();
-    this.teardownTrailerScrollListener();
+    if (this.trailerCleanup) {
+      this.trailerCleanup();
+      this.trailerCleanup = null;
+    } else {
+      this.stopTrailerPlayback();
+      this.teardownTrailerObserver();
+      this.teardownTrailerScrollListener();
+    }
     this.currentAnimeId = null;
     this.updateBookmarkToggle(null);
 
@@ -4521,7 +5007,7 @@ const App = {
    * Render anime card with responsive image srcset
    */
   renderAnimeCardWithSrcset(anime, options = {}) {
-    const { showBookmarkToggle = false } = options;
+    const { showBookmarkToggle = false, index = 0 } = options;
     const badges = Recommendations.getBadges(anime);
     const cardStats = Recommendations.getCardStats(anime);
     const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
@@ -4542,6 +5028,7 @@ const App = {
     const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
     const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
 
+    const loadingAttrs = this.getImageLoadingAttrs(index);
     return `
       <div class="anime-card" data-action="open-anime" data-anime-id="${safeId}">
         <div class="card-media">
@@ -4551,7 +5038,8 @@ const App = {
             ${sizesAttr}
             alt="${safeTitle}"
             class="card-cover"
-            loading="lazy"
+            loading="${loadingAttrs.loading}"
+            decoding="${loadingAttrs.decoding}"
             data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
           ${showBookmarkToggle ? `
             <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"

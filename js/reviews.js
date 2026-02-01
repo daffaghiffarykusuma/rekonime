@@ -178,6 +178,8 @@ const ReviewsService = {
 
   // Cache to avoid repeated API calls
   cache: new Map(),
+  cacheMaxSize: 50,
+  cacheMaxAgeMs: 1000 * 60 * 30,
   descriptionCachePrefix: 'rekonime:description:',
   descriptionCacheTtlMs: 1000 * 60 * 60 * 24 * 30,
   descriptionIndexKey: 'rekonime:description:index',
@@ -270,6 +272,32 @@ const ReviewsService = {
     this.retryAttempts.delete(cacheKey);
   },
 
+  setCacheEntry(key, value) {
+    if (!key) return;
+    while (this.cache.size >= this.cacheMaxSize) {
+      const firstKey = this.cache.keys().next().value;
+      if (!firstKey) break;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, {
+      value,
+      timestamp: Date.now()
+    });
+  },
+
+  getCacheEntry(key) {
+    if (!key) return null;
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.timestamp > this.cacheMaxAgeMs) {
+      this.cache.delete(key);
+      return null;
+    }
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+    return entry.value;
+  },
+
   /**
    * Check if we should retry a failed request
    * @param {string|number} cacheKey - Anime identifier
@@ -308,8 +336,9 @@ const ReviewsService = {
       this.resetRetryCount(cacheKey);
     }
 
-    if (this.cache.has(cacheKey) && !isManualRetry) {
-      return this.cache.get(cacheKey);
+    const cached = this.getCacheEntry(cacheKey);
+    if (cached && !isManualRetry) {
+      return cached;
     }
 
     const cachedDescription = this.getCachedDescription(cacheKey);
@@ -355,7 +384,7 @@ const ReviewsService = {
 
       // Reset retry count on success
       this.resetRetryCount(cacheKey);
-      this.cache.set(cacheKey, result);
+      this.setCacheEntry(cacheKey, result);
       return result;
 
     } catch (error) {
