@@ -6,10 +6,17 @@
     "dev": "vite",
     "build": "node node_modules/vite/bin/vite.js build && node tools/copy-static.js",
     "preview": "vite preview",
-    "test": "node --test test/*.test.js",
+    "test": "node --test --import ./test/setup.js \"test/**/*.test.js\"",
+    "test:unit": "node --test --import ./test/setup.js \"test/unit/**/*.test.js\"",
+    "test:integration": "node --test --import ./test/setup.js \"test/integration/**/*.test.js\"",
+    "test:coverage": "c8 --reporter=html --reporter=text node --test --import ./test/setup.js \"test/**/*.test.js\"",
+    "test:e2e": "playwright test",
     "sync:home": "powershell -ExecutionPolicy Bypass -File ./tools/sync-home-index.ps1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.1",
+    "c8": "^10.1.2",
+    "jsdom": "^25.0.1",
     "vite": "^7.3.1"
   }
 }
