@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node tools/copy-static.js",
+    "build": "node node_modules/vite/bin/vite.js build && node tools/copy-static.js",
     "preview": "vite preview",
     "test": "node --test test/*.test.js",
     "sync:home": "powershell -ExecutionPolicy Bypass -File ./tools/sync-home-index.ps1"

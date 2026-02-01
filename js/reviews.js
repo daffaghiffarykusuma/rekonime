@@ -1,5 +1,8 @@
 ﻿import { ApiClient } from './services/api-client.js';
 import { CacheManager } from './services/cache-manager.js';
+import { ErrorHandler } from './services/error-handler.js';
+import { RateLimiter } from './services/rate-limiter.js';
+import { SchemaValidator } from './services/schema-validator.js';
 import { CircuitBreaker } from './circuitBreaker.js';
 
 /**
@@ -26,6 +29,42 @@ const ReviewsService = {
 
   getCache() {
     return CacheManager;
+  },
+
+  getErrorHandler() {
+    return ErrorHandler;
+  },
+
+  getRateLimiter() {
+    return RateLimiter;
+  },
+
+  getSchemaValidator() {
+    return SchemaValidator;
+  },
+
+  validateApiResponse(schemaKey, payload, context = {}) {
+    const validator = this.getSchemaValidator();
+    if (!validator || typeof validator.validate !== 'function') return true;
+    const isValid = validator.validate(schemaKey, payload);
+    if (!isValid) {
+      const errorHandler = this.getErrorHandler();
+      const error = new Error('Unexpected API response schema: ' + schemaKey);
+      if (errorHandler?.report) {
+        errorHandler.report(error, { source: 'ReviewsService', schemaKey, ...context });
+      } else if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[ReviewsService] Schema validation failed', schemaKey, context);
+      }
+    }
+    return isValid;
+  },
+
+  async withJikanRateLimit(fn) {
+    const limiter = this.getRateLimiter();
+    if (limiter?.execute) {
+      return limiter.execute('jikan', fn);
+    }
+    return fn();
   },
 
   escapeHtml(value) {
@@ -191,16 +230,28 @@ const ReviewsService = {
     const parsedId = Number.parseInt(malId, 10);
     if (!Number.isFinite(parsedId)) return '';
 
-    const url = new URL(`${this.API_URL}/anime/${parsedId}/reviews`);
+    const params = {};
     if (Number.isFinite(this.reviewsPage) && this.reviewsPage > 0) {
-      url.searchParams.set('page', String(this.reviewsPage));
+      params.page = String(this.reviewsPage);
     }
     if (this.includeSpoilers) {
-      url.searchParams.set('spoiler', 'true');
+      params.spoiler = 'true';
     }
     if (this.includePreliminary) {
-      url.searchParams.set('preliminary', 'true');
+      params.preliminary = 'true';
     }
+
+    const apiClient = this.getApiClient();
+    if (apiClient?.getServiceUrl) {
+      return apiClient.getServiceUrl('jikan', 'anime/' + parsedId + '/reviews', params);
+    }
+
+    const url = new URL(this.API_URL + '/anime/' + parsedId + '/reviews');
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, String(value));
+      }
+    });
     return url.toString();
   },
 
@@ -208,23 +259,35 @@ const ReviewsService = {
     if (!malId) return '';
     const parsedId = Number.parseInt(malId, 10);
     if (!Number.isFinite(parsedId)) return '';
-    return `${this.API_URL}/anime/${parsedId}`;
+    const apiClient = this.getApiClient();
+    if (apiClient?.getServiceUrl) {
+      return apiClient.getServiceUrl('jikan', 'anime/' + parsedId);
+    }
+    return this.API_URL + '/anime/' + parsedId;
   },
 
   async fetchSynopsis(malId) {
-    const url = this.buildAnimeUrl(malId);
-    if (!url) return '';
+    const parsedId = Number.parseInt(malId, 10);
+    if (!Number.isFinite(parsedId)) return '';
 
     try {
       const apiClient = this.getApiClient();
-      const data = apiClient
-        ? await apiClient.getJson(url)
-        : await fetch(url, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json'
-            }
-          }).then((response) => response.ok ? response.json() : null);
+      const data = apiClient?.getServiceJson
+        ? await this.withJikanRateLimit(() => apiClient.getServiceJson('jikan', 'anime/' + parsedId))
+        : await this.withJikanRateLimit(async () => {
+            const url = this.buildAnimeUrl(parsedId);
+            if (!url) return null;
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json'
+              }
+            });
+            return response.ok ? response.json() : null;
+          });
+      if (!this.validateApiResponse('api.jikan.anime', data, { endpoint: 'anime', malId: parsedId })) {
+        return '';
+      }
       const synopsis = data?.data?.synopsis;
       return typeof synopsis === 'string' ? synopsis : '';
     } catch (error) {
@@ -366,15 +429,29 @@ const ReviewsService = {
     const cachedDescription = this.getCachedDescription(cacheKey);
 
     try {
-      const url = this.buildReviewsUrl(malId);
-      if (!url) {
+      const apiClient = this.getApiClient();
+      const parsedId = Number.parseInt(malId, 10);
+      if (!Number.isFinite(parsedId)) {
         throw new Error('Missing MAL id for reviews');
       }
+      const params = {};
+      if (Number.isFinite(this.reviewsPage) && this.reviewsPage > 0) {
+        params.page = String(this.reviewsPage);
+      }
+      if (this.includeSpoilers) {
+        params.spoiler = 'true';
+      }
+      if (this.includePreliminary) {
+        params.preliminary = 'true';
+      }
 
-      const apiClient = this.getApiClient();
-      const data = apiClient
-        ? await apiClient.getJson(url)
-        : await (async () => {
+      const data = apiClient?.getServiceJson
+        ? await this.withJikanRateLimit(() => apiClient.getServiceJson('jikan', 'anime/' + parsedId + '/reviews', { params }))
+        : await this.withJikanRateLimit(async () => {
+            const url = this.buildReviewsUrl(parsedId);
+            if (!url) {
+              throw new Error('Missing MAL id for reviews');
+            }
             const response = await fetch(url, {
               method: 'GET',
               headers: {
@@ -382,10 +459,13 @@ const ReviewsService = {
               }
             });
             if (!response.ok) {
-              throw new Error(`API request failed: ${response.status}`);
+              throw new Error('API request failed: ' + response.status);
             }
             return response.json();
-          })();
+          });
+      if (!this.validateApiResponse('api.jikan.reviews', data, { endpoint: 'anime/reviews', malId: parsedId })) {
+        throw new Error('Unexpected reviews response');
+      }
       const reviews = Array.isArray(data?.data) ? data.data : [];
       let description = cachedDescription || '';
       if (!description) {

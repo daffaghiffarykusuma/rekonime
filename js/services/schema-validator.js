@@ -62,6 +62,33 @@
       }
     });
 
+    this.register('api.jikan.anime', {
+      type: 'object',
+      required: ['data'],
+      properties: {
+        data: {
+          type: 'object',
+          additionalProperties: true
+        }
+      },
+      additionalProperties: true
+    });
+
+    this.register('api.jikan.reviews', {
+      type: 'object',
+      required: ['data'],
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: true
+          }
+        }
+      },
+      additionalProperties: true
+    });
+
     this.register('rekonime.theme', {
       type: 'string',
       enum: ['dark', 'light', 'auto']

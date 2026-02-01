@@ -35,6 +35,7 @@
 - `js/core/event-bus.js`: Pub/sub bus for cross-module signals.
 - `js/core/store.js`: Minimal store with reducer map and middleware support.
 - `js/services/api-client.js`: HTTP abstraction with interceptors and unified errors.
+- `js/services/rate-limiter.js`: Token bucket rate limiter for external API pacing.
 - `js/services/cache-manager.js`: Safe localStorage access with TTL support.
 - `js/services/schema-validator.js`: Schema validation for persisted storage payloads.
 - `js/services/analytics-service.js`: Analytics abstraction (gtag wrapper).
@@ -79,6 +80,8 @@
 - `js/reviews.js` -> Jikan API (MyAnimeList reviews) (`https://api.jikan.moe`)
 - `js/reviews.js` -> `ApiClient` + `CacheManager` (reviews/synopsis + synopsis cache)
 - `js/reviews.js` -> `CircuitBreaker` (Jikan API resilience)
+- `js/reviews.js` -> `RateLimiter` (Jikan request pacing)
+- `js/reviews.js` -> `SchemaValidator` + `ErrorHandler` (API response validation)
 - `js/healthMonitor.js` -> `CircuitBreaker` (reviews health status)
 - `js/onboarding.js` -> `AnalyticsService` + `CacheManager` (tour state)
 - `js/filterPresets.js` -> `AnalyticsService` (preset usage)
@@ -326,6 +329,9 @@ flowchart TD
   reviews --> circuit[js/circuitBreaker.js]
   reviews --> api
   reviews --> cache
+  reviews --> schemaValidator
+  reviews --> rateLimiter[js/services/rate-limiter.js]
+  reviews --> errors
   health --> circuit
   discovery --> analytics
   filterPresets --> analytics
