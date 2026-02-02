@@ -24,6 +24,8 @@ const App = {
   filteredData: [],
   currentSort: 'retention',
   filterPanelOpen: false,
+  filterPanelRendered: false,
+  filterPanelRenderHandle: null,
   currentAnimeId: null,
   siteName: 'Rekonime',
   preferredHomePath: '/home',
@@ -45,6 +47,7 @@ const App = {
   loadingFullCatalog: false,
   fullCatalogPromise: null,
   fullCatalogPreloadPromise: null,
+  fullCatalogScheduleHandle: null,
   preloadHintsAdded: false,
   defaultMeta: {
     title: '',
@@ -109,7 +112,9 @@ const App = {
   prefetchObserver: null,
   prefetchQueue: new Set(),
   prefetchLimit: 10,
-  eagerImageCount: 12,
+  eagerImageCount: 4,
+  highPriorityImageCount: 2,
+  secondaryRenderHandle: null,
   features: {
     diffRendering: true,
     templatePooling: true,
@@ -177,6 +182,41 @@ const App = {
       return performance.now();
     }
     return Date.now();
+  },
+
+  queueIdleTask(callback, { timeout = 1500 } = {}) {
+    if (typeof callback !== 'function') return null;
+    if (typeof window === 'undefined') {
+      callback();
+      return null;
+    }
+    if ('requestIdleCallback' in window) {
+      return window.requestIdleCallback(callback, { timeout });
+    }
+    return window.setTimeout(callback, 0);
+  },
+
+  cancelIdleTask(handle) {
+    if (typeof window === 'undefined' || handle === null || typeof handle === 'undefined') return;
+    if ('cancelIdleCallback' in window && typeof window.cancelIdleCallback === 'function') {
+      window.cancelIdleCallback(handle);
+      return;
+    }
+    clearTimeout(handle);
+  },
+
+  getConnectionInfo() {
+    if (typeof navigator === 'undefined') return null;
+    return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+  },
+
+  shouldPrefetchFullCatalog() {
+    const connection = this.getConnectionInfo();
+    if (!connection) return true;
+    if (connection.saveData) return false;
+    const type = String(connection.effectiveType || '').toLowerCase();
+    if (type.includes('2g') || type.includes('3g')) return false;
+    return true;
   },
 
   emitAppEvent(name, detail = {}) {
@@ -1363,11 +1403,7 @@ const App = {
       this.updateMetaForFilters();
 
       if (!requestedAnimeId && !this.isFullDataLoaded) {
-        if ('requestIdleCallback' in window) {
-          window.requestIdleCallback(() => this.loadFullCatalog(), { timeout: 1500 });
-        } else {
-          setTimeout(() => this.loadFullCatalog(), 0);
-        }
+        this.scheduleFullCatalogLoad();
       }
     } catch (error) {
       const logger = this.getLogger();
@@ -1421,9 +1457,12 @@ const App = {
     const hints = [
       { rel: 'preconnect', href: 'https://cdn.myanimelist.net', crossorigin: 'anonymous' },
       { rel: 'dns-prefetch', href: 'https://api.jikan.moe' },
-      { rel: 'preload', href: previewPath, as: 'fetch', crossorigin: 'anonymous' },
-      { rel: 'prefetch', href: fullPath, as: 'fetch', crossorigin: 'anonymous' }
+      { rel: 'preload', href: previewPath, as: 'fetch', crossorigin: 'anonymous' }
     ];
+
+    if (this.shouldPrefetchFullCatalog()) {
+      hints.push({ rel: 'prefetch', href: fullPath, as: 'fetch', crossorigin: 'anonymous' });
+    }
 
     hints.forEach((hint) => {
       if (!hint.href) return;
@@ -1440,16 +1479,38 @@ const App = {
 
   preloadFullCatalog() {
     if (this.fullCatalogPreloadPromise || this.isFullDataLoaded) return;
+    if (!this.shouldPrefetchFullCatalog()) return;
     this.fullCatalogPreloadPromise = (async () => {
-      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        await new Promise(resolve => window.requestIdleCallback(resolve, { timeout: 2000 }));
-      }
+      await new Promise(resolve => {
+        this.queueIdleTask(resolve, { timeout: 2000 });
+      });
       await this.loadFullCatalog();
     })()
       .catch(() => null)
       .finally(() => {
         this.fullCatalogPreloadPromise = null;
       });
+  },
+
+  scheduleFullCatalogLoad() {
+    if (this.fullCatalogScheduleHandle || this.isFullDataLoaded) return;
+    if (typeof window === 'undefined') {
+      this.loadFullCatalog();
+      return;
+    }
+    const delayMs = this.shouldPrefetchFullCatalog() ? 0 : 8000;
+    const schedule = () => {
+      this.fullCatalogScheduleHandle = this.queueIdleTask(() => {
+        this.fullCatalogScheduleHandle = null;
+        this.loadFullCatalog();
+      }, { timeout: 2000 });
+    };
+
+    if (delayMs > 0) {
+      this.fullCatalogScheduleHandle = window.setTimeout(schedule, delayMs);
+      return;
+    }
+    schedule();
   },
 
   /**
@@ -1506,6 +1567,11 @@ const App = {
   async loadFullCatalog(options = {}) {
     if (this.isFullDataLoaded) {
       return true;
+    }
+
+    if (this.fullCatalogScheduleHandle) {
+      this.cancelIdleTask(this.fullCatalogScheduleHandle);
+      this.fullCatalogScheduleHandle = null;
     }
 
     if (this.fullCatalogPromise) {
@@ -1768,7 +1834,11 @@ const App = {
     }
 
     this.updateSortOptions();
-    this.renderFilterPanel();
+    if (this.filterPanelRendered || this.filterPanelOpen) {
+      this.renderFilterPanel({ force: true });
+    } else {
+      this.scheduleFilterPanelRender();
+    }
     this.renderQuickFilters();
     this.applyFilters({ syncUrl: false, updateMeta: false });
   },
@@ -1867,12 +1937,24 @@ const App = {
   },
 
   ensureStats() {
-    const needsStats = this.animeData.some(anime => !anime.stats);
+    if (!Array.isArray(this.animeData) || this.animeData.length === 0) return;
+    let needsStats = false;
+    let needsColorIndex = false;
+
+    for (let i = 0; i < this.animeData.length; i += 1) {
+      const anime = this.animeData[i];
+      if (!anime?.stats) needsStats = true;
+      if (!Number.isFinite(anime?.colorIndex)) needsColorIndex = true;
+      if (needsStats && needsColorIndex) break;
+    }
+
     if (!needsStats) {
-      this.animeData = this.animeData.map((anime, index) => ({
-        ...anime,
-        colorIndex: Number.isFinite(anime.colorIndex) ? anime.colorIndex : index
-      }));
+      if (!needsColorIndex) return;
+      this.animeData.forEach((anime, index) => {
+        if (!Number.isFinite(anime.colorIndex)) {
+          anime.colorIndex = index;
+        }
+      });
       return;
     }
 
@@ -1882,11 +1964,14 @@ const App = {
 
     this.scoreProfile = scoreProfile;
 
-    this.animeData = this.animeData.map((anime, index) => ({
-      ...anime,
-      stats: anime.stats || Stats.calculateAllStats(anime, scoreProfile),
-      colorIndex: Number.isFinite(anime.colorIndex) ? anime.colorIndex : index
-    }));
+    this.animeData.forEach((anime, index) => {
+      if (!anime.stats) {
+        anime.stats = Stats.calculateAllStats(anime, scoreProfile);
+      }
+      if (!Number.isFinite(anime.colorIndex)) {
+        anime.colorIndex = index;
+      }
+    });
   },
 
   isValidScoreProfile(profile) {
@@ -2020,7 +2105,8 @@ const App = {
       const normalizedSynopsis = anime?.metadata?.synopsis || anime?.synopsis || '';
       const existingStats = anime?.stats || anime?.metadata?.stats || null;
       const existingColorIndex = Number.isFinite(anime?.colorIndex) ? anime.colorIndex : null;
-      const existingSearchText = anime?.searchText || '';
+      const existingSearchText = typeof anime?.searchText === 'string' ? anime.searchText : '';
+      const existingSearchIndex = anime?.searchIndex || null;
       const normalizedTitleEnglish =
         anime?.metadata?.title_english ||
         anime?.metadata?.titleEnglish ||
@@ -2040,7 +2126,13 @@ const App = {
       // If data has nested metadata structure, flatten it
       if (anime.metadata) {
         const resolvedTitle = anime.metadata.title || anime.title;
-        const searchIndex = this.buildSearchIndex(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese);
+        const shouldBuildSearchIndex = !existingSearchIndex && !existingSearchText;
+        const searchIndex = shouldBuildSearchIndex
+          ? this.buildSearchIndex(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese)
+          : existingSearchIndex;
+        const searchText = shouldBuildSearchIndex
+          ? this.mergeSearchText(existingSearchText, searchIndex)
+          : existingSearchText;
         return {
           id: anime.metadata.id || anime.id,
           title: resolvedTitle,
@@ -2061,7 +2153,7 @@ const App = {
           synopsis: normalizedSynopsis,
           communityScore: communityScore,
           searchIndex: searchIndex,
-          searchText: this.mergeSearchText(existingSearchText, searchIndex),
+          searchText: searchText,
           episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
           stats: existingStats,
           colorIndex: existingColorIndex
@@ -2069,7 +2161,13 @@ const App = {
       }
       // Already flat structure, ensure all fields exist
       const resolvedTitle = anime.title;
-      const searchIndex = this.buildSearchIndex(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese);
+      const shouldBuildSearchIndex = !existingSearchIndex && !existingSearchText;
+      const searchIndex = shouldBuildSearchIndex
+        ? this.buildSearchIndex(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese)
+        : existingSearchIndex;
+      const searchText = shouldBuildSearchIndex
+        ? this.mergeSearchText(existingSearchText, searchIndex)
+        : existingSearchText;
       return {
         id: anime.id,
         title: resolvedTitle,
@@ -2090,7 +2188,7 @@ const App = {
         synopsis: normalizedSynopsis,
         communityScore: communityScore,
         searchIndex: searchIndex,
-        searchText: this.mergeSearchText(existingSearchText, searchIndex),
+        searchText: searchText,
         episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
         stats: existingStats,
         colorIndex: existingColorIndex
@@ -3090,6 +3188,7 @@ const App = {
       this.filterPanelOpen = !this.filterPanelOpen;
       this.setModalVisibility('filter-modal', this.filterPanelOpen, { initialFocusSelector: '#close-filter-modal' });
       if (this.filterPanelOpen) {
+        this.ensureFilterPanelRendered();
         const content = modal.querySelector('.filter-modal-content');
         if (content) {
           content.scrollTop = 0;
@@ -3106,9 +3205,10 @@ const App = {
   /**
    * Render filter panel with all options
    */
-  renderFilterPanel() {
+  renderFilterPanel({ force = false } = {}) {
     const container = document.getElementById('filter-sections');
     if (!container) return;
+    if (!force && !this.filterPanelOpen && !this.filterPanelRendered) return;
 
     let html = '';
 
@@ -3158,6 +3258,24 @@ const App = {
 
     html += filtersMarkup;
     container.innerHTML = html;
+    this.filterPanelRendered = true;
+  },
+
+  scheduleFilterPanelRender() {
+    if (this.filterPanelRendered || this.filterPanelRenderHandle) return;
+    this.filterPanelRenderHandle = this.queueIdleTask(() => {
+      this.filterPanelRenderHandle = null;
+      this.renderFilterPanel({ force: true });
+    }, { timeout: 2000 });
+  },
+
+  ensureFilterPanelRendered() {
+    if (this.filterPanelRendered) return;
+    if (this.filterPanelRenderHandle) {
+      this.cancelIdleTask(this.filterPanelRenderHandle);
+      this.filterPanelRenderHandle = null;
+    }
+    this.renderFilterPanel({ force: true });
   },
 
   /**
@@ -3479,12 +3597,20 @@ const App = {
     this.renderBookmarks();
     this.renderSeasonalFilters();
     this.renderRecommendationModes();
-    this.renderRankings();
-    this.renderRecommendations();
-    this.renderBecauseYouWatched();
-    this.renderTrending();
     this.renderAnimeGrid();
     this.updatePrefetchObserving();
+    this.scheduleSecondaryRenders();
+  },
+
+  scheduleSecondaryRenders() {
+    if (this.secondaryRenderHandle) return;
+    this.secondaryRenderHandle = this.queueIdleTask(() => {
+      this.secondaryRenderHandle = null;
+      this.renderRankings();
+      this.renderRecommendations();
+      this.renderBecauseYouWatched();
+      this.renderTrending();
+    }, { timeout: 1200 });
   },
 
   /**
@@ -3585,14 +3711,16 @@ const App = {
       const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(basedOn.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+      const seedLoadAttrs = this.getImageLoadingAttrs(0, { eagerCount: 1, priorityCount: 0 });
+      const seedPriorityAttr = seedLoadAttrs.fetchpriority ? `fetchpriority="${seedLoadAttrs.fetchpriority}"` : '';
       seedContainer.innerHTML = `
-        <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="" class="byw-seed-cover">
+        <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="" class="byw-seed-cover" loading="${seedLoadAttrs.loading}" decoding="${seedLoadAttrs.decoding}" ${seedPriorityAttr}>
         <span class="byw-seed-title">${this.escapeHtml(basedOn.title)}</span>
       `;
     }
 
     // Render recommendations
-    grid.innerHTML = recommendations.map(anime => {
+    grid.innerHTML = recommendations.map((anime, index) => {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
@@ -3604,10 +3732,12 @@ const App = {
       const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+      const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 1, priorityCount: 0 });
+      const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="recommendation-media">
-            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="recommendation-cover" loading="lazy">
+            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="recommendation-cover" loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr}>
           </div>
           <div class="recommendation-info">
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
@@ -3644,10 +3774,12 @@ const App = {
       const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+      const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
+      const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
       return `
         <div class="trending-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="trending-rank ${rankClass}">${rank}</div>
-          <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="trending-cover" loading="lazy">
+          <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="trending-cover" loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr}>
           <div class="trending-info">
             <div class="trending-title">${this.escapeHtml(anime.title)}</div>
             <div class="trending-meta">
@@ -3676,11 +3808,18 @@ const App = {
     return sorted;
   },
 
-  getImageLoadingAttrs(index = 0) {
-    const shouldEager = this.features.smartImageLoading && index < this.eagerImageCount;
+  getImageLoadingAttrs(index = 0, { eagerCount = this.eagerImageCount, priorityCount = this.highPriorityImageCount } = {}) {
+    const smartLoading = this.features.smartImageLoading;
+    const shouldEager = smartLoading && index < eagerCount;
+    const shouldHigh = smartLoading && index < priorityCount;
+    const fetchpriority = shouldHigh
+      ? 'high'
+      : (shouldEager ? 'auto' : (smartLoading ? 'low' : 'auto'));
+
     return {
       loading: shouldEager ? 'eager' : 'lazy',
-      decoding: shouldEager ? 'sync' : 'async'
+      decoding: 'async',
+      fetchpriority
     };
   },
 
@@ -3766,6 +3905,11 @@ const App = {
       const loadAttrs = this.getImageLoadingAttrs(index);
       img.setAttribute('loading', loadAttrs.loading);
       img.setAttribute('decoding', loadAttrs.decoding);
+      if (loadAttrs.fetchpriority) {
+        img.setAttribute('fetchpriority', loadAttrs.fetchpriority);
+      } else {
+        img.removeAttribute('fetchpriority');
+      }
       if (!img.dataset.fallbackSrc) {
         img.dataset.fallbackSrc = 'https://via.placeholder.com/120x170?text=No+Image';
       }
@@ -4151,7 +4295,7 @@ const App = {
       return;
     }
 
-    container.innerHTML = recommendations.map(anime => {
+    container.innerHTML = recommendations.map((anime, index) => {
       const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats.retentionScore)}%` : 'N/A';
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
@@ -4173,10 +4317,12 @@ const App = {
       const safeRecCover = this.escapeAttr(recSrc || this.sanitizeImageUrl(anime.cover));
       const recSrcsetAttr = recSrcset ? `srcset="${this.escapeAttr(recSrcset)}"` : '';
       const recSizesAttr = recSizes ? `sizes="${this.escapeAttr(recSizes)}"` : '';
+      const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
+      const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="recommendation-media">
-            <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" data-fallback-src="https://via.placeholder.com/180x120?text=No+Image">
+            <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} data-fallback-src="https://via.placeholder.com/180x120?text=No+Image">
           </div>
           <div class="recommendation-info">
             <div class="recommendation-title">${safeTitle}</div>
@@ -4276,9 +4422,11 @@ const App = {
     const safeRankCover = this.escapeAttr(rankSrc || this.sanitizeImageUrl(anime.cover));
     const rankSrcsetAttr = rankSrcset ? `srcset="${this.escapeAttr(rankSrcset)}"` : '';
     const rankSizesAttr = rankSizes ? `sizes="${this.escapeAttr(rankSizes)}"` : '';
+    const loadAttrs = this.getImageLoadingAttrs(0, { eagerCount: 1, priorityCount: 1 });
+    const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
     return `
       <div class="ranking-anime">
-        <img src="${safeRankCover}" ${rankSrcsetAttr} ${rankSizesAttr} alt="${this.escapeHtml(anime.title)}" class="ranking-cover" data-fallback-src="https://via.placeholder.com/60x85?text=No+Image">
+        <img src="${safeRankCover}" ${rankSrcsetAttr} ${rankSizesAttr} alt="${this.escapeHtml(anime.title)}" class="ranking-cover" loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} data-fallback-src="https://via.placeholder.com/60x85?text=No+Image">
         <div class="ranking-info">
           <div class="ranking-title">${this.escapeHtml(anime.title)}</div>
           <div class="ranking-score ${valueClass}">
@@ -5760,6 +5908,7 @@ const App = {
     const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
 
     const loadingAttrs = this.getImageLoadingAttrs(index);
+    const fetchPriorityAttr = loadingAttrs.fetchpriority ? `fetchpriority="${loadingAttrs.fetchpriority}"` : '';
     return `
       <div class="anime-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
         <div class="card-media">
@@ -5771,6 +5920,7 @@ const App = {
             class="card-cover"
             loading="${loadingAttrs.loading}"
             decoding="${loadingAttrs.decoding}"
+            ${fetchPriorityAttr}
             data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
           ${showBookmarkToggle ? `
             <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"

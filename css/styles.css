@@ -3036,6 +3036,23 @@ h4 {
   gap: 1.5rem;
 }
 
+.recommendations-section,
+.trending-section,
+.rankings-section,
+.because-you-watched-section,
+.grid-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 800px;
+}
+
+.recommendations-grid,
+.trending-grid,
+.byw-grid,
+.anime-grid {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 600px;
+}
+
 .anime-card {
   background: var(--card-bg);
   border-radius: var(--radius);
