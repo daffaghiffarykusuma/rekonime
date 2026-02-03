@@ -1,7 +1,5 @@
-import { Stats } from './stats.js';
 import { Recommendations } from './recommendations.js';
 import { Discovery } from './discovery.js';
-import { ReviewsService } from './reviews.js';
 import { FilterPresets } from './filterPresets.js';
 import { MetricGlossary } from './metricGlossary.js';
 import { Onboarding } from './onboarding.js';
@@ -31,6 +29,10 @@ const App = {
   preferredHomePath: '/home',
   basePageUrl: '',
   embeddedDataPromise: null,
+  statsModule: null,
+  statsModulePromise: null,
+  reviewsService: null,
+  reviewsServicePromise: null,
   dataSources: {
     preview: 'data/anime.preview.json',
     full: 'data/anime.full.json',
@@ -48,6 +50,8 @@ const App = {
   fullCatalogPromise: null,
   fullCatalogPreloadPromise: null,
   fullCatalogScheduleHandle: null,
+  fullCatalogInteractionCaptured: false,
+  fullCatalogInteractionListeners: [],
   preloadHintsAdded: false,
   defaultMeta: {
     title: '',
@@ -64,6 +68,7 @@ const App = {
   settings: null,
   bookmarkIds: [],
   bookmarkIdSet: new Set(),
+  bookmarkItemMap: new Map(),
   seoInitialized: false,
   urlFiltersApplied: false,
   filterQueryMap: {
@@ -121,8 +126,25 @@ const App = {
     virtualScrolling: true,
     parallelLoading: true,
     smartImageLoading: true,
-    intelligentPrefetching: true
+    intelligentPrefetching: true,
+    imageProxy: true
   },
+  imageDimensions: {
+    card: { width: 240, height: 360 },
+    recommendation: { width: 320, height: 190 },
+    trending: { width: 280, height: 140 },
+    ranking: { width: 64, height: 90 },
+    search: { width: 40, height: 56 },
+    similar: { width: 200, height: 140 },
+    detail: { width: 150, height: 210 },
+    seed: { width: 32, height: 45 }
+  },
+  imageProxyStatusKey: 'rekonime.imageProxyStatus',
+  imageProxyStatus: { ok: null, checkedAt: 0 },
+  imageProxyStatusTtlMs: 6 * 60 * 60 * 1000,
+  imageProxyCheckTimeoutMs: 2500,
+  imageProxyCheckPromise: null,
+  imageProxyStatusLoaded: false,
 
   store: null,
   storeBindingsApplied: false,
@@ -177,6 +199,36 @@ const App = {
     return ApiClient;
   },
 
+  async loadStatsModule() {
+    if (this.statsModule) return this.statsModule;
+    if (this.statsModulePromise) return this.statsModulePromise;
+    this.statsModulePromise = import('./stats.js')
+      .then((module) => {
+        this.statsModule = module.Stats;
+        return this.statsModule;
+      })
+      .catch((error) => {
+        this.statsModulePromise = null;
+        throw error;
+      });
+    return this.statsModulePromise;
+  },
+
+  async loadReviewsService() {
+    if (this.reviewsService) return this.reviewsService;
+    if (this.reviewsServicePromise) return this.reviewsServicePromise;
+    this.reviewsServicePromise = import('./reviews.js')
+      .then((module) => {
+        this.reviewsService = module.ReviewsService;
+        return this.reviewsService;
+      })
+      .catch((error) => {
+        this.reviewsServicePromise = null;
+        throw error;
+      });
+    return this.reviewsServicePromise;
+  },
+
   getPerformanceNow() {
     if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
       return performance.now();
@@ -210,6 +262,113 @@ const App = {
     return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
   },
 
+  loadImageProxyStatus() {
+    if (this.imageProxyStatusLoaded) return;
+    this.imageProxyStatusLoaded = true;
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(this.imageProxyStatusKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      const ok = parsed.ok === true ? true : (parsed.ok === false ? false : null);
+      const checkedAt = Number(parsed.checkedAt) || 0;
+      this.imageProxyStatus = { ok, checkedAt };
+    } catch (error) {
+      // Ignore parse errors
+    }
+  },
+
+  getImageProxyStatus() {
+    this.loadImageProxyStatus();
+    const checkedAt = Number(this.imageProxyStatus?.checkedAt) || 0;
+    if (!checkedAt) return null;
+    if (Date.now() - checkedAt > this.imageProxyStatusTtlMs) return null;
+    const ok = this.imageProxyStatus?.ok;
+    return ok === true ? true : (ok === false ? false : null);
+  },
+
+  storeImageProxyStatus(ok) {
+    const status = {
+      ok: ok === true,
+      checkedAt: Date.now()
+    };
+    this.imageProxyStatus = status;
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(this.imageProxyStatusKey, JSON.stringify(status));
+    } catch (error) {
+      // Ignore storage errors
+    }
+  },
+
+  scheduleImageProxyCheck() {
+    if (this.imageProxyCheckPromise) return;
+    if (this.getImageProxyStatus() !== null) return;
+    this.queueIdleTask(() => {
+      this.checkImageProxyAvailability().catch(() => null);
+    }, { timeout: 2000 });
+  },
+
+  checkImageProxyAvailability() {
+    if (this.imageProxyCheckPromise) return this.imageProxyCheckPromise;
+    this.imageProxyCheckPromise = new Promise((resolve) => {
+      if (typeof window === 'undefined') {
+        this.storeImageProxyStatus(false);
+        resolve(false);
+        return;
+      }
+      const img = new Image();
+      const timeoutId = window.setTimeout(() => {
+        img.src = '';
+        this.storeImageProxyStatus(false);
+        resolve(false);
+      }, this.imageProxyCheckTimeoutMs);
+
+      const finalize = (ok) => {
+        window.clearTimeout(timeoutId);
+        this.storeImageProxyStatus(ok);
+        resolve(ok);
+      };
+
+      img.onload = () => finalize(true);
+      img.onerror = () => finalize(false);
+      img.src = `https://images.weserv.nl/?url=cdn.myanimelist.net/images/anime/1/1l.jpg&w=2&h=2&fit=cover&output=webp&cb=${Date.now()}`;
+    }).finally(() => {
+      this.imageProxyCheckPromise = null;
+    });
+
+    return this.imageProxyCheckPromise;
+  },
+
+  shouldUseImageProxy() {
+    if (!this.features.imageProxy) return false;
+    const status = this.getImageProxyStatus();
+    if (status === null) {
+      this.scheduleImageProxyCheck();
+      return false;
+    }
+    return status === true;
+  },
+
+  isProxyImageUrl(url) {
+    if (!url) return false;
+    return String(url).includes('images.weserv.nl');
+  },
+
+  markImageProxyFailed() {
+    this.storeImageProxyStatus(false);
+  },
+
+  getImageDimensions(kind) {
+    const dims = this.imageDimensions?.[kind];
+    if (!dims) return null;
+    const width = Number(dims.width);
+    const height = Number(dims.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+    return { width, height };
+  },
+
   shouldPrefetchFullCatalog() {
     const connection = this.getConnectionInfo();
     if (!connection) return true;
@@ -217,6 +376,46 @@ const App = {
     const type = String(connection.effectiveType || '').toLowerCase();
     if (type.includes('2g') || type.includes('3g')) return false;
     return true;
+  },
+
+  setupFullCatalogInteractionTriggers() {
+    if (this.fullCatalogInteractionCaptured || this.isFullDataLoaded) return;
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    if (this.fullCatalogInteractionListeners.length > 0) return;
+
+    const handler = () => this.handleFullCatalogInteraction();
+    const passiveOptions = { passive: true };
+
+    const register = (target, event, options = passiveOptions) => {
+      if (!target || typeof target.addEventListener !== 'function') return;
+      target.addEventListener(event, handler, options);
+      this.fullCatalogInteractionListeners.push({ target, event, options, handler });
+    };
+
+    register(window, 'scroll', passiveOptions);
+    register(window, 'wheel', passiveOptions);
+    register(window, 'touchstart', passiveOptions);
+    register(document, 'pointerdown', passiveOptions);
+    register(document, 'keydown');
+  },
+
+  teardownFullCatalogInteractionTriggers() {
+    if (this.fullCatalogInteractionListeners.length === 0) return;
+    this.fullCatalogInteractionListeners.forEach(({ target, event, options, handler }) => {
+      if (target && typeof target.removeEventListener === 'function') {
+        target.removeEventListener(event, handler, options);
+      }
+    });
+    this.fullCatalogInteractionListeners = [];
+  },
+
+  handleFullCatalogInteraction() {
+    if (this.fullCatalogInteractionCaptured || this.isFullDataLoaded) return;
+    this.fullCatalogInteractionCaptured = true;
+    this.teardownFullCatalogInteractionTriggers();
+    this.queueIdleTask(() => {
+      this.loadFullCatalog();
+    }, { timeout: 2000 });
   },
 
   emitAppEvent(name, detail = {}) {
@@ -411,12 +610,174 @@ const App = {
     return this.escapeHtml(value).replace(/`/g, '&#96;');
   },
 
+  decodeHtmlEntities(value) {
+    if (typeof document === 'undefined') {
+      return String(value ?? '');
+    }
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = String(value ?? '');
+    return textarea.value;
+  },
+
   escapeCssValue(value) {
     const raw = String(value ?? '');
     if (window.CSS && typeof window.CSS.escape === 'function') {
       return window.CSS.escape(raw);
     }
     return raw.replace(/["\\]/g, '\\$&');
+  },
+
+  isPlainObject(value) {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  },
+
+  normalizeBookmarkId(value) {
+    const key = String(value ?? '').trim();
+    return key || '';
+  },
+
+  getSynopsisCacheKey(cacheKey) {
+    if (cacheKey === null || cacheKey === undefined || cacheKey === '') return '';
+    return `rekonime:description:${String(cacheKey)}`;
+  },
+
+  getCachedSynopsis(cacheKey) {
+    const key = this.getSynopsisCacheKey(cacheKey);
+    if (!key) return '';
+    const cache = this.getCache();
+    const cached = cache.getJSON(key, { fallback: '' });
+    if (typeof cached === 'string') {
+      return cached;
+    }
+    if (cached && typeof cached.description === 'string') {
+      return cached.description;
+    }
+    return '';
+  },
+
+  renderSynopsis(description) {
+    if (!description) {
+      return '';
+    }
+
+    const cleanDescription = this.decodeHtmlEntities(description)
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .trim();
+
+    if (!cleanDescription) {
+      return '';
+    }
+
+    const safeDescription = this.escapeHtml(cleanDescription);
+
+    return `
+      <div class="anime-synopsis">
+        <h3>Synopsis</h3>
+        <p class="synopsis-text">${safeDescription}</p>
+      </div>
+    `;
+  },
+
+  renderSynopsisLoading() {
+    return `
+      <div class="anime-synopsis">
+        <h3>Synopsis</h3>
+        <div class="synopsis-loading">
+          <div class="loading-shimmer"></div>
+          <div class="loading-shimmer"></div>
+          <div class="loading-shimmer short"></div>
+        </div>
+      </div>
+    `;
+  },
+
+  renderReviewsLoading() {
+    return `
+      <div class="community-reviews">
+        <h3>Community Reviews</h3>
+        <div class="reviews-loading">
+          <div class="loading-spinner"></div>
+          <p>Loading reviews...</p>
+        </div>
+      </div>
+    `;
+  },
+
+  normalizeBookmarkStats(stats) {
+    if (!stats || typeof stats !== 'object') return null;
+    return {
+      retentionScore: Number.isFinite(stats.retentionScore) ? stats.retentionScore : null,
+      threeEpisodeHook: Number.isFinite(stats.threeEpisodeHook) ? stats.threeEpisodeHook : null,
+      churnRisk: stats.churnRisk && Number.isFinite(stats.churnRisk.score)
+        ? { score: stats.churnRisk.score }
+        : null,
+      worthFinishing: Number.isFinite(stats.worthFinishing) ? stats.worthFinishing : null,
+      flowState: Number.isFinite(stats.flowState) ? stats.flowState : null,
+      comfortScore: Number.isFinite(stats.comfortScore) ? stats.comfortScore : null,
+      episodeCount: Number.isFinite(stats.episodeCount) ? stats.episodeCount : null
+    };
+  },
+
+  buildBookmarkSnapshot(anime) {
+    if (!anime) return null;
+    const id = this.normalizeBookmarkId(anime.id);
+    if (!id) return null;
+    return {
+      id,
+      title: String(anime.title || 'Unknown'),
+      titleEnglish: anime.titleEnglish || '',
+      titleJapanese: anime.titleJapanese || '',
+      malId: Number.isFinite(Number(anime.malId)) ? Number(anime.malId) : null,
+      anilistId: Number.isFinite(Number(anime.anilistId)) ? Number(anime.anilistId) : null,
+      cover: anime.cover || '',
+      year: anime.year || null,
+      season: anime.season || '',
+      studio: anime.studio || '',
+      type: anime.type || '',
+      source: anime.source || '',
+      demographic: anime.demographic || '',
+      genres: Array.isArray(anime.genres) ? [...anime.genres] : [],
+      themes: Array.isArray(anime.themes) ? [...anime.themes] : [],
+      communityScore: Number.isFinite(anime.communityScore) ? anime.communityScore : null,
+      stats: this.normalizeBookmarkStats(anime.stats)
+    };
+  },
+
+  normalizeBookmarkItem(item) {
+    if (!item) return null;
+    const id = this.normalizeBookmarkId(item.id);
+    if (!id) return null;
+    const title = String(item.title || 'Unknown');
+    const cover = String(item.cover || '');
+    if (!cover) return null;
+    return {
+      id,
+      title,
+      titleEnglish: item.titleEnglish || '',
+      titleJapanese: item.titleJapanese || '',
+      malId: Number.isFinite(Number(item.malId)) ? Number(item.malId) : null,
+      anilistId: Number.isFinite(Number(item.anilistId)) ? Number(item.anilistId) : null,
+      cover,
+      year: item.year || null,
+      season: item.season || '',
+      studio: item.studio || '',
+      type: item.type || '',
+      source: item.source || '',
+      demographic: item.demographic || '',
+      genres: Array.isArray(item.genres) ? [...item.genres] : [],
+      themes: Array.isArray(item.themes) ? [...item.themes] : [],
+      communityScore: Number.isFinite(item.communityScore) ? item.communityScore : null,
+      stats: this.normalizeBookmarkStats(item.stats || item.statsSnapshot || null)
+    };
+  },
+
+  getBookmarkStoragePayload() {
+    const ids = [...this.bookmarkIds];
+    const items = ids
+      .map(id => this.bookmarkItemMap.get(id))
+      .filter(Boolean);
+    return { version: 2, ids, items };
   },
 
   sanitizeUrl(rawUrl, { allowRelative = true } = {}) {
@@ -456,7 +817,8 @@ const App = {
         'cdn.myanimelist.net',
         'myanimelist.cdn-dena.com',
         'via.placeholder.com',
-        'i.ytimg.com'
+        'i.ytimg.com',
+        'images.weserv.nl'
       ];
 
       const isAllowed = allowedHosts.some(allowed =>
@@ -787,6 +1149,13 @@ const App = {
     return Boolean(document.getElementById('catalog-section'));
   },
 
+  getEpisodeCount(anime) {
+    if (!anime) return 0;
+    const listCount = Array.isArray(anime.episodes) ? anime.episodes.length : 0;
+    const statsCount = Number.isFinite(anime?.stats?.episodeCount) ? anime.stats.episodeCount : 0;
+    return Math.max(listCount, statsCount);
+  },
+
   isMobileViewport() {
     if (typeof window === 'undefined') return false;
     const query = window.matchMedia?.('(max-width: 640px)');
@@ -1110,7 +1479,8 @@ const App = {
     if (!modal) return;
 
     modal.classList.toggle('visible', isOpen);
-    modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    modal.toggleAttribute('hidden', !isOpen);
+    modal.toggleAttribute('inert', !isOpen);
 
     if (isOpen) {
       this.activateModalFocus(modalId, { initialFocusSelector });
@@ -1165,28 +1535,54 @@ const App = {
   loadBookmarks() {
     this.bookmarkIds = [];
     this.bookmarkIdSet = new Set();
+    this.bookmarkItemMap = new Map();
 
     if (typeof window === 'undefined') return;
     const cache = this.getCache();
     const parsed = cache.getJSON(this.bookmarkStorageKey, { fallback: [], validate: true });
 
     try {
-      if (!Array.isArray(parsed)) return;
+      const ids = [];
+      const items = [];
+
+      if (Array.isArray(parsed)) {
+        ids.push(...parsed);
+      } else if (this.isPlainObject(parsed)) {
+        if (Array.isArray(parsed.ids)) {
+          ids.push(...parsed.ids);
+        }
+        if (Array.isArray(parsed.items)) {
+          items.push(...parsed.items);
+        }
+      }
 
       const unique = [];
       const seen = new Set();
-      for (const item of parsed) {
-        const key = String(item ?? '').trim();
+      for (const item of ids) {
+        const key = this.normalizeBookmarkId(item);
         if (!key || seen.has(key)) continue;
         seen.add(key);
         unique.push(key);
       }
 
+      const itemMap = new Map();
+      for (const entry of items) {
+        const normalized = this.normalizeBookmarkItem(entry);
+        if (!normalized || !normalized.id || itemMap.has(normalized.id)) continue;
+        itemMap.set(normalized.id, normalized);
+      }
+
+      if (unique.length === 0 && itemMap.size > 0) {
+        unique.push(...itemMap.keys());
+      }
+
       this.bookmarkIds = unique;
       this.bookmarkIdSet = new Set(unique);
+      this.bookmarkItemMap = itemMap;
     } catch (error) {
       this.bookmarkIds = [];
       this.bookmarkIdSet = new Set();
+      this.bookmarkItemMap = new Map();
     }
 
     this.dispatchStore({ type: 'bookmarks/loaded', payload: { ids: [...this.bookmarkIds] } });
@@ -1195,7 +1591,8 @@ const App = {
   saveBookmarks() {
     if (typeof window === 'undefined') return false;
     const cache = this.getCache();
-    return cache.setJSON(this.bookmarkStorageKey, this.bookmarkIds, { validate: true });
+    const payload = this.getBookmarkStoragePayload();
+    return cache.setJSON(this.bookmarkStorageKey, payload, { validate: true });
   },
 
   isBookmarked(animeId) {
@@ -1209,6 +1606,11 @@ const App = {
     if (!key || this.bookmarkIdSet.has(key)) return false;
     this.bookmarkIdSet.add(key);
     this.bookmarkIds.unshift(key);
+    const anime = this.animeData.find(item => String(item.id) === key);
+    const snapshot = this.buildBookmarkSnapshot(anime);
+    if (snapshot) {
+      this.bookmarkItemMap.set(key, snapshot);
+    }
     const persisted = this.saveBookmarks();
     this.dispatchStore({ type: 'bookmarks/added', payload: { id: key } });
     return { changed: true, persisted };
@@ -1219,6 +1621,7 @@ const App = {
     if (!key || !this.bookmarkIdSet.has(key)) return false;
     this.bookmarkIdSet.delete(key);
     this.bookmarkIds = this.bookmarkIds.filter(id => id !== key);
+    this.bookmarkItemMap.delete(key);
     const persisted = this.saveBookmarks();
     this.dispatchStore({ type: 'bookmarks/removed', payload: { id: key } });
     return { changed: true, persisted };
@@ -1283,17 +1686,73 @@ const App = {
     }
   },
 
-  getBookmarkedAnime() {
-    if (!Array.isArray(this.animeData) || this.animeData.length === 0) return [];
-    if (this.bookmarkIds.length === 0) return [];
+  areBookmarkItemsEqual(left, right) {
+    if (!left || !right) return false;
+    return left.id === right.id &&
+      left.title === right.title &&
+      left.cover === right.cover &&
+      left.year === right.year &&
+      left.studio === right.studio &&
+      left.communityScore === right.communityScore &&
+      left.malId === right.malId &&
+      left.anilistId === right.anilistId;
+  },
 
+  updateBookmarkCacheItem(anime, { persist = false } = {}) {
+    const snapshot = this.buildBookmarkSnapshot(anime);
+    if (!snapshot) return false;
+    const existing = this.bookmarkItemMap.get(snapshot.id);
+    if (existing && this.areBookmarkItemsEqual(existing, snapshot)) {
+      return false;
+    }
+    this.bookmarkItemMap.set(snapshot.id, snapshot);
+    if (persist) {
+      this.saveBookmarks();
+    }
+    return true;
+  },
+
+  refreshBookmarkCacheFromCatalog({ persist = false } = {}) {
+    if (!Array.isArray(this.bookmarkIds) || this.bookmarkIds.length === 0) return false;
+    if (!Array.isArray(this.animeData) || this.animeData.length === 0) return false;
     const lookup = new Map(this.animeData.map(anime => [String(anime.id), anime]));
-    const results = [];
+    let updated = false;
 
     for (const id of this.bookmarkIds) {
-      const anime = lookup.get(id);
+      const key = this.normalizeBookmarkId(id);
+      if (!key) continue;
+      const anime = lookup.get(key);
+      if (!anime) continue;
+      if (this.updateBookmarkCacheItem(anime)) {
+        updated = true;
+      }
+    }
+
+    if (updated && persist) {
+      this.saveBookmarks();
+    }
+    return updated;
+  },
+
+  getBookmarkedAnime() {
+    if (this.bookmarkIds.length === 0) return [];
+    const results = [];
+    const lookup = Array.isArray(this.animeData) && this.animeData.length > 0
+      ? new Map(this.animeData.map(anime => [String(anime.id), anime]))
+      : new Map();
+
+    for (const id of this.bookmarkIds) {
+      const key = String(id);
+      const anime = lookup.get(key);
       if (anime) {
         results.push(anime);
+        this.updateBookmarkCacheItem(anime);
+        continue;
+      }
+
+      const cached = this.bookmarkItemMap.get(key);
+      if (cached) {
+        results.push(cached);
       }
     }
 
@@ -1364,6 +1823,7 @@ const App = {
         getBookmarkedAnime: () => this.getBookmarkedAnime()
       });
       this.loadSettings();
+      this.scheduleImageProxyCheck();
       this.renderSettingsModal();
 
       // Check and trigger onboarding for first-time users
@@ -1371,9 +1831,15 @@ const App = {
         setTimeout(() => Onboarding.startTour(), 500);
       }
 
+      const isCatalogPage = this.isCatalogPage();
       const requestedAnimeId = this.getAnimeIdFromUrl();
 
-      if (requestedAnimeId) {
+      if (!isCatalogPage) {
+        this.renderBookmarks();
+        if (requestedAnimeId) {
+          this.showAnimeDetail(requestedAnimeId);
+        }
+      } else if (requestedAnimeId) {
         // Deep link optimization: load preview first for fast skeleton display
         const previewLoaded = await this.loadInitialData();
         if (!previewLoaded) {
@@ -1390,6 +1856,7 @@ const App = {
 
       this.setupEventListeners();
       this.setupHealthMonitoring();
+      this.setupFullCatalogInteractionTriggers();
       this.setupIntelligentPrefetching();
       this.initSeo();
       this.updateHomeLinks();
@@ -1402,9 +1869,6 @@ const App = {
       }
       this.updateMetaForFilters();
 
-      if (!requestedAnimeId && !this.isFullDataLoaded) {
-        this.scheduleFullCatalogLoad();
-      }
     } catch (error) {
       const logger = this.getLogger();
       if (logger?.error) {
@@ -1453,16 +1917,11 @@ const App = {
   addPreloadHints() {
     if (this.preloadHintsAdded || typeof document === 'undefined') return;
     const previewPath = this.getAssetPath(this.dataSources.preview);
-    const fullPath = this.getAssetPath(this.dataSources.full);
     const hints = [
       { rel: 'preconnect', href: 'https://cdn.myanimelist.net', crossorigin: 'anonymous' },
       { rel: 'dns-prefetch', href: 'https://api.jikan.moe' },
       { rel: 'preload', href: previewPath, as: 'fetch', crossorigin: 'anonymous' }
     ];
-
-    if (this.shouldPrefetchFullCatalog()) {
-      hints.push({ rel: 'prefetch', href: fullPath, as: 'fetch', crossorigin: 'anonymous' });
-    }
 
     hints.forEach((hint) => {
       if (!hint.href) return;
@@ -1533,7 +1992,7 @@ const App = {
         });
         return false;
       }
-      this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: false });
+      await this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: false });
       this.emitAppEvent('rekonime:data-load-end', {
         source,
         durationMs: this.getPerformanceNow() - loadStart,
@@ -1544,15 +2003,12 @@ const App = {
 
     const previewPayload = await this.fetchCatalog(this.dataSources.preview);
     if (previewPayload) {
-      this.applyCatalogPayload(previewPayload, { isFull: false, preserveFilters: false });
+      await this.applyCatalogPayload(previewPayload, { isFull: false, preserveFilters: false });
       this.emitAppEvent('rekonime:data-load-end', {
         source,
         durationMs: this.getPerformanceNow() - loadStart,
         status: 'ok'
       });
-      if (this.features.parallelLoading) {
-        this.preloadFullCatalog();
-      }
       return true;
     }
 
@@ -1568,6 +2024,11 @@ const App = {
     if (this.isFullDataLoaded) {
       return true;
     }
+
+    if (!this.fullCatalogInteractionCaptured) {
+      this.fullCatalogInteractionCaptured = true;
+    }
+    this.teardownFullCatalogInteractionTriggers();
 
     if (this.fullCatalogScheduleHandle) {
       this.cancelIdleTask(this.fullCatalogScheduleHandle);
@@ -1595,7 +2056,7 @@ const App = {
           if (!loaded) {
             return false;
           }
-          this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
+          await this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
           return true;
         }
 
@@ -1629,11 +2090,11 @@ const App = {
           if (!loaded || controller.signal.aborted) {
             return this.isFullDataLoaded;
           }
-          this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
+          await this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
           return true;
         }
 
-        this.applyCatalogPayload(fullPayload, { isFull: true, preserveFilters: true });
+        await this.applyCatalogPayload(fullPayload, { isFull: true, preserveFilters: true });
         return true;
       } catch (error) {
         if (error?.name === 'AbortError' || controller.signal.aborted) {
@@ -1791,7 +2252,7 @@ const App = {
     return typeof firstItem.id !== 'undefined' && typeof firstItem.title === 'string';
   },
 
-  applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
+  async applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
     const catalog = payload?.anime || [];
     this.scoreProfile = this.isValidScoreProfile(payload?.scoreProfile) ? payload.scoreProfile : null;
     this.animeData = this.normalizeAnimeData(catalog);
@@ -1821,7 +2282,8 @@ const App = {
       this.activeFilters = this.getDefaultActiveFilters();
     }
 
-    this.ensureStats();
+    await this.ensureStats();
+    this.refreshBookmarkCacheFromCatalog({ persist: true });
     this.extractFilterOptions();
 
     if (!this.urlFiltersApplied && this.isCatalogPage()) {
@@ -1879,7 +2341,7 @@ const App = {
 
     this.healthMonitorUnsubscribe = HealthMonitor.subscribe((event, data) => {
       if (event === 'connectivity' && data?.online && HealthMonitor.isDataStale?.('catalog')) {
-        this.loadFullCatalog({ timeoutMs: this.fullCatalogTimeoutMs });
+        this.setupFullCatalogInteractionTriggers();
       }
       this.renderHealthIndicator();
     });
@@ -1936,7 +2398,7 @@ const App = {
     }
   },
 
-  ensureStats() {
+  async ensureStats() {
     if (!Array.isArray(this.animeData) || this.animeData.length === 0) return;
     let needsStats = false;
     let needsColorIndex = false;
@@ -1958,6 +2420,18 @@ const App = {
       return;
     }
 
+    let Stats = null;
+    try {
+      Stats = await this.loadStatsModule();
+    } catch (error) {
+      const logger = this.getLogger();
+      if (logger?.error) {
+        logger.error('[ensureStats] Failed to load stats module', { error });
+      } else {
+        console.error('[ensureStats] Failed to load stats module:', error);
+      }
+      return;
+    }
     const scoreProfile = this.isValidScoreProfile(this.scoreProfile)
       ? this.scoreProfile
       : Stats.buildScoreProfile(this.animeData);
@@ -2415,7 +2889,8 @@ const App = {
   /**
    * Calculate statistics for all anime
    */
-  calculateAllStats() {
+  async calculateAllStats() {
+    const Stats = await this.loadStatsModule();
     const scoreProfile = Stats.buildScoreProfile(this.animeData);
     this.scoreProfile = scoreProfile;
     this.animeData = this.animeData.map((anime, index) => ({
@@ -2968,7 +3443,7 @@ const App = {
     const synopsis = String(anime.synopsis || '').trim();
     if (synopsis) return synopsis;
     const cacheKey = anime.anilistId || anime.title;
-    return ReviewsService.getCachedDescription(cacheKey);
+    return this.getCachedSynopsis(cacheKey);
   },
 
   updateMetaForAnime(anime, descriptionOverride = '') {
@@ -3071,6 +3546,8 @@ const App = {
     const dropdown = document.getElementById('header-search-dropdown');
     const input = document.getElementById('header-search');
     if (!dropdown || !input) return;
+    const searchDims = this.getImageDimensions('search');
+    const searchDimAttrs = searchDims ? `width="${searchDims.width}" height="${searchDims.height}"` : '';
 
     const trimmedQuery = String(query || '').trim();
     const previousQuery = this.headerSearchState.query;
@@ -3117,13 +3594,18 @@ const App = {
         : '';
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const safeCover = this.escapeAttr(this.sanitizeImageUrl(anime.cover));
+      const { src: searchSrc, fallback: searchFallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'search' });
+      const safeCover = this.escapeAttr(searchSrc || this.sanitizeImageUrl(anime.cover));
+      const searchFallbackAttrs = this.getImageFallbackAttrs({
+        fallbackSrc: searchFallback,
+        placeholder: 'https://via.placeholder.com/40x56?text=No'
+      });
       const safeYear = this.escapeHtml(anime.year ?? 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio ?? 'Unknown');
       const isActive = index === this.headerSearchState.activeIndex;
       return `
       <div class="search-result-item ${isActive ? 'is-active' : ''}" role="option" aria-selected="${isActive ? 'true' : 'false'}" id="search-result-${index}" data-result-index="${index}" data-action="open-anime" data-anime-id="${safeId}">
-        <img src="${safeCover}" alt="${safeTitle}" class="search-result-cover" data-fallback-src="https://via.placeholder.com/40x56?text=No">
+        <img src="${safeCover}" alt="${safeTitle}" class="search-result-cover" ${searchDimAttrs} ${searchFallbackAttrs}>
         <div class="search-result-info">
           <div class="search-result-title">${safeTitle}</div>
           ${altTitleMarkup}
@@ -3691,6 +4173,10 @@ const App = {
     const seedContainer = document.getElementById('byw-seed');
 
     if (!section || !grid || !seedContainer) return;
+    const seedDims = this.getImageDimensions('seed');
+    const seedDimAttrs = seedDims ? `width="${seedDims.width}" height="${seedDims.height}"` : '';
+    const recDims = this.getImageDimensions('recommendation');
+    const recDimAttrs = recDims ? `width="${recDims.width}" height="${recDims.height}"` : '';
 
     const { recommendations, basedOn } = Recommendations.getBecauseYouWatched(
       this.animeData,
@@ -3707,37 +4193,46 @@ const App = {
 
     // Render seed info
     if (basedOn) {
-      const { src, srcset, sizes } = this.buildImageSrcset(basedOn.cover);
+      const { src, srcset, sizes, fallback } = this.buildImageSrcset(basedOn.cover, { sizeKey: 'seed' });
       const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(basedOn.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+      const seedFallbackAttrs = this.getImageFallbackAttrs({
+        fallbackSrc: fallback,
+        placeholder: 'https://via.placeholder.com/32x45?text=No'
+      });
       const seedLoadAttrs = this.getImageLoadingAttrs(0, { eagerCount: 1, priorityCount: 0 });
       const seedPriorityAttr = seedLoadAttrs.fetchpriority ? `fetchpriority="${seedLoadAttrs.fetchpriority}"` : '';
       seedContainer.innerHTML = `
-        <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="" class="byw-seed-cover" loading="${seedLoadAttrs.loading}" decoding="${seedLoadAttrs.decoding}" ${seedPriorityAttr}>
+        <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="" class="byw-seed-cover" ${seedDimAttrs} loading="${seedLoadAttrs.loading}" decoding="${seedLoadAttrs.decoding}" ${seedPriorityAttr} ${seedFallbackAttrs}>
         <span class="byw-seed-title">${this.escapeHtml(basedOn.title)}</span>
       `;
     }
 
     // Render recommendations
     grid.innerHTML = recommendations.map((anime, index) => {
-      const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
+      const episodeCount = this.getEpisodeCount(anime);
+      const hasEpisodes = episodeCount > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
-      const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+      const { src, srcset, sizes, fallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'recommendation' });
       const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+      const recFallbackAttrs = this.getImageFallbackAttrs({
+        fallbackSrc: fallback,
+        placeholder: 'https://via.placeholder.com/180x120?text=No+Image'
+      });
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 1, priorityCount: 0 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="recommendation-media">
-            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="recommendation-cover" loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr}>
+            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="recommendation-cover" ${recDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${recFallbackAttrs}>
           </div>
           <div class="recommendation-info">
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
@@ -3758,28 +4253,35 @@ const App = {
   renderTrending() {
     const grid = document.getElementById('trending-grid');
     if (!grid) return;
+    const trendDims = this.getImageDimensions('trending');
+    const trendDimAttrs = trendDims ? `width="${trendDims.width}" height="${trendDims.height}"` : '';
 
     const trending = Discovery.getTrending(this.animeData, 6);
 
     grid.innerHTML = trending.map((anime, index) => {
       const rank = index + 1;
       const rankClass = rank <= 3 ? 'top-3' : '';
-      const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
+      const episodeCount = this.getEpisodeCount(anime);
+      const hasEpisodes = episodeCount > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
-      const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+      const { src, srcset, sizes, fallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'trending' });
       const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+      const trendFallbackAttrs = this.getImageFallbackAttrs({
+        fallbackSrc: fallback,
+        placeholder: 'https://via.placeholder.com/280x140?text=No+Image'
+      });
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
       return `
         <div class="trending-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="trending-rank ${rankClass}">${rank}</div>
-          <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="trending-cover" loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr}>
+          <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="trending-cover" ${trendDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${trendFallbackAttrs}>
           <div class="trending-info">
             <div class="trending-title">${this.escapeHtml(anime.title)}</div>
             <div class="trending-meta">
@@ -3825,11 +4327,13 @@ const App = {
 
   initCardTemplate() {
     if (this.animeCardTemplate || typeof document === 'undefined') return;
+    const cardDims = this.getImageDimensions('card');
+    const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
     const template = document.createElement('template');
     template.innerHTML = `
       <div class="anime-card" data-action="open-anime" role="button" tabindex="0" aria-label="View details">
         <div class="card-media">
-          <img class="card-cover" loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
+          <img class="card-cover" ${cardDimAttrs} loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
           <button class="bookmark-card-toggle" type="button" data-action="toggle-bookmark">
             <span aria-hidden="true">&#9733;</span>
             <span class="visually-hidden">Add bookmark</span>
@@ -3867,8 +4371,9 @@ const App = {
 
     const badges = Recommendations.getBadges(anime);
     const cardStats = Recommendations.getCardStats(anime);
-    const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-    const retentionLevel = hasEpisodes ? Math.round(anime.stats.retentionScore) : 0;
+    const episodeCount = this.getEpisodeCount(anime);
+    const hasEpisodes = episodeCount > 0;
+    const retentionLevel = hasEpisodes ? Math.round(anime.stats?.retentionScore ?? 0) : 0;
     const reason = Recommendations.getRecommendationReason(anime);
     const safeTitle = this.escapeHtml(anime.title);
     const safeYear = this.escapeHtml(anime.year || 'Unknown');
@@ -3881,15 +4386,27 @@ const App = {
     card.setAttribute('tabindex', '0');
     card.setAttribute('aria-label', cardLabel);
 
-    const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+    const { src, srcset, sizes, fallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'card' });
     const coverUrl = src || this.sanitizeImageUrl(anime.cover);
+    const fallbackSources = this.getImageFallbackSources({
+      fallbackSrc: fallback,
+      placeholder: 'https://via.placeholder.com/120x170?text=No+Image'
+    });
 
     const img = card.querySelector('.card-cover');
+    const cardDims = this.getImageDimensions('card');
     if (img) {
       if (coverUrl) {
         img.src = coverUrl;
       } else {
         img.removeAttribute('src');
+      }
+      if (cardDims) {
+        img.setAttribute('width', cardDims.width);
+        img.setAttribute('height', cardDims.height);
+      } else {
+        img.removeAttribute('width');
+        img.removeAttribute('height');
       }
       if (srcset) {
         img.setAttribute('srcset', srcset);
@@ -3910,8 +4427,18 @@ const App = {
       } else {
         img.removeAttribute('fetchpriority');
       }
-      if (!img.dataset.fallbackSrc) {
-        img.dataset.fallbackSrc = 'https://via.placeholder.com/120x170?text=No+Image';
+      if (fallbackSources.primary) {
+        img.dataset.fallbackSrc = fallbackSources.primary;
+      } else {
+        delete img.dataset.fallbackSrc;
+      }
+      if (fallbackSources.secondary) {
+        img.dataset.fallbackSecondary = fallbackSources.secondary;
+      } else {
+        delete img.dataset.fallbackSecondary;
+      }
+      if (img.dataset.fallbackApplied) {
+        delete img.dataset.fallbackApplied;
       }
     }
 
@@ -4035,11 +4562,14 @@ const App = {
    * Render anime cards HTML
    */
   renderAnimeCards(animeList, { showBookmarkToggle = false, startIndex = 0 } = {}) {
+    const cardDims = this.getImageDimensions('card');
+    const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
     return animeList.map((anime, localIndex) => {
       const badges = Recommendations.getBadges(anime);
       const cardStats = Recommendations.getCardStats(anime);
-      const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-      const retentionLevel = hasEpisodes ? Math.round(anime.stats.retentionScore) : 0;
+      const episodeCount = this.getEpisodeCount(anime);
+      const hasEpisodes = episodeCount > 0;
+      const retentionLevel = hasEpisodes ? Math.round(anime.stats?.retentionScore ?? 0) : 0;
       const reason = Recommendations.getRecommendationReason(anime);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
@@ -4053,10 +4583,14 @@ const App = {
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
       // Build responsive image attributes
-      const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+      const { src, srcset, sizes, fallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'card' });
       const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
       const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+      const cardFallbackAttrs = this.getImageFallbackAttrs({
+        fallbackSrc: fallback,
+        placeholder: 'https://via.placeholder.com/120x170?text=No+Image'
+      });
 
       const index = startIndex + localIndex;
       const loadingAttrs = this.getImageLoadingAttrs(index);
@@ -4068,7 +4602,7 @@ const App = {
              tabindex="0"
              aria-label="${cardLabel}">
           <div class="card-media">
-            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${safeTitle}" class="card-cover" loading="${loadingAttrs.loading}" decoding="${loadingAttrs.decoding}" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
+            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${safeTitle}" class="card-cover" ${cardDimAttrs} loading="${loadingAttrs.loading}" decoding="${loadingAttrs.decoding}" ${cardFallbackAttrs}>
             ${showBookmarkToggle ? `
               <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"
                       type="button"
@@ -4279,6 +4813,8 @@ const App = {
     if (!container) return;
     container.classList.remove('is-loading');
     container.removeAttribute('aria-busy');
+    const recDims = this.getImageDimensions('recommendation');
+    const recDimAttrs = recDims ? `width="${recDims.width}" height="${recDims.height}"` : '';
 
     // Update context based on current mode
     if (contextEl) {
@@ -4296,8 +4832,9 @@ const App = {
     }
 
     container.innerHTML = recommendations.map((anime, index) => {
-      const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-      const retention = hasEpisodes ? `${Math.round(anime.stats.retentionScore)}%` : 'N/A';
+      const episodeCount = this.getEpisodeCount(anime);
+      const hasEpisodes = episodeCount > 0;
+      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore ?? 0)}%` : 'N/A';
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const retentionTooltipTitle = this.escapeHtml('Retention Score');
       const retentionTooltipText = this.escapeHtml('How likely you are to finish. Based on strong starts, low drop-off risk, and consistent pacing.');
@@ -4307,22 +4844,25 @@ const App = {
       const safeSatisfaction = this.escapeHtml(malSatisfaction);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const safeCover = this.escapeAttr(this.sanitizeImageUrl(anime.cover));
       const safeReason = this.escapeHtml(anime.reason || '');
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
-      const { src: recSrc, srcset: recSrcset, sizes: recSizes } = this.buildImageSrcset(anime.cover);
+      const { src: recSrc, srcset: recSrcset, sizes: recSizes, fallback: recFallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'recommendation' });
       const safeRecCover = this.escapeAttr(recSrc || this.sanitizeImageUrl(anime.cover));
       const recSrcsetAttr = recSrcset ? `srcset="${this.escapeAttr(recSrcset)}"` : '';
       const recSizesAttr = recSizes ? `sizes="${this.escapeAttr(recSizes)}"` : '';
+      const recFallbackAttrs = this.getImageFallbackAttrs({
+        fallbackSrc: recFallback,
+        placeholder: 'https://via.placeholder.com/180x120?text=No+Image'
+      });
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="recommendation-media">
-            <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} data-fallback-src="https://via.placeholder.com/180x120?text=No+Image">
+            <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" ${recDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${recFallbackAttrs}>
           </div>
           <div class="recommendation-info">
             <div class="recommendation-title">${safeTitle}</div>
@@ -4352,7 +4892,7 @@ const App = {
   /**
    * Render rankings section
    */
-  renderRankings() {
+  async renderRankings() {
     const container1 = document.getElementById('best-ranking-1');
     const container2 = document.getElementById('best-ranking-2');
     const title1 = document.getElementById('ranking-title-1');
@@ -4361,6 +4901,16 @@ const App = {
     if (!container1 || !container2) return;
     container1.removeAttribute('aria-busy');
     container2.removeAttribute('aria-busy');
+
+    let Stats = null;
+    try {
+      Stats = await this.loadStatsModule();
+    } catch (error) {
+      const fallback = '<p class="no-data">Rankings unavailable</p>';
+      container1.innerHTML = fallback;
+      container2.innerHTML = fallback;
+      return;
+    }
 
     const dataToUse = this.filteredData;
 
@@ -4399,9 +4949,10 @@ const App = {
     let valueClass = '';
 
     if (metric === 'retention') {
-      const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
+      const episodeCount = this.getEpisodeCount(anime);
+      const hasEpisodes = episodeCount > 0;
       if (hasEpisodes) {
-        const score = Math.round(anime.stats.retentionScore);
+        const score = Math.round(anime.stats?.retentionScore ?? 0);
         valueDisplay = `${score}%`;
         valueClass = Recommendations.getRetentionClass(score);
       }
@@ -4418,15 +4969,21 @@ const App = {
       valueClass = anime.stats.scoreClass;
     }
 
-    const { src: rankSrc, srcset: rankSrcset, sizes: rankSizes } = this.buildImageSrcset(anime.cover);
+    const { src: rankSrc, srcset: rankSrcset, sizes: rankSizes, fallback: rankFallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'ranking' });
     const safeRankCover = this.escapeAttr(rankSrc || this.sanitizeImageUrl(anime.cover));
     const rankSrcsetAttr = rankSrcset ? `srcset="${this.escapeAttr(rankSrcset)}"` : '';
     const rankSizesAttr = rankSizes ? `sizes="${this.escapeAttr(rankSizes)}"` : '';
+    const rankFallbackAttrs = this.getImageFallbackAttrs({
+      fallbackSrc: rankFallback,
+      placeholder: 'https://via.placeholder.com/60x85?text=No+Image'
+    });
     const loadAttrs = this.getImageLoadingAttrs(0, { eagerCount: 1, priorityCount: 1 });
     const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
+    const rankingDims = this.getImageDimensions('ranking');
+    const rankingDimAttrs = rankingDims ? `width="${rankingDims.width}" height="${rankingDims.height}"` : '';
     return `
       <div class="ranking-anime">
-        <img src="${safeRankCover}" ${rankSrcsetAttr} ${rankSizesAttr} alt="${this.escapeHtml(anime.title)}" class="ranking-cover" loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} data-fallback-src="https://via.placeholder.com/60x85?text=No+Image">
+        <img src="${safeRankCover}" ${rankSrcsetAttr} ${rankSizesAttr} alt="${this.escapeHtml(anime.title)}" class="ranking-cover" ${rankingDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${rankFallbackAttrs}>
         <div class="ranking-info">
           <div class="ranking-title">${this.escapeHtml(anime.title)}</div>
           <div class="ranking-score ${valueClass}">
@@ -4644,10 +5201,12 @@ const App = {
           const isActive = tab === actionEl;
           tab.classList.toggle('is-active', isActive);
           tab.setAttribute('aria-selected', String(isActive));
+          tab.setAttribute('tabindex', isActive ? '0' : '-1');
         });
         tracks.forEach(track => {
           const isActive = track.dataset.filterGroup === tabKey;
           track.classList.toggle('is-active', isActive);
+          track.toggleAttribute('hidden', !isActive);
         });
         return;
       }
@@ -4793,10 +5352,16 @@ const App = {
     this.addTrackedListener(document, 'error', (event) => {
       const target = event.target;
       if (!target || target.tagName !== 'IMG') return;
-      const fallback = target.dataset.fallbackSrc;
-      if (!fallback || target.dataset.fallbackApplied) return;
-      target.dataset.fallbackApplied = '1';
-      target.src = fallback;
+      if (this.isProxyImageUrl(target.currentSrc || target.src)) {
+        this.markImageProxyFailed();
+      }
+      const primary = target.dataset.fallbackSrc;
+      const secondary = target.dataset.fallbackSecondary;
+      const appliedLevel = Number.parseInt(target.dataset.fallbackApplied || '0', 10);
+      const nextSrc = appliedLevel === 0 ? primary : (appliedLevel === 1 ? secondary : '');
+      if (!nextSrc) return;
+      target.dataset.fallbackApplied = String(appliedLevel + 1);
+      target.src = nextSrc;
     }, true);
   },
 
@@ -4810,6 +5375,8 @@ const App = {
     const hasGenres = Array.isArray(anime?.genres) && anime.genres.length > 0;
     const hasThemes = Array.isArray(anime?.themes) && anime.themes.length > 0;
     const canMatch = hasGenres && hasThemes;
+    const simDims = this.getImageDimensions('similar');
+    const simDimAttrs = simDims ? `width="${simDims.width}" height="${simDims.height}"` : '';
 
     const formatTags = (tags, max = 2) => {
       if (!Array.isArray(tags) || tags.length === 0) return 'None';
@@ -4832,9 +5399,11 @@ const App = {
           <div class="similar-grid">
             ${similarResults.map(result => {
       const similar = result.anime;
-      const hasEpisodes = Array.isArray(similar.episodes) && similar.episodes.length > 0;
-      const retentionScore = hasEpisodes ? Math.round(similar.stats.retentionScore) : null;
-      const satisfactionScore = Number.isFinite(similar.communityScore) ? similar.communityScore : null;
+      const episodeCount = this.getEpisodeCount(similar);
+      const hasEpisodes = episodeCount > 0;
+      const rawRetention = similar?.stats?.retentionScore;
+      const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
+      const satisfactionScore = Number.isFinite(similar?.communityScore) ? similar.communityScore : null;
       const retentionClass = Recommendations.getRetentionClass(retentionScore);
       const satisfactionClass = Recommendations.getMalSatisfactionClass(satisfactionScore);
       const sharedGenres = formatTags(result.sharedGenres);
@@ -4848,13 +5417,17 @@ const App = {
       const labelYear = similar.year ? `, ${similar.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
-      const { src: simSrc, srcset: simSrcset, sizes: simSizes } = this.buildImageSrcset(similar.cover);
+      const { src: simSrc, srcset: simSrcset, sizes: simSizes, fallback: simFallback } = this.buildImageSrcset(similar.cover, { sizeKey: 'similar' });
       const safeSimCover = this.escapeAttr(simSrc || this.sanitizeImageUrl(similar.cover));
       const simSrcsetAttr = simSrcset ? `srcset="${this.escapeAttr(simSrcset)}"` : '';
       const simSizesAttr = simSizes ? `sizes="${this.escapeAttr(simSizes)}"` : '';
+      const simFallbackAttrs = this.getImageFallbackAttrs({
+        fallbackSrc: simFallback,
+        placeholder: 'https://via.placeholder.com/200x140?text=No+Image'
+      });
       return `
                 <div class="similar-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
-                  <img src="${safeSimCover}" ${simSrcsetAttr} ${simSizesAttr} alt="${safeTitle}" class="similar-cover" data-fallback-src="https://via.placeholder.com/200x140?text=No+Image">
+                  <img src="${safeSimCover}" ${simSrcsetAttr} ${simSizesAttr} alt="${safeTitle}" class="similar-cover" ${simDimAttrs} ${simFallbackAttrs}>
                   <div class="similar-info">
                     <div class="similar-title">${safeTitle}</div>
                     <div class="similar-tags">
@@ -4944,7 +5517,16 @@ const App = {
       this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
     }
 
-    const anime = this.animeData.find(a => a.id === animeId);
+    let anime = this.animeData.find(a => a.id === animeId);
+    if (!anime) {
+      const key = this.normalizeBookmarkId(animeId);
+      if (key) {
+        const cached = this.bookmarkItemMap.get(key);
+        if (cached) {
+          anime = cached;
+        }
+      }
+    }
     if (!anime) {
       if (updateUrl) {
         this.updateUrlForAnime(null, { replace: true });
@@ -4991,17 +5573,25 @@ const App = {
       ? anime.themes.map(t => `<span class="detail-tag">${this.escapeHtml(t)}</span>`).join('')
       : '';
 
-    const synopsisMarkup = ReviewsService.renderSynopsis(synopsis);
-    const synopsisSection = synopsisMarkup || ReviewsService.renderSynopsisLoading();
+    const synopsisMarkup = this.renderSynopsis(synopsis);
+    const synopsisSection = synopsisMarkup || this.renderSynopsisLoading();
     const trailerSection = this.renderTrailerSection(anime);
-    const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-    const retentionScore = hasEpisodes ? Math.round(anime.stats.retentionScore) : null;
-    const malSatisfactionScore = Number.isFinite(anime.communityScore) ? anime.communityScore : null;
+    const episodeCount = this.getEpisodeCount(anime);
+    const hasEpisodes = episodeCount > 0;
+    const rawRetention = anime?.stats?.retentionScore;
+    const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
+    const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
     const retentionClass = Recommendations.getRetentionClass(retentionScore);
     const malSatisfactionClass = Recommendations.getMalSatisfactionClass(malSatisfactionScore);
-    const startScore = hasEpisodes ? Math.round(anime.stats.threeEpisodeHook) : null;
-    const stayScore = hasEpisodes ? Math.round(100 - anime.stats.churnRisk.score) : null;
-    const finishScore = hasEpisodes ? Math.round(anime.stats.worthFinishing) : null;
+    const rawStart = anime?.stats?.threeEpisodeHook;
+    const rawChurn = anime?.stats?.churnRisk?.score;
+    const rawFinish = anime?.stats?.worthFinishing;
+    const startScore = hasEpisodes && Number.isFinite(rawStart) ? Math.round(rawStart) : null;
+    const stayScore = hasEpisodes && Number.isFinite(rawChurn) ? Math.round(100 - rawChurn) : null;
+    const finishScore = hasEpisodes && Number.isFinite(rawFinish) ? Math.round(rawFinish) : null;
+    const safeStartScore = Number.isFinite(startScore) ? startScore : 0;
+    const safeStayScore = Number.isFinite(stayScore) ? stayScore : 0;
+    const safeFinishScore = Number.isFinite(finishScore) ? finishScore : 0;
 
     const metaParts = [anime.type, anime.year, anime.studio, anime.source, anime.demographic]
       .map(value => {
@@ -5013,10 +5603,16 @@ const App = {
       .filter(Boolean);
     const metaHtml = metaParts.map(part => `<span>${this.escapeHtml(part)}</span>`).join(' &bull; ');
     const safeTitle = this.escapeHtml(anime.title);
-    const { src: detailSrc, srcset: detailSrcset, sizes: detailSizes } = this.buildImageSrcset(anime.cover);
+    const { src: detailSrc, srcset: detailSrcset, sizes: detailSizes, fallback: detailFallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'detail', preferOptimized: false });
     const safeCover = this.escapeAttr(detailSrc || this.sanitizeImageUrl(anime.cover));
     const detailSrcsetAttr = detailSrcset ? `srcset="${this.escapeAttr(detailSrcset)}"` : '';
     const detailSizesAttr = detailSizes ? `sizes="${this.escapeAttr(detailSizes)}"` : '';
+    const detailDims = this.getImageDimensions('detail');
+    const detailDimAttrs = detailDims ? `width="${detailDims.width}" height="${detailDims.height}"` : '';
+    const detailFallbackAttrs = this.getImageFallbackAttrs({
+      fallbackSrc: detailFallback,
+      placeholder: 'https://via.placeholder.com/150x210?text=No+Image'
+    });
 
     const altTitles = [];
     if (anime.titleEnglish && anime.titleEnglish.toLowerCase() !== anime.title.toLowerCase()) {
@@ -5039,7 +5635,7 @@ const App = {
 
     content.innerHTML = `
       <div class="detail-header">
-        <img src="${safeCover}" ${detailSrcsetAttr} ${detailSizesAttr} alt="${safeTitle}" class="detail-cover" data-fallback-src="https://via.placeholder.com/150x210?text=No+Image">
+        <img src="${safeCover}" ${detailSrcsetAttr} ${detailSizesAttr} alt="${safeTitle}" class="detail-cover" ${detailDimAttrs} ${detailFallbackAttrs}>
         <div class="detail-info">
           <div class="detail-title-row">
             <h2 class="detail-title" id="detail-modal-title">${safeTitle}</h2>
@@ -5073,7 +5669,7 @@ const App = {
               </div>
             </div>
             <div class="detail-stat">
-              <span class="detail-stat-value">${anime.stats.episodeCount || 'N/A'}</span>
+              <span class="detail-stat-value">${episodeCount || 'N/A'}</span>
               <span class="detail-stat-label">Episodes</span>
             </div>
           </div>
@@ -5093,8 +5689,8 @@ const App = {
                 <div class="tooltip-text">How compelling the first 3 episodes are. High scores mean the show hooks viewers early.</div>
               </div>
             </span>
-            <progress class="breakdown-progress" value="${startScore}" max="100" aria-label="Strong start score"></progress>
-            <span class="breakdown-value">${startScore}%</span>
+            <progress class="breakdown-progress" value="${safeStartScore}" max="100" aria-label="Strong start score"></progress>
+            <span class="breakdown-value">${startScore !== null ? `${startScore}%` : 'N/A'}</span>
           </div>
           <div class="breakdown-row">
             <span class="breakdown-label has-tooltip" tabindex="0">
@@ -5104,8 +5700,8 @@ const App = {
                 <div class="tooltip-text">Low drop-off probability. Measures how likely viewers are to continue without losing interest.</div>
               </div>
             </span>
-            <progress class="breakdown-progress" value="${stayScore}" max="100" aria-label="Keeps you watching score"></progress>
-            <span class="breakdown-value">${stayScore}%</span>
+            <progress class="breakdown-progress" value="${safeStayScore}" max="100" aria-label="Keeps you watching score"></progress>
+            <span class="breakdown-value">${stayScore !== null ? `${stayScore}%` : 'N/A'}</span>
           </div>
           <div class="breakdown-row">
             <span class="breakdown-label has-tooltip" tabindex="0">
@@ -5115,8 +5711,8 @@ const App = {
                 <div class="tooltip-text">How well the show sticks the landing. Combines finale strength, momentum, and narrative build-up.</div>
               </div>
             </span>
-            <progress class="breakdown-progress" value="${finishScore}" max="100" aria-label="Finish payoff score"></progress>
-            <span class="breakdown-value">${finishScore}%</span>
+            <progress class="breakdown-progress" value="${safeFinishScore}" max="100" aria-label="Finish payoff score"></progress>
+            <span class="breakdown-value">${finishScore !== null ? `${finishScore}%` : 'N/A'}</span>
           </div>
         </div>
       ` : `
@@ -5132,7 +5728,7 @@ const App = {
       </div>
       ${trailerSection}
       <div id="community-reviews-section">
-        ${ReviewsService.renderLoading()}
+        ${this.renderReviewsLoading()}
       </div>
       <div id="similar-anime-section">
         ${similarSection}
@@ -5162,9 +5758,30 @@ const App = {
   async loadCommunityReviews(anime, fallbackSynopsis = '') {
     const reviewsSection = document.getElementById('community-reviews-section');
     const synopsisSection = document.getElementById('synopsis-section');
+    const parsedMalId = Number.parseInt(anime?.malId, 10);
+
+    if (!Number.isFinite(parsedMalId)) {
+      if (synopsisSection) {
+        if (fallbackSynopsis) {
+          synopsisSection.innerHTML = this.renderSynopsis(fallbackSynopsis);
+        } else {
+          synopsisSection.innerHTML = '';
+        }
+      }
+      if (reviewsSection) {
+        reviewsSection.innerHTML = `
+          <div class="community-reviews">
+            <h3>Community Reviews</h3>
+            <p class="no-reviews">Reviews are unavailable for this title.</p>
+          </div>
+        `;
+      }
+      return;
+    }
 
     try {
-      const data = await ReviewsService.fetchReviews(anime.malId, anime.title);
+      const reviewsService = await this.loadReviewsService();
+      const data = await reviewsService.fetchReviews(parsedMalId, anime.title);
 
       if (this.currentAnimeId !== anime.id) {
         return;
@@ -5173,9 +5790,9 @@ const App = {
       // Update synopsis section
       if (synopsisSection) {
         if (data.description) {
-          synopsisSection.innerHTML = ReviewsService.renderSynopsis(data.description);
+          synopsisSection.innerHTML = reviewsService.renderSynopsis(data.description);
         } else if (fallbackSynopsis) {
-          synopsisSection.innerHTML = ReviewsService.renderSynopsis(fallbackSynopsis);
+          synopsisSection.innerHTML = reviewsService.renderSynopsis(fallbackSynopsis);
         } else {
           synopsisSection.innerHTML = '';
         }
@@ -5183,8 +5800,8 @@ const App = {
 
       // Update reviews section
       if (reviewsSection) {
-        reviewsSection.innerHTML = ReviewsService.renderReviewsSection(data, 'positive');
-        ReviewsService.initTabSwitching(data);
+        reviewsSection.innerHTML = reviewsService.renderReviewsSection(data, 'positive');
+        reviewsService.initTabSwitching(data);
       }
 
       if (data.description) {
@@ -5206,10 +5823,22 @@ const App = {
       }
 
       if (reviewsSection) {
-        reviewsSection.innerHTML = ReviewsService.renderReviewsSection(
-          { positive: [], neutral: [], negative: [], description: '', error: true },
-          'positive'
-        );
+        let errorMarkup = `
+          <div class="community-reviews">
+            <h3>Community Reviews</h3>
+            <p class="no-reviews">Failed to load community reviews.</p>
+          </div>
+        `;
+        try {
+          const reviewsService = await this.loadReviewsService();
+          errorMarkup = reviewsService.renderReviewsSection(
+            { positive: [], neutral: [], negative: [], description: '', error: true },
+            'positive'
+          );
+        } catch (loadError) {
+          // keep generic markup
+        }
+        reviewsSection.innerHTML = errorMarkup;
       }
     }
   },
@@ -5748,19 +6377,65 @@ const App = {
     }
   },
 
+  buildImageProxyUrl(coverUrl, { width, height } = {}) {
+    if (!this.shouldUseImageProxy()) return '';
+    const sanitized = this.sanitizeImageUrl(coverUrl);
+    if (!sanitized) return '';
+    const normalized = sanitized.replace(/^https?:\/\//i, '').replace(/^\/\//, '');
+    const url = new URL('https://images.weserv.nl/');
+    url.searchParams.set('url', normalized);
+    if (Number.isFinite(width)) {
+      url.searchParams.set('w', String(Math.round(width)));
+    }
+    if (Number.isFinite(height)) {
+      url.searchParams.set('h', String(Math.round(height)));
+    }
+    url.searchParams.set('fit', 'cover');
+    url.searchParams.set('output', 'webp');
+    return url.toString();
+  },
+
+  getImageFallbackSources({ fallbackSrc, placeholder }) {
+    const primary = fallbackSrc || placeholder || '';
+    const secondary = fallbackSrc && placeholder && fallbackSrc !== placeholder ? placeholder : '';
+    return { primary, secondary };
+  },
+
+  getImageFallbackAttrs({ fallbackSrc, placeholder }) {
+    const { primary, secondary } = this.getImageFallbackSources({ fallbackSrc, placeholder });
+    if (!primary) return '';
+    const safePrimary = this.escapeAttr(primary);
+    const safeSecondary = secondary ? ` data-fallback-secondary="${this.escapeAttr(secondary)}"` : '';
+    return `data-fallback-src="${safePrimary}"${safeSecondary}`;
+  },
+
   /**
    * Build responsive image srcset for MyAnimeList CDN images
-   * Note: MAL CDN doesn't reliably support size variants, so we return original URL
-   * Returns srcset string and sizes attribute
+   * Note: MAL CDN doesn't reliably support size variants, so we proxy for WebP when enabled.
+   * Returns srcset string, sizes attribute, and fallback (original URL when proxied).
    */
-  buildImageSrcset(coverUrl) {
-    if (!coverUrl) return { src: '', srcset: '', sizes: '' };
+  buildImageSrcset(coverUrl, { sizeKey = 'card', preferOptimized } = {}) {
+    if (!coverUrl) return { src: '', srcset: '', sizes: '', fallback: '' };
 
-    // Return original URL without srcset
-    // MAL CDN doesn't consistently support size variants
     const sanitized = this.sanitizeImageUrl(coverUrl);
-    if (!sanitized) return { src: '', srcset: '', sizes: '' };
-    return { src: sanitized, srcset: '', sizes: '' };
+    if (!sanitized) return { src: '', srcset: '', sizes: '', fallback: '' };
+
+    const useOptimized = typeof preferOptimized === 'boolean' ? preferOptimized : this.shouldUseImageProxy();
+    if (!useOptimized) {
+      return { src: sanitized, srcset: '', sizes: '', fallback: '' };
+    }
+
+    const dims = this.getImageDimensions(sizeKey);
+    if (!dims) {
+      return { src: sanitized, srcset: '', sizes: '', fallback: '' };
+    }
+
+    const optimized = this.buildImageProxyUrl(sanitized, dims);
+    if (!optimized) {
+      return { src: sanitized, srcset: '', sizes: '', fallback: '' };
+    }
+
+    return { src: optimized, srcset: '', sizes: '', fallback: sanitized };
   },
 
   /**
@@ -5886,8 +6561,10 @@ const App = {
     const { showBookmarkToggle = false, index = 0 } = options;
     const badges = Recommendations.getBadges(anime);
     const cardStats = Recommendations.getCardStats(anime);
-    const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length > 0;
-    const retentionLevel = hasEpisodes ? Math.round(anime.stats.retentionScore) : 0;
+    const episodeCount = this.getEpisodeCount(anime);
+    const hasEpisodes = episodeCount > 0;
+    const rawRetention = anime?.stats?.retentionScore;
+    const retentionLevel = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : 0;
     const reason = Recommendations.getRecommendationReason(anime);
 
     const safeId = this.escapeAttr(anime.id);
@@ -5902,13 +6579,19 @@ const App = {
     const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
 
     // Build responsive image attributes
-    const { src, srcset, sizes } = this.buildImageSrcset(anime.cover);
+    const { src, srcset, sizes, fallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'card' });
     const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
     const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
     const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
+    const cardFallbackAttrs = this.getImageFallbackAttrs({
+      fallbackSrc: fallback,
+      placeholder: 'https://via.placeholder.com/120x170?text=No+Image'
+    });
 
     const loadingAttrs = this.getImageLoadingAttrs(index);
     const fetchPriorityAttr = loadingAttrs.fetchpriority ? `fetchpriority="${loadingAttrs.fetchpriority}"` : '';
+    const cardDims = this.getImageDimensions('card');
+    const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
     return `
       <div class="anime-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
         <div class="card-media">
@@ -5918,10 +6601,11 @@ const App = {
             ${sizesAttr}
             alt="${safeTitle}"
             class="card-cover"
+            ${cardDimAttrs}
             loading="${loadingAttrs.loading}"
             decoding="${loadingAttrs.decoding}"
             ${fetchPriorityAttr}
-            data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
+            ${cardFallbackAttrs}>
           ${showBookmarkToggle ? `
             <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"
                     type="button"

@@ -147,12 +147,13 @@ const ServiceWorkerManager = {
             indicator = document.createElement('div');
             indicator.id = 'offline-indicator';
             indicator.className = 'offline-indicator';
+            indicator.setAttribute('hidden', '');
             indicator.innerHTML = "<span class=\"offline-icon\" aria-hidden=\"true\">!</span><div class=\"offline-content\"><span class=\"offline-title\">You're offline</span><span class=\"offline-features\">Checking offline features...</span></div>";
             document.body.appendChild(indicator);
         }
 
         indicator.classList.add('visible');
-        indicator.setAttribute('aria-hidden', 'false');
+        indicator.removeAttribute('hidden');
         this.setOfflineState(true);
         this.updateOfflineIndicator(indicator);
     },
@@ -164,7 +165,7 @@ const ServiceWorkerManager = {
         const indicator = document.getElementById('offline-indicator');
         if (indicator) {
             indicator.classList.remove('visible');
-            indicator.setAttribute('aria-hidden', 'true');
+            indicator.setAttribute('hidden', '');
         }
         this.setOfflineState(false);
     },

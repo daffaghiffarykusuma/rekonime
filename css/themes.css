@@ -42,9 +42,9 @@
 
     /* Text Colors with Warm Undertones (reversed for light) */
     --text-primary: #2A1F23;
-    --text-secondary: #5A4F52;
-    --text-muted: #8B7B7E;
-    --text-tertiary: #A99B9E;
+    --text-secondary: #4A3F42;
+    --text-muted: #6E5F62;
+    --text-tertiary: #85777A;
 
     /* Accent Application (similar, slightly adjusted for contrast) */
     --accent-primary: var(--sakura-deep);

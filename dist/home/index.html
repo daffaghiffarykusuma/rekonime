@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'nonce-rekonime-inline'; style-src 'self' 'nonce-rekonime-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://cdn.myanimelist.net https://myanimelist.cdn-dena.com https://via.placeholder.com https://i.ytimg.com data:; connect-src 'self' https://api.jikan.moe ws://localhost:* ws://127.0.0.1:*; frame-src https://www.youtube.com https://www.youtube-nocookie.com; form-action 'self'; upgrade-insecure-requests">
+    content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'nonce-rekonime-inline'; style-src 'self' 'nonce-rekonime-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://cdn.myanimelist.net https://myanimelist.cdn-dena.com https://images.weserv.nl https://via.placeholder.com https://i.ytimg.com data:; connect-src 'self' https://api.jikan.moe ws://localhost:* ws://127.0.0.1:*; frame-src https://www.youtube.com https://www.youtube-nocookie.com; form-action 'self'; upgrade-insecure-requests">
   <meta name="csp-nonce" content="rekonime-inline">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,21 +32,52 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.myanimelist.net" crossorigin>
+  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
   <link rel="dns-prefetch" href="https://api.jikan.moe">
-  <link rel="preload" href="../assets/anime.preview.json" as="fetch" crossorigin="anonymous">
+  <link rel="preload" href="data/anime.preview.json" as="fetch" crossorigin="anonymous">
   <link rel="prefetch" href="../assets/bookmarks.html">
-  <link rel="prefetch" href="../assets/anime.full.json">
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
-    rel="stylesheet">
+    rel="stylesheet"
+    media="print"
+    data-async-style="true">
 
   <!-- Styles -->
-  <script type="module" crossorigin src="../js/main2.js"></script>
+  <link rel="stylesheet" href="../css/styles.min.css" nonce="rekonime-inline" media="print" data-async-style="true">
+  <link rel="stylesheet" href="../css/themes.min.css" nonce="rekonime-inline" media="print" data-async-style="true">
+  <script nonce="rekonime-inline">
+    (function () {
+      var links = document.querySelectorAll('link[data-async-style]');
+      if (!links.length) return;
+      links.forEach(function (link) {
+        var enable = function () { link.media = 'all'; };
+        if (link.media === 'all') return;
+        try {
+          if (link.sheet) {
+            enable();
+            return;
+          }
+        } catch (e) {
+          // Ignore cross-origin access errors
+        }
+        link.addEventListener('load', enable);
+      });
+    })();
+  </script>
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet">
+  </noscript>
+  <script type="module" crossorigin src="../js/performanceMonitor.js"></script>
+  <script type="module" crossorigin src="../js/app.js"></script>
+  <script type="module" crossorigin src="../js/main.min.js"></script>
+  <link rel="stylesheet" crossorigin href="../css/performanceMonitor.css">
   <link rel="stylesheet" crossorigin href="../css/main.css">
 </head>
 
 <body>
-  <div class="app-container" id="app-container">
+  <main class="app-container" id="app-container">
     <header class="header">
       <a class="logo logo-link" href="/index.html" data-home-link data-action="home-shortcut"
         aria-label="Rekonime home (clears filters)">
@@ -58,9 +89,14 @@
       </a>
       <div class="header-controls">
         <div class="header-search-wrapper">
-          <input type="text" id="header-search" class="header-search-input" placeholder="Search anime..."
-            aria-label="Search anime" aria-autocomplete="list" aria-expanded="false"
-            aria-controls="header-search-dropdown" role="combobox" autocomplete="off">
+          <form class="search-form" id="header-search-form" action="" method="GET" role="search">
+            <input type="text" id="header-search" name="search" class="header-search-input"
+              placeholder="Search anime..." aria-label="Search anime" aria-autocomplete="list" aria-expanded="false"
+              aria-controls="header-search-dropdown" role="combobox" autocomplete="off">
+            <noscript>
+              <button class="btn btn-sm btn-outline search-submit" type="submit">Search</button>
+            </noscript>
+          </form>
           <div class="header-search-dropdown" id="header-search-dropdown" role="listbox" aria-label="Search results">
             <!-- Search results populated by JS -->
           </div>
@@ -136,16 +172,18 @@
 
     <div class="quick-filters" id="quick-filters">
       <div class="quick-filters-tabs" role="tablist" aria-label="Quick filters">
-        <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" aria-selected="true"
-          aria-controls="genre-chips">Genre</button>
-        <button class="quick-tab" type="button" data-action="quick-tab" data-tab="themes" aria-selected="false"
-          aria-controls="theme-chips">Theme</button>
+        <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" role="tab"
+          id="quick-tab-genres" aria-selected="true" aria-controls="genre-chips" tabindex="0">Genre</button>
+        <button class="quick-tab" type="button" data-action="quick-tab" data-tab="themes" role="tab"
+          id="quick-tab-themes" aria-selected="false" aria-controls="theme-chips" tabindex="-1">Theme</button>
       </div>
       <div class="quick-filters-panel">
-        <div class="quick-filters-track is-active" id="genre-chips" data-filter-group="genres" data-label="Genre">
+        <div class="quick-filters-track is-active" id="genre-chips" data-filter-group="genres" data-label="Genre"
+          role="tabpanel" aria-labelledby="quick-tab-genres">
           <!-- Populated by JS -->
         </div>
-        <div class="quick-filters-track" id="theme-chips" data-filter-group="themes" data-label="Theme">
+        <div class="quick-filters-track" id="theme-chips" data-filter-group="themes" data-label="Theme" role="tabpanel"
+          aria-labelledby="quick-tab-themes" hidden>
           <!-- Populated by JS -->
         </div>
       </div>
@@ -238,6 +276,88 @@
         </div>
       </div>
       <div class="anime-grid" id="anime-grid">
+        <noscript>
+          <style nonce="rekonime-inline">
+            .skeleton-card {
+              display: none !important;
+            }
+            #recommendations-section,
+            #rankings-section,
+            #trending-section,
+            #because-you-watched-section,
+            .active-filters,
+            .quick-filters,
+            .seasonal-filters,
+            .filter-fab {
+              display: none !important;
+            }
+          </style>
+          <div class="no-js-catalog">
+            <div class="no-js-notice">
+              <h3>JavaScript is required for the full Rekonime experience.</h3>
+              <p>Here are a few featured titles to get you started:</p>
+            </div>
+            <div class="no-js-cards">
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/13/18301l.jpg" alt="Bakusou Kyoudai Let's &amp; Go MAX" loading="lazy" width="64" height="90">
+                <div class="no-js-card-body">
+                  <h4>Bakusou Kyoudai Let's &amp; Go MAX</h4>
+                  <p>1998 &bull; Xebec</p>
+                  <a href="index.html?anime=bakusou-kyoudai-lets-go-max">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/2/74246l.jpg" alt="Q Transformers: Saranaru Ninki Mono e no Michi" loading="lazy" width="64" height="90">
+                <div class="no-js-card-body">
+                  <h4>Q Transformers: Saranaru Ninki Mono e no Michi</h4>
+                  <p>2015 &bull; DLE</p>
+                  <a href="index.html?anime=q-transformers-saranaru-ninki-mono-e-no-michi">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/1753/147435l.jpg" alt="Tenkai Knights" loading="lazy" width="64" height="90">
+                <div class="no-js-card-body">
+                  <h4>Tenkai Knights</h4>
+                  <p>2014 &bull; Bones</p>
+                  <a href="index.html?anime=tenkai-knights">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/7/81992l.jpg" alt="Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou" loading="lazy" width="64" height="90">
+                <div class="no-js-card-body">
+                  <h4>Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou</h4>
+                  <p>2016 &bull; Production I.G</p>
+                  <a href="index.html?anime=haikyuu-karasuno-koukou-vs-shiratorizawa-gakuen-koukou">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/1921/154528l.jpg" alt="Sousou no Frieren 2nd Season" loading="lazy" width="64" height="90">
+                <div class="no-js-card-body">
+                  <h4>Sousou no Frieren 2nd Season</h4>
+                  <p>2026 &bull; Madhouse</p>
+                  <a href="index.html?anime=sousou-no-frieren-2nd-season">View details</a>
+                </div>
+              </article>
+              <article class="no-js-card">
+                <img src="https://cdn.myanimelist.net/images/anime/3/45028l.jpg" alt="Ashita no Joe 2" loading="lazy" width="64" height="90">
+                <div class="no-js-card-body">
+                  <h4>Ashita no Joe 2</h4>
+                  <p>1980 &bull; Tokyo Movie Shinsha</p>
+                  <a href="index.html?anime=ashita-no-joe-2">View details</a>
+                </div>
+              </article>
+            </div>
+            <div class="no-js-links">
+              <span>Popular filters:</span>
+              <a href="index.html?genre=Action">Action</a>
+              <a href="index.html?genre=Drama">Drama</a>
+              <a href="index.html?genre=Fantasy">Fantasy</a>
+              <a href="index.html?genre=Comedy">Comedy</a>
+              <a href="index.html?genre=Romance">Romance</a>
+              <a href="index.html?theme=Isekai">Isekai</a>
+            </div>
+          </div>
+        </noscript>
         <div class="skeleton-card skeleton-grid"></div>
         <div class="skeleton-card skeleton-grid"></div>
         <div class="skeleton-card skeleton-grid"></div>
@@ -258,7 +378,7 @@
     Filters ↑
   </button>
 
-  <div class="modal-overlay filter-modal-overlay" id="filter-modal" aria-hidden="true">
+  <div class="modal-overlay filter-modal-overlay" id="filter-modal" hidden inert>
     <div class="modal-content filter-modal-content" role="dialog" aria-modal="true" aria-labelledby="filter-modal-title"
       tabindex="-1">
       <div class="filter-modal-header">
@@ -280,7 +400,7 @@
     </div>
   </div>
 
-  <div class="modal-overlay settings-modal-overlay" id="settings-modal" aria-hidden="true">
+  <div class="modal-overlay settings-modal-overlay" id="settings-modal" hidden inert>
     <div class="modal-content settings-modal-content" role="dialog" aria-modal="true"
       aria-labelledby="settings-modal-title" tabindex="-1">
       <button class="modal-close" id="close-settings" type="button" aria-label="Close settings">&times;</button>
@@ -296,7 +416,7 @@
 
 
   <!-- Detail Modal -->
-  <div class="modal-overlay" id="detail-modal" aria-hidden="true">
+  <div class="modal-overlay" id="detail-modal" hidden inert>
     <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" tabindex="-1">
       <button class="modal-close" id="close-detail" type="button" aria-label="Close details">&times;</button>
       <div class="modal-body" id="detail-content">
@@ -306,16 +426,37 @@
   </div>
 
   <!-- Metric Help Modal -->
-  <div class="modal-overlay metric-help-overlay" id="metric-help-modal" aria-hidden="true">
+  <div class="modal-overlay metric-help-overlay" id="metric-help-modal" hidden inert>
     <div class="modal-content metric-help-content" role="dialog" aria-modal="true" aria-labelledby="metric-help-title">
       <button class="modal-close" id="close-metric-help" type="button" aria-label="Close help">&times;</button>
+      <h2 class="visually-hidden" id="metric-help-title">Metric help</h2>
       <div class="metric-help-body" id="metric-help-body">
         <!-- Populated by JS -->
       </div>
     </div>
   </div>
 
+  <!-- Offline Indicator -->
+  <div class="offline-indicator" id="offline-indicator" role="status" aria-live="polite" hidden>
+    <span class="offline-icon" aria-hidden="true">!</span>
+    <div class="offline-content">
+      <span class="offline-title">You're offline</span>
+      <span class="offline-features">Checking offline features...</span>
+    </div>
+  </div>
+
+  <!-- Update Notification -->
+  <div class="update-notification" id="update-notification" role="alert" aria-live="polite" hidden>
+    <span class="update-icon" aria-hidden="true">✨</span>
+    <span class="update-text">Update available! Refresh to get the latest version.</span>
+    <button class="update-btn" id="update-btn" type="button">Update Now</button>
+    <button class="update-dismiss" id="update-dismiss" type="button"
+      aria-label="Dismiss update notification">&times;</button>
+  </div>
+  </main>
+
   <!-- Scripts -->
 </body>
 
 </html>
+

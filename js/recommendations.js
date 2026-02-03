@@ -123,6 +123,12 @@ const Recommendations = {
     return (retentionScore * 0.75) + (malSatisfactionScaled * 0.25);
   },
 
+  getEpisodeCount(anime) {
+    const listCount = Array.isArray(anime?.episodes) ? anime.episodes.length : 0;
+    const statsCount = Number.isFinite(anime?.stats?.episodeCount) ? anime.stats.episodeCount : 0;
+    return Math.max(listCount, statsCount);
+  },
+
   /**
    * Generate a simple recommendation reason
    * @param {Object} anime - Anime object with stats
@@ -130,9 +136,13 @@ const Recommendations = {
    */
   getRecommendationReason(anime) {
     const reasons = [];
-    const retentionScore = anime?.stats?.retentionScore ?? 0;
+    const retentionScore = Number.isFinite(anime?.stats?.retentionScore) ? anime.stats.retentionScore : null;
     const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
-    const hasEpisodes = Array.isArray(anime?.episodes) && anime.episodes.length > 0;
+    const hasEpisodes = this.getEpisodeCount(anime) > 0;
+    const churnRiskScore = Number.isFinite(anime?.stats?.churnRisk?.score) ? anime.stats.churnRisk.score : null;
+    const hookScore = Number.isFinite(anime?.stats?.threeEpisodeHook) ? anime.stats.threeEpisodeHook : null;
+    const finishScore = Number.isFinite(anime?.stats?.worthFinishing) ? anime.stats.worthFinishing : null;
+    const flowScore = Number.isFinite(anime?.stats?.flowState) ? anime.stats.flowState : null;
 
     if (!hasEpisodes) {
       if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) {
@@ -141,11 +151,11 @@ const Recommendations = {
       return 'New entry, check back soon';
     }
 
-    if (retentionScore >= 85) reasons.push('Hard to put down');
-    if (anime?.stats?.churnRisk?.score <= 25) reasons.push('Viewers stick around');
-    if (anime?.stats?.threeEpisodeHook >= 80) reasons.push('Hooks you early');
-    if (anime?.stats?.worthFinishing >= 70) reasons.push('Worth the finale');
-    if (anime?.stats?.flowState >= 85) reasons.push('Smooth pacing');
+    if (retentionScore !== null && retentionScore >= 85) reasons.push('Hard to put down');
+    if (churnRiskScore !== null && churnRiskScore <= 25) reasons.push('Viewers stick around');
+    if (hookScore !== null && hookScore >= 80) reasons.push('Hooks you early');
+    if (finishScore !== null && finishScore >= 70) reasons.push('Worth the finale');
+    if (flowScore !== null && flowScore >= 85) reasons.push('Smooth pacing');
     if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) reasons.push('Community favorite');
 
     if (reasons.length === 0) {
@@ -186,20 +196,21 @@ const Recommendations = {
    */
   getBadges(anime) {
     const badges = [];
-    const retentionScore = anime?.stats?.retentionScore ?? 0;
+    const retentionScore = Number.isFinite(anime?.stats?.retentionScore) ? anime.stats.retentionScore : null;
     const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
-    const hasEpisodes = Array.isArray(anime?.episodes) && anime.episodes.length > 0;
+    const hasEpisodes = this.getEpisodeCount(anime) > 0;
+    const hookScore = Number.isFinite(anime?.stats?.threeEpisodeHook) ? anime.stats.threeEpisodeHook : null;
 
-    if (hasEpisodes && retentionScore >= 85) {
+    if (hasEpisodes && retentionScore !== null && retentionScore >= 85) {
       badges.push({ label: 'Keeps You Hooked', class: 'badge-retention' });
     }
     if (malSatisfactionScore !== null && malSatisfactionScore >= 8.5) {
       badges.push({ label: 'Fan Favorite', class: 'badge-satisfaction' });
     }
-    if (hasEpisodes && anime?.stats?.threeEpisodeHook >= 80) {
+    if (hasEpisodes && hookScore !== null && hookScore >= 80) {
       badges.push({ label: 'Great First Impression', class: 'badge-strong-start' });
     }
-    if (hasEpisodes && retentionScore >= 80 && (malSatisfactionScore === null || malSatisfactionScore < 7.2)) {
+    if (hasEpisodes && retentionScore !== null && retentionScore >= 80 && (malSatisfactionScore === null || malSatisfactionScore < 7.2)) {
       badges.push({ label: 'Underrated Pick', class: 'badge-hidden-gem' });
     }
 
@@ -212,9 +223,11 @@ const Recommendations = {
    * @returns {Array} Stat objects
    */
   getCardStats(anime) {
-    const episodeCount = Array.isArray(anime?.episodes) ? anime.episodes.length : 0;
+    const episodeCount = this.getEpisodeCount(anime);
     const hasEpisodes = episodeCount > 0;
-    const retentionScore = hasEpisodes ? Math.round(anime?.stats?.retentionScore ?? 0) : null;
+    const retentionScore = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
+      ? Math.round(anime.stats.retentionScore)
+      : null;
     const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
 
     return [
@@ -290,7 +303,7 @@ const Recommendations = {
    * @returns {number|null} Retention score
    */
   getRetentionScore(anime) {
-    const hasEpisodes = Array.isArray(anime?.episodes) && anime.episodes.length > 0;
+    const hasEpisodes = this.getEpisodeCount(anime) > 0;
     if (!hasEpisodes) return null;
     const score = anime?.stats?.retentionScore;
     return Number.isFinite(score) ? score : null;

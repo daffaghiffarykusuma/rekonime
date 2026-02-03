@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'nonce-rekonime-inline'; style-src 'self' 'nonce-rekonime-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://cdn.myanimelist.net https://myanimelist.cdn-dena.com https://via.placeholder.com https://i.ytimg.com data:; connect-src 'self' https://api.jikan.moe ws://localhost:* ws://127.0.0.1:*; frame-src https://www.youtube.com https://www.youtube-nocookie.com; form-action 'self'; upgrade-insecure-requests">
+    content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'nonce-rekonime-inline'; style-src 'self' 'nonce-rekonime-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://cdn.myanimelist.net https://myanimelist.cdn-dena.com https://images.weserv.nl https://via.placeholder.com https://i.ytimg.com data:; connect-src 'self' https://api.jikan.moe ws://localhost:* ws://127.0.0.1:*; frame-src https://www.youtube.com https://www.youtube-nocookie.com; form-action 'self'; upgrade-insecure-requests">
   <meta name="csp-nonce" content="rekonime-inline">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,20 +29,113 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.myanimelist.net" crossorigin>
+  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
   <link rel="dns-prefetch" href="https://api.jikan.moe">
-  <link rel="preload" href="data/anime.preview.json" as="fetch" crossorigin="anonymous">
   <link rel="prefetch" href="index.html">
+  <link rel="preload" href="/css/bookmarks.min.css" as="style" nonce="rekonime-inline">
+  <link rel="preload" href="/css/themes.min.css" as="style" nonce="rekonime-inline">
+  <script nonce="rekonime-inline">
+    (function () {
+      try {
+        var raw = localStorage.getItem('rekonime.bookmarks');
+        if (!raw) return;
+        var data = JSON.parse(raw);
+        if (!data || typeof data !== 'object') return;
+        var items = Array.isArray(data) ? null : data.items;
+        if (!Array.isArray(items) || items.length === 0) return;
+        var cover = items[0] && items[0].cover;
+        if (!cover || typeof cover !== 'string') return;
+        var trimmed = cover.trim();
+        if (!trimmed) return;
+        if (trimmed.startsWith('//')) {
+          trimmed = 'https:' + trimmed;
+        }
+        if (!/^https?:\/\//i.test(trimmed)) return;
+        var parsed = new URL(trimmed);
+        if (parsed.protocol !== 'https:') return;
+        var host = parsed.hostname.toLowerCase();
+        var allowed = ['cdn.myanimelist.net', 'myanimelist.cdn-dena.com', 'images.weserv.nl', 'via.placeholder.com'];
+        var isAllowed = allowed.some(function (entry) {
+          return host === entry || host.endsWith('.' + entry);
+        });
+        if (!isAllowed) return;
+
+        var proxyStatus = null;
+        try {
+          var proxyRaw = localStorage.getItem('rekonime.imageProxyStatus');
+          if (proxyRaw) {
+            var proxyParsed = JSON.parse(proxyRaw);
+            var checkedAt = Number(proxyParsed && proxyParsed.checkedAt) || 0;
+            var ttl = 6 * 60 * 60 * 1000;
+            if (checkedAt && Date.now() - checkedAt <= ttl) {
+              proxyStatus = proxyParsed && proxyParsed.ok === true ? true : (proxyParsed && proxyParsed.ok === false ? false : null);
+            }
+          }
+        } catch (e) {
+          proxyStatus = null;
+        }
+
+        var linkUrl = trimmed;
+        if (host === 'images.weserv.nl') {
+          linkUrl = trimmed;
+        } else if (proxyStatus === true) {
+          var normalized = trimmed.replace(/^https?:\/\//i, '').replace(/^\/\//, '');
+          linkUrl = 'https://images.weserv.nl/?url=' + encodeURIComponent(normalized) +
+            '&w=240&h=360&fit=cover&output=webp';
+        }
+
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = linkUrl;
+        link.setAttribute('fetchpriority', 'high');
+        link.crossOrigin = 'anonymous';
+        document.head.appendChild(link);
+      } catch (e) {
+        // Ignore preload errors
+      }
+    })();
+  </script>
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
-    rel="stylesheet">
+    rel="stylesheet"
+    media="print"
+    data-async-style="true">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/css/styles.css" nonce="rekonime-inline">
-  <link rel="stylesheet" href="/css/themes.css" nonce="rekonime-inline">
+  <link rel="stylesheet" href="/css/bookmarks.min.css" nonce="rekonime-inline" media="print"
+    data-async-style="true">
+  <link rel="stylesheet" href="/css/themes.min.css" nonce="rekonime-inline" media="print" data-async-style="true">
+  <script nonce="rekonime-inline">
+    (function () {
+      var links = document.querySelectorAll('link[data-async-style]');
+      if (!links.length) return;
+      links.forEach(function (link) {
+        var enable = function () { link.media = 'all'; };
+        if (link.media === 'all') return;
+        try {
+          if (link.sheet) {
+            enable();
+            return;
+          }
+        } catch (e) {
+          // Ignore cross-origin access errors
+        }
+        link.addEventListener('load', enable);
+      });
+    })();
+  </script>
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet">
+    <link rel="stylesheet" href="/css/bookmarks.min.css" nonce="rekonime-inline">
+    <link rel="stylesheet" href="/css/themes.min.css" nonce="rekonime-inline">
+  </noscript>
 </head>
 
 <body>
-  <div class="app-container" id="app-container">
+  <main class="app-container" id="app-container">
     <header class="header">
       <a class="logo logo-link" href="index.html" data-home-link data-action="home-shortcut"
         aria-label="Rekonime home (clears filters)">
@@ -87,7 +180,7 @@
   </div>
 
   <!-- Detail Modal -->
-  <div class="modal-overlay" id="detail-modal" aria-hidden="true">
+  <div class="modal-overlay" id="detail-modal" hidden inert>
     <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" tabindex="-1">
       <button class="modal-close" id="close-detail" type="button" aria-label="Close details">&times;</button>
       <div class="modal-body" id="detail-content">
@@ -96,7 +189,7 @@
     </div>
   </div>
 
-  <div class="modal-overlay settings-modal-overlay" id="settings-modal" aria-hidden="true">
+  <div class="modal-overlay settings-modal-overlay" id="settings-modal" hidden inert>
     <div class="modal-content settings-modal-content" role="dialog" aria-modal="true"
       aria-labelledby="settings-modal-title" tabindex="-1">
       <button class="modal-close" id="close-settings" type="button" aria-label="Close settings">&times;</button>
@@ -111,23 +204,24 @@
   </div>
 
   <!-- Offline/Update Notifications -->
-  <div id="offline-indicator" class="offline-indicator" role="status" aria-live="polite" aria-hidden="true">
+  <div id="offline-indicator" class="offline-indicator" role="status" aria-live="polite" hidden>
     <span class="offline-icon" aria-hidden="true">!</span>
     <div class="offline-content">
       <span class="offline-title">You're offline</span>
       <span class="offline-features">Checking offline features...</span>
     </div>
   </div>
-  <div id="update-notification" class="update-notification" role="status" aria-live="polite" aria-hidden="true">
+  <div id="update-notification" class="update-notification" role="status" aria-live="polite" hidden>
     <div class="update-content">
       <span class="update-text">Update available</span>
       <button id="update-apply" class="update-btn" type="button">Update now</button>
       <button id="update-dismiss" class="update-dismiss" type="button" aria-label="Dismiss update">&times;</button>
     </div>
   </div>
+  </main>
 
   <!-- Scripts -->
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/bookmarks-main.min.js"></script>
 </body>
 
 </html>

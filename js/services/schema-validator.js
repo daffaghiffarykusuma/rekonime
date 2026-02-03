@@ -24,9 +24,40 @@
     });
 
     this.register('rekonime.bookmarks', {
-      type: 'array',
-      items: { type: 'string', minLength: 1 },
-      maxItems: 1000
+      anyOf: [
+        {
+          type: 'array',
+          items: { type: 'string', minLength: 1 },
+          maxItems: 1000
+        },
+        {
+          type: 'object',
+          required: ['ids'],
+          properties: {
+            version: { type: 'integer' },
+            ids: {
+              type: 'array',
+              items: { type: 'string', minLength: 1 },
+              maxItems: 1000
+            },
+            items: {
+              type: 'array',
+              maxItems: 1000,
+              items: {
+                type: 'object',
+                required: ['id', 'title', 'cover'],
+                properties: {
+                  id: { type: 'string', minLength: 1 },
+                  title: { type: 'string', minLength: 1 },
+                  cover: { type: 'string', minLength: 1 }
+                },
+                additionalProperties: true
+              }
+            }
+          },
+          additionalProperties: true
+        }
+      ]
     });
 
     this.register('rekonime.recMode', {

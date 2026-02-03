@@ -16030,7 +16030,7 @@
           "thumbnail": "https://i.ytimg.com/vi/poUibdNvxPQ/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 7.21,
+        "score": 7.23,
         "type": "TV",
         "title_english": "Tune In to the Midnight Heart",
         "title_japanese": "真夜中ハートチューン"
@@ -16038,23 +16038,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.01
+          "score": 4
         },
         {
           "episode": 2,
-          "score": 4.22
-        },
-        {
-          "episode": 3,
-          "score": 4.33
-        },
-        {
-          "episode": 4,
-          "score": 4.23
+          "score": 4.3
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.21
+      "scrape_errors": []
     },
     {
       "mal_id": 52973,
@@ -19143,7 +19134,7 @@
           "thumbnail": "https://i.ytimg.com/vi/iSRJs8e5aRo/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 6.52,
+        "score": 6.57,
         "type": "TV",
         "title_english": "You Can't Be In a Rom-Com with Your Childhood Friends!",
         "title_japanese": "幼馴染とはラブコメにならない"
@@ -19151,23 +19142,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.84
+          "score": 3.8
         },
         {
           "episode": 2,
-          "score": 4.09
-        },
-        {
-          "episode": 3,
-          "score": 4.14
-        },
-        {
-          "episode": 4,
-          "score": 4.19
+          "score": 4.1
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.52
+      "scrape_errors": []
     },
     {
       "mal_id": 51705,
@@ -20939,7 +20921,7 @@
           "thumbnail": "https://i.ytimg.com/vi/rqp_JkzslnM/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 7.82,
+        "score": 7.87,
         "type": "TV",
         "title_english": "Shiboyugi: Playing Death Games to Put Food on the Table",
         "title_japanese": "死亡遊戯で飯を食う。"
@@ -20947,23 +20929,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.32
+          "score": 4.3
         },
         {
           "episode": 2,
-          "score": 4.29
-        },
-        {
-          "episode": 3,
-          "score": 4.38
-        },
-        {
-          "episode": 4,
-          "score": 4.35
+          "score": 4.3
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.82
+      "scrape_errors": []
     },
     {
       "mal_id": 58426,
@@ -30778,19 +30751,10 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.38
-        },
-        {
-          "episode": 2,
-          "score": 4.46
-        },
-        {
-          "episode": 3,
-          "score": 4.43
+          "score": 4.4
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 8.43
+      "scrape_errors": []
     },
     {
       "mal_id": 53287,
@@ -84106,7 +84070,7 @@
         "themes": [],
         "demographic": "Shounen",
         "synopsis": "Second season of Sousou no Frieren.",
-        "score": 9.27,
+        "score": 9.3,
         "episodes_count": 10,
         "trailer": {
           "site": "youtube",
@@ -84124,19 +84088,10 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.65
-        },
-        {
-          "episode": 2,
-          "score": 4.66
-        },
-        {
-          "episode": 3,
-          "score": 4.63
+          "score": 4.7
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 9.27
+      "scrape_errors": []
     },
     {
       "mal_id": 41433,
@@ -91633,7 +91588,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Sequel to Jujutsu Kaisen 2nd Season.",
-        "score": 8.64,
+        "score": 8.59,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -91651,27 +91606,18 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.25
+          "score": 4.2
         },
         {
           "episode": 2,
-          "score": 4.33
+          "score": 4.3
         },
         {
           "episode": 3,
-          "score": 3.86
-        },
-        {
-          "episode": 4,
-          "score": 4.64
-        },
-        {
-          "episode": 5,
-          "score": 4.31
+          "score": 3.8
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 8.64
+      "scrape_errors": []
     },
     {
       "mal_id": 59636,
@@ -92841,7 +92787,7 @@
         ],
         "demographic": "",
         "synopsis": "Fate/strange Fake centers around an imperfect copy of a Grail War based on the Third Holy Grail War in Fuyuki. Following the conclusion of the third Grail War, a US-based organization with magi distinct from the London-based Mage Association, used data from Fuyuki's Grail War to plan their own ritual. Seventy years later, they used the city of Snowfield as the Sacred Land for their own Grail War. However, they were unable to successfully replicate every aspect of the ritual, resulting in it acting only as an imitation that has lost the Saber class and allowed for the summoning of strange Servants due to the blurring of the definition of a \"hero.\"\n\nRohngall and his pupil, Faldeus, have been dispatched by the Mage's Association to investigate the city and the state of the war. Faldeus, a US organization spy, has Rohngall sniped upon his arrival, despite knowing that Rohngall is a puppet. He declares that their Holy Grail War has been in development and is real, causing a commotion at the Clock Tower, and that he wishes to \"advertise\" the project to the Association.\n\n(Source: MAL News)",
-        "score": 8.51,
+        "score": 8.49,
         "episodes_count": 13,
         "trailer": {
           "site": "youtube",
@@ -92859,23 +92805,18 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.41
+          "score": 4.4
         },
         {
           "episode": 2,
-          "score": 4.59
+          "score": 4.6
         },
         {
           "episode": 3,
           "score": 4.6
-        },
-        {
-          "episode": 4,
-          "score": 4.63
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 8.51
+      "scrape_errors": []
     },
     {
       "mal_id": 31181,
@@ -93373,7 +93314,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "\"Hero\" is the worst punishment in the world. Those convicted of heinous crimes are sentenced to become \"Heroes\" and forced to enter the mandatory military service in the war against the Demon Lords. These convicts are not even allowed to die—if killed, they will be resurrected to fight another day.\n\nHero Xylo Forbartz, former head of the Order of the Holy Knights, leads a penal unit of deplorables fighting on the front lines. It is in these direst of circumstances that he meets Teoritta, one of the world's strongest weapons. \"When every last enemy has been defeated, you are to shower me with praise and pat my head.\" In order to survive and to take revenge on those who wronged him, he makes a pact with the goddess and launches headfirst into a maelstrom of war and intrigue.\n\n(Source: Official site, edited)",
-        "score": 8.31,
+        "score": 8.41,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -93391,23 +93332,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.47
+          "score": 4.5
         },
         {
           "episode": 2,
-          "score": 4.18
-        },
-        {
-          "episode": 3,
-          "score": 4.39
-        },
-        {
-          "episode": 4,
-          "score": 4.32
+          "score": 4.2
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 8.31
+      "scrape_errors": []
     },
     {
       "mal_id": 5028,
@@ -99367,7 +99299,7 @@
         "themes": [],
         "demographic": "Josei",
         "synopsis": "Thirty-five-year-old novelist Makio Koudai never had a good relationship with her older sister Minori, who always berated her for being different. Due to this, Makio is not stricken with grief upon hearing the news that Minori and her husband die in a car crash. But when Makio is asked to identify their bodies, she runs into her 15-year-old niece, Asa Takumi, whom she has not seen in years.\n\nStruggling to process her parents' death, Makio reassures Asa that her complicated feelings are valid and suggests that the teenager start writing in a diary as a way to cope with the loss. Upon learning that no other relatives wanted to take in Asa, Makio decides to become her guardian despite her lack of experience. In a world full of uncertainty, the novelist and teenager must learn to live with each other while figuring themselves out.\n\n[Written by MAL Rewrite]",
-        "score": 8.34,
+        "score": 8.22,
         "episodes_count": 13,
         "trailer": {
           "site": "youtube",
@@ -99385,23 +99317,18 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.52
+          "score": 4.5
         },
         {
           "episode": 2,
-          "score": 4.59
+          "score": 4.6
         },
         {
           "episode": 3,
-          "score": 4.76
-        },
-        {
-          "episode": 4,
-          "score": 4.71
+          "score": 4.8
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 8.34
+      "scrape_errors": []
     },
     {
       "mal_id": 3226,
@@ -100622,7 +100549,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second season of Jigokuraku.",
-        "score": 8.18,
+        "score": 8.16,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -100640,19 +100567,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.19
+          "score": 4.2
         },
         {
           "episode": 2,
-          "score": 4.41
-        },
-        {
-          "episode": 3,
-          "score": 4.52
+          "score": 4.5
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 8.18
+      "scrape_errors": []
     },
     {
       "mal_id": 55911,
@@ -101985,7 +101907,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Next to Miyu Suzuki, a trendy and bubbly high school girl, sits Yuusuke Tani, a quiet and frank boy. Their interactions are brief, limited to Suzuki's unprompted random questions and Tani's succinct answers. Yet, beneath these simple exchanges, feelings of love are quietly blossoming.\n\nSuzuki sees Tani for who he is: a straightforward boy who respects everyone equally, completely unconcerned about fitting in. Unlike Tani, she is too hung up on what everyone else thinks, desperate to keep her crush a secret. However, a slight misunderstanding leads to Suzuki confessing her feelings—and to her delight, Tani feels the same. Jittery with excitement, the young couple starts dating, embarking on a wonderful journey of friendship and love.\n\n[Written by MAL Rewrite]",
-        "score": 8.12,
+        "score": 8.1,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -102003,19 +101925,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.62
+          "score": 4.6
         },
         {
           "episode": 2,
-          "score": 4.63
-        },
-        {
-          "episode": 3,
-          "score": 4.66
+          "score": 4.7
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 8.12
+      "scrape_errors": []
     },
     {
       "mal_id": 59898,
@@ -104304,7 +104221,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second part of Enen no Shouboutai: San no Shou.",
-        "score": 8.06,
+        "score": 8.04,
         "episodes_count": 13,
         "trailer": {
           "site": "youtube",
@@ -104322,23 +104239,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.18
+          "score": 4.2
         },
         {
           "episode": 2,
-          "score": 4.45
-        },
-        {
-          "episode": 3,
-          "score": 4.49
-        },
-        {
-          "episode": 4,
-          "score": 4.42
+          "score": 4.5
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 8.06
+      "scrape_errors": []
     },
     {
       "mal_id": 41402,
@@ -107942,7 +107850,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.45
+          "score": 4.5
         },
         {
           "episode": 2,
@@ -107950,19 +107858,10 @@
         },
         {
           "episode": 3,
-          "score": 4.53
-        },
-        {
-          "episode": 4,
-          "score": 4.57
-        },
-        {
-          "episode": 5,
-          "score": 4.63
+          "score": 4.6
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.96
+      "scrape_errors": []
     },
     {
       "mal_id": 77,
@@ -172715,7 +172614,7 @@
         ],
         "demographic": "",
         "synopsis": "Demon King Ahriman has a problem: his daughter, Dou, loves everyone! Consequently, Ahriman had to halt his invasion of the world in the worry that his daughter's behavior is not one befitting someone of her kind. She loves making friends, helping others, and bringing happiness to all creatures including their enemies, the humans.\n\nAhriman, however, congratulates Dou for her good deeds instead of scolding her. With the help of his aide Jahy, who is assigned as Dou's master, the two try to get rid of her kindhearted nature—so that the Demon King's daughter goes from a cute, adorable, and nice little girl to an inhuman, cruel, and twisted little demon.\n\n[Written by MAL Rewrite]",
-        "score": 7.23,
+        "score": 7.24,
         "episodes_count": 12,
         "anilistId": 194742,
         "trailer": {
@@ -172733,27 +172632,22 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.25
+          "score": 4.23
         },
         {
           "episode": 2,
-          "score": 4.3
+          "score": 4.29
         },
         {
           "episode": 3,
-          "score": 4.34
+          "score": 4.36
         },
         {
           "episode": 4,
-          "score": 4.46
-        },
-        {
-          "episode": 5,
-          "score": 4.51
+          "score": 4.49
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.23
+      "scrape_errors": []
     },
     {
       "mal_id": 11457,
@@ -179621,7 +179515,7 @@
         ],
         "demographic": "Shoujo",
         "synopsis": "After seeing Izumi Sano at a high jump competition, Mizuki Ashiya became completely enamored by him—even moving from the United States to Japan and enrolling in the same institute as him. However, Sano's academy is an all-boys school!\n\nDue to her bright personality, Mizuki quickly befriends her class without drawing suspension to her gender. To her surprise, she ends up being not only Sano's classmate but also his roommate. Though she is now able to admire Sano in close proximity, she learns that Sano has quit high jumping and refuses to pick up the sport ever again for unknown reasons. Moreover, the academy's doctor, Hokuto Umeda, might be onto Mizuki's facade. Now, Mizuki has to find a way to reignite Sano's passion—all without revealing her secret.\n\n[Written by MAL Rewrite]",
-        "score": 7.07,
+        "score": 7.08,
         "episodes_count": 12,
         "anilistId": 177580,
         "trailer": {
@@ -179639,27 +179533,22 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.04
+          "score": 4.03
         },
         {
           "episode": 2,
-          "score": 4.14
+          "score": 4.12
         },
         {
           "episode": 3,
-          "score": 4.3
+          "score": 4.31
         },
         {
           "episode": 4,
-          "score": 4.33
-        },
-        {
-          "episode": 5,
-          "score": 4.19
+          "score": 4.32
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.07
+      "scrape_errors": []
     },
     {
       "mal_id": 23433,
@@ -252289,7 +252178,7 @@
         ],
         "demographic": "",
         "synopsis": "By the mid-21st century, Tokyo's criminal underworld is ruled by Demon Lords—crime bosses who have undergone ether enhancement surgery, granting them terrifying superpowers. The only ones who can take them down are Heroes, bounty hunters who boost their own ether powers using the drug E3 (E-Three). With legalized killing as part of the job, being a Hero is less about justice and more about survival.\n\nYashiro, known as the Reaper, is one such Hero—an independent enforcer who works alone. That is, until Jougamine, a high school girl and self-proclaimed \"apprentice,\" forces her way into his life. Reluctantly taking her under his wing, Yashiro soon finds himself caught in a whirlwind of deadly conflicts.\n\n(Source: MAL News)",
-        "score": 6.56,
+        "score": 6.58,
         "episodes_count": 24,
         "anilistId": 187989,
         "trailer": {
@@ -252307,19 +252196,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.67
+          "score": 3.68
         },
         {
           "episode": 2,
-          "score": 3.95
-        },
-        {
-          "episode": 3,
-          "score": 4.06
+          "score": 3.96
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.56
+      "scrape_errors": []
     },
     {
       "mal_id": 61067,
@@ -267127,7 +267011,7 @@
         ],
         "demographic": "",
         "synopsis": "Youki died in a traffic accident and was reborn in a fantasy world! However, instead of being the hero of legends, he ended up reincarnating into an overpowered demon. Having no desires to become the Demon Lord, he sits around in the Demon Lord's castle as a random low rank guardian. One day, the Hero's party comes to attack and on a whim he knocks out the entire hero party. Healing up the Hero party and then preparing to send them back to town, he notices the female priest and falls in love at first sight!\n\n(Source: MU)",
-        "score": 6.68,
+        "score": 6.75,
         "episodes_count": 13,
         "anilistId": 195515,
         "trailer": {
@@ -267153,15 +267037,10 @@
         },
         {
           "episode": 3,
-          "score": 4.02
-        },
-        {
-          "episode": 4,
-          "score": 4
+          "score": 4.04
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.68
+      "scrape_errors": []
     },
     {
       "mal_id": 61549,
@@ -267184,7 +267063,7 @@
         ],
         "demographic": "",
         "synopsis": "Van, the fourth son of a powerful noble, is only two years old when he remembers his past life as a salaryman in Japan. With his adult brain in a young body, he's considered a child prodigy...until he displays the \"Production Magic\" skill when he turns eight. In a family that favors offensive magic, this crafting skill is considered useless in battle, and Van is banished to oversee a tiny country town in disgrace. With only his personal maid, the memories of his past life, and his \"worthless\" magic, can Van improve the fortunes of this little village—and himself?\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.96,
+        "score": 6.97,
         "episodes_count": null,
         "anilistId": 191205,
         "trailer": {
@@ -267210,19 +267089,10 @@
         },
         {
           "episode": 3,
-          "score": 4.03
-        },
-        {
-          "episode": 4,
-          "score": 4.16
-        },
-        {
-          "episode": 5,
-          "score": 0
+          "score": 4.05
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.96
+      "scrape_errors": []
     },
     {
       "mal_id": 1019,
@@ -267429,7 +267299,7 @@
         ],
         "demographic": "",
         "synopsis": "Our hero wakes up one day in a brand new world…but his new life doesn’t come with fighting skills or magic powers, or even arms and legs! He’s reborn as a helpless egg, stuck in an unfamiliar forest surrounded by terrifying, hungry beasts. But eggs hatch, hatchlings grow up, and humble beginnings can lead to something great. He’ll do his best to become the strongest dragon ever, and no measly shell will get in his way!\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.62,
+        "score": 6.65,
         "episodes_count": null,
         "anilistId": 187941,
         "trailer": {
@@ -267447,19 +267317,18 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.67
+          "score": 3.68
         },
         {
           "episode": 2,
-          "score": 3.81
+          "score": 3.79
         },
         {
           "episode": 3,
-          "score": 3.74
+          "score": 0
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.62
+      "scrape_errors": []
     },
     {
       "mal_id": 58985,
@@ -307045,7 +306914,7 @@
         ],
         "demographic": "",
         "synopsis": "It is common knowledge that nobles will do anything for power; lying, manipulation, and extortion are the usual tactics. However, one family is exempt from this generalization: House Grail, whose main tenets are truth and integrity. The youngest daughter, Constance Grail, is just as moral as the rest of her family, believing in always doing the right thing and helping those in need.\n\nHowever, these ideals do not help her when her fiancé cheats on her with another woman. Framed by his lover in the hope of her downfall, Constance has no one to hear her pleas for justice. Everyone turns a blind eye, save for one—the spirit of the infamous Scarlet Castiel—who possesses Constance and turns the tables on her accuser. However, this aid does not come without a price.\n\nTen years ago, Scarlet was executed for the attempted murder of Princess Cecilia. But this was actually a setup; as blunt and harsh as Scarlet could be, she would never stoop so low as to use poison. She has no idea who orchestrated her incrimination, but Scarlet demands that Constance—as the only one who can see her—help her exact revenge on all those who wronged her!\n\n[Written by MAL Rewrite]",
-        "score": 7.15,
+        "score": 7.2,
         "episodes_count": null,
         "anilistId": 183270,
         "trailer": {
@@ -307063,23 +306932,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.16
+          "score": 4.17
         },
         {
           "episode": 2,
-          "score": 4.22
-        },
-        {
-          "episode": 3,
-          "score": 4.31
-        },
-        {
-          "episode": 4,
-          "score": 4.34
+          "score": 4.23
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.15
+      "scrape_errors": []
     },
     {
       "mal_id": 62000,
@@ -307102,7 +306962,7 @@
         ],
         "demographic": "Shoujo",
         "synopsis": "On the day before her downfall, Lady Tiararose Lapis Clementille recalls that she is in an otome game that she had once played in her former life. She used to adore the main love interest Prince Hartknights Lapis-Lazuli Lactomuth, but unfortunately, she was not reincarnated as the heroine, but rather as is his worst enemy—the villainess fiancée.\n\nAt their graduation ceremony, without blinking an eye, Hartknights condemns Tiararose for alleged crimes, breaks off his engagement, and proclaims the heroine Akari as his new bride-to-be. No matter whether Tiararose is innocent, he banishes her from the kingdom. But before her sentence can be carried out, a shocking figure appears. Aquasteed Marineforest, the prince of a powerful neighboring country, has been harboring feelings for Tiararose for quite some time, and announces his intention to marry her!\n\nAdored by the prince of another kingdom, what awaits the villainess on her path to a happy ending?\n\n[Written by MAL Rewrite]",
-        "score": 6.38,
+        "score": 6.5,
         "episodes_count": 12,
         "anilistId": 195518,
         "trailer": {
@@ -307120,19 +306980,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.72
+          "score": 3.7
         },
         {
           "episode": 2,
-          "score": 3.75
-        },
-        {
-          "episode": 3,
-          "score": 3.85
+          "score": 3.76
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.38
+      "scrape_errors": []
     },
     {
       "mal_id": 36220,
@@ -309186,7 +309041,7 @@
         ],
         "demographic": "",
         "synopsis": "Yakou, a gentle human woman, works at a detective agency. Tounome is a smart and gentle invisible man. The invisible man's ability is perfect for detective work. However, the blind Yakou can still figure out where Tounome is, even if he disappears. Before they know it, the two become attracted to each other...?\n\n(Source: Seven Seas Entertainment)",
-        "score": 7.34,
+        "score": 7.3,
         "episodes_count": 12,
         "anilistId": 185039,
         "trailer": {
@@ -309209,18 +309064,9 @@
         {
           "episode": 2,
           "score": 4.55
-        },
-        {
-          "episode": 3,
-          "score": 4.53
-        },
-        {
-          "episode": 4,
-          "score": 4.49
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.34
+      "scrape_errors": []
     },
     {
       "mal_id": 1592,
@@ -309583,7 +309429,7 @@
         ],
         "demographic": "",
         "synopsis": "I'm Rei Hitoma, a self-professed misanthrope thanks to some past trauma. Just when I thought my new teaching job in the mountains would provide a chill, rejuvenating environment, it turns out that this school is actually for demi-humans who want to become full-fledged human beings! There's a mermaid, a werewolf, a rabbit, and a bird...all of whom are now my charges. It's my duty to teach them about humankind—and maybe in the process, I'll learn a few things myself. This isn't an alternate world or a case of reincarnation. It's just the story of a teacher at a somewhat peculiar school, and his students who are striving to become human.\n\n(Source: Yen Press)",
-        "score": 6.26,
+        "score": 6.31,
         "episodes_count": 13,
         "anilistId": 198374,
         "trailer": {
@@ -309601,19 +309447,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.64
+          "score": 3.63
         },
         {
           "episode": 2,
-          "score": 3.77
-        },
-        {
-          "episode": 3,
-          "score": 3.97
+          "score": 3.78
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.26
+      "scrape_errors": []
     },
     {
       "mal_id": 53633,
@@ -309725,7 +309566,7 @@
         ],
         "demographic": "",
         "synopsis": "This is a world where killing and torture are legalized. Sero, a part-time worker at a torture company, enjoys torturing people every day with his senior colleague, Siu. With the addition of new part-timers Mike and Hugh, fun torture life continues!\n\nThe gap between the at-home, easy-going workplace and the gruesome torture is bound to attract a lot of addicts! \n\n(Source: Hakusensha, translated)",
-        "score": 5.65,
+        "score": 5.6,
         "episodes_count": 12,
         "anilistId": 197731,
         "trailer": {
@@ -309743,23 +309584,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.31
+          "score": 3.33
         },
         {
           "episode": 2,
           "score": 3.6
-        },
-        {
-          "episode": 3,
-          "score": 3.97
-        },
-        {
-          "episode": 4,
-          "score": 4.08
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 5.65
+      "scrape_errors": []
     },
     {
       "mal_id": 2014,
@@ -393413,23 +393245,18 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.2
+          "score": 4.21
         },
         {
           "episode": 2,
-          "score": 4.27
+          "score": 4.28
         },
         {
           "episode": 3,
-          "score": 4.45
-        },
-        {
-          "episode": 4,
-          "score": 4.5
+          "score": 4.47
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.5
+      "scrape_errors": []
     },
     {
       "mal_id": 61942,
@@ -393451,7 +393278,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second season of Vigilante: Boku no Hero Academia Illegals.",
-        "score": 7.38,
+        "score": 7.41,
         "episodes_count": 13,
         "anilistId": 195322,
         "trailer": {
@@ -393473,23 +393300,18 @@
         },
         {
           "episode": 2,
-          "score": 4.15
+          "score": 4.17
         },
         {
           "episode": 3,
-          "score": 4.05
+          "score": 4.04
         },
         {
           "episode": 4,
-          "score": 4.24
-        },
-        {
-          "episode": 5,
           "score": 0
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.38
+      "scrape_errors": []
     },
     {
       "mal_id": 54863,
@@ -393513,7 +393335,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Two and a half years have passed since the Lost July incident, a catastrophe that reduced an entire city to ruins and sent shockwaves across the world.\n\nOn the desert planet of No Man's Land, Vash the Stampede, a gunslinger who swore never to take a life, faces his final confrontation with his brother, Millions Knives, who seeks the complete destruction of humanity. As their fates collide, the battle that will determine the future of both mankind and the planet begins.\n\n(Source: MAL News)",
-        "score": 7.39,
+        "score": 7.41,
         "episodes_count": 12,
         "anilistId": 163144,
         "trailer": {
@@ -393531,7 +393353,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.04
+          "score": 4.03
         },
         {
           "episode": 13,
@@ -393542,8 +393364,7 @@
           "score": 0
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.39
+      "scrape_errors": []
     },
     {
       "mal_id": 61128,
@@ -393595,15 +393416,10 @@
         },
         {
           "episode": 4,
-          "score": 3.69
-        },
-        {
-          "episode": 5,
-          "score": 3.79
+          "score": 3.7
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.7
+      "scrape_errors": []
     },
     {
       "mal_id": 61663,
@@ -393628,7 +393444,7 @@
         ],
         "demographic": "Shoujo",
         "synopsis": "Every time Yoi Takiguchi so much as lets out a sigh, her female classmates squeal in admiration and awe. She has been dubbed the school's \"prince\" by virtue of her boyishly attractive appearance and casual disposition. However, she chooses to be indifferent toward the attention she receives and spends her days normally—that is, until the school's other prince, Kohaku Ichimura, waltzes into her life and calls her beautiful.\n\nKohaku is nothing like a prince—he acts thoughtlessly and does as he pleases. But when he compliments her, Yoi feels flustered, and the way he looks at her gets her all nervous. He is the first boy to acknowledge her as a girl, and her attempts to distance herself prove futile as he seems to have set his sights on her. While Yoi keeps telling herself that it is nothing serious, even she cannot completely ignore the stir Kohaku causes in her heart.\n\n[Written by MAL Rewrite]",
-        "score": 7.53,
+        "score": 7.54,
         "episodes_count": null,
         "anilistId": 192507,
         "trailer": {
@@ -393651,14 +393467,9 @@
         {
           "episode": 2,
           "score": 4.43
-        },
-        {
-          "episode": 3,
-          "score": 4.4
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.53
+      "scrape_errors": []
     },
     {
       "mal_id": 60810,
@@ -393678,7 +393489,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Born blind, Kunon aims to be the first person to use water magic to create new eyes for himself. After five months of study, he has already surpassed his teacher, and continues to grow his talents. Not only can his magic help him sense color, but he can also use it to make handy items and even conjure a whole cat! Word of his skills and ingenuity soon reach the court and earn him a spot as disciple to the most powerful magician in the land. But is his ultimate goal even attainable?\n\n(Source: Yen Press)",
-        "score": 6.63,
+        "score": 6.65,
         "episodes_count": null,
         "anilistId": 186333,
         "trailer": {
@@ -393700,7 +393511,7 @@
         },
         {
           "episode": 2,
-          "score": 3.72
+          "score": 3.71
         },
         {
           "episode": 3,
@@ -393708,15 +393519,10 @@
         },
         {
           "episode": 4,
-          "score": 3.98
-        },
-        {
-          "episode": 5,
-          "score": 4.08
+          "score": 3.97
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.63
+      "scrape_errors": []
     },
     {
       "mal_id": 60226,
@@ -393740,7 +393546,7 @@
         ],
         "demographic": "",
         "synopsis": "Already at his wit's end, 29-year-old corporate slave Seiichirou Kondou suddenly witnesses the ground opening up and swallowing a woman. Amid his efforts to save her, the two are transported to another world. He soon learns that the people in this world summoned a saint to save their kingdom from a plague. As compensation for dragging Kondou into the mess, the kingdom assures him that they will provide him with a comfortable life and fulfill any of his desires. To everyone's surprise, Kondou asks for a job.\n\nAfter successfully becoming an accountant at the Royal Palace, Kondou devotes himself to his new post. His accurate and thorough work catches the attention of various high-ranking officials and knights, especially Aresh Indolark, the cold-hearted Knight Captain. As Kondou adjusts to his new exhausting and dangerous environment, he begins to find solace in the company of Aresh, whose icy demeanor may be just a facade.\n\n[Written by MAL Rewrite]",
-        "score": 7.05,
+        "score": 7.07,
         "episodes_count": 12,
         "anilistId": 183661,
         "trailer": {
@@ -393758,23 +393564,18 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.18
+          "score": 4.2
         },
         {
           "episode": 2,
-          "score": 4.11
+          "score": 4.12
         },
         {
           "episode": 3,
-          "score": 4.4
-        },
-        {
-          "episode": 4,
-          "score": 4.43
+          "score": 4.44
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.05
+      "scrape_errors": []
     },
     {
       "mal_id": 61587,
@@ -393797,7 +393598,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Flum Apricot was never meant to be a hero. Despite zero stats across the board and a power she can't even use, she somehow finds herself included in a party of heroes. But Flum's life hits rock bottom when the party's renowned sage, Jean Inteige, decides that the useless girl is dead weight, and arranges to have her sold into slavery. Tossed to monsters to be feasted upon for her master's entertainment, Flum makes the desperate choice to reach for a cursed weapon... and something new awakens within her. A grimdark tale about one woman's blood-soaked quest to reclaim her life!\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.66,
+        "score": 6.71,
         "episodes_count": 12,
         "anilistId": 191718,
         "trailer": {
@@ -393815,7 +393616,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.84
+          "score": 3.83
         },
         {
           "episode": 2,
@@ -393823,19 +393624,10 @@
         },
         {
           "episode": 3,
-          "score": 4.09
-        },
-        {
-          "episode": 4,
-          "score": 4.18
-        },
-        {
-          "episode": 5,
-          "score": 0
+          "score": 4.1
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.66
+      "scrape_errors": []
     },
     {
       "mal_id": 60223,
@@ -393857,7 +393649,7 @@
         ],
         "demographic": "",
         "synopsis": "Kaya-chan is infamous at kindergarten for being a troublemaker. But Ms. Chie, who's been assigned to look after her, soon discovers Kaya's hidden abilities. Get ready for the ultimate horror-action adventure set in kindergarten!\n\n(Source: MAL News)",
-        "score": 7.22,
+        "score": 7.23,
         "episodes_count": 12,
         "anilistId": 183660,
         "trailer": {
@@ -393879,15 +393671,10 @@
         },
         {
           "episode": 2,
-          "score": 4.29
-        },
-        {
-          "episode": 3,
-          "score": 4.4
+          "score": 4.3
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.22
+      "scrape_errors": []
     },
     {
       "mal_id": 61782,
@@ -393907,7 +393694,7 @@
         "themes": [],
         "demographic": "Seinen",
         "synopsis": "With an endearing protagonist and luscious art, this seaside slice-of-life story offers tranquility in the chaos of the modern world. For two years, Wakana Kinme has run a laundry service in the seaside resort town of Atami, where she's built a fulfilling life making friends with the locals and visiting hot springs. Although Wakana has no knowledge of her own past, her cleaning services safeguard memories imbued in customers' precious items.\n\n(Source: Square Enix)",
-        "score": 6.93,
+        "score": 6.94,
         "episodes_count": null,
         "anilistId": 194028,
         "trailer": {
@@ -393925,7 +393712,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.04
+          "score": 4.05
         },
         {
           "episode": 2,
@@ -393933,15 +393720,10 @@
         },
         {
           "episode": 3,
-          "score": 4.31
-        },
-        {
-          "episode": 4,
-          "score": 4.21
+          "score": 4.29
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.93
+      "scrape_errors": []
     },
     {
       "mal_id": 61196,
@@ -393962,7 +393744,7 @@
         "themes": [],
         "demographic": "Shounen",
         "synopsis": "Always ready for a fight! Destruction for destruction's sake! The online streamer Aoringo is a troll, making the worst of the worst of boundary-pushing flamebait content and raking in the revenue from the hate-watchers. You may think he's nothing more than a bottom feeder and a drain on society, but in reality, he's high school dropout Soji Enishiro, a caring older brother with a sweet tooth who loves nothing more than his little sister. His viral videos? Just a way to pay his sister's medical bills. And even if all of humanity hates him, he doesn't care, so long as his little sister gets better. But then, something very strange begins to happen...  Don't miss the debut of this modern-day occult exorcism battle manga!\n\n(Source: Kodansha USA)",
-        "score": 6.44,
+        "score": 6.47,
         "episodes_count": 12,
         "anilistId": 187901,
         "trailer": {
@@ -393980,19 +393762,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.65
+          "score": 3.64
         },
         {
           "episode": 2,
           "score": 3.87
-        },
-        {
-          "episode": 3,
-          "score": 4.01
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.44
+      "scrape_errors": []
     },
     {
       "mal_id": 60509,
@@ -394017,7 +393794,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Deep within the Black Forest teeming with poisonous mushrooms, a witch named Luna lives alone. With skin that is poisonous to the touch and a breath that will kill if close enough, she is forced to stay secluded from nearby civilization. Even with these conditions, Luna still visits a nearby city to deliver medicine and buy new books to read.\n\nDespite Luna having never done harm to any of the city’s residents, many are scared to associate with her, as she is a black witch in a kingdom ruled by white witches. Only able to watch from a distance while people receive her medicine and freely converse with one another, Luna is drawn toward their lives, even if it sometimes means putting herself in danger.\n\n[Written by MAL Rewrite]",
-        "score": 7.21,
+        "score": 7.26,
         "episodes_count": null,
         "anilistId": 185514,
         "trailer": {
@@ -394035,27 +393812,18 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.27
+          "score": 4.28
         },
         {
           "episode": 2,
-          "score": 4.37
+          "score": 4.38
         },
         {
           "episode": 3,
           "score": 4.18
-        },
-        {
-          "episode": 4,
-          "score": 4
-        },
-        {
-          "episode": 5,
-          "score": 4.39
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 7.21
+      "scrape_errors": []
     },
     {
       "mal_id": 61637,
@@ -394076,7 +393844,7 @@
         "themes": [],
         "demographic": "Shounen",
         "synopsis": "This story is about Shinonome Hajime, an adventurer of Silver Range. He's dedicated to fulfilling missions from the guild. One day when completing a quest for monster meat, he finds a strange girl named Lily in a dungeon who's far more trouble than she's worth. Saving the girl from certain death, her story reminds him of his similar past and he takes her under his care...\n\n(Source: MU)",
-        "score": 6.28,
+        "score": 6.35,
         "episodes_count": 12,
         "anilistId": 192261,
         "trailer": {
@@ -394094,7 +393862,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.65
+          "score": 3.64
         },
         {
           "episode": 2,
@@ -394102,15 +393870,10 @@
         },
         {
           "episode": 3,
-          "score": 4.1
-        },
-        {
-          "episode": 4,
-          "score": 4
+          "score": 4.12
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.28
+      "scrape_errors": []
     },
     {
       "mal_id": 59853,
@@ -394133,7 +393896,7 @@
         ],
         "demographic": "",
         "synopsis": "Ever since she was a young girl, Sooha was told to hide her superhuman abilities to avoid getting mistaken for a vampire. Having been accused of being one and blamed for her childhood friend's death, Sooha enrolls in Decelis Academy—a night school where supernatural beings, such as vampires and werewolves, allegedly cannot enter.\n\nAt the academy, Sooha soon encounters Heli, a student who offers friendship despite discovering her secret. Heli introduces Sooha to his close friends—Jaan, Jino, Shion, Jakah, Noa, and Solon—who all have different powers as well. But their connection seems to run deeper than just that; they are curiously drawn to her, feeling as if they would do anything she wishes.\n\nIn light of a recent murder that is said to be the work of a vampire, Heli and his friends' unsettling history slowly unravels. While the seven boys try to shield Sooha from the world of the supernatural, she inevitably gets entangled in the centuries-old rivalry between vampires and werewolves. As tensions intensify, Sooha realizes that she may be closer than ever to the creatures she hates the most.\n\n[Written by MAL Rewrite]",
-        "score": 6.63,
+        "score": 6.68,
         "episodes_count": 12,
         "anilistId": 181443,
         "trailer": {
@@ -394151,27 +393914,22 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.79
+          "score": 3.78
         },
         {
           "episode": 2,
-          "score": 3.7
+          "score": 3.69
         },
         {
           "episode": 3,
-          "score": 4.01
+          "score": 4.05
         },
         {
           "episode": 4,
-          "score": 3.94
-        },
-        {
-          "episode": 5,
           "score": 0
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.63
+      "scrape_errors": []
     },
     {
       "mal_id": 60255,
@@ -394194,7 +393952,7 @@
         ],
         "demographic": "",
         "synopsis": "Arne Neuntöte is a vampire detective who manipulates supernatural powers. Lynn Reinweiß is a nobleman's daughter who loves vampires. Their worlds should never have crossed, but they join hands to solve a bloody mystery. In the darkest of nights, Lynn finds herself in desperate need of help. Then she wanders into the mysterious city of \"Lügenberg,\" where non-humans live.\n\nLynn's world changes drastically when she encounters \"Arne,\" a vampire who is called \"the worst\" in the city. And tonight, a new \"murder case\" has occurred. What is the truth behind the bizarre incidents that take place in a world where humanity and the bizarre intersect?\n\n\"Come on, human. You may dance merrily under the crimson moon.\" \n\n(Source: Steam, edited)",
-        "score": 6.37,
+        "score": 6.44,
         "episodes_count": 12,
         "anilistId": 183984,
         "trailer": {
@@ -394212,23 +393970,18 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.66
+          "score": 3.67
         },
         {
           "episode": 2,
-          "score": 3.79
+          "score": 3.78
         },
         {
           "episode": 3,
           "score": 3.97
-        },
-        {
-          "episode": 4,
-          "score": 3.74
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.37
+      "scrape_errors": []
     },
     {
       "mal_id": 61694,
@@ -394250,7 +394003,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Office Lady Tsuda Akane, age 28, seems like she's got it all together. Beautiful, brainy, and an indispensable office worker for a robotics manufacturer, Akane's admired at work...because her colleagues can't see her at home. Privately, Akane's a hot mess with an apartment that looks more like a landfill than a living space. Good thing she drunkenly ordered a new android named Nadeshiko to help her clean up! Well, maybe not good, because the beautiful lady android that arrives is a horny hottie. Akane's about to get more service than she expected!\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.58,
+        "score": 6.62,
         "episodes_count": 8,
         "anilistId": 192867,
         "trailer": {
@@ -394268,23 +394021,14 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.07
+          "score": 4.06
         },
         {
           "episode": 2,
-          "score": 4
-        },
-        {
-          "episode": 3,
-          "score": 4.09
-        },
-        {
-          "episode": 4,
-          "score": 4.37
+          "score": 4.01
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.58
+      "scrape_errors": []
     },
     {
       "mal_id": 61333,
@@ -394307,7 +394051,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second season of Ao no Miburo.",
-        "score": 6.93,
+        "score": 6.98,
         "episodes_count": null,
         "anilistId": 189258,
         "trailer": {
@@ -394328,8 +394072,7 @@
           "score": 3.84
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.93
+      "scrape_errors": []
     },
     {
       "mal_id": 61969,
@@ -394374,7 +394117,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 2.88
+          "score": 2.89
         },
         {
           "episode": 2,
@@ -394383,14 +394126,9 @@
         {
           "episode": 3,
           "score": 3.8
-        },
-        {
-          "episode": 4,
-          "score": 0
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 5.63
+      "scrape_errors": []
     },
     {
       "mal_id": 62804,
@@ -394415,7 +394153,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Rei Ichidou, Gou Reietsu, Kiyoshi Shusse, Jin Daima, and Dai Monohoshi are five mischievous boys attending Ichiou Junior High. Each with an eccentric personality and a knack for chaos, they've earned a reputation as the infamous \"Kimen-gumi.\"\n\nOne day, new transfer student Yui Kawa and her friend Chie Uru encounter the group and soon find themselves drawn into their antics. Around them are other colorful cliques—from the handsome \"Iro Otoko-gumi\" led by Shou Kireide, to the delinquent \"Ban-gumi\" led by You Nihiruda, the athletic \"Ude-gumi\" led by Kai Undou, and the tough girl squad \"Onna-gumi\" led by Jako Amano.\n\nAs time passes and a new spring begins, the everyday lives of these eccentric students unfold in a lively and comedic school story.\n\n(Source: MAL News)",
-        "score": 5.44,
+        "score": 5.51,
         "episodes_count": 12,
         "anilistId": 200556,
         "trailer": {
@@ -394433,23 +394171,18 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.56
+          "score": 3.61
         },
         {
           "episode": 2,
-          "score": 3.56
+          "score": 3.55
         },
         {
           "episode": 3,
-          "score": 3.38
-        },
-        {
-          "episode": 4,
-          "score": 3.3
+          "score": 3.48
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 5.44
+      "scrape_errors": []
     },
     {
       "mal_id": 62649,
@@ -394475,7 +394208,7 @@
         ],
         "demographic": "",
         "synopsis": "Akina and his friends, having strayed into the Fantasma, find their path blocked by \"Fantôme Fighters\".\n\nThe only ones who can stand against them are the special \"Mythisch Fighters\" chosen by the cards.\n\nWhat is a Fantôme Fighter—\n\nThe collective name for those who confront reality and fight to protect the fabricated.\n\nWhat is a Mythisch Fighter—\n\nThe collective name for those who withstand the Fantôme and fight to protect the real.\n\nWill the parallactic be erased, or will it become the verity?\n—Stand up and fight with your existence on the line.\n\n(Source: Official Twitter)",
-        "score": 6.46,
+        "score": null,
         "episodes_count": null,
         "anilistId": 203296,
         "trailer": null,
@@ -394486,27 +394219,22 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.78
+          "score": 3.63
         },
         {
           "episode": 2,
-          "score": 3.73
+          "score": 3.6
         },
         {
           "episode": 3,
-          "score": 4.1
+          "score": 4
         },
         {
           "episode": 4,
-          "score": 4.25
-        },
-        {
-          "episode": 5,
           "score": 0
         }
       ],
-      "scrape_errors": [],
-      "communityScore": 6.46
+      "scrape_errors": []
     }
   ]
 }

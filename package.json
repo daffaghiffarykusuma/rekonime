@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node tools/generate-version.js && node node_modules/vite/bin/vite.js build && node tools/copy-static.js",
+    "build": "node tools/minify-static.js && node tools/generate-version.js && node node_modules/vite/bin/vite.js build && node tools/copy-static.js",
+    "minify:static": "node tools/minify-static.js",
     "preview": "vite preview",
     "test": "node --test --import ./test/setup.js \"test/**/*.test.js\"",
     "test:unit": "node --test --import ./test/setup.js \"test/unit/**/*.test.js\"",
