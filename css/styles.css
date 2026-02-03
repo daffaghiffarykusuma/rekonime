@@ -3503,6 +3503,14 @@ h4 {
 /* Card animations now use bloom-in defined earlier */
 
 @media (max-width: 960px) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  body {
+    background-attachment: scroll;
+  }
+
   .header {
     flex-direction: column;
     align-items: flex-start;
@@ -3946,7 +3954,8 @@ h4 {
   }
 
   #filter-modal .modal-close,
-  #detail-modal .modal-close {
+  #detail-modal .modal-close,
+  #settings-modal .modal-close {
     position: fixed;
     top: calc(0.75rem + env(safe-area-inset-top));
     right: 0.75rem;
@@ -3958,6 +3967,10 @@ h4 {
 
   #detail-modal .modal-body {
     padding-top: 2.75rem;
+  }
+
+  #settings-modal .settings-modal-body {
+    padding-top: 3.25rem;
   }
 
   .filter-modal-header {
