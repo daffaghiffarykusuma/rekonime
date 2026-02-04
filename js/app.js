@@ -278,6 +278,13 @@ const App = {
     this.gridPageSize = nextSize;
   },
 
+  getInitialGridBatchSize() {
+    const isMobile = this.isMobileViewport();
+    const baseSize = isMobile ? this.initialGridBatchSizeMobile : this.initialGridBatchSize;
+    const clamped = Math.max(6, Math.min(baseSize, this.gridPageSize));
+    return clamped;
+  },
+
   loadImageProxyStatus() {
     if (this.imageProxyStatusLoaded) return;
     this.imageProxyStatusLoaded = true;
@@ -1809,6 +1816,10 @@ const App = {
   gridPageSize: 24,
   gridCurrentPage: 1,
   gridRenderedCount: 0,
+  gridInitialBatchRendered: false,
+  gridDeferredRenderHandle: null,
+  initialGridBatchSize: 12,
+  initialGridBatchSizeMobile: 8,
   gridSortedCache: null,
   gridSortedKey: '',
   gridSortedSource: null,
@@ -5045,9 +5056,14 @@ const App = {
 
     const shouldAppend = append && this.gridRenderedCount > 0;
     const startIndex = shouldAppend ? this.gridRenderedCount : 0;
-    const endIndex = Math.min(sorted.length, this.gridCurrentPage * this.gridPageSize);
+    const targetEndIndex = Math.min(sorted.length, this.gridCurrentPage * this.gridPageSize);
+    let endIndex = targetEndIndex;
+    const shouldDeferInitialBatch = !shouldAppend && !this.gridInitialBatchRendered;
+    if (shouldDeferInitialBatch) {
+      endIndex = Math.min(targetEndIndex, this.getInitialGridBatchSize());
+    }
     const visibleAnime = sorted.slice(startIndex, endIndex);
-    const hasMore = endIndex < sorted.length;
+    const hasMore = targetEndIndex < sorted.length;
 
     if (!shouldAppend) {
       if (this.features.templatePooling && this.features.diffRendering) {
@@ -5068,13 +5084,27 @@ const App = {
     }
 
     this.gridRenderedCount = endIndex;
+    if (!shouldAppend) {
+      this.gridInitialBatchRendered = true;
+    }
+
+    if (shouldDeferInitialBatch && endIndex < targetEndIndex) {
+      if (this.gridDeferredRenderHandle) {
+        this.cancelIdleTask(this.gridDeferredRenderHandle);
+      }
+      this.gridDeferredRenderHandle = this.queueIdleTask(() => {
+        this.gridDeferredRenderHandle = null;
+        if (this.gridRenderedCount >= targetEndIndex) return;
+        this.renderAnimeGrid({ append: true });
+      }, { timeout: 1500 });
+    }
 
     // Add "Load More" button if there are more items
     if (hasMore) {
       container.insertAdjacentHTML('beforeend', `
         <div class="load-more-container">
           <button class="load-more-btn" data-action="load-more">
-            Load More (${sorted.length - endIndex} remaining)
+            Load More (${sorted.length - targetEndIndex} remaining)
           </button>
         </div>
       `);
@@ -5146,6 +5176,11 @@ const App = {
     this.gridSortedCache = null;
     this.gridSortedKey = '';
     this.gridSortedSource = null;
+    this.gridInitialBatchRendered = false;
+    if (this.gridDeferredRenderHandle) {
+      this.cancelIdleTask(this.gridDeferredRenderHandle);
+      this.gridDeferredRenderHandle = null;
+    }
   },
 
   /**
