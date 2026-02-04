@@ -121,7 +121,7 @@ const App = {
   eagerImageCount: 4,
   highPriorityImageCount: 2,
   secondaryRenderHandle: null,
-  discoveryGardenRevealHandle: null,
+  gridVirtualScrollHandle: null,
   features: {
     diffRendering: true,
     templatePooling: true,
@@ -1819,8 +1819,8 @@ const App = {
   gridRenderedCount: 0,
   gridInitialBatchRendered: false,
   gridDeferredRenderHandle: null,
-  initialGridBatchSize: 8,
-  initialGridBatchSizeMobile: 6,
+  initialGridBatchSize: 6,
+  initialGridBatchSizeMobile: 4,
   gridSortedCache: null,
   gridSortedKey: '',
   gridSortedSource: null,
@@ -1892,7 +1892,6 @@ const App = {
       }
 
       this.setupEventListeners();
-      this.scheduleDiscoveryGardenReveal();
       this.setupFullCatalogInteractionTriggers();
       this.queueIdleTask(() => this.setupHealthMonitoring(), { timeout: 2000 });
       this.queueIdleTask(() => this.setupIntelligentPrefetching(), { timeout: 2000 });
@@ -4133,19 +4132,6 @@ const App = {
     }, { timeout: 1200 });
   },
 
-  scheduleDiscoveryGardenReveal() {
-    if (this.discoveryGardenRevealHandle) return;
-    const garden = document.getElementById('discovery-garden');
-    if (!garden || !garden.classList.contains('is-deferred')) return;
-    this.discoveryGardenRevealHandle = this.queueIdleTask(() => {
-      this.discoveryGardenRevealHandle = null;
-      const target = document.getElementById('discovery-garden');
-      if (target) {
-        target.classList.remove('is-deferred');
-      }
-    }, { timeout: 2000 });
-  },
-
   /**
    * Render seasonal filter chips
    */
@@ -5125,7 +5111,13 @@ const App = {
       `);
     }
 
-    this.setupVirtualScrolling(container);
+    if (this.gridVirtualScrollHandle) {
+      this.cancelIdleTask(this.gridVirtualScrollHandle);
+    }
+    this.gridVirtualScrollHandle = this.queueIdleTask(() => {
+      this.gridVirtualScrollHandle = null;
+      this.setupVirtualScrolling(container);
+    }, { timeout: 1500 });
   },
 
   setupVirtualScrolling(container) {
@@ -5195,6 +5187,10 @@ const App = {
     if (this.gridDeferredRenderHandle) {
       this.cancelIdleTask(this.gridDeferredRenderHandle);
       this.gridDeferredRenderHandle = null;
+    }
+    if (this.gridVirtualScrollHandle) {
+      this.cancelIdleTask(this.gridVirtualScrollHandle);
+      this.gridVirtualScrollHandle = null;
     }
   },
 

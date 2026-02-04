@@ -308,9 +308,6 @@
       overflow: hidden;
     }
 
-    .discovery-garden.is-deferred {
-      visibility: hidden;
-    }
 
     .discovery-title {
       font-size: 1.15rem;
@@ -318,8 +315,11 @@
     }
 
     .discovery-subtitle {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       color: var(--text-secondary);
+      line-height: 1.6;
+      max-width: 400px;
+      margin: 0 auto;
     }
 
     .quick-filters {
@@ -568,7 +568,7 @@
       </button>
     </div>
 
-    <div class="discovery-garden is-deferred" id="discovery-garden">
+    <div class="discovery-garden" id="discovery-garden">
       <div class="petal-scatter" aria-hidden="true">
         <span class="floating-petal petal-1">🌸</span>
         <span class="floating-petal petal-2">🌸</span>
