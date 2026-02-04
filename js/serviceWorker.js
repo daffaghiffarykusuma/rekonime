@@ -52,7 +52,8 @@ const ServiceWorkerManager = {
             // Listen for controller change (new SW activated)
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 Logger?.info ? Logger.info('[SW] New controller activated') : console.log('[SW] New controller activated');
-                window.location.reload();
+                this.updateAvailable = true;
+                this.showUpdatePrompt();
             });
 
             // Listen for messages from SW
