@@ -36,6 +36,423 @@
   <link rel="dns-prefetch" href="https://api.jikan.moe">
   <link rel="preload" href="./assets/anime.preview.json" as="fetch" crossorigin="anonymous">
   <link rel="prefetch" href="./assets/bookmarks.html">
+  <style nonce="rekonime-inline">
+    :root {
+      --sakura-pink: #FFB7C5;
+      --sakura-deep: #E89AAB;
+      --sakura-pale: #FFE4E9;
+      --sakura-shadow: #D4849C;
+      --twilight-purple: #9B7CB6;
+      --twilight-lavender: #C4B5E0;
+      --twilight-deep: #6B4E7C;
+      --moss-green: #8FA68E;
+      --warm-gold: #E8C547;
+      --paper-cream: #FDF8F5;
+      --bg-primary: #1A1418;
+      --bg-secondary: #241D22;
+      --bg-tertiary: #2E252B;
+      --card-bg: #241D22;
+      --bg-elevated: #382E35;
+      --text-primary: #F5E6E8;
+      --text-secondary: #E1CDD1;
+      --text-muted: #B7A4A9;
+      --text-tertiary: #9B878C;
+      --accent-primary: var(--sakura-pink);
+      --accent-secondary: var(--sakura-deep);
+      --accent-hover: var(--sakura-deep);
+      --accent-brand: var(--sakura-pink);
+      --accent-glow: rgba(255, 183, 197, 0.3);
+      --success: #A8C5A8;
+      --warning: #E8C89B;
+      --error: #E89B9B;
+      --info: #9BB8E8;
+      --border-color: #3D2E35;
+      --border-hover: #4D3E45;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --shadow-sakura: 0 4px 20px rgba(255, 183, 197, 0.15);
+      --radius: 20px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --focus-ring-strong: rgba(255, 183, 197, 0.9);
+      --focus-ring-soft: rgba(255, 183, 197, 0.25);
+      --success-bg: rgba(168, 197, 168, 0.12);
+      --warning-bg: rgba(232, 200, 155, 0.12);
+      --error-bg: rgba(232, 155, 155, 0.12);
+      --font-display: 'Noto Serif JP', serif;
+      --font-body: 'Noto Sans JP', sans-serif;
+      --font-display-adjust: 0.46;
+      --font-body-adjust: 0.52;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #FDF8F5;
+      --bg-secondary: #FFFFFF;
+      --bg-tertiary: #F5EDEA;
+      --card-bg: #FFFFFF;
+      --bg-elevated: #FAF5F2;
+      --text-primary: #2A1F23;
+      --text-secondary: #4A3F42;
+      --text-muted: #6E5F62;
+      --text-tertiary: #85777A;
+      --border-color: #E8D5D0;
+      --border-hover: #D8C5C0;
+      --shadow: 0 2px 8px rgba(42, 31, 35, 0.08);
+      --shadow-lg: 0 4px 16px rgba(42, 31, 35, 0.12);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-body);
+      font-size-adjust: var(--font-body-adjust);
+      background: var(--bg-primary);
+      color: var(--text-primary, #F5E6E8);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: var(--font-display);
+      font-size-adjust: var(--font-display-adjust);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      color: var(--text-primary, #F5E6E8);
+    }
+
+    .is-hidden {
+      display: none;
+    }
+
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 3rem;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.25rem;
+      padding-bottom: 1rem;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+      flex-wrap: nowrap;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .logo-tagline {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .header-search-wrapper {
+      position: relative;
+    }
+
+    .header-search-input {
+      min-height: 44px;
+      padding: 0.6rem 0.9rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .header-search-dropdown {
+      position: absolute;
+      top: calc(100% + 0.6rem);
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-lg);
+      max-height: 320px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .btn {
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-outline {
+      background: var(--bg-tertiary);
+      border-color: var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--sakura-pink) 0%, var(--sakura-deep) 100%);
+      color: var(--bg-primary);
+      border: none;
+      font-weight: 600;
+    }
+
+    .active-filters {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.5rem 0.75rem;
+      margin: 0.5rem 0 0.25rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      min-height: 44px;
+    }
+
+    .active-filters.is-empty {
+      display: none;
+    }
+
+    .active-filters-content {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .active-filters-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .active-filters-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .discovery-garden {
+      position: relative;
+      padding: 1.25rem 1.5rem;
+      margin: 0.5rem 0 0.75rem;
+      text-align: center;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(255, 183, 197, 0.08) 0%, rgba(155, 124, 182, 0.05) 100%);
+      border: 1px solid rgba(255, 183, 197, 0.15);
+      overflow: hidden;
+    }
+
+    .discovery-title {
+      font-size: 1.15rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .discovery-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .quick-filters {
+      margin-top: 0.75rem;
+    }
+
+    .quick-filters-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .quick-tab {
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    .quick-tab.is-active {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      border-color: var(--accent-primary);
+    }
+
+    .quick-filters-panel {
+      margin-top: 0.6rem;
+    }
+
+    .quick-filters-track {
+      min-height: 2.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.6rem;
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    .seasonal-filters {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      margin-top: 0.75rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .seasonal-filters-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .seasonal-chips {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .recommendations-section,
+    .rankings-section,
+    .grid-section,
+    .trending-section,
+    .because-you-watched-section {
+      margin-bottom: 2.5rem;
+    }
+
+    .recommendations-header,
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-subtitle {
+      color: var(--text-secondary, #E1CDD1);
+      margin-top: 0.4rem;
+    }
+
+    .recommendations-grid,
+    .anime-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.4rem;
+    }
+
+    .skeleton-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+    }
+
+    .skeleton-recommendation {
+      min-height: 220px;
+    }
+
+    .skeleton-grid {
+      min-height: 360px;
+    }
+
+    @media (max-width: 640px) {
+      .app-container {
+        padding: 0.75rem 0.9rem 1.5rem;
+      }
+
+      .header {
+        gap: 0.5rem;
+        margin-bottom: 0.35rem;
+        padding-bottom: 0.5rem;
+      }
+
+      .logo-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.75rem;
+        font-size: 1.35rem;
+      }
+
+      .logo-title {
+        font-size: 1.15rem;
+      }
+
+      .logo-tagline {
+        font-size: 0.7rem;
+      }
+    }
+  </style>
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=optional"
     rel="stylesheet"
@@ -43,23 +460,33 @@
     data-async-style="true">
 
   <!-- Styles -->
+  <link rel="stylesheet" href="./css/styles.min.css" nonce="rekonime-inline" media="print" data-noncritical="true">
+  <link rel="stylesheet" href="./css/themes.min.css" nonce="rekonime-inline" media="print" data-noncritical="true">
   <script nonce="rekonime-inline">
     (function () {
-      var links = document.querySelectorAll('link[data-async-style]');
+      var links = document.querySelectorAll('link[data-async-style], link[data-noncritical]');
       if (!links.length) return;
-      links.forEach(function (link) {
-        var enable = function () { link.media = 'all'; };
-        if (link.media === 'all') return;
-        try {
-          if (link.sheet) {
-            enable();
-            return;
+      var enable = function (link) { link.media = 'all'; };
+      var activate = function () {
+        links.forEach(function (link) {
+          if (link.media === 'all') return;
+          link.addEventListener('load', function () { enable(link); }, { once: true });
+          try {
+            if (link.sheet) {
+              enable(link);
+            }
+          } catch (e) {
+            // Ignore cross-origin access errors
           }
-        } catch (e) {
-          // Ignore cross-origin access errors
-        }
-        link.addEventListener('load', enable);
-      });
+        });
+      };
+      if ('requestAnimationFrame' in window) {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(activate);
+        });
+      } else {
+        setTimeout(activate, 0);
+      }
     })();
   </script>
   <noscript>

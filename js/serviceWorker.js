@@ -18,6 +18,10 @@ const ServiceWorkerManager = {
      * Register the service worker
      */
     async register() {
+        if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+            Logger?.info ? Logger.info('[SW] Skipping registration on file protocol') : console.log('[SW] Skipping registration on file protocol');
+            return false;
+        }
         if (this.isLocalhost()) {
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
@@ -32,7 +36,7 @@ const ServiceWorkerManager = {
         }
 
         try {
-            const registration = await navigator.serviceWorker.register('./sw.js');
+            const registration = await navigator.serviceWorker.register('/sw.js');
             this.registration = registration;
 
             Logger?.info ? Logger.info('[SW] Registered successfully', { scope: registration.scope }) : console.log('[SW] Registered successfully:', registration.scope);
