@@ -6142,3 +6142,68 @@ summary:focus-visible,
     grid-template-columns: 1fr;
   }
 }
+
+/* Performance-friendly mode (mobile, save-data, reduced motion) */
+[data-low-motion="true"] body {
+  background-attachment: scroll;
+}
+
+[data-low-motion="true"] .app-container::before {
+  display: none;
+}
+
+[data-low-motion="true"] .floating-petal {
+  animation: none;
+}
+
+[data-low-motion="true"] .anime-card,
+[data-low-motion="true"] .recommendation-card,
+[data-low-motion="true"] .trending-card,
+[data-low-motion="true"] .ranking-card {
+  animation: none;
+  transition: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+[data-low-motion="true"] .anime-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 16rem 24rem;
+}
+
+[data-low-motion="true"] .recommendation-card,
+[data-low-motion="true"] .trending-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 16rem 18rem;
+}
+
+@media (pointer: coarse) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .app-container::before {
+    display: none;
+  }
+
+  .floating-petal {
+    animation: none;
+  }
+
+  .anime-card,
+  .recommendation-card,
+  .trending-card,
+  .ranking-card {
+    animation: none;
+    transition: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+}
+
+@media (hover: none) {
+  .anime-card:hover,
+  .recommendation-card:hover,
+  .trending-card:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+}

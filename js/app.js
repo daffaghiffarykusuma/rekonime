@@ -264,6 +264,34 @@ const App = {
     return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
   },
 
+  isCoarsePointer() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(pointer: coarse)').matches;
+  },
+
+  prefersReducedMotion() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  },
+
+  shouldEnableLowMotionMode() {
+    const connection = this.getConnectionInfo();
+    const saveData = Boolean(connection?.saveData);
+    return saveData || this.isCoarsePointer() || this.prefersReducedMotion();
+  },
+
+  applyPerformancePreferences() {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    const enableLowMotion = this.shouldEnableLowMotionMode();
+    if (enableLowMotion) {
+      root.setAttribute('data-low-motion', 'true');
+    } else {
+      root.removeAttribute('data-low-motion');
+    }
+    this.features.virtualScrolling = !enableLowMotion;
+  },
+
   updateGridPageSize() {
     const connection = this.getConnectionInfo();
     const effectiveType = String(connection?.effectiveType || '').toLowerCase();
@@ -1861,6 +1889,7 @@ const App = {
       });
       this.loadSettings();
       this.updateGridPageSize();
+      this.applyPerformancePreferences();
       this.scheduleImageProxyCheck();
 
       // Check and trigger onboarding for first-time users

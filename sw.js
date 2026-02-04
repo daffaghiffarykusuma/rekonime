@@ -3,7 +3,7 @@
  * Provides offline caching and data persistence
  */
 
-const CACHE_VERSION = 'v1770243731196-f6b7723';
+const CACHE_VERSION = 'v1770244957843-ef66919';
 const STATIC_CACHE = `rekonime-static-${CACHE_VERSION}`;
 const DATA_CACHE = `rekonime-data-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rekonime-images-${CACHE_VERSION}`;
