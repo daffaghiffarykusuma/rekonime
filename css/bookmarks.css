@@ -1561,8 +1561,8 @@ h4 {
   --error-bg: rgba(232, 155, 155, 0.12);
 
   /* Typography */
-  --font-display: 'Noto Serif JP', 'Playfair Display', serif;
-  --font-body: 'Noto Sans JP', 'DM Sans', sans-serif;
+  --font-display: 'Noto Serif JP', serif;
+  --font-body: 'Noto Sans JP', sans-serif;
 
   /* Organic Easing Functions */
   --ease-petal: cubic-bezier(0.4, 0, 0.2, 1);

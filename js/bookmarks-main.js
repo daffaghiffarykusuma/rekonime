@@ -1,8 +1,5 @@
 import { ThemeManager } from './themeManager.js';
-import { ServiceWorkerManager } from './serviceWorker.js';
-import { AnalyticsService } from './services/analytics-service.js';
 import { Logger } from './services/logger.js';
-import { PerformanceMonitor } from './performanceMonitor.js';
 
 const BOOKMARK_STORAGE_KEY = 'rekonime.bookmarks';
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/120x170?text=No+Image';
@@ -33,6 +30,29 @@ const queueIdleTask = (callback, timeoutMs = 2000) => {
   } else {
     window.setTimeout(callback, 0);
   }
+};
+
+const initNonCriticalServices = () => {
+  queueIdleTask(async () => {
+    try {
+      const [swModule, analyticsModule, perfModule] = await Promise.all([
+        import('./serviceWorker.js'),
+        import('./services/analytics-service.js'),
+        import('./performanceMonitor.js')
+      ]);
+
+      const { ServiceWorkerManager } = swModule;
+      const { AnalyticsService } = analyticsModule;
+      const { PerformanceMonitor } = perfModule;
+
+      AnalyticsService.init();
+      PerformanceMonitor.init();
+      ServiceWorkerManager.register();
+      ServiceWorkerManager.initConnectivityListeners();
+    } catch (error) {
+      Logger?.warn?.('Deferred services failed to init', { error });
+    }
+  });
 };
 
 const loadImageProxyStatus = () => {
@@ -376,11 +396,8 @@ const setupSettingsHandler = () => {
 
 const bootstrap = () => {
   Logger.init({ level: 'info', captureGlobalErrors: true });
-  AnalyticsService.init();
-  PerformanceMonitor.init();
   ThemeManager.init();
-  ServiceWorkerManager.register();
-  ServiceWorkerManager.initConnectivityListeners();
+  initNonCriticalServices();
   scheduleImageProxyCheck();
 
   renderBookmarks();

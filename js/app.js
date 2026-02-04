@@ -66,6 +66,7 @@ const App = {
   bookmarkStorageKey: 'rekonime.bookmarks',
   settingsStorageKey: 'rekonime.settings',
   settings: null,
+  settingsRendered: false,
   bookmarkIds: [],
   bookmarkIdSet: new Set(),
   bookmarkItemMap: new Map(),
@@ -1518,6 +1519,9 @@ const App = {
     const modal = document.getElementById('settings-modal');
     if (!modal) return;
     const isOpen = modal.classList.contains('visible');
+    if (!isOpen) {
+      this.ensureSettingsRendered();
+    }
     this.setModalVisibility('settings-modal', !isOpen, { initialFocusSelector: '#close-settings' });
   },
 
@@ -1525,11 +1529,17 @@ const App = {
     this.setModalVisibility('settings-modal', false);
   },
 
+  ensureSettingsRendered() {
+    if (this.settingsRendered) return;
+    this.renderSettingsModal();
+  },
+
   renderSettingsModal() {
     const container = document.getElementById('settings-content');
     if (!container) return;
     container.innerHTML = this.renderSettingsPanel({ includeTitle: false });
     this.updateSettingsUi();
+    this.settingsRendered = true;
   },
 
   loadBookmarks() {
@@ -1824,11 +1834,10 @@ const App = {
       });
       this.loadSettings();
       this.scheduleImageProxyCheck();
-      this.renderSettingsModal();
 
       // Check and trigger onboarding for first-time users
       if (!Onboarding.hasCompleted()) {
-        setTimeout(() => Onboarding.startTour(), 500);
+        this.queueIdleTask(() => Onboarding.startTour(), { timeout: 3000 });
       }
 
       const isCatalogPage = this.isCatalogPage();
@@ -1855,9 +1864,9 @@ const App = {
       }
 
       this.setupEventListeners();
-      this.setupHealthMonitoring();
       this.setupFullCatalogInteractionTriggers();
-      this.setupIntelligentPrefetching();
+      this.queueIdleTask(() => this.setupHealthMonitoring(), { timeout: 2000 });
+      this.queueIdleTask(() => this.setupIntelligentPrefetching(), { timeout: 2000 });
       this.initSeo();
       this.updateHomeLinks();
 
