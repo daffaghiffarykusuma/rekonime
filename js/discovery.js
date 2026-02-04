@@ -354,19 +354,33 @@ const Discovery = {
      * Get trending anime
      */
     getTrending(animeList, limit = 6) {
-        const scored = animeList.map(anime => ({
-            anime,
-            trendingScore: this.calculateTrendingScore(anime)
-        }));
+        if (!Array.isArray(animeList) || animeList.length === 0) return [];
+        const top = [];
+        const maxItems = Math.max(1, limit);
 
-        return scored
-            .sort((a, b) => b.trendingScore - a.trendingScore)
-            .slice(0, limit)
-            .map(entry => ({
-                ...entry.anime,
-                trendingRank: entry.trendingScore,
-                isTrending: true
-            }));
+        for (let i = 0; i < animeList.length; i += 1) {
+            const anime = animeList[i];
+            const score = this.calculateTrendingScore(anime);
+            if (!Number.isFinite(score)) continue;
+
+            if (top.length < maxItems) {
+                top.push({ anime, score });
+                if (top.length === maxItems) {
+                    top.sort((a, b) => b.score - a.score);
+                }
+                continue;
+            }
+
+            if (score <= top[top.length - 1].score) continue;
+            top[top.length - 1] = { anime, score };
+            top.sort((a, b) => b.score - a.score);
+        }
+
+        return top.map(entry => ({
+            ...entry.anime,
+            trendingRank: entry.score,
+            isTrending: true
+        }));
     },
 
     /**

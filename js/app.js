@@ -121,6 +121,7 @@ const App = {
   eagerImageCount: 4,
   highPriorityImageCount: 2,
   secondaryRenderHandle: null,
+  secondaryRenderInFlight: false,
   gridVirtualScrollHandle: null,
   deferFilterUiOnce: false,
   deferFilterUiHandle: null,
@@ -4169,13 +4170,31 @@ const App = {
   },
 
   scheduleSecondaryRenders() {
-    if (this.secondaryRenderHandle) return;
+    if (this.secondaryRenderInFlight) return;
+    this.secondaryRenderInFlight = true;
+
+    const tasks = [
+      () => this.renderRankings(),
+      () => this.renderRecommendations(),
+      () => this.renderBecauseYouWatched(),
+      () => this.renderTrending()
+    ];
+
+    const runNext = () => {
+      const task = tasks.shift();
+      if (task) {
+        task();
+      }
+      if (tasks.length > 0) {
+        this.queueIdleTask(runNext, { timeout: 1200 });
+        return;
+      }
+      this.secondaryRenderInFlight = false;
+    };
+
     this.secondaryRenderHandle = this.queueIdleTask(() => {
       this.secondaryRenderHandle = null;
-      this.renderRankings();
-      this.renderRecommendations();
-      this.renderBecauseYouWatched();
-      this.renderTrending();
+      runNext();
     }, { timeout: 1200 });
   },
 
@@ -4993,10 +5012,42 @@ const App = {
     }).join('');
   },
 
+  getTopAnimeByMetric(animeList, metric) {
+    if (!Array.isArray(animeList) || animeList.length === 0) return null;
+    let best = null;
+    let bestValue = Number.NEGATIVE_INFINITY;
+
+    const readValue = (anime) => {
+      if (!anime) return Number.NEGATIVE_INFINITY;
+      if (metric === 'retention') {
+        return Number.isFinite(anime?.stats?.retentionScore) ? anime.stats.retentionScore : Number.NEGATIVE_INFINITY;
+      }
+      if (metric === 'satisfaction') {
+        return Number.isFinite(anime?.communityScore) ? anime.communityScore : Number.NEGATIVE_INFINITY;
+      }
+      if (metric === 'consistency') {
+        return Number.isFinite(anime?.stats?.stdDev) ? -anime.stats.stdDev : Number.NEGATIVE_INFINITY;
+      }
+      const fallback = anime?.stats?.[metric];
+      return Number.isFinite(fallback) ? fallback : Number.NEGATIVE_INFINITY;
+    };
+
+    for (let i = 0; i < animeList.length; i += 1) {
+      const anime = animeList[i];
+      const value = readValue(anime);
+      if (value > bestValue) {
+        bestValue = value;
+        best = anime;
+      }
+    }
+
+    return best;
+  },
+
   /**
    * Render rankings section
    */
-  async renderRankings() {
+  renderRankings() {
     const container1 = document.getElementById('best-ranking-1');
     const container2 = document.getElementById('best-ranking-2');
     const title1 = document.getElementById('ranking-title-1');
@@ -5005,16 +5056,6 @@ const App = {
     if (!container1 || !container2) return;
     container1.removeAttribute('aria-busy');
     container2.removeAttribute('aria-busy');
-
-    let Stats = null;
-    try {
-      Stats = await this.loadStatsModule();
-    } catch (error) {
-      const fallback = '<p class="no-data">Rankings unavailable</p>';
-      container1.innerHTML = fallback;
-      container2.innerHTML = fallback;
-      return;
-    }
 
     const dataToUse = this.filteredData;
 
@@ -5026,19 +5067,17 @@ const App = {
     if (title2) title2.textContent = rankingConfig.title2;
 
     // Ranking 1
-    const byMetric1 = Stats.rankAnime(dataToUse, rankingConfig.metric1);
-    if (byMetric1.length > 0) {
-      const best = byMetric1[0];
-      container1.innerHTML = this.renderRankingCard(best, rankingConfig.metric1);
+    const best1 = this.getTopAnimeByMetric(dataToUse, rankingConfig.metric1);
+    if (best1) {
+      container1.innerHTML = this.renderRankingCard(best1, rankingConfig.metric1);
     } else {
       container1.innerHTML = '<p class="no-data">No anime match filters</p>';
     }
 
     // Ranking 2
-    const byMetric2 = Stats.rankAnime(dataToUse, rankingConfig.metric2);
-    if (byMetric2.length > 0) {
-      const best = byMetric2[0];
-      container2.innerHTML = this.renderRankingCard(best, rankingConfig.metric2);
+    const best2 = this.getTopAnimeByMetric(dataToUse, rankingConfig.metric2);
+    if (best2) {
+      container2.innerHTML = this.renderRankingCard(best2, rankingConfig.metric2);
     } else {
       container2.innerHTML = '<p class="no-data">No anime match filters</p>';
     }

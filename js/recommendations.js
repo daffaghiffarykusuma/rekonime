@@ -5,6 +5,32 @@ import { CacheManager } from './services/cache-manager.js';
  */
 
 const Recommendations = {
+  selectTopByScore(animeList, limit, scorer, { minScore = Number.NEGATIVE_INFINITY } = {}) {
+    if (!Array.isArray(animeList) || animeList.length === 0) return [];
+    const top = [];
+    const maxItems = Math.max(1, limit);
+
+    for (let i = 0; i < animeList.length; i += 1) {
+      const anime = animeList[i];
+      const score = scorer(anime);
+      if (!Number.isFinite(score) || score < minScore) continue;
+
+      if (top.length < maxItems) {
+        top.push({ anime, score });
+        if (top.length === maxItems) {
+          top.sort((a, b) => b.score - a.score);
+        }
+        continue;
+      }
+
+      if (score <= top[top.length - 1].score) continue;
+      top[top.length - 1] = { anime, score };
+      top.sort((a, b) => b.score - a.score);
+    }
+
+    return top;
+  },
+
   /**
    * Get recommended anime based on Retention Score with a satisfaction nudge (MAL)
    * @param {Array} animeList - Array of anime objects with stats
@@ -14,16 +40,11 @@ const Recommendations = {
   getRecommendations(animeList, limit = 5) {
     if (!animeList || animeList.length === 0) return [];
 
-    const scored = animeList.map(anime => ({
-      anime,
-      recScore: this.scoreAnime(anime),
-      reason: this.getRecommendationReason(anime)
+    const top = this.selectTopByScore(animeList, limit, anime => this.scoreAnime(anime));
+    return top.map(entry => ({
+      ...entry.anime,
+      reason: this.getRecommendationReason(entry.anime)
     }));
-
-    return scored
-      .sort((a, b) => b.recScore - a.recScore)
-      .slice(0, limit)
-      .map(entry => ({ ...entry.anime, reason: entry.reason }));
   },
 
   /**
@@ -541,17 +562,17 @@ const Recommendations = {
 
     if (!animeList || animeList.length === 0) return [];
 
-    const scored = animeList.map(anime => ({
-      anime,
-      recScore: this.scoreAnimeWithMode(anime, modeKey),
-      reason: this.getRecommendationReasonForMode(anime, modeKey)
-    }));
+    const top = this.selectTopByScore(
+      animeList,
+      limit,
+      anime => this.scoreAnimeWithMode(anime, modeKey),
+      { minScore: 0.0001 }
+    );
 
-    return scored
-      .filter(s => s.recScore > 0)
-      .sort((a, b) => b.recScore - a.recScore)
-      .slice(0, limit)
-      .map(entry => ({ ...entry.anime, reason: entry.reason }));
+    return top.map(entry => ({
+      ...entry.anime,
+      reason: this.getRecommendationReasonForMode(entry.anime, modeKey)
+    }));
   },
 
   /**
