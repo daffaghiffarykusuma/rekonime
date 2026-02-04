@@ -133,7 +133,7 @@ const shouldUseImageProxy = () => {
   const status = getImageProxyStatus();
   if (status === null) {
     scheduleImageProxyCheck();
-    return false;
+    return true;
   }
   return status === true;
 };

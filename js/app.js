@@ -263,6 +263,21 @@ const App = {
     return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
   },
 
+  updateGridPageSize() {
+    const connection = this.getConnectionInfo();
+    const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+    const isSlow = Boolean(connection?.saveData) || effectiveType.includes('2g') || effectiveType.includes('3g');
+    const isMobile = this.isMobileViewport();
+    let nextSize = 24;
+    if (isMobile) {
+      nextSize = 16;
+    }
+    if (isSlow) {
+      nextSize = Math.min(nextSize, 12);
+    }
+    this.gridPageSize = nextSize;
+  },
+
   loadImageProxyStatus() {
     if (this.imageProxyStatusLoaded) return;
     this.imageProxyStatusLoaded = true;
@@ -347,7 +362,7 @@ const App = {
     const status = this.getImageProxyStatus();
     if (status === null) {
       this.scheduleImageProxyCheck();
-      return false;
+      return true;
     }
     return status === true;
   },
@@ -1833,6 +1848,7 @@ const App = {
         getBookmarkedAnime: () => this.getBookmarkedAnime()
       });
       this.loadSettings();
+      this.updateGridPageSize();
       this.scheduleImageProxyCheck();
 
       // Check and trigger onboarding for first-time users

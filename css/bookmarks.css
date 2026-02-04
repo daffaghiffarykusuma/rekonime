@@ -41,6 +41,7 @@ html {
 
 body {
   font-family: var(--font-body);
+  font-size-adjust: var(--font-body-adjust);
   background: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.7;
@@ -81,6 +82,7 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
+  font-size-adjust: var(--font-display-adjust);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -1563,6 +1565,8 @@ h4 {
   /* Typography */
   --font-display: 'Noto Serif JP', serif;
   --font-body: 'Noto Sans JP', sans-serif;
+  --font-display-adjust: 0.46;
+  --font-body-adjust: 0.52;
 
   /* Organic Easing Functions */
   --ease-petal: cubic-bezier(0.4, 0, 0.2, 1);
