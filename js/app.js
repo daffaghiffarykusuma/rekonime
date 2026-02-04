@@ -4173,6 +4173,7 @@ const App = {
 
     const modes = Recommendations.modes;
     const currentMode = Recommendations.currentMode;
+    const contextEl = document.getElementById('recommendations-context');
 
     container.innerHTML = Object.entries(modes).map(([key, mode]) => {
       const isActive = key === currentMode;
@@ -4187,6 +4188,13 @@ const App = {
         </button>
       `;
     }).join('');
+
+    if (contextEl) {
+      const nextContext = Recommendations.getModeContext(currentMode);
+      if (contextEl.textContent.trim() !== nextContext) {
+        contextEl.textContent = nextContext;
+      }
+    }
   },
 
   /**
@@ -4834,17 +4842,11 @@ const App = {
    */
   renderRecommendations() {
     const container = document.getElementById('recommendations-grid');
-    const contextEl = document.getElementById('recommendations-context');
     if (!container) return;
     container.classList.remove('is-loading');
     container.removeAttribute('aria-busy');
     const recDims = this.getImageDimensions('recommendation');
     const recDimAttrs = recDims ? `width="${recDims.width}" height="${recDims.height}"` : '';
-
-    // Update context based on current mode
-    if (contextEl) {
-      contextEl.textContent = Recommendations.getModeContext();
-    }
 
     // Get recommendations with current mode
     const recommendations =

@@ -86,6 +86,7 @@ h4 {
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
+  color: var(--text-primary, #F5E6E8);
 }
 
 /* Animations */
@@ -484,7 +485,7 @@ h4 {
 .ranking-card h3 {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #E1CDD1);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 1rem;
@@ -539,6 +540,7 @@ h4 {
 .grid-section h2 {
   font-size: 1.25rem;
   font-weight: 600;
+  color: var(--text-primary, #F5E6E8);
   margin-bottom: 1.5rem;
 }
 
@@ -1970,7 +1972,7 @@ h4 {
 body {
   font-family: var(--font-body);
   background: var(--bg-primary);
-  color: var(--text-primary);
+  color: var(--text-primary, #F5E6E8);
   line-height: 1.7;
 
   /* Ambient Gradient Mesh Background */
@@ -2860,7 +2862,7 @@ h4 {
 }
 
 .section-subtitle {
-  color: var(--text-secondary);
+  color: var(--text-secondary, #E1CDD1);
   margin-top: 0.4rem;
 }
 
@@ -3258,6 +3260,7 @@ h4 {
 .stat-value {
   font-weight: 700;
   display: block;
+  color: var(--text-primary, #F5E6E8);
 }
 
 .stat-label {
