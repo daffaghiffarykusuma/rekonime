@@ -122,6 +122,9 @@ const App = {
   highPriorityImageCount: 2,
   secondaryRenderHandle: null,
   gridVirtualScrollHandle: null,
+  deferFilterUiOnce: false,
+  deferFilterUiHandle: null,
+  deferFilterUiUsed: false,
   features: {
     diffRendering: true,
     templatePooling: true,
@@ -2351,6 +2354,7 @@ const App = {
     await this.ensureStats();
     this.refreshBookmarkCacheFromCatalog({ persist: true });
     this.extractFilterOptions();
+    this.deferFilterUiOnce = !this.deferFilterUiUsed && this.shouldEnableLowMotionMode();
 
     if (!this.urlFiltersApplied && this.isCatalogPage()) {
       const hasFilterParams = this.hasFilterParamsInUrl();
@@ -2361,13 +2365,15 @@ const App = {
       }
     }
 
-    this.updateSortOptions();
-    if (this.filterPanelRendered || this.filterPanelOpen) {
-      this.renderFilterPanel({ force: true });
-    } else {
-      this.scheduleFilterPanelRender();
+    if (!this.deferFilterUiOnce) {
+      this.updateSortOptions();
+      if (this.filterPanelRendered || this.filterPanelOpen) {
+        this.renderFilterPanel({ force: true });
+      } else {
+        this.scheduleFilterPanelRender();
+      }
+      this.renderQuickFilters();
     }
-    this.renderQuickFilters();
     this.applyFilters({ syncUrl: false, updateMeta: false });
   },
 
@@ -4065,7 +4071,14 @@ const App = {
    * Apply all active filters to data
    */
   applyFilters({ syncUrl = true, replaceUrl = false, updateMeta = true } = {}) {
-    this.filteredData = this.animeData.filter(anime => {
+    const hasActiveFilters = Object.values(this.activeFilters).some(values =>
+      Array.isArray(values) && values.length > 0
+    );
+
+    if (!hasActiveFilters) {
+      this.filteredData = this.animeData;
+    } else {
+      this.filteredData = this.animeData.filter(anime => {
       // Check season-year filter
       if (this.activeFilters.seasonYear.length > 0) {
         const animeSeasonYear = `${anime.season} ${anime.year}`;
@@ -4124,7 +4137,8 @@ const App = {
       }
 
       return true;
-    });
+      });
+    }
 
     // Reset pagination when filters change
     this.resetGridPagination();
@@ -4143,8 +4157,12 @@ const App = {
   render() {
     this.renderActiveFilters();
     this.renderBookmarks();
-    this.renderSeasonalFilters();
-    this.renderRecommendationModes();
+    if (this.deferFilterUiOnce) {
+      this.scheduleDeferredFilterUi();
+    } else {
+      this.renderSeasonalFilters();
+      this.renderRecommendationModes();
+    }
     this.renderAnimeGrid();
     this.updatePrefetchObserving();
     this.scheduleSecondaryRenders();
@@ -4159,6 +4177,24 @@ const App = {
       this.renderBecauseYouWatched();
       this.renderTrending();
     }, { timeout: 1200 });
+  },
+
+  scheduleDeferredFilterUi() {
+    if (this.deferFilterUiHandle) return;
+    this.deferFilterUiHandle = this.queueIdleTask(() => {
+      this.deferFilterUiHandle = null;
+      this.deferFilterUiOnce = false;
+      this.deferFilterUiUsed = true;
+      this.renderSeasonalFilters();
+      this.renderRecommendationModes();
+      this.renderQuickFilters();
+      this.updateSortOptions();
+      if (this.filterPanelRendered || this.filterPanelOpen) {
+        this.renderFilterPanel({ force: true });
+      } else {
+        this.scheduleFilterPanelRender();
+      }
+    }, { timeout: 3000 });
   },
 
   /**
