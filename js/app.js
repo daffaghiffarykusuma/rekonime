@@ -133,6 +133,7 @@ const App = {
     parallelLoading: true,
     smartImageLoading: true,
     intelligentPrefetching: true,
+    lazyGridSort: true,
     imageProxy: true
   },
   imageDimensions: {
@@ -1856,6 +1857,8 @@ const App = {
   gridSortedCache: null,
   gridSortedKey: '',
   gridSortedSource: null,
+  gridSortedIsPartial: false,
+  gridSortHandle: null,
 
   // Active filters state
   activeFilters: {
@@ -2336,7 +2339,13 @@ const App = {
       root.dataset.catalogReady = 'true';
     }
     this.gridSortedCache = null;
+    this.gridSortedKey = '';
     this.gridSortedSource = null;
+    this.gridSortedIsPartial = false;
+    if (this.gridSortHandle) {
+      this.cancelIdleTask(this.gridSortHandle);
+      this.gridSortHandle = null;
+    }
     this.gridDomCache.clear();
     this.detailCache.clear();
     this.visibleCardIds.clear();
@@ -4425,17 +4434,66 @@ const App = {
   /**
    * Get cached sorted data for the grid
    */
-  getSortedGridData() {
+  getSortedGridData({ requiredCount } = {}) {
+    const source = this.filteredData;
+    const sortKey = this.currentSort;
+
     if (this.gridSortedCache &&
-      this.gridSortedKey === this.currentSort &&
-      this.gridSortedSource === this.filteredData) {
+      this.gridSortedKey === sortKey &&
+      this.gridSortedSource === source) {
+      if (this.gridSortedIsPartial && Number.isFinite(requiredCount) && this.gridSortedCache.length < requiredCount) {
+        return this.ensureFullGridSort();
+      }
       return this.gridSortedCache;
     }
 
-    const sorted = this.sortAnimeByMetric(this.filteredData, this.currentSort);
+    const wantsPartial = this.features.lazyGridSort && Number.isFinite(requiredCount) && requiredCount > 0;
+    if (wantsPartial) {
+      const top = this.selectTopAnimeByMetric(source, sortKey, requiredCount);
+      this.gridSortedCache = top;
+      this.gridSortedKey = sortKey;
+      this.gridSortedSource = source;
+      this.gridSortedIsPartial = true;
+      this.scheduleFullGridSort();
+      return top;
+    }
+
+    const sorted = this.sortAnimeByMetric(source, sortKey);
     this.gridSortedCache = sorted;
-    this.gridSortedKey = this.currentSort;
-    this.gridSortedSource = this.filteredData;
+    this.gridSortedKey = sortKey;
+    this.gridSortedSource = source;
+    this.gridSortedIsPartial = false;
+    return sorted;
+  },
+
+  scheduleFullGridSort() {
+    if (this.gridSortHandle || !this.features.lazyGridSort) return;
+    const sortKey = this.currentSort;
+    const source = this.filteredData;
+    this.gridSortHandle = this.queueIdleTask(() => {
+      this.gridSortHandle = null;
+      if (this.gridSortedKey !== sortKey || this.gridSortedSource !== source) return;
+      const sorted = this.sortAnimeByMetric(source, sortKey);
+      this.gridSortedCache = sorted;
+      this.gridSortedIsPartial = false;
+    }, { timeout: 2000 });
+  },
+
+  ensureFullGridSort() {
+    if (!this.gridSortedIsPartial) {
+      return this.gridSortedCache || [];
+    }
+    if (this.gridSortHandle) {
+      this.cancelIdleTask(this.gridSortHandle);
+      this.gridSortHandle = null;
+    }
+    const sortKey = this.currentSort;
+    const source = this.filteredData;
+    const sorted = this.sortAnimeByMetric(source, sortKey);
+    this.gridSortedCache = sorted;
+    this.gridSortedKey = sortKey;
+    this.gridSortedSource = source;
+    this.gridSortedIsPartial = false;
     return sorted;
   },
 
@@ -5147,7 +5205,14 @@ const App = {
     container.classList.remove('is-loading');
     container.removeAttribute('aria-busy');
 
-    const sorted = this.getSortedGridData();
+    const totalCount = Array.isArray(this.filteredData) ? this.filteredData.length : 0;
+    const requestedEndIndex = Math.min(totalCount, this.gridCurrentPage * this.gridPageSize);
+    const shouldAppend = append && this.gridRenderedCount > 0;
+    const shouldDeferInitialBatch = !shouldAppend && !this.gridInitialBatchRendered;
+    const initialEndIndex = shouldDeferInitialBatch
+      ? Math.min(requestedEndIndex, this.getInitialGridBatchSize())
+      : requestedEndIndex;
+    let sorted = this.getSortedGridData({ requiredCount: initialEndIndex });
 
     if (sorted.length === 0) {
       container.innerHTML = `
@@ -5159,16 +5224,17 @@ const App = {
       return;
     }
 
-    const shouldAppend = append && this.gridRenderedCount > 0;
     const startIndex = shouldAppend ? this.gridRenderedCount : 0;
-    const targetEndIndex = Math.min(sorted.length, this.gridCurrentPage * this.gridPageSize);
-    let endIndex = targetEndIndex;
-    const shouldDeferInitialBatch = !shouldAppend && !this.gridInitialBatchRendered;
-    if (shouldDeferInitialBatch) {
-      endIndex = Math.min(targetEndIndex, this.getInitialGridBatchSize());
+    if (this.gridSortedIsPartial && requestedEndIndex > sorted.length) {
+      sorted = this.ensureFullGridSort();
     }
+    const targetEndIndex = Math.min(sorted.length, requestedEndIndex);
+    const endIndex = shouldDeferInitialBatch
+      ? Math.min(targetEndIndex, this.getInitialGridBatchSize())
+      : targetEndIndex;
     const visibleAnime = sorted.slice(startIndex, endIndex);
-    const hasMore = targetEndIndex < sorted.length;
+    const countForMore = this.gridSortedIsPartial ? totalCount : sorted.length;
+    const hasMore = requestedEndIndex < countForMore;
 
     if (!shouldAppend) {
       if (this.features.templatePooling && this.features.diffRendering) {
@@ -5209,7 +5275,7 @@ const App = {
       container.insertAdjacentHTML('beforeend', `
         <div class="load-more-container">
           <button class="load-more-btn" data-action="load-more">
-            Load More (${sorted.length - targetEndIndex} remaining)
+            Load More (${Math.max(countForMore - requestedEndIndex, 0)} remaining)
           </button>
         </div>
       `);
@@ -5287,7 +5353,12 @@ const App = {
     this.gridSortedCache = null;
     this.gridSortedKey = '';
     this.gridSortedSource = null;
+    this.gridSortedIsPartial = false;
     this.gridInitialBatchRendered = false;
+    if (this.gridSortHandle) {
+      this.cancelIdleTask(this.gridSortHandle);
+      this.gridSortHandle = null;
+    }
     if (this.gridDeferredRenderHandle) {
       this.cancelIdleTask(this.gridDeferredRenderHandle);
       this.gridDeferredRenderHandle = null;
@@ -5319,6 +5390,39 @@ const App = {
     });
 
     return list;
+  },
+
+  selectTopAnimeByMetric(animeList, metricKey, limit) {
+    if (!Array.isArray(animeList) || animeList.length === 0) return [];
+    const maxItems = Math.max(1, limit || 1);
+    const key = metricKey === 'satisfaction' ? 'satisfaction' : 'retention';
+    const top = [];
+
+    const getValue = (anime) => {
+      if (key === 'satisfaction') {
+        return Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
+      }
+      return Number.isFinite(anime?.stats?.retentionScore) ? anime.stats.retentionScore : 0;
+    };
+
+    for (let i = 0; i < animeList.length; i += 1) {
+      const anime = animeList[i];
+      const value = getValue(anime);
+
+      if (top.length < maxItems) {
+        top.push({ anime, value });
+        if (top.length === maxItems) {
+          top.sort((a, b) => b.value - a.value);
+        }
+        continue;
+      }
+
+      if (value <= top[top.length - 1].value) continue;
+      top[top.length - 1] = { anime, value };
+      top.sort((a, b) => b.value - a.value);
+    }
+
+    return top.map(entry => entry.anime);
   },
 
   /**
