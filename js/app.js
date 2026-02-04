@@ -121,6 +121,7 @@ const App = {
   eagerImageCount: 4,
   highPriorityImageCount: 2,
   secondaryRenderHandle: null,
+  discoveryGardenRevealHandle: null,
   features: {
     diffRendering: true,
     templatePooling: true,
@@ -1818,8 +1819,8 @@ const App = {
   gridRenderedCount: 0,
   gridInitialBatchRendered: false,
   gridDeferredRenderHandle: null,
-  initialGridBatchSize: 12,
-  initialGridBatchSizeMobile: 8,
+  initialGridBatchSize: 8,
+  initialGridBatchSizeMobile: 6,
   gridSortedCache: null,
   gridSortedKey: '',
   gridSortedSource: null,
@@ -1891,6 +1892,7 @@ const App = {
       }
 
       this.setupEventListeners();
+      this.scheduleDiscoveryGardenReveal();
       this.setupFullCatalogInteractionTriggers();
       this.queueIdleTask(() => this.setupHealthMonitoring(), { timeout: 2000 });
       this.queueIdleTask(() => this.setupIntelligentPrefetching(), { timeout: 2000 });
@@ -4129,6 +4131,19 @@ const App = {
       this.renderBecauseYouWatched();
       this.renderTrending();
     }, { timeout: 1200 });
+  },
+
+  scheduleDiscoveryGardenReveal() {
+    if (this.discoveryGardenRevealHandle) return;
+    const garden = document.getElementById('discovery-garden');
+    if (!garden || !garden.classList.contains('is-deferred')) return;
+    this.discoveryGardenRevealHandle = this.queueIdleTask(() => {
+      this.discoveryGardenRevealHandle = null;
+      const target = document.getElementById('discovery-garden');
+      if (target) {
+        target.classList.remove('is-deferred');
+      }
+    }, { timeout: 2000 });
   },
 
   /**

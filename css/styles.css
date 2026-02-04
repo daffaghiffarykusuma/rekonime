@@ -2263,6 +2263,10 @@ h4 {
   overflow: hidden;
 }
 
+.discovery-garden.is-deferred {
+  visibility: hidden;
+}
+
 .discovery-garden.is-hidden {
   display: none;
 }
