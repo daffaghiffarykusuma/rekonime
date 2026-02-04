@@ -129,13 +129,14 @@
       </div>
     </header>
 
-    <div class="active-filters" id="active-filters">
+    <div class="active-filters is-empty" id="active-filters">
       <div class="active-filters-content">
         <span class="active-filters-label" id="active-filters-label">Active filters</span>
         <div class="active-filters-list" id="active-filters-list"></div>
       </div>
-      <button class="btn btn-sm btn-outline active-filters-clear" id="active-filters-clear" type="button">Clear
-        filters</button>
+      <button class="btn btn-sm btn-outline active-filters-clear is-hidden" id="active-filters-clear" type="button">
+        Clear filters
+      </button>
     </div>
 
     <div class="discovery-garden" id="discovery-garden">
@@ -200,8 +201,7 @@
         <div>
           <h2>Recommended for you</h2>
           <p class="section-subtitle" id="recommendations-context">
-            Top picks with high Retention Scores (you'll finish them) and solid MAL Satisfaction (they're actually
-            good).
+            Retention-first picks blended with MAL satisfaction for more dependable recommendations.
           </p>
         </div>
         <button class="help-link" data-action="explain-recommendations" aria-label="How we pick recommendations">
