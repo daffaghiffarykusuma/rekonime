@@ -2,37 +2,37 @@
   "version": 1,
   "files": {
     "data\\anime.json": {
-      "hash": "ef0ade74b94bd19814d5685b5789de031b0dfe55",
-      "timestamp": 1769978270490
+      "hash": "f5f46e90444c4c55cb77b11b5422374e8c9acc9f",
+      "timestamp": 1770333543585
     },
     "tools\\build-catalogs.js": {
       "hash": "b19618dadd9ddc38fcd8620315772f58dfcf9c98",
-      "timestamp": 1769978270491
+      "timestamp": 1770333543586
     },
     "js\\stats.js": {
       "hash": "09a204bef1d43ee3bbb3d8f8ceed4b1883f31a38",
-      "timestamp": 1769978270491
+      "timestamp": 1770333543586
     },
     "tools\\lib\\schema-validator.js": {
       "hash": "3f78b67b601d5db42a15476c82a821eb0f76fede",
-      "timestamp": 1769978270492
+      "timestamp": 1770333543586
     },
     "tools\\lib\\integrity-checker.js": {
       "hash": "30a3651dcf0e21b2081d4897c54aba032a0c99bf",
-      "timestamp": 1769978270492
+      "timestamp": 1770333543587
     },
     "tools\\lib\\quality-reporter.js": {
       "hash": "cdde5058aafdf60677106db05fa6386cb958b26a",
-      "timestamp": 1769978270492
+      "timestamp": 1770333543587
     },
     "data\\anime.full.json": {
-      "hash": "fa30b0a43b50c7d7f222f24dd70189f2f3ca48a7",
-      "timestamp": 1769978270521
+      "hash": "0fe8f6b5c8ba725a5c477674e285fd637b0e598d",
+      "timestamp": 1770333543613
     },
     "data\\anime.preview.json": {
-      "hash": "dcba2bc84dd77712ada93c60f593eed782d89967",
-      "timestamp": 1769978270523
+      "hash": "6186ac4594abb4eb907ef9226da06f5108c8978c",
+      "timestamp": 1770333543615
     }
   },
-  "lastBuild": 1769978270523
+  "lastBuild": 1770333543615
 }
