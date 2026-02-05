@@ -376,7 +376,7 @@ select:focus-visible {
 }
 
 /* Bookmark toggles */
-.bookmark-card-toggle:focus-visible {
+.watchlist-card-toggle:focus-visible {
     outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
 }

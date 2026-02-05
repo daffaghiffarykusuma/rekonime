@@ -407,7 +407,7 @@ const KeyboardShortcuts = {
      * Navigate to watchlist page
      */
     goToBookmarks() {
-        window.location.href = 'bookmarks.html';
+        window.location.href = 'watchlist.html';
     },
 
     /**

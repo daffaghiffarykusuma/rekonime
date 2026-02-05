@@ -796,7 +796,7 @@ h4 {
   background: var(--error);
 }
 
-.modal-bookmark {
+.modal-watchlist {
   width: 2.75rem;
   height: 2.75rem;
   min-width: 2.75rem;
@@ -815,19 +815,19 @@ h4 {
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
-.modal-bookmark:hover {
+.modal-watchlist:hover {
   background: var(--bg-secondary);
   color: var(--text-primary);
   transform: translateY(-1px);
 }
 
-.modal-bookmark.is-bookmarked {
+.modal-watchlist.is-tracked {
   color: var(--warning);
   background: rgba(255, 179, 0, 0.15);
   border-color: rgba(255, 179, 0, 0.4);
 }
 
-.modal-bookmark.is-bookmarked:hover {
+.modal-watchlist.is-tracked:hover {
   background: rgba(255, 179, 0, 0.25);
 }
 
@@ -970,7 +970,7 @@ h4 {
   align-items: start;
 }
 
-.detail-bookmark {
+.detail-watchlist {
   margin-top: 0.35rem;
   margin-right: 0.6rem;
   justify-self: end;
@@ -2949,23 +2949,23 @@ h4 {
   margin-bottom: 2.5rem;
 }
 
-.bookmarks-section {
+.watchlist-section {
   margin-top: 1.5rem;
   margin-bottom: 2.5rem;
 }
 
-.bookmarks-empty {
+.watchlist-empty {
   display: none;
   color: var(--text-secondary);
   font-size: 0.9rem;
   padding: 0.75rem 0;
 }
 
-.bookmarks-section.is-empty .bookmarks-grid {
+.watchlist-section.is-empty .watchlist-grid {
   display: none;
 }
 
-.bookmarks-section.is-empty .bookmarks-empty {
+.watchlist-section.is-empty .watchlist-empty {
   display: block;
 }
 
@@ -3283,7 +3283,7 @@ h4 {
   display: block;
 }
 
-.bookmark-card-toggle {
+.watchlist-card-toggle {
   position: absolute;
   top: 0.65rem;
   right: 0.65rem;
@@ -3304,18 +3304,18 @@ h4 {
   backdrop-filter: blur(6px);
 }
 
-.bookmark-card-toggle:hover {
+.watchlist-card-toggle:hover {
   transform: translateY(-1px);
   background: rgba(12, 15, 18, 0.78);
 }
 
-.bookmark-card-toggle.is-bookmarked {
+.watchlist-card-toggle.is-tracked {
   color: var(--warning);
   background: rgba(255, 179, 0, 0.18);
   border-color: rgba(255, 179, 0, 0.45);
 }
 
-.bookmark-card-toggle.is-bookmarked:hover {
+.watchlist-card-toggle.is-tracked:hover {
   background: rgba(255, 179, 0, 0.28);
 }
 
@@ -4131,7 +4131,7 @@ h4 {
     font-size: 1.25rem;
   }
 
-  .detail-bookmark {
+  .detail-watchlist {
     margin-top: 0.95rem;
   }
 
@@ -5653,7 +5653,7 @@ summary:focus-visible,
   text-decoration: underline;
 }
 
-.bookmarks-no-js {
+.watchlist-no-js {
   margin: 1rem 0;
   padding: 1rem 1.2rem;
   border-radius: var(--radius-md);
@@ -5661,16 +5661,16 @@ summary:focus-visible,
   background: var(--bg-tertiary);
 }
 
-.bookmarks-no-js h3 {
+.watchlist-no-js h3 {
   margin: 0 0 0.35rem;
 }
 
-.bookmarks-no-js p {
+.watchlist-no-js p {
   margin: 0 0 0.6rem;
   color: var(--text-secondary);
 }
 
-.bookmarks-no-js ol {
+.watchlist-no-js ol {
   margin: 0;
   padding-left: 1.2rem;
   color: var(--text-secondary);

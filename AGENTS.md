@@ -1,4 +1,4 @@
-﻿# Rekonime Agent Guide
+# Rekonime Agent Guide
 
 ## Start Here
 - Read this file end-to-end before starting any task.
@@ -32,26 +32,26 @@
 - SEO: title/meta description, headings, canonical, and crawlable links verified.
 
 ## Current Lighthouse Baseline (Slow 4G)
-- Source: `plans/rekonime.vercel.app-20260205T114203.json` (Lighthouse 13.0.1, URL `https://rekonime.vercel.app/home/`).
-- Scores: Performance 0.74, Accessibility 1.00, Best Practices 1.00, SEO 1.00.
-- Metrics: FCP 1.23s, LCP 3.56s, Speed Index 1.34s, TBT 681ms, CLS 0.034.
+- Source: `plans/rekonime.vercel.app-20260205T154023.json` (Lighthouse 13.0.1, URL `https://rekonime.vercel.app/home/`).
+- Scores: Performance 0.97, Accessibility 1.00, Best Practices 1.00, SEO 1.00.
+- Metrics: FCP 1.15s, LCP 1.79s, Speed Index 1.30s, TBT 190ms, CLS 0.034.
 - Update this baseline when a new report is generated.
 
 ## User Journey (Condensed)
-- Entry points: `/` or `index.html` (primary), `/home` or `home/index.html`, `/bookmarks` or `bookmarks.html`, plus deep links via query params.
-- First load: `App.init()` shows loading state, loads bookmarks, fetches `data/anime.preview.json`, then swaps to `data/anime.full.json`.
+- Entry points: `/` or `index.html` (primary), `/home` or `home/index.html`, `/watchlist` or `watchlist.html`, plus deep links via query params.
+- First load: `App.init()` shows loading state, loads watchlist, fetches `data/anime.preview.json`, then swaps to `data/anime.full.json`.
 - Discover: scroll, search, filters, Surprise Me, seasonal chips, trending, and presets.
 - Evaluate: detail modal shows synopsis, trailer, reviews, and similar anime; URL updates with `?anime=...`.
-- Decide: bookmark or return to browsing; recommendations personalize based on bookmarks.
-- Persistence: theme, onboarding, shortcuts acknowledgement, bookmarks, and cached synopsis/reviews stored via `CacheManager`.
+- Decide: update watch status or return to browsing; recommendations personalize based on watchlist.
+- Persistence: theme, onboarding, shortcuts acknowledgement, watchlist, and cached synopsis/reviews stored via `CacheManager`.
 - Resilience: embedded `ANIME_DATA` fallback for `file://` or fetch failures; image fallbacks use `data-fallback-src`.
 - PWA: service worker registers, offline indicator appears, and update prompts are shown when new versions exist.
 
 ## Codebase Map (Key Files)
-- `index.html`, `home/index.html`, `bookmarks.html`: entry points; include CSS and JS.
+- `index.html`, `home/index.html`, `watchlist.html`: entry points; include CSS and JS.
 - `css/styles.css`, `css/themes.css`: global styles, theme system, accessibility, responsive rules.
 - `js/main.js`: module entrypoint; bootstraps app services and `App.init()`.
-- `js/app.js`: central controller for state, rendering, filters, search, modals, SEO, bookmarks.
+- `js/app.js`: central controller for state, rendering, filters, search, modals, SEO, watchlist.
 - `js/stats.js`: metrics and score profiles.
 - `js/recommendations.js`: sorting, badges, similarity scoring.
 - `js/reviews.js`: Jikan reviews + synopsis utilities.
@@ -70,7 +70,7 @@
 - Search: `anime.searchText` matched by `App.handleHeaderSearch()`.
 - Detail modal: `App.showAnimeDetail()` renders, syncs URL, and manages back/forward.
 - Reviews and synopsis: Jikan API via `ReviewsService`; cached via `CacheManager` with TTL.
-- Bookmarks: stored under `rekonime.bookmarks`, rendered in `bookmarks.html`.
+- Watchlist: stored under `rekonime.watchlist` (legacy `rekonime.bookmarks` migrated), rendered in `watchlist.html`.
 
 ## Data Schema (Essentials)
 - Catalog payload: `{ generatedAt, scoreProfile, anime[] }`.
@@ -78,14 +78,14 @@
 - Stats object: see `js/stats.js` for full fields; includes quality, retention, momentum, consistency, safety, and trend metrics (most scaled with a strictness curve).
 
 ## DOM & UI Contracts
-- Key IDs: `#anime-grid`, `#recommendations-grid`, `#filter-modal`, `#filter-sections`, `#active-filters`, `#header-search`, `#detail-modal`, `#detail-content`, `#community-reviews-section`, `#similar-anime-section`, `#bookmarks-section`, `#bookmarks-grid`.
-- `data-action`: `open-anime`, `toggle-filter`, `toggle-bookmark`, `load-more`.
+- Key IDs: `#anime-grid`, `#recommendations-grid`, `#filter-modal`, `#filter-sections`, `#active-filters`, `#header-search`, `#detail-modal`, `#detail-content`, `#community-reviews-section`, `#similar-anime-section`, `#watchlist-section`, `#watchlist-grid`.
+- `data-action`: `open-anime`, `toggle-filter`, `watch-status`, `watch-progress`, `load-more`.
 - Image fallbacks: `data-fallback-src` on `img`.
 - Breakpoints: primary `max-width: 960px` and `max-width: 640px`; legacy `768px` and `480px` rules exist.
 
 ## External Services & CSP
 - Allowed remote sources: Google Fonts, Jikan API, YouTube / YouTube-nocookie.
-- If you add new remote assets or APIs, update the CSP in `index.html` and `bookmarks.html`.
+- If you add new remote assets or APIs, update the CSP in `index.html` and `watchlist.html`.
 
 ## Data Pipeline (Short)
 1. `tools/scraper/*` -> `tools/scraper/output/*.json`

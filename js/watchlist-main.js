@@ -1,7 +1,7 @@
 import { ThemeManager } from './themeManager.js';
 import { Logger } from './services/logger.js';
 
-const LEGACY_BOOKMARK_STORAGE_KEY = 'rekonime.bookmarks';
+const LEGACY_WATCHLIST_STORAGE_KEY = 'rekonime.bookmarks';
 const WATCHLIST_STORAGE_KEY = 'rekonime.watchlist';
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/120x170?text=No+Image';
 const CARD_DIMENSIONS = { width: 240, height: 360 };
@@ -214,10 +214,10 @@ const buildProxyUrl = (coverUrl) => {
   return url.toString();
 };
 
-const parseLegacyBookmarks = () => {
+const parseLegacyWatchlist = () => {
   if (typeof window === 'undefined') return { ids: [], items: [] };
   try {
-    const raw = localStorage.getItem(LEGACY_BOOKMARK_STORAGE_KEY);
+    const raw = localStorage.getItem(LEGACY_WATCHLIST_STORAGE_KEY);
     if (!raw) return { ids: [], items: [] };
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
@@ -229,7 +229,7 @@ const parseLegacyBookmarks = () => {
       return { ids, items };
     }
   } catch (error) {
-    Logger?.warn?.('Failed to parse legacy bookmarks', { error });
+    Logger?.warn?.('Failed to parse legacy watchlist', { error });
   }
   return { ids: [], items: [] };
 };
@@ -347,7 +347,7 @@ const saveWatchlistMap = (map, version = 1) => {
 };
 
 const migrateLegacyBookmarksToWatchlist = () => {
-  const legacy = parseLegacyBookmarks();
+  const legacy = parseLegacyWatchlist();
   if (!legacy) return;
   const hasLegacyData = legacy.ids.length > 0 || legacy.items.length > 0;
   if (!hasLegacyData) return;
@@ -404,7 +404,7 @@ const migrateLegacyBookmarksToWatchlist = () => {
   }
 
   try {
-    localStorage.removeItem(LEGACY_BOOKMARK_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_WATCHLIST_STORAGE_KEY);
   } catch (error) {
     // Ignore storage errors
   }
@@ -517,16 +517,16 @@ const getEpisodeCountFromCard = (card) => {
 
 const buildWatchlistControls = (item, entry) => {
   const wrapper = document.createElement('div');
-  wrapper.className = 'bookmark-watchlist';
+  wrapper.className = 'watchlist-controls';
   wrapper.setAttribute('data-watchlist', 'true');
 
   const label = document.createElement('div');
-  label.className = 'bookmark-watchlist-label';
+  label.className = 'watchlist-controls-label';
   label.textContent = 'Watch status';
   wrapper.appendChild(label);
 
   const select = document.createElement('select');
-  select.className = 'bookmark-watchlist-select';
+  select.className = 'watchlist-controls-select';
   select.setAttribute('data-action', 'watch-status');
   select.setAttribute('data-anime-id', item.id);
 
@@ -543,29 +543,29 @@ const buildWatchlistControls = (item, entry) => {
   wrapper.appendChild(select);
 
   const progressWrap = document.createElement('div');
-  progressWrap.className = 'bookmark-watchlist-progress';
+  progressWrap.className = 'watchlist-controls-progress';
   if (!shouldShowWatchProgress(status)) {
     progressWrap.classList.add('is-hidden');
   }
 
   const progressLabel = document.createElement('span');
-  progressLabel.className = 'bookmark-watchlist-progress-label';
+  progressLabel.className = 'watchlist-controls-progress-label';
   progressLabel.textContent = 'Episode';
   progressWrap.appendChild(progressLabel);
 
   const stepper = document.createElement('div');
-  stepper.className = 'bookmark-watchlist-stepper';
+  stepper.className = 'watchlist-controls-stepper';
 
   const dec = document.createElement('button');
   dec.type = 'button';
-  dec.className = 'bookmark-watchlist-stepper-btn';
+  dec.className = 'watchlist-controls-stepper-btn';
   dec.setAttribute('data-action', 'watch-progress-dec');
   dec.setAttribute('data-anime-id', item.id);
   dec.setAttribute('aria-label', 'Decrease episode');
   dec.textContent = '−';
 
   const input = document.createElement('input');
-  input.className = 'bookmark-watchlist-input';
+  input.className = 'watchlist-controls-input';
   input.type = 'number';
   input.min = '0';
   input.step = '1';
@@ -576,7 +576,7 @@ const buildWatchlistControls = (item, entry) => {
   input.value = String(Number.isFinite(entry?.progress) ? entry.progress : 0);
 
   const total = document.createElement('span');
-  total.className = 'bookmark-watchlist-total';
+  total.className = 'watchlist-controls-total';
 
   const episodeCount = getEpisodeCountFromItem(item);
   if (episodeCount) {
@@ -586,7 +586,7 @@ const buildWatchlistControls = (item, entry) => {
 
   const inc = document.createElement('button');
   inc.type = 'button';
-  inc.className = 'bookmark-watchlist-stepper-btn';
+  inc.className = 'watchlist-controls-stepper-btn';
   inc.setAttribute('data-action', 'watch-progress-inc');
   inc.setAttribute('data-anime-id', item.id);
   inc.setAttribute('aria-label', 'Increase episode');
@@ -604,10 +604,10 @@ const buildWatchlistControls = (item, entry) => {
 
 const updateWatchlistUi = (card, entry) => {
   if (!card) return;
-  const select = card.querySelector('.bookmark-watchlist-select');
-  const progressWrap = card.querySelector('.bookmark-watchlist-progress');
-  const input = card.querySelector('.bookmark-watchlist-input');
-  const total = card.querySelector('.bookmark-watchlist-total');
+  const select = card.querySelector('.watchlist-controls-select');
+  const progressWrap = card.querySelector('.watchlist-controls-progress');
+  const input = card.querySelector('.watchlist-controls-input');
+  const total = card.querySelector('.watchlist-controls-total');
   if (!select || !progressWrap || !input || !total) return;
 
   const status = entry?.status || '';
@@ -655,7 +655,7 @@ const buildWatchlistCounts = (entries) => {
 };
 
 const renderWatchlistFilters = (counts) => {
-  const container = document.getElementById('bookmark-filter-chips');
+  const container = document.getElementById('watchlist-filter-chips');
   if (!container) return;
   const filters = [
     { key: 'all', label: 'All' },
@@ -669,7 +669,7 @@ const renderWatchlistFilters = (counts) => {
     const isActive = currentWatchlistFilter === filter.key;
     const count = Number.isFinite(counts[filter.key]) ? counts[filter.key] : 0;
     return `
-      <button class="bookmark-filter-chip ${isActive ? 'is-active' : ''}" type="button"
+      <button class="watchlist-filter-chip ${isActive ? 'is-active' : ''}" type="button"
         data-filter="${filter.key}" role="tab" aria-selected="${isActive ? 'true' : 'false'}">
         <span class="chip-label">${filter.label}</span>
         <span class="chip-count">${count}</span>
@@ -771,9 +771,9 @@ const ensureWatchlistSnapshots = (map, version) => {
 };
 
 const renderWatchlist = () => {
-  const section = document.getElementById('bookmarks-section');
-  const grid = document.getElementById('bookmarks-grid');
-  const empty = document.getElementById('bookmarks-empty');
+  const section = document.getElementById('watchlist-section');
+  const grid = document.getElementById('watchlist-grid');
+  const empty = document.getElementById('watchlist-empty');
   if (!section || !grid || !empty) return;
 
   migrateLegacyBookmarksToWatchlist();
@@ -825,7 +825,7 @@ const handleWatchlistChange = (target) => {
 };
 
 const handleWatchlistClick = (target) => {
-  const wrapper = target.closest?.('.bookmark-watchlist');
+  const wrapper = target.closest?.('.watchlist-controls');
   if (!wrapper) return false;
   const actionEl = target.closest?.('[data-action]');
   if (!actionEl) return true;
@@ -864,7 +864,7 @@ const handleCardOpen = async (target) => {
 };
 
 const setupGridHandlers = () => {
-  const grid = document.getElementById('bookmarks-grid');
+  const grid = document.getElementById('watchlist-grid');
   if (!grid) return;
 
   grid.addEventListener('click', async (event) => {
@@ -879,7 +879,7 @@ const setupGridHandlers = () => {
   grid.addEventListener('keydown', async (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     const isFormControl = event.target?.matches?.('input, select, textarea, button');
-    if (isFormControl || event.target?.closest?.('.bookmark-watchlist')) return;
+    if (isFormControl || event.target?.closest?.('.watchlist-controls')) return;
     const card = event.target.closest?.('.anime-card');
     if (!card) return;
     event.preventDefault();
@@ -902,7 +902,7 @@ const setupGridHandlers = () => {
 };
 
 const setupFilterHandlers = () => {
-  const chips = document.getElementById('bookmark-filter-chips');
+  const chips = document.getElementById('watchlist-filter-chips');
   if (!chips) return;
   chips.addEventListener('click', (event) => {
     const button = event.target.closest?.('[data-filter]');

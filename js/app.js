@@ -63,7 +63,7 @@ const App = {
   trailerScrollHandler: null,
   trailerScrollRoot: null,
   trailerCleanup: null,
-  legacyBookmarkStorageKey: 'rekonime.bookmarks',
+  legacyWatchlistStorageKey: 'rekonime.bookmarks',
   watchlistStorageKey: 'rekonime.watchlist',
   settingsStorageKey: 'rekonime.settings',
   watchlistVersion: 1,
@@ -1094,7 +1094,7 @@ const App = {
 
   getLegacyBookmarksPayload() {
     const cache = this.getCache();
-    const parsed = cache.getJSON(this.legacyBookmarkStorageKey, { fallback: null, validate: false });
+    const parsed = cache.getJSON(this.legacyWatchlistStorageKey, { fallback: null, validate: false });
     if (!parsed) return null;
 
     const ids = [];
@@ -1155,7 +1155,7 @@ const App = {
     }
 
     const cache = this.getCache();
-    cache.removeItem(this.legacyBookmarkStorageKey);
+    cache.removeItem(this.legacyWatchlistStorageKey);
   },
 
   shouldShowWatchProgress(status) {
@@ -2155,9 +2155,9 @@ const App = {
   },
 
   renderWatchlist() {
-    const section = document.getElementById('bookmarks-section');
-    const grid = document.getElementById('bookmarks-grid');
-    const empty = document.getElementById('bookmarks-empty');
+    const section = document.getElementById('watchlist-section');
+    const grid = document.getElementById('watchlist-grid');
+    const empty = document.getElementById('watchlist-empty');
     if (!section || !grid || !empty) return;
 
     const items = this.getWatchlistDisplayItems();

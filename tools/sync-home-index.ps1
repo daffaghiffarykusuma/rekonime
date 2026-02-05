@@ -38,7 +38,7 @@ $transformations = @(
     @{ Pattern = 'content="favicon\.svg"'; Replacement = 'content="/favicon.svg"'; Description = 'Favicon (meta content)' },
     
     # Page links - ensure root-relative
-    @{ Pattern = 'href="bookmarks\.html"'; Replacement = 'href="/bookmarks.html"'; Description = 'Bookmarks link' },
+    @{ Pattern = 'href="watchlist\.html"'; Replacement = 'href="/watchlist.html"'; Description = 'Watchlist link' },
     @{ Pattern = 'href="index\.html"'; Replacement = 'href="/index.html"'; Description = 'Home/Index links' }
 )
 

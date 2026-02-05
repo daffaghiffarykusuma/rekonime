@@ -22,7 +22,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        bookmarks: resolve(__dirname, 'bookmarks.html'),
+        watchlist: resolve(__dirname, 'watchlist.html'),
         home: resolve(__dirname, 'home/index.html')
       },
       output: {

@@ -9,9 +9,9 @@ const root = path.join(__dirname, '..');
 const assets = [
   { input: path.join(root, 'css', 'styles.css'), output: path.join(root, 'css', 'styles.min.css'), type: 'css' },
   { input: path.join(root, 'css', 'themes.css'), output: path.join(root, 'css', 'themes.min.css'), type: 'css' },
-  { input: path.join(root, 'css', 'bookmarks.css'), output: path.join(root, 'css', 'bookmarks.min.css'), type: 'css' },
+  { input: path.join(root, 'css', 'watchlist.css'), output: path.join(root, 'css', 'watchlist.min.css'), type: 'css' },
   { input: path.join(root, 'js', 'main.js'), output: path.join(root, 'js', 'main.min.js'), type: 'js' },
-  { input: path.join(root, 'js', 'bookmarks-main.js'), output: path.join(root, 'js', 'bookmarks-main.min.js'), type: 'js' }
+  { input: path.join(root, 'js', 'watchlist-main.js'), output: path.join(root, 'js', 'watchlist-main.min.js'), type: 'js' }
 ];
 
 const minifyCss = (input) => {

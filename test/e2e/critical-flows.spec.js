@@ -49,8 +49,8 @@ test('watchlist flow persists to watchlist page', async ({ page }) => {
   await page.waitForSelector('#watchlist-select');
   await page.selectOption('#watchlist-select', 'planned');
 
-  await page.goto('/bookmarks.html');
-  await page.waitForSelector('#bookmarks-grid .anime-card');
-  const count = await page.locator('#bookmarks-grid .anime-card').count();
+  await page.goto('/watchlist.html');
+  await page.waitForSelector('#watchlist-grid .anime-card');
+  const count = await page.locator('#watchlist-grid .anime-card').count();
   expect(count).toBeGreaterThan(0);
 });

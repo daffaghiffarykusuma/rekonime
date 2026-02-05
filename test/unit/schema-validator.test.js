@@ -8,7 +8,7 @@ test('SchemaValidator validates enum schemas', () => {
   assert.equal(SchemaValidator.validate('rekonime.theme', 'purple'), false);
 });
 
-test('SchemaValidator validates array schemas', () => {
+test('SchemaValidator validates legacy watchlist schema', () => {
   assert.equal(SchemaValidator.validate('rekonime.bookmarks', ['one', 'two']), true);
   assert.equal(SchemaValidator.validate('rekonime.bookmarks', ['']), false);
   assert.equal(SchemaValidator.validate('rekonime.bookmarks', 'nope'), false);

@@ -36,7 +36,7 @@ If you want to refresh data:
    - `powershell -File tools/regenerate-data.ps1`
 
 ## Project map (high level)
-- `index.html`, `bookmarks.html`: pages and static markup (watchlist lives in `bookmarks.html`).
+- `index.html`, `watchlist.html`: pages and static markup (watchlist lives in `watchlist.html`).
 - `css/styles.css`: styles, layout, and responsive rules.
 - `css/themes.css`: theme system with light/dark modes and accessibility features.
 - `js/app.js`: app state, rendering, filters, modal, watchlist, SEO.
@@ -58,7 +58,7 @@ If you want to refresh data:
 ```mermaid
 flowchart TD
   index[index.html] --> app[js/app.js]
-  watchlist[bookmarks.html] --> app
+  watchlist[watchlist.html] --> app
   app --> stats[js/stats.js]
   app --> recs[js/recommendations.js]
   app --> reviews[js/reviews.js]
