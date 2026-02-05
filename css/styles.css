@@ -6339,6 +6339,14 @@ summary:focus-visible,
   contain-intrinsic-size: 16rem 18rem;
 }
 
+[data-low-motion="true"] .anime-card:hover,
+[data-low-motion="true"] .anime-card:focus-within,
+[data-low-motion="true"] .recommendation-card:hover,
+[data-low-motion="true"] .recommendation-card:focus-within {
+  content-visibility: visible;
+  contain: none;
+}
+
 @media (pointer: coarse) {
   body {
     background-attachment: scroll;
