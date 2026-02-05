@@ -10,7 +10,7 @@ const loadApp = () => {
   return appPromise;
 };
 
-const queueIdleTask = (callback, timeoutMs = 2500) => {
+const queueIdleTask = (callback, timeoutMs = 7000) => {
   if (typeof callback !== 'function') return;
   if (typeof window === 'undefined') {
     callback();
@@ -24,7 +24,7 @@ const queueIdleTask = (callback, timeoutMs = 2500) => {
 };
 
 const initNonCriticalServices = () => {
-  queueIdleTask(async () => {
+  const runDeferredInit = () => queueIdleTask(async () => {
     try {
       const [app, keyboardModule, swModule, analyticsModule, perfModule, recsModule] = await Promise.all([
         loadApp(),
@@ -52,6 +52,18 @@ const initNonCriticalServices = () => {
       Logger?.warn?.('Deferred services failed to init', { error });
     }
   });
+
+  if (typeof window === 'undefined') {
+    runDeferredInit();
+    return;
+  }
+
+  if (document.readyState === 'complete') {
+    runDeferredInit();
+    return;
+  }
+
+  window.addEventListener('load', runDeferredInit, { once: true });
 };
 
 const bootstrap = () => {
