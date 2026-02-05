@@ -625,37 +625,37 @@ const Recommendations = {
   /**
    * Get personalized "Because You Watched" recommendations
    * @param {Array} animeList - Full catalog
-   * @param {Array} bookmarkedIds - User's bookmarked anime IDs
+   * @param {Array} watchlistIds - User's watchlist anime IDs
    * @param {number} limit - Max recommendations
    * @returns {Object} { recommendations: Array, basedOn: Object }
    */
-  getBecauseYouWatched(animeList, bookmarkedIds, limit = 6) {
-    if (!bookmarkedIds || bookmarkedIds.length === 0) {
+  getBecauseYouWatched(animeList, watchlistIds, limit = 6) {
+    if (!watchlistIds || watchlistIds.length === 0) {
       return { recommendations: [], basedOn: null };
     }
 
-    // Get bookmarked anime data
-    const bookmarkedAnime = bookmarkedIds
+    // Get watchlist anime data
+    const watchedAnime = watchlistIds
       .map(id => animeList.find(a => a.id === id))
       .filter(Boolean);
 
-    if (bookmarkedAnime.length === 0) {
+    if (watchedAnime.length === 0) {
       return { recommendations: [], basedOn: null };
     }
 
-    // Pick a seed anime (most recent bookmark or best for recommendations)
-    const seedAnime = this.selectSeedAnime(bookmarkedAnime);
+    // Pick a seed anime (most recent watchlist entry or best for recommendations)
+    const seedAnime = this.selectSeedAnime(watchedAnime);
 
     // Get recommendations based on seed
     const similarResults = this.getSimilarAnime(
-      animeList.filter(a => !bookmarkedIds.includes(a.id)),
+      animeList.filter(a => !watchlistIds.includes(a.id)),
       seedAnime,
       limit + 5 // Get extra for filtering
     );
 
-    // Filter out already bookmarked and rank by relevance
+    // Filter out already watched and rank by relevance
     const filtered = similarResults
-      .filter(r => !bookmarkedIds.includes(r.anime.id))
+      .filter(r => !watchlistIds.includes(r.anime.id))
       .slice(0, limit);
 
     return {
@@ -674,16 +674,16 @@ const Recommendations = {
   },
 
   /**
-   * Select the best seed anime from bookmarks
+   * Select the best seed anime from watchlist
    */
-  selectSeedAnime(bookmarkedAnime) {
+  selectSeedAnime(watchlistAnime) {
     // Prefer anime with both genres and themes
-    const withTags = bookmarkedAnime.filter(a =>
+    const withTags = watchlistAnime.filter(a =>
       a.genres?.length > 0 && a.themes?.length > 0
     );
 
     if (withTags.length === 0) {
-      return bookmarkedAnime[0];
+      return watchlistAnime[0];
     }
 
     // Score each by how good it is for recommendations

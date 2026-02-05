@@ -8,19 +8,19 @@
   <meta name="csp-nonce" content="rekonime-inline">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bookmarks - Rekonime</title>
+  <title>Watchlist - Rekonime</title>
   <meta name="description" content="Your saved anime on Rekonime.">
   <meta name="theme-color" content="#FFB7C5">
   <link rel="canonical" href="">
   <meta property="og:site_name" content="Rekonime">
-  <meta property="og:title" content="Bookmarks - Rekonime">
+  <meta property="og:title" content="Watchlist - Rekonime">
   <meta property="og:description" content="Your saved anime on Rekonime.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="">
   <meta property="og:image" content="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJla29uaW1lIj4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzAwZDRhYSIvPgogIDx0ZXh0IHg9IjMyIiB5PSI0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMTIxMjEyIj5SPC90ZXh0Pgo8L3N2Zz4K">
   <meta property="og:image:alt" content="Rekonime logo">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Bookmarks - Rekonime">
+  <meta name="twitter:title" content="Watchlist - Rekonime">
   <meta name="twitter:description" content="Your saved anime on Rekonime.">
   <meta name="twitter:image" content="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJla29uaW1lIj4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzAwZDRhYSIvPgogIDx0ZXh0IHg9IjMyIiB5PSI0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMTIxMjEyIj5SPC90ZXh0Pgo8L3N2Zz4K">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
@@ -256,13 +256,16 @@
   <script nonce="rekonime-inline">
     (function () {
       try {
-        var raw = localStorage.getItem('rekonime.bookmarks');
+        var raw = localStorage.getItem('rekonime.watchlist');
         if (!raw) return;
         var data = JSON.parse(raw);
         if (!data || typeof data !== 'object') return;
-        var items = Array.isArray(data) ? null : data.items;
-        if (!Array.isArray(items) || items.length === 0) return;
-        var cover = items[0] && items[0].cover;
+        var entries = Array.isArray(data) ? data : data.entries;
+        if (!Array.isArray(entries) || entries.length === 0) return;
+        var entryWithCover = entries.find(function (entry) {
+          return entry && entry.snapshot && typeof entry.snapshot.cover === 'string' && entry.snapshot.cover.trim();
+        }) || entries[0];
+        var cover = entryWithCover && entryWithCover.snapshot && entryWithCover.snapshot.cover;
         if (!cover || typeof cover !== 'string') return;
         var trimmed = cover.trim();
         if (!trimmed) return;
@@ -387,23 +390,27 @@
     <section class="bookmarks-section is-empty" id="bookmarks-section">
       <div class="section-header">
         <div>
-          <h2>Bookmarked</h2>
-          <p class="section-subtitle" id="bookmarks-subtitle">Save titles with the star to keep them here.</p>
+          <h2>Watchlist</h2>
+          <p class="section-subtitle" id="bookmarks-subtitle">Track what you plan to watch, are watching, and finished.</p>
         </div>
+      </div>
+      <div class="bookmark-filters" id="bookmark-filters">
+        <span class="bookmark-filters-label">Filter by status</span>
+        <div class="bookmark-filter-chips" id="bookmark-filter-chips" role="tablist" aria-label="Watchlist filters"></div>
       </div>
       <noscript>
         <div class="bookmarks-no-js">
-          <h3>Bookmarks require JavaScript</h3>
-          <p>Rekonime stores bookmarks locally in your browser, which needs JavaScript.</p>
+          <h3>Watchlist requires JavaScript</h3>
+          <p>Rekonime stores your watchlist locally in your browser, which needs JavaScript.</p>
           <ol>
             <li>Enable JavaScript in your browser settings.</li>
             <li>Browse the <a href="index.html">catalog</a>.</li>
-            <li>Tap the star on any title to save it here.</li>
+            <li>Set a watch status on any title to save it here.</li>
           </ol>
         </div>
       </noscript>
       <div class="anime-grid bookmarks-grid" id="bookmarks-grid"></div>
-      <p class="bookmarks-empty" id="bookmarks-empty">No bookmarks yet. Star any anime to pin it here.</p>
+      <p class="bookmarks-empty" id="bookmarks-empty">No watchlist items yet. Set a status on any anime to add it here.</p>
     </section>
   </div>
 

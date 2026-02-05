@@ -22,14 +22,14 @@ const Discovery = {
         return AnalyticsService;
     },
 
-    bookmarkProvider: null,
+    watchlistProvider: null,
 
-    setBookmarkProvider(provider) {
-        this.bookmarkProvider = provider;
+    setWatchlistProvider(provider) {
+        this.watchlistProvider = provider;
     },
 
-    getBookmarkProvider() {
-        return this.bookmarkProvider;
+    getWatchlistProvider() {
+        return this.watchlistProvider;
     },
 
     /**
@@ -43,12 +43,12 @@ const Discovery = {
             excludeIds = [],
             requireRetention = true,
             requireSatisfaction = false,
-            useBookmarks = true
+            useWatchlist = true
         } = options;
 
         // Build candidate pool
         let candidates = animeList.filter(anime => {
-            // Exclude already seen/bookmarked
+            // Exclude already seen/watchlisted
             if (excludeIds.includes(anime.id)) return false;
 
             const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length >= this.qualityThresholds.minEpisodes;
@@ -67,12 +67,12 @@ const Discovery = {
             return true;
         });
 
-        // Weight by bookmark preferences if available
-        const provider = this.getBookmarkProvider();
-        if (useBookmarks && provider && typeof provider.getBookmarkedAnime === 'function') {
-            const bookmarked = provider.getBookmarkedAnime();
-            if (Array.isArray(bookmarked) && bookmarked.length > 0) {
-                candidates = this.weightByBookmarkPreferences(candidates);
+        // Weight by watchlist preferences if available
+        const provider = this.getWatchlistProvider();
+        if (useWatchlist && provider && typeof provider.getWatchlistAnime === 'function') {
+            const watchlistAnime = provider.getWatchlistAnime();
+            if (Array.isArray(watchlistAnime) && watchlistAnime.length > 0) {
+                candidates = this.weightByWatchlistPreferences(candidates);
             }
         }
 
@@ -83,24 +83,24 @@ const Discovery = {
     },
 
     /**
-     * Weight candidates based on bookmark genre/theme preferences
+     * Weight candidates based on watchlist genre/theme preferences
      */
-    weightByBookmarkPreferences(candidates) {
-        const provider = this.getBookmarkProvider();
-        if (!provider || typeof provider.getBookmarkedAnime !== 'function') {
+    weightByWatchlistPreferences(candidates) {
+        const provider = this.getWatchlistProvider();
+        if (!provider || typeof provider.getWatchlistAnime !== 'function') {
             return candidates.map(anime => ({ anime, weight: 1 }));
         }
 
-        const bookmarkedAnime = provider.getBookmarkedAnime();
-        if (bookmarkedAnime.length === 0) {
+        const watchlistAnime = provider.getWatchlistAnime();
+        if (watchlistAnime.length === 0) {
             return candidates.map(anime => ({ anime, weight: 1 }));
         }
 
-        // Extract preferred genres/themes from bookmarks
+        // Extract preferred genres/themes from watchlist
         const preferredGenres = new Set();
         const preferredThemes = new Set();
 
-        bookmarkedAnime.forEach(anime => {
+        watchlistAnime.forEach(anime => {
             anime.genres?.forEach(g => preferredGenres.add(g.toLowerCase()));
             anime.themes?.forEach(t => preferredThemes.add(t.toLowerCase()));
         });

@@ -11,17 +11,17 @@ test('Discovery getSurpriseMe filters by quality thresholds', () => {
   assert.equal(result.id, 'high');
 });
 
-test('Discovery weightByBookmarkPreferences boosts matching tags', () => {
+test('Discovery weightByWatchlistPreferences boosts matching tags', () => {
   const candidates = [
     createAnime({ id: 'a', genres: ['Action'], themes: ['Fantasy'] }),
     createAnime({ id: 'b', genres: ['Drama'], themes: ['Music'] })
   ];
 
-  Discovery.setBookmarkProvider({
-    getBookmarkedAnime: () => [createAnime({ genres: ['Action'], themes: ['Fantasy'] })]
+  Discovery.setWatchlistProvider({
+    getWatchlistAnime: () => [createAnime({ genres: ['Action'], themes: ['Fantasy'] })]
   });
 
-  const weighted = Discovery.weightByBookmarkPreferences(candidates);
+  const weighted = Discovery.weightByWatchlistPreferences(candidates);
   const weightA = weighted.find(entry => entry.anime.id === 'a').weight;
   const weightB = weighted.find(entry => entry.anime.id === 'b').weight;
   assert.ok(weightA > weightB);

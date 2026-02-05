@@ -1996,6 +1996,10 @@ h4 {
   display: block;
 }
 
+.bookmarks-section.is-empty .bookmark-filters {
+  display: none;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -2161,6 +2165,175 @@ h4 {
 .card-year {
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+.bookmark-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.bookmark-filters-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.bookmark-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bookmark-filter-chip {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bookmark-filter-chip:hover,
+.bookmark-filter-chip:focus-visible {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 2px rgba(255, 183, 197, 0.2);
+}
+
+.bookmark-filter-chip.is-active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.bookmark-filter-chip.is-active .chip-count {
+  background: rgba(26, 20, 24, 0.2);
+  color: var(--bg-primary);
+}
+
+.chip-count {
+  min-width: 1.5rem;
+  text-align: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.bookmark-watchlist {
+  margin-top: 0.8rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.bookmark-watchlist-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 6.5rem;
+}
+
+.bookmark-watchlist-select {
+  min-height: 2.5rem;
+  padding: 0.4rem 2rem 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.bookmark-watchlist-select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 183, 197, 0.2);
+  border-color: var(--accent-primary);
+}
+
+.bookmark-watchlist-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bookmark-watchlist-progress-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.bookmark-watchlist-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.bookmark-watchlist-stepper-btn {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.bookmark-watchlist-stepper-btn:hover,
+.bookmark-watchlist-stepper-btn:focus-visible {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border-color: var(--accent-primary);
+}
+
+.bookmark-watchlist-input {
+  width: 3rem;
+  min-height: 2.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  text-align: center;
+  font-weight: 600;
+}
+
+.bookmark-watchlist-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 183, 197, 0.2);
+  border-color: var(--accent-primary);
+}
+
+.bookmark-watchlist-total {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 3rem;
 }
 
 .card-badges {
@@ -2594,6 +2767,36 @@ h4 {
 
   .card-title {
     font-size: 1rem;
+  }
+
+  .bookmark-filters {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bookmark-filter-chips {
+    width: 100%;
+  }
+
+  .bookmark-filter-chip {
+    flex: 1 1 auto;
+    justify-content: space-between;
+    min-width: 7rem;
+  }
+
+  .bookmark-watchlist {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bookmark-watchlist-select,
+  .bookmark-watchlist-progress,
+  .bookmark-watchlist-stepper {
+    width: 100%;
+  }
+
+  .bookmark-watchlist-stepper {
+    justify-content: space-between;
   }
 
   .card-stats {

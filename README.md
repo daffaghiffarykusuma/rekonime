@@ -11,11 +11,11 @@ Rekonime is a static, browser-based anime dashboard that highlights how likely a
 - Browse and filter a large anime catalog.
 - See retention-style metrics (hook, drop risk, flow, finale strength).
 - Get recommendations and similar-anime matches.
-- Save favorites to bookmarks (stored locally in your browser).
+- Track your watchlist (planned/watching/completed/dropped) stored locally in your browser.
 - **Surprise Me**: Get a random quality anime recommendation.
 - **Seasonal Discovery**: Quick filters for This Season, Last Season, Next Season.
 - **Trending**: See what's popular right now.
-- **Because You Watched**: Personalized recommendations based on your bookmarks.
+- **Because You Watched**: Personalized recommendations based on your watchlist.
 - **Filter Presets**: One-click curated filters (Binge-Worthy, Critical Darlings, Hidden Gems, etc.).
 - **Keyboard Shortcuts**: `?` for help, `/` for search, arrow keys for navigation.
 - **Themes**: Switch between Dark, Light, or Auto (OS preference) modes.
@@ -36,10 +36,10 @@ If you want to refresh data:
    - `powershell -File tools/regenerate-data.ps1`
 
 ## Project map (high level)
-- `index.html`, `bookmarks.html`: pages and static markup.
+- `index.html`, `bookmarks.html`: pages and static markup (watchlist lives in `bookmarks.html`).
 - `css/styles.css`: styles, layout, and responsive rules.
 - `css/themes.css`: theme system with light/dark modes and accessibility features.
-- `js/app.js`: app state, rendering, filters, modal, bookmarks, SEO.
+- `js/app.js`: app state, rendering, filters, modal, watchlist, SEO.
 - `js/stats.js`: retention and scoring metrics.
 - `js/recommendations.js`: recommendation + similarity scoring logic.
 - `js/reviews.js`: MyAnimeList (via Jikan API) review fetching and rendering.
@@ -58,7 +58,7 @@ If you want to refresh data:
 ```mermaid
 flowchart TD
   index[index.html] --> app[js/app.js]
-  bookmarks[bookmarks.html] --> app
+  watchlist[bookmarks.html] --> app
   app --> stats[js/stats.js]
   app --> recs[js/recommendations.js]
   app --> reviews[js/reviews.js]
@@ -83,8 +83,8 @@ flowchart TD
   - Some browsers restrict local file fetches. Use a local server instead.
 - Why do some titles show limited data?
   - Not every anime has complete metadata or episode scores available.
-- Where are bookmarks stored?
-  - In browser `localStorage` under `rekonime.bookmarks`.
+- Where is the watchlist stored?
+  - In browser `localStorage` under `rekonime.watchlist` (legacy `rekonime.bookmarks` is migrated automatically).
 - How do keyboard shortcuts work?
   - Press `?` anywhere to see all available shortcuts.
 - Can I use the app offline?

@@ -60,6 +60,45 @@
       ]
     });
 
+    this.register('rekonime.watchlist', {
+      type: 'object',
+      required: ['version', 'entries'],
+      properties: {
+        version: { type: 'integer' },
+        updatedAt: { type: 'number' },
+        entries: {
+          type: 'array',
+          maxItems: 5000,
+          items: {
+            type: 'object',
+            required: ['id', 'status', 'progress', 'updatedAt'],
+            properties: {
+              id: { type: 'string', minLength: 1 },
+              status: { type: 'string', enum: ['planned', 'watching', 'completed', 'dropped'] },
+              progress: { type: 'integer' },
+              updatedAt: { type: 'number' },
+              startedAt: { type: 'number' },
+              completedAt: { type: 'number' },
+              snapshot: {
+                type: 'object',
+                required: ['id', 'title', 'cover'],
+                properties: {
+                  id: { type: 'string', minLength: 1 },
+                  title: { type: 'string', minLength: 1 },
+                  cover: { type: 'string', minLength: 1 },
+                  year: { type: ['string', 'number', 'null'] },
+                  studio: { type: 'string' }
+                },
+                additionalProperties: true
+              }
+            },
+            additionalProperties: true
+          }
+        }
+      },
+      additionalProperties: true
+    });
+
     this.register('rekonime.recMode', {
       type: 'string',
       minLength: 1

@@ -41,13 +41,13 @@ test('surprise me opens detail modal', async ({ page }) => {
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
 });
 
-test('bookmark flow persists to bookmarks page', async ({ page }) => {
+test('watchlist flow persists to watchlist page', async ({ page }) => {
   await page.goto('/');
   await page.waitForSelector('#anime-grid .anime-card');
   await page.locator('#anime-grid .anime-card').first().click();
   await page.waitForSelector('#detail-modal.visible');
-  await page.waitForSelector('#bookmark-toggle');
-  await page.click('#bookmark-toggle');
+  await page.waitForSelector('#watchlist-select');
+  await page.selectOption('#watchlist-select', 'planned');
 
   await page.goto('/bookmarks.html');
   await page.waitForSelector('#bookmarks-grid .anime-card');

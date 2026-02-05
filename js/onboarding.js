@@ -239,8 +239,8 @@ const Onboarding = {
             <div class="feature-item">
               <span class="feature-icon">🔖</span>
               <div class="feature-info">
-                <span class="feature-title">Bookmarks</span>
-                <span class="feature-desc">Save interesting titles for later</span>
+                <span class="feature-title">Watchlist</span>
+                <span class="feature-desc">Track planned, watching, and completed shows</span>
               </div>
             </div>
           </div>

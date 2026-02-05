@@ -63,13 +63,14 @@ const App = {
   trailerScrollHandler: null,
   trailerScrollRoot: null,
   trailerCleanup: null,
-  bookmarkStorageKey: 'rekonime.bookmarks',
+  legacyBookmarkStorageKey: 'rekonime.bookmarks',
+  watchlistStorageKey: 'rekonime.watchlist',
   settingsStorageKey: 'rekonime.settings',
+  watchlistVersion: 1,
   settings: null,
   settingsRendered: false,
-  bookmarkIds: [],
-  bookmarkIdSet: new Set(),
-  bookmarkItemMap: new Map(),
+  watchlistEntries: new Map(),
+  watchlistStatusOptions: ['planned', 'watching', 'completed', 'dropped'],
   seoInitialized: false,
   urlFiltersApplied: false,
   filterQueryMap: {
@@ -545,24 +546,6 @@ const App = {
         }
         return state;
       },
-      bookmarks: (state = { ids: [] }, action) => {
-        if (!action) return state;
-        if (action.type === 'bookmarks/loaded') {
-          return { ...state, ids: Array.isArray(action.payload?.ids) ? action.payload.ids : [] };
-        }
-        if (action.type === 'bookmarks/added') {
-          const id = action.payload?.id;
-          if (!id) return state;
-          const filtered = state.ids.filter(existing => existing !== id);
-          return { ...state, ids: [id, ...filtered] };
-        }
-        if (action.type === 'bookmarks/removed') {
-          const id = action.payload?.id;
-          if (!id) return state;
-          return { ...state, ids: state.ids.filter(existing => existing !== id) };
-        }
-        return state;
-      },
       catalog: (state = {
         items: Array.isArray(this.animeData) ? this.animeData : [],
         filtered: Array.isArray(this.filteredData) ? this.filteredData : [],
@@ -624,7 +607,6 @@ const App = {
     this.store = Store.createStore({
       initialState: {
         settings: defaultSettings,
-        bookmarks: { ids: [] },
         catalog: {
           items: Array.isArray(this.animeData) ? this.animeData : [],
           filtered: Array.isArray(this.filteredData) ? this.filteredData : [],
@@ -761,7 +743,63 @@ const App = {
     `;
   },
 
-  normalizeBookmarkStats(stats) {
+  renderWatchlistControls(anime) {
+    if (!anime) return '';
+    const entry = this.getWatchlistEntry(anime.id);
+    const status = entry?.status || '';
+    const progress = Number.isFinite(entry?.progress) ? entry.progress : 0;
+    const episodeCount = this.getEpisodeCount(anime);
+    const showProgress = this.shouldShowWatchProgress(status);
+    const safeId = this.escapeAttr(anime.id);
+    const maxAttr = Number.isFinite(episodeCount) && episodeCount > 0 ? `max="${episodeCount}"` : '';
+    const totalText = Number.isFinite(episodeCount) && episodeCount > 0 ? `of ${episodeCount}` : '';
+
+    const options = [
+      { value: '', label: 'Not tracking' },
+      { value: 'planned', label: 'Planned' },
+      { value: 'watching', label: 'Watching' },
+      { value: 'completed', label: 'Completed' },
+      { value: 'dropped', label: 'Dropped' }
+    ];
+
+    const optionsHtml = options.map((option) => {
+      const selected = option.value === status ? 'selected' : '';
+      return `<option value="${this.escapeAttr(option.value)}" ${selected}>${this.escapeHtml(option.label)}</option>`;
+    }).join('');
+
+    return `
+      <div class="detail-watchlist">
+        <div class="detail-watchlist-label">
+          <span class="detail-watchlist-title">Watch status</span>
+          <span class="detail-watchlist-subtitle">Track your progress</span>
+        </div>
+        <div class="detail-watchlist-controls">
+          <label class="watchlist-select-wrapper">
+            <span class="visually-hidden">Watch status</span>
+            <select class="watchlist-select" id="watchlist-select" data-action="watch-status" data-anime-id="${safeId}">
+              ${optionsHtml}
+            </select>
+          </label>
+          <div class="watchlist-progress ${showProgress ? '' : 'is-hidden'}" id="watchlist-progress">
+            <span class="watchlist-progress-label">Episode</span>
+            <div class="watchlist-progress-stepper">
+              <button class="watchlist-stepper" type="button" data-action="watch-progress-dec" data-anime-id="${safeId}" aria-label="Decrease episode">
+                <span aria-hidden="true">−</span>
+              </button>
+              <input class="watchlist-progress-input" id="watchlist-progress-input" type="number" min="0" step="1" ${maxAttr}
+                value="${this.escapeAttr(String(progress))}" data-action="watch-progress" data-anime-id="${safeId}" inputmode="numeric" aria-label="Episode progress">
+              <span class="watchlist-progress-total" id="watchlist-progress-total">${this.escapeHtml(totalText)}</span>
+              <button class="watchlist-stepper" type="button" data-action="watch-progress-inc" data-anime-id="${safeId}" aria-label="Increase episode">
+                <span aria-hidden="true">+</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  normalizeSnapshotStats(stats) {
     if (!stats || typeof stats !== 'object') return null;
     return {
       retentionScore: Number.isFinite(stats.retentionScore) ? stats.retentionScore : null,
@@ -776,10 +814,12 @@ const App = {
     };
   },
 
-  buildBookmarkSnapshot(anime) {
+  buildAnimeSnapshot(anime) {
     if (!anime) return null;
     const id = this.normalizeBookmarkId(anime.id);
     if (!id) return null;
+    const cover = String(anime.cover || '').trim();
+    if (!cover) return null;
     return {
       id,
       title: String(anime.title || 'Unknown'),
@@ -787,7 +827,7 @@ const App = {
       titleJapanese: anime.titleJapanese || '',
       malId: Number.isFinite(Number(anime.malId)) ? Number(anime.malId) : null,
       anilistId: Number.isFinite(Number(anime.anilistId)) ? Number(anime.anilistId) : null,
-      cover: anime.cover || '',
+      cover,
       year: anime.year || null,
       season: anime.season || '',
       studio: anime.studio || '',
@@ -797,11 +837,11 @@ const App = {
       genres: Array.isArray(anime.genres) ? [...anime.genres] : [],
       themes: Array.isArray(anime.themes) ? [...anime.themes] : [],
       communityScore: Number.isFinite(anime.communityScore) ? anime.communityScore : null,
-      stats: this.normalizeBookmarkStats(anime.stats)
+      stats: this.normalizeSnapshotStats(anime.stats)
     };
   },
 
-  normalizeBookmarkItem(item) {
+  normalizeAnimeSnapshot(item) {
     if (!item) return null;
     const id = this.normalizeBookmarkId(item.id);
     if (!id) return null;
@@ -825,16 +865,461 @@ const App = {
       genres: Array.isArray(item.genres) ? [...item.genres] : [],
       themes: Array.isArray(item.themes) ? [...item.themes] : [],
       communityScore: Number.isFinite(item.communityScore) ? item.communityScore : null,
-      stats: this.normalizeBookmarkStats(item.stats || item.statsSnapshot || null)
+      stats: this.normalizeSnapshotStats(item.stats || item.statsSnapshot || null)
     };
   },
 
-  getBookmarkStoragePayload() {
-    const ids = [...this.bookmarkIds];
-    const items = ids
-      .map(id => this.bookmarkItemMap.get(id))
+  getWatchlistSnapshot(animeId) {
+    const key = this.normalizeBookmarkId(animeId);
+    if (!key) return null;
+    const entry = this.watchlistEntries.get(key);
+    if (!entry?.snapshot) return null;
+    return this.normalizeAnimeSnapshot(entry.snapshot) || null;
+  },
+
+  normalizeWatchStatus(value) {
+    const status = String(value || '').trim().toLowerCase();
+    if (this.watchlistStatusOptions.includes(status)) {
+      return status;
+    }
+    return 'planned';
+  },
+
+  normalizeWatchProgress(value) {
+    if (!Number.isFinite(value)) {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return 0;
+      return Math.max(0, Math.floor(parsed));
+    }
+    return Math.max(0, Math.floor(value));
+  },
+
+  normalizeWatchTimestamp(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+    return Math.floor(parsed);
+  },
+
+  buildWatchlistEntry({ id, status, progress, updatedAt, startedAt, completedAt, snapshot } = {}) {
+    const key = this.normalizeBookmarkId(id);
+    if (!key) return null;
+    const entry = {
+      id: key,
+      status: this.normalizeWatchStatus(status),
+      progress: this.normalizeWatchProgress(progress),
+      updatedAt: this.normalizeWatchTimestamp(updatedAt) || Date.now()
+    };
+
+    const started = this.normalizeWatchTimestamp(startedAt);
+    if (started) {
+      entry.startedAt = started;
+    }
+
+    const completed = this.normalizeWatchTimestamp(completedAt);
+    if (completed) {
+      entry.completedAt = completed;
+    }
+
+    const normalizedSnapshot = snapshot ? this.normalizeAnimeSnapshot(snapshot) : null;
+    if (normalizedSnapshot) {
+      entry.snapshot = normalizedSnapshot;
+    }
+
+    return entry;
+  },
+
+  normalizeWatchlistEntry(entry) {
+    if (!entry || typeof entry !== 'object') return null;
+    return this.buildWatchlistEntry({
+      id: entry.id,
+      status: entry.status,
+      progress: entry.progress,
+      updatedAt: entry.updatedAt,
+      startedAt: entry.startedAt,
+      completedAt: entry.completedAt,
+      snapshot: entry.snapshot
+    });
+  },
+
+  loadWatchlist() {
+    this.watchlistEntries = new Map();
+    if (typeof window === 'undefined') return;
+
+    const cache = this.getCache();
+    const parsed = cache.getJSON(this.watchlistStorageKey, { fallback: null, validate: true });
+    if (!parsed) {
+      const raw = cache.getRaw(this.watchlistStorageKey, { fallback: '', allowMemory: false, validate: false });
+      if (raw && typeof raw === 'string' && !raw.trim().startsWith('{') && !raw.trim().startsWith('[')) {
+        cache.removeItem(this.watchlistStorageKey);
+      }
+    }
+    const entries = Array.isArray(parsed?.entries)
+      ? parsed.entries
+      : (Array.isArray(parsed) ? parsed : []);
+
+    entries.forEach((entry) => {
+      const normalized = this.normalizeWatchlistEntry(entry);
+      if (!normalized || !normalized.id) return;
+      if (this.watchlistEntries.has(normalized.id)) return;
+      this.watchlistEntries.set(normalized.id, normalized);
+    });
+  },
+
+  refreshWatchlistSnapshots() {
+    if (!Array.isArray(this.animeData) || this.animeData.length === 0) return;
+    let changed = false;
+    this.watchlistEntries.forEach((entry, id) => {
+      if (entry?.snapshot) return;
+      const anime = this.animeData.find(item => item?.id === id);
+      if (!anime) return;
+      const snapshot = this.buildAnimeSnapshot(anime);
+      if (!snapshot) return;
+      entry.snapshot = snapshot;
+      changed = true;
+    });
+
+    if (changed) {
+      this.saveWatchlist();
+    }
+  },
+
+  getWatchlistStoragePayload() {
+    const entries = [];
+    this.watchlistEntries.forEach((entry, id) => {
+      const next = { ...entry };
+      if (next.snapshot) {
+        const normalized = this.normalizeAnimeSnapshot(next.snapshot);
+        if (normalized) {
+          next.snapshot = normalized;
+        } else {
+          delete next.snapshot;
+          if (entry?.snapshot) {
+            delete entry.snapshot;
+            this.watchlistEntries.set(id, entry);
+          }
+        }
+      }
+      entries.push(next);
+    });
+    return {
+      version: this.watchlistVersion,
+      updatedAt: Date.now(),
+      entries
+    };
+  },
+
+  saveWatchlist() {
+    if (typeof window === 'undefined') return false;
+    const cache = this.getCache();
+    const payload = this.getWatchlistStoragePayload();
+    const saved = cache.setJSON(this.watchlistStorageKey, payload, { validate: true });
+    if (saved) return true;
+    try {
+      window.localStorage.setItem(this.watchlistStorageKey, JSON.stringify(payload));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  getWatchlistEntry(animeId) {
+    const key = this.normalizeBookmarkId(animeId);
+    if (!key) return null;
+    return this.watchlistEntries.get(key) || null;
+  },
+
+  getWatchlistIds({ statuses } = {}) {
+    const filter = Array.isArray(statuses) && statuses.length > 0
+      ? new Set(statuses.map(status => this.normalizeWatchStatus(status)))
+      : null;
+    const ids = [];
+    this.watchlistEntries.forEach((entry, id) => {
+      if (!filter || filter.has(entry.status)) {
+        ids.push(id);
+      }
+    });
+    return ids;
+  },
+
+  getWatchlistEntries({ statuses } = {}) {
+    const filter = Array.isArray(statuses) && statuses.length > 0
+      ? new Set(statuses.map(status => this.normalizeWatchStatus(status)))
+      : null;
+    const entries = [];
+    this.watchlistEntries.forEach((entry) => {
+      if (!filter || filter.has(entry.status)) {
+        entries.push(entry);
+      }
+    });
+    return entries;
+  },
+
+  getWatchlistAnime({ statuses } = {}) {
+    const ids = this.getWatchlistIds({ statuses });
+    if (ids.length === 0) return [];
+    const list = [];
+    ids.forEach((id) => {
+      const anime = this.animeData.find(item => item?.id === id);
+      if (anime) list.push(anime);
+    });
+    return list;
+  },
+
+  getWatchlistSnapshots({ statuses } = {}) {
+    const entries = this.getWatchlistEntries({ statuses });
+    return entries
+      .map(entry => this.normalizeAnimeSnapshot(entry.snapshot))
       .filter(Boolean);
-    return { version: 2, ids, items };
+  },
+
+  ensureWatchlistEntry(animeId, { status = 'planned', progress = 0 } = {}) {
+    const key = this.normalizeBookmarkId(animeId);
+    if (!key) return false;
+    if (this.watchlistEntries.has(key)) return false;
+    const entry = this.buildWatchlistEntry({ id: key, status, progress });
+    if (!entry) return false;
+    this.watchlistEntries.set(key, entry);
+    this.saveWatchlist();
+    return true;
+  },
+
+  removeWatchlistEntry(animeId) {
+    const key = this.normalizeBookmarkId(animeId);
+    if (!key) return false;
+    if (!this.watchlistEntries.has(key)) return false;
+    this.watchlistEntries.delete(key);
+    this.saveWatchlist();
+    return true;
+  },
+
+  getLegacyBookmarksPayload() {
+    const cache = this.getCache();
+    const parsed = cache.getJSON(this.legacyBookmarkStorageKey, { fallback: null, validate: false });
+    if (!parsed) return null;
+
+    const ids = [];
+    const items = [];
+
+    if (Array.isArray(parsed)) {
+      ids.push(...parsed);
+    } else if (this.isPlainObject(parsed)) {
+      if (Array.isArray(parsed.ids)) ids.push(...parsed.ids);
+      if (Array.isArray(parsed.items)) items.push(...parsed.items);
+    }
+
+    const uniqueIds = [];
+    const seen = new Set();
+    ids.forEach((id) => {
+      const key = this.normalizeBookmarkId(id);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      uniqueIds.push(key);
+    });
+
+    const itemMap = new Map();
+    items.forEach((entry) => {
+      const normalized = this.normalizeAnimeSnapshot(entry);
+      if (!normalized || !normalized.id || itemMap.has(normalized.id)) return;
+      itemMap.set(normalized.id, normalized);
+    });
+
+    if (uniqueIds.length === 0 && itemMap.size > 0) {
+      uniqueIds.push(...itemMap.keys());
+    }
+
+    return { ids: uniqueIds, items: itemMap };
+  },
+
+  migrateLegacyBookmarksToWatchlist() {
+    if (typeof window === 'undefined') return;
+    const legacy = this.getLegacyBookmarksPayload();
+    if (!legacy || legacy.ids.length === 0) return;
+
+    let changed = false;
+    legacy.ids.forEach((id) => {
+      if (this.watchlistEntries.has(id)) return;
+      const snapshot = legacy.items.get(id) || null;
+      const entry = this.buildWatchlistEntry({
+        id,
+        status: 'planned',
+        progress: 0,
+        snapshot
+      });
+      if (!entry) return;
+      this.watchlistEntries.set(id, entry);
+      changed = true;
+    });
+
+    if (changed) {
+      this.saveWatchlist();
+    }
+
+    const cache = this.getCache();
+    cache.removeItem(this.legacyBookmarkStorageKey);
+  },
+
+  shouldShowWatchProgress(status) {
+    return status === 'watching' || status === 'completed' || status === 'dropped';
+  },
+
+  getEpisodeLimitForAnime(animeId) {
+    const anime = this.animeData.find(item => item?.id === animeId);
+    if (!anime) return null;
+    const total = this.getEpisodeCount(anime);
+    if (!Number.isFinite(total) || total <= 0) return null;
+    return total;
+  },
+
+  setWatchStatus(animeId, status, { episodeCount } = {}) {
+    const key = this.normalizeBookmarkId(animeId);
+    if (!key) return null;
+    const normalized = String(status || '').trim().toLowerCase();
+    if (!normalized) {
+      const removed = this.removeWatchlistEntry(key);
+      if (removed) {
+        this.updateWatchlistControls(key);
+        this.emitAppEvent('rekonime:watchlist-updated', { id: key, removed: true });
+      }
+      return { removed };
+    }
+
+    const nextStatus = this.normalizeWatchStatus(normalized);
+    const now = Date.now();
+    let entry = this.watchlistEntries.get(key);
+
+    if (!entry) {
+      entry = this.buildWatchlistEntry({ id: key, status: nextStatus, progress: 0, updatedAt: now });
+    } else {
+      entry = { ...entry, status: nextStatus, updatedAt: now };
+    }
+
+    if (nextStatus === 'planned') {
+      entry.progress = 0;
+      delete entry.startedAt;
+      delete entry.completedAt;
+    } else {
+      if (!entry.startedAt) entry.startedAt = now;
+      if (nextStatus === 'completed') {
+        entry.completedAt = now;
+        if (Number.isFinite(episodeCount) && episodeCount > 0) {
+          const current = this.normalizeWatchProgress(entry.progress);
+          entry.progress = Math.max(current, episodeCount);
+        }
+      } else {
+        delete entry.completedAt;
+      }
+    }
+
+    if (!entry.snapshot) {
+      const anime = this.animeData.find(item => item?.id === key);
+      const snapshot = this.buildAnimeSnapshot(anime);
+      if (snapshot) {
+        entry.snapshot = snapshot;
+      }
+    }
+
+    this.watchlistEntries.set(key, entry);
+    this.saveWatchlist();
+    this.updateWatchlistControls(key);
+    this.emitAppEvent('rekonime:watchlist-updated', {
+      id: key,
+      status: entry.status,
+      progress: entry.progress,
+      removed: false
+    });
+    return { entry };
+  },
+
+  setWatchProgress(animeId, progress, { episodeCount } = {}) {
+    const key = this.normalizeBookmarkId(animeId);
+    if (!key) return null;
+    const now = Date.now();
+    const normalized = this.normalizeWatchProgress(progress);
+    const maxEpisodes = Number.isFinite(episodeCount) && episodeCount > 0 ? episodeCount : null;
+    const clamped = maxEpisodes ? Math.min(normalized, maxEpisodes) : normalized;
+
+    let entry = this.watchlistEntries.get(key);
+    if (!entry) {
+      entry = this.buildWatchlistEntry({
+        id: key,
+        status: 'watching',
+        progress: clamped,
+        updatedAt: now,
+        startedAt: now
+      });
+    } else {
+      entry = { ...entry, progress: clamped, updatedAt: now };
+      if (entry.status === 'planned' && clamped > 0) {
+        entry.status = 'watching';
+        if (!entry.startedAt) entry.startedAt = now;
+      }
+    }
+
+    if (entry.status === 'completed' && maxEpisodes && clamped >= maxEpisodes) {
+      entry.completedAt = entry.completedAt || now;
+    }
+
+    if (!entry.snapshot) {
+      const anime = this.animeData.find(item => item?.id === key);
+      const snapshot = this.buildAnimeSnapshot(anime);
+      if (snapshot) {
+        entry.snapshot = snapshot;
+      }
+    }
+
+    this.watchlistEntries.set(key, entry);
+    this.saveWatchlist();
+    this.updateWatchlistControls(key);
+    this.emitAppEvent('rekonime:watchlist-updated', {
+      id: key,
+      status: entry.status,
+      progress: entry.progress,
+      removed: false
+    });
+    return { entry };
+  },
+
+  adjustWatchProgress(animeId, delta) {
+    const key = this.normalizeBookmarkId(animeId);
+    if (!key) return null;
+    const entry = this.watchlistEntries.get(key);
+    const current = Number.isFinite(entry?.progress) ? entry.progress : 0;
+    const nextValue = current + (Number(delta) || 0);
+    const episodeCount = this.getEpisodeLimitForAnime(key);
+    return this.setWatchProgress(key, nextValue, { episodeCount });
+  },
+
+  updateWatchlistControls(animeId) {
+    if (typeof document === 'undefined') return;
+    if (!animeId || this.currentAnimeId !== animeId) return;
+    const select = document.getElementById('watchlist-select');
+    const progressWrap = document.getElementById('watchlist-progress');
+    const progressInput = document.getElementById('watchlist-progress-input');
+    const progressTotal = document.getElementById('watchlist-progress-total');
+    if (!select || !progressWrap || !progressInput) return;
+
+    const entry = this.getWatchlistEntry(animeId);
+    const status = entry?.status || '';
+    select.value = status;
+
+    const showProgress = this.shouldShowWatchProgress(status);
+    progressWrap.classList.toggle('is-hidden', !showProgress);
+
+    const progressValue = Number.isFinite(entry?.progress) ? entry.progress : 0;
+    progressInput.value = String(progressValue);
+
+    const total = this.getEpisodeLimitForAnime(animeId);
+    if (Number.isFinite(total) && total > 0) {
+      progressInput.setAttribute('max', String(total));
+      if (progressTotal) {
+        progressTotal.textContent = `of ${total}`;
+      }
+    } else {
+      progressInput.removeAttribute('max');
+      if (progressTotal) {
+        progressTotal.textContent = '';
+      }
+    }
   },
 
   sanitizeUrl(rawUrl, { allowRelative = true } = {}) {
@@ -1598,161 +2083,8 @@ const App = {
     this.settingsRendered = true;
   },
 
-  loadBookmarks() {
-    this.bookmarkIds = [];
-    this.bookmarkIdSet = new Set();
-    this.bookmarkItemMap = new Map();
 
-    if (typeof window === 'undefined') return;
-    const cache = this.getCache();
-    const parsed = cache.getJSON(this.bookmarkStorageKey, { fallback: [], validate: true });
-
-    try {
-      const ids = [];
-      const items = [];
-
-      if (Array.isArray(parsed)) {
-        ids.push(...parsed);
-      } else if (this.isPlainObject(parsed)) {
-        if (Array.isArray(parsed.ids)) {
-          ids.push(...parsed.ids);
-        }
-        if (Array.isArray(parsed.items)) {
-          items.push(...parsed.items);
-        }
-      }
-
-      const unique = [];
-      const seen = new Set();
-      for (const item of ids) {
-        const key = this.normalizeBookmarkId(item);
-        if (!key || seen.has(key)) continue;
-        seen.add(key);
-        unique.push(key);
-      }
-
-      const itemMap = new Map();
-      for (const entry of items) {
-        const normalized = this.normalizeBookmarkItem(entry);
-        if (!normalized || !normalized.id || itemMap.has(normalized.id)) continue;
-        itemMap.set(normalized.id, normalized);
-      }
-
-      if (unique.length === 0 && itemMap.size > 0) {
-        unique.push(...itemMap.keys());
-      }
-
-      this.bookmarkIds = unique;
-      this.bookmarkIdSet = new Set(unique);
-      this.bookmarkItemMap = itemMap;
-    } catch (error) {
-      this.bookmarkIds = [];
-      this.bookmarkIdSet = new Set();
-      this.bookmarkItemMap = new Map();
-    }
-
-    this.dispatchStore({ type: 'bookmarks/loaded', payload: { ids: [...this.bookmarkIds] } });
-  },
-
-  saveBookmarks() {
-    if (typeof window === 'undefined') return false;
-    const cache = this.getCache();
-    const payload = this.getBookmarkStoragePayload();
-    return cache.setJSON(this.bookmarkStorageKey, payload, { validate: true });
-  },
-
-  isBookmarked(animeId) {
-    const key = String(animeId ?? '').trim();
-    if (!key) return false;
-    return this.bookmarkIdSet.has(key);
-  },
-
-  addBookmark(animeId) {
-    const key = String(animeId ?? '').trim();
-    if (!key || this.bookmarkIdSet.has(key)) return false;
-    this.bookmarkIdSet.add(key);
-    this.bookmarkIds.unshift(key);
-    const anime = this.animeData.find(item => String(item.id) === key);
-    const snapshot = this.buildBookmarkSnapshot(anime);
-    if (snapshot) {
-      this.bookmarkItemMap.set(key, snapshot);
-    }
-    const persisted = this.saveBookmarks();
-    this.dispatchStore({ type: 'bookmarks/added', payload: { id: key } });
-    return { changed: true, persisted };
-  },
-
-  removeBookmark(animeId) {
-    const key = String(animeId ?? '').trim();
-    if (!key || !this.bookmarkIdSet.has(key)) return false;
-    this.bookmarkIdSet.delete(key);
-    this.bookmarkIds = this.bookmarkIds.filter(id => id !== key);
-    this.bookmarkItemMap.delete(key);
-    const persisted = this.saveBookmarks();
-    this.dispatchStore({ type: 'bookmarks/removed', payload: { id: key } });
-    return { changed: true, persisted };
-  },
-
-  toggleBookmark(animeId) {
-    const key = String(animeId ?? '').trim();
-    if (!key) return;
-
-    const result = this.isBookmarked(key)
-      ? this.removeBookmark(key)
-      : this.addBookmark(key);
-    if (!result || !result.changed) return;
-
-    this.updateBookmarkToggle(key);
-    this.renderBookmarks();
-
-    const anime = this.animeData.find(item => String(item.id) === key);
-    const title = anime?.title || 'Anime';
-    const isBookmarked = this.isBookmarked(key);
-    if (result.persisted) {
-      const message = isBookmarked
-        ? `${title} added to bookmarks`
-        : `${title} removed from bookmarks`;
-      this.showToast(message, { type: 'success' });
-    } else {
-      const message = isBookmarked
-        ? `${title} saved for this session only (storage unavailable).`
-        : `${title} removed for this session only (storage unavailable).`;
-      this.showToast(message, { type: 'error' });
-    }
-  },
-
-  updateBookmarkToggle(animeId) {
-    const button = document.getElementById('bookmark-toggle');
-    if (!button) return;
-
-    const key = String(animeId ?? '').trim();
-    if (!key) {
-      button.dataset.animeId = '';
-      button.classList.remove('is-bookmarked');
-      button.setAttribute('aria-pressed', 'false');
-      button.setAttribute('aria-label', 'Add bookmark');
-      button.setAttribute('title', 'Add bookmark');
-      const hiddenText = button.querySelector('.visually-hidden');
-      if (hiddenText) {
-        hiddenText.textContent = 'Add bookmark';
-      }
-      return;
-    }
-
-    const isActive = this.isBookmarked(key);
-    const label = isActive ? 'Remove bookmark' : 'Add bookmark';
-    button.dataset.animeId = key;
-    button.classList.toggle('is-bookmarked', isActive);
-    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    button.setAttribute('aria-label', label);
-    button.setAttribute('title', label);
-    const hiddenText = button.querySelector('.visually-hidden');
-    if (hiddenText) {
-      hiddenText.textContent = label;
-    }
-  },
-
-  areBookmarkItemsEqual(left, right) {
+  areWatchlistSnapshotsEqual(left, right) {
     if (!left || !right) return false;
     return left.id === right.id &&
       left.title === right.title &&
@@ -1764,75 +2096,72 @@ const App = {
       left.anilistId === right.anilistId;
   },
 
-  updateBookmarkCacheItem(anime, { persist = false } = {}) {
-    const snapshot = this.buildBookmarkSnapshot(anime);
-    if (!snapshot) return false;
-    const existing = this.bookmarkItemMap.get(snapshot.id);
-    if (existing && this.areBookmarkItemsEqual(existing, snapshot)) {
-      return false;
-    }
-    this.bookmarkItemMap.set(snapshot.id, snapshot);
-    if (persist) {
-      this.saveBookmarks();
-    }
-    return true;
-  },
-
-  refreshBookmarkCacheFromCatalog({ persist = false } = {}) {
-    if (!Array.isArray(this.bookmarkIds) || this.bookmarkIds.length === 0) return false;
+  refreshWatchlistSnapshotsFromCatalog({ persist = false } = {}) {
+    if (this.watchlistEntries.size === 0) return false;
     if (!Array.isArray(this.animeData) || this.animeData.length === 0) return false;
     const lookup = new Map(this.animeData.map(anime => [String(anime.id), anime]));
     let updated = false;
 
-    for (const id of this.bookmarkIds) {
-      const key = this.normalizeBookmarkId(id);
-      if (!key) continue;
-      const anime = lookup.get(key);
-      if (!anime) continue;
-      if (this.updateBookmarkCacheItem(anime)) {
-        updated = true;
+    this.watchlistEntries.forEach((entry, id) => {
+      const anime = lookup.get(id);
+      if (!anime) return;
+      const snapshot = this.buildAnimeSnapshot(anime);
+      if (!snapshot) return;
+      if (entry.snapshot && this.areWatchlistSnapshotsEqual(entry.snapshot, snapshot)) {
+        return;
       }
-    }
+      entry.snapshot = snapshot;
+      updated = true;
+    });
 
     if (updated && persist) {
-      this.saveBookmarks();
+      this.saveWatchlist();
     }
     return updated;
   },
 
-  getBookmarkedAnime() {
-    if (this.bookmarkIds.length === 0) return [];
-    const results = [];
+  getWatchlistDisplayItems() {
+    if (this.watchlistEntries.size === 0) return [];
     const lookup = Array.isArray(this.animeData) && this.animeData.length > 0
       ? new Map(this.animeData.map(anime => [String(anime.id), anime]))
       : new Map();
-
-    for (const id of this.bookmarkIds) {
-      const key = String(id);
-      const anime = lookup.get(key);
+    const placeholderCover = 'https://via.placeholder.com/120x170?text=No+Image';
+    const items = [];
+    this.watchlistEntries.forEach((entry, id) => {
+      const anime = lookup.get(id);
       if (anime) {
-        results.push(anime);
-        this.updateBookmarkCacheItem(anime);
-        continue;
+        items.push(anime);
+        return;
+      }
+      const snapshot = this.normalizeAnimeSnapshot(entry.snapshot);
+      if (snapshot) {
+        items.push(snapshot);
+        return;
       }
 
-      const cached = this.bookmarkItemMap.get(key);
-      if (cached) {
-        results.push(cached);
-      }
-    }
-
-    return results;
+      items.push({
+        id,
+        title: entry?.snapshot?.title || 'Unknown title',
+        cover: entry?.snapshot?.cover || placeholderCover,
+        year: entry?.snapshot?.year || null,
+        studio: entry?.snapshot?.studio || '',
+        communityScore: Number.isFinite(entry?.snapshot?.communityScore) ? entry.snapshot.communityScore : null,
+        stats: entry?.snapshot?.stats || null,
+        genres: Array.isArray(entry?.snapshot?.genres) ? [...entry.snapshot.genres] : [],
+        themes: Array.isArray(entry?.snapshot?.themes) ? [...entry.snapshot.themes] : []
+      });
+    });
+    return items;
   },
 
-  renderBookmarks() {
+  renderWatchlist() {
     const section = document.getElementById('bookmarks-section');
     const grid = document.getElementById('bookmarks-grid');
     const empty = document.getElementById('bookmarks-empty');
     if (!section || !grid || !empty) return;
 
-    const bookmarks = this.getBookmarkedAnime();
-    if (bookmarks.length === 0) {
+    const items = this.getWatchlistDisplayItems();
+    if (items.length === 0) {
       section.classList.add('is-empty');
       grid.innerHTML = '';
       return;
@@ -1840,9 +2169,9 @@ const App = {
 
     section.classList.remove('is-empty');
     if (this.features.templatePooling) {
-      grid.replaceChildren(this.renderAnimeCardsDom(bookmarks, { showBookmarkToggle: true, startIndex: 0 }));
+      grid.replaceChildren(this.renderAnimeCardsDom(items, { startIndex: 0 }));
     } else {
-      grid.innerHTML = this.renderAnimeCards(bookmarks, { showBookmarkToggle: true, startIndex: 0 });
+      grid.innerHTML = this.renderAnimeCards(items, { startIndex: 0 });
     }
   },
 
@@ -1890,9 +2219,10 @@ const App = {
       this.syncHomePath();
       this.renderLoadingState();
       this.initializeStore();
-      this.loadBookmarks();
-      Discovery.setBookmarkProvider({
-        getBookmarkedAnime: () => this.getBookmarkedAnime()
+      this.loadWatchlist();
+      this.migrateLegacyBookmarksToWatchlist();
+      Discovery.setWatchlistProvider({
+        getWatchlistAnime: () => this.getWatchlistAnime({ statuses: ['planned', 'watching', 'completed'] })
       });
       this.loadSettings();
       this.updateGridPageSize();
@@ -1908,7 +2238,7 @@ const App = {
       const requestedAnimeId = this.getAnimeIdFromUrl();
 
       if (!isCatalogPage) {
-        this.renderBookmarks();
+        this.renderWatchlist();
         if (requestedAnimeId) {
           this.showAnimeDetail(requestedAnimeId);
         }
@@ -2362,7 +2692,7 @@ const App = {
     }
 
     await this.ensureStats();
-    this.refreshBookmarkCacheFromCatalog({ persist: true });
+    this.refreshWatchlistSnapshotsFromCatalog({ persist: true });
     this.extractFilterOptions();
     this.deferFilterUiOnce = !this.deferFilterUiUsed && this.shouldEnableLowMotionMode();
 
@@ -3141,9 +3471,10 @@ const App = {
     const surpriseToggle = document.getElementById('surprise-toggle');
     if (surpriseToggle) {
       this.addTrackedListener(surpriseToggle, 'click', () => {
+        const excludeIds = this.getWatchlistIds();
         const surprise = Discovery.getSurpriseMe(this.animeData, {
-          excludeIds: this.bookmarkIds,
-          useBookmarks: true
+          excludeIds,
+          useWatchlist: true
         });
 
         if (surprise) {
@@ -3187,7 +3518,26 @@ const App = {
 
     this.addTrackedListener(document, 'change', (event) => {
       const target = event.target;
-      if (!target || !target.classList.contains('settings-toggle-input')) return;
+      if (!target) return;
+
+      const action = target.dataset?.action;
+      if (action === 'watch-status') {
+        const animeId = target.dataset.animeId || this.currentAnimeId;
+        if (!animeId) return;
+        const episodeCount = this.getEpisodeLimitForAnime(animeId);
+        this.setWatchStatus(animeId, target.value, { episodeCount });
+        return;
+      }
+
+      if (action === 'watch-progress') {
+        const animeId = target.dataset.animeId || this.currentAnimeId;
+        if (!animeId) return;
+        const episodeCount = this.getEpisodeLimitForAnime(animeId);
+        this.setWatchProgress(animeId, target.value, { episodeCount });
+        return;
+      }
+
+      if (!target.classList.contains('settings-toggle-input')) return;
       const key = target.dataset.settingKey;
       if (!key) return;
       this.updateSetting(key, target.checked);
@@ -4166,7 +4516,7 @@ const App = {
    */
   render() {
     this.renderActiveFilters();
-    this.renderBookmarks();
+    this.renderWatchlist();
     if (this.deferFilterUiOnce) {
       this.scheduleDeferredFilterUi();
     } else {
@@ -4316,9 +4666,14 @@ const App = {
     const recDims = this.getImageDimensions('recommendation');
     const recDimAttrs = recDims ? `width="${recDims.width}" height="${recDims.height}"` : '';
 
+    const watchedIds = this.getWatchlistIds({ statuses: ['watching', 'completed'] });
+    const seedIds = watchedIds.length > 0
+      ? watchedIds
+      : this.getWatchlistIds({ statuses: ['planned', 'watching', 'completed'] });
+
     const { recommendations, basedOn } = Recommendations.getBecauseYouWatched(
       this.animeData,
-      this.bookmarkIds,
+      seedIds,
       6
     );
 
@@ -4521,10 +4876,6 @@ const App = {
       <div class="anime-card" data-action="open-anime" role="button" tabindex="0" aria-label="View details">
         <div class="card-media">
           <img class="card-cover" ${cardDimAttrs} loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
-          <button class="bookmark-card-toggle" type="button" data-action="toggle-bookmark">
-            <span aria-hidden="true">&#9733;</span>
-            <span class="visually-hidden">Add bookmark</span>
-          </button>
         </div>
         <div class="card-body">
           <div class="card-title-row">
@@ -4543,15 +4894,15 @@ const App = {
     this.animeCardTemplate = template;
   },
 
-  createAnimeCardElement(anime, { showBookmarkToggle = false, index = 0 } = {}) {
+  createAnimeCardElement(anime, { index = 0 } = {}) {
     this.initCardTemplate();
     const fragment = this.animeCardTemplate.content.cloneNode(true);
     const card = fragment.querySelector('.anime-card');
-    this.updateAnimeCardElement(card, anime, { showBookmarkToggle, index });
+    this.updateAnimeCardElement(card, anime, { index });
     return card;
   },
 
-  updateAnimeCardElement(card, anime, { showBookmarkToggle = false, index = 0 } = {}) {
+  updateAnimeCardElement(card, anime, { index = 0 } = {}) {
     if (!card || !anime) return;
     const rawId = String(anime.id ?? '');
     card.dataset.animeId = rawId;
@@ -4629,24 +4980,6 @@ const App = {
       }
     }
 
-    const bookmarkBtn = card.querySelector('.bookmark-card-toggle');
-    if (showBookmarkToggle) {
-      if (bookmarkBtn) {
-        const isBookmarked = this.isBookmarked(anime.id);
-        const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
-        bookmarkBtn.dataset.animeId = rawId;
-        bookmarkBtn.classList.toggle('is-bookmarked', isBookmarked);
-        bookmarkBtn.setAttribute('aria-label', bookmarkLabel);
-        bookmarkBtn.setAttribute('title', bookmarkLabel);
-        const bookmarkText = bookmarkBtn.querySelector('.visually-hidden');
-        if (bookmarkText) {
-          bookmarkText.textContent = bookmarkLabel;
-        }
-      }
-    } else if (bookmarkBtn) {
-      bookmarkBtn.remove();
-    }
-
     const titleEl = card.querySelector('.card-title');
     if (titleEl) {
       titleEl.textContent = anime.title || '';
@@ -4708,11 +5041,10 @@ const App = {
     }
   },
 
-  renderAnimeCardsDom(animeList, { showBookmarkToggle = false, startIndex = 0 } = {}) {
+  renderAnimeCardsDom(animeList, { startIndex = 0 } = {}) {
     const fragment = document.createDocumentFragment();
     animeList.forEach((anime, localIndex) => {
       const card = this.createAnimeCardElement(anime, {
-        showBookmarkToggle,
         index: startIndex + localIndex
       });
       fragment.appendChild(card);
@@ -4748,7 +5080,7 @@ const App = {
   /**
    * Render anime cards HTML
    */
-  renderAnimeCards(animeList, { showBookmarkToggle = false, startIndex = 0 } = {}) {
+  renderAnimeCards(animeList, { startIndex = 0 } = {}) {
     const cardDims = this.getImageDimensions('card');
     const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
     return animeList.map((anime, localIndex) => {
@@ -4763,8 +5095,6 @@ const App = {
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
       const safeReason = this.escapeHtml(reason);
-      const isBookmarked = this.isBookmarked(anime.id);
-      const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
@@ -4790,17 +5120,6 @@ const App = {
              aria-label="${cardLabel}">
           <div class="card-media">
             <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${safeTitle}" class="card-cover" ${cardDimAttrs} loading="${loadingAttrs.loading}" decoding="${loadingAttrs.decoding}" ${cardFallbackAttrs}>
-            ${showBookmarkToggle ? `
-              <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"
-                      type="button"
-                      data-action="toggle-bookmark"
-                      data-anime-id="${safeId}"
-                      aria-label="${bookmarkLabel}"
-                      title="${bookmarkLabel}">
-                <span aria-hidden="true">&#9733;</span>
-                <span class="visually-hidden">${bookmarkLabel}</span>
-              </button>
-            ` : ''}
           </div>
           <div class="card-body">
             <div class="card-title-row">
@@ -5545,10 +5864,18 @@ const App = {
         return;
       }
 
-      if (action === 'toggle-bookmark') {
+      if (action === 'watch-progress-inc') {
         const animeId = actionEl.dataset.animeId || this.currentAnimeId;
         if (animeId) {
-          this.toggleBookmark(animeId);
+          this.adjustWatchProgress(animeId, 1);
+        }
+        return;
+      }
+
+      if (action === 'watch-progress-dec') {
+        const animeId = actionEl.dataset.animeId || this.currentAnimeId;
+        if (animeId) {
+          this.adjustWatchProgress(animeId, -1);
         }
         return;
       }
@@ -5575,9 +5902,10 @@ const App = {
       }
 
       if (action === 'surprise-me') {
+        const excludeIds = this.getWatchlistIds();
         const surprise = Discovery.getSurpriseMe(this.animeData, {
-          excludeIds: this.bookmarkIds,
-          useBookmarks: true
+          excludeIds,
+          useWatchlist: true
         });
 
         if (surprise) {
@@ -5802,7 +6130,7 @@ const App = {
     if (!anime) {
       const key = this.normalizeBookmarkId(animeId);
       if (key) {
-        const cached = this.bookmarkItemMap.get(key);
+        const cached = this.getWatchlistSnapshot(key);
         if (cached) {
           anime = cached;
         }
@@ -5833,7 +6161,7 @@ const App = {
 
     const synopsis = this.getSynopsisForAnime(anime);
     if (hasCachedDetail) {
-      this.updateBookmarkToggle(anime.id);
+      this.updateWatchlistControls(anime.id);
       if (modalContent) {
         modalContent.scrollTop = 0;
       }
@@ -5913,6 +6241,7 @@ const App = {
         </div>`
       : '';
     const similarSection = this.renderSimilarAnimeSection(anime);
+    const watchlistControls = this.renderWatchlistControls(anime);
 
     content.innerHTML = `
       <div class="detail-header">
@@ -5920,10 +6249,6 @@ const App = {
         <div class="detail-info">
           <div class="detail-title-row">
             <h2 class="detail-title" id="detail-modal-title">${safeTitle}</h2>
-            <button class="modal-bookmark detail-bookmark" id="bookmark-toggle" type="button" data-action="toggle-bookmark" aria-pressed="false" aria-label="Add bookmark" title="Add bookmark">
-              <span aria-hidden="true">&#9733;</span>
-              <span class="visually-hidden">Add bookmark</span>
-            </button>
           </div>
           ${altTitlesHtml}
           <div class="detail-meta">
@@ -5954,6 +6279,7 @@ const App = {
               <span class="detail-stat-label">Episodes</span>
             </div>
           </div>
+          ${watchlistControls}
         </div>
       </div>
       ${hasEpisodes ? `
@@ -6017,7 +6343,7 @@ const App = {
     `;
 
     this.cacheDetail(anime.id, content.innerHTML);
-    this.updateBookmarkToggle(anime.id);
+    this.updateWatchlistControls(anime.id);
 
     if (modalContent) {
       modalContent.scrollTop = 0;
@@ -6487,7 +6813,6 @@ const App = {
       this.teardownTrailerScrollListener();
     }
     this.currentAnimeId = null;
-    this.updateBookmarkToggle(null);
 
     if (updateUrl) {
       this.updateUrlForAnime(null);
@@ -6741,6 +7066,10 @@ const App = {
               <div class="detail-skeleton-stat"></div>
               <div class="detail-skeleton-stat"></div>
             </div>
+            <div class="detail-skeleton-watchlist">
+              <div class="detail-skeleton-pill"></div>
+              <div class="detail-skeleton-pill wide"></div>
+            </div>
           </div>
         </div>
         <div class="detail-skeleton-breakdown">
@@ -6839,7 +7168,7 @@ const App = {
    * Render anime card with responsive image srcset
    */
   renderAnimeCardWithSrcset(anime, options = {}) {
-    const { showBookmarkToggle = false, index = 0 } = options;
+    const { index = 0 } = options;
     const badges = Recommendations.getBadges(anime);
     const cardStats = Recommendations.getCardStats(anime);
     const episodeCount = this.getEpisodeCount(anime);
@@ -6853,8 +7182,6 @@ const App = {
     const safeYear = this.escapeHtml(anime.year || 'Unknown');
     const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
     const safeReason = this.escapeHtml(reason);
-    const isBookmarked = this.isBookmarked(anime.id);
-    const bookmarkLabel = isBookmarked ? 'Remove bookmark' : 'Add bookmark';
     const labelTitle = anime.title || 'this anime';
     const labelYear = anime.year ? `, ${anime.year}` : '';
     const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
@@ -6887,17 +7214,6 @@ const App = {
             decoding="${loadingAttrs.decoding}"
             ${fetchPriorityAttr}
             ${cardFallbackAttrs}>
-          ${showBookmarkToggle ? `
-            <button class="bookmark-card-toggle ${isBookmarked ? 'is-bookmarked' : ''}"
-                    type="button"
-                    data-action="toggle-bookmark"
-                    data-anime-id="${safeId}"
-                    aria-label="${bookmarkLabel}"
-                    title="${bookmarkLabel}">
-              <span aria-hidden="true">&#9733;</span>
-              <span class="visually-hidden">${bookmarkLabel}</span>
-            </button>
-          ` : ''}
         </div>
         <div class="card-body">
           <div class="card-title-row">

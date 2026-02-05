@@ -27,6 +27,25 @@ test('SchemaValidator validates object schemas', () => {
   assert.equal(SchemaValidator.validate('rekonime.settings', bad), false);
 });
 
+test('SchemaValidator validates watchlist schema', () => {
+  const now = Date.now();
+  const ok = {
+    version: 1,
+    updatedAt: now,
+    entries: [
+      { id: 'anime-1', status: 'planned', progress: 0, updatedAt: now }
+    ]
+  };
+  const bad = {
+    version: 1,
+    entries: [
+      { id: '', status: 'nope', progress: 'x', updatedAt: now }
+    ]
+  };
+  assert.equal(SchemaValidator.validate('rekonime.watchlist', ok), true);
+  assert.equal(SchemaValidator.validate('rekonime.watchlist', bad), false);
+});
+
 test('SchemaValidator validates jikan review payload shape', () => {
   assert.equal(SchemaValidator.validate('api.jikan.reviews', { data: [] }), true);
   assert.equal(SchemaValidator.validate('api.jikan.reviews', {}), false);

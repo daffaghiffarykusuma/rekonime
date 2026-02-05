@@ -42,7 +42,7 @@ const KeyboardShortcuts = {
             },
             'b': {
                 action: 'goToBookmarks',
-                description: 'Go to bookmarks page',
+                description: 'Go to watchlist page',
                 scope: 'Global'
             },
             'f': {
@@ -404,7 +404,7 @@ const KeyboardShortcuts = {
     },
 
     /**
-     * Navigate to bookmarks page
+     * Navigate to watchlist page
      */
     goToBookmarks() {
         window.location.href = 'bookmarks.html';

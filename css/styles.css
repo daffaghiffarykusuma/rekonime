@@ -1057,6 +1057,130 @@ h4 {
   text-transform: uppercase;
 }
 
+.detail-watchlist {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.detail-watchlist-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 8rem;
+}
+
+.detail-watchlist-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.detail-watchlist-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.detail-watchlist-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.watchlist-select {
+  min-height: 2.75rem;
+  padding: 0.45rem 2.25rem 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.watchlist-select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
+  border-color: var(--accent-primary);
+}
+
+.watchlist-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.watchlist-progress-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.watchlist-progress-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.watchlist-stepper {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.watchlist-stepper:hover,
+.watchlist-stepper:focus-visible {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border-color: var(--accent-primary);
+}
+
+.watchlist-progress-input {
+  width: 3.25rem;
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  text-align: center;
+  font-weight: 600;
+}
+
+.watchlist-progress-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
+  border-color: var(--accent-primary);
+}
+
+.watchlist-progress-total {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  min-width: 3.5rem;
+}
+
 /* ==========================================
    Synopsis Section
    ========================================== */
@@ -4025,6 +4149,28 @@ h4 {
     text-align: left;
   }
 
+  .detail-watchlist {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.75rem;
+  }
+
+  .detail-watchlist-controls {
+    width: 100%;
+  }
+
+  .watchlist-select {
+    width: 100%;
+  }
+
+  .watchlist-progress {
+    width: 100%;
+  }
+
+  .watchlist-progress-stepper {
+    width: 100%;
+  }
+
   .detail-tag {
     padding: 0.35rem 0.7rem;
     font-size: 0.75rem;
@@ -5881,6 +6027,23 @@ summary:focus-visible,
   width: 80px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
+}
+
+.detail-skeleton-watchlist {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.detail-skeleton-pill {
+  height: 2.25rem;
+  width: 120px;
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+}
+
+.detail-skeleton-pill.wide {
+  width: 180px;
 }
 
 .detail-skeleton-section {
