@@ -1,430 +1,105 @@
-# Rekonime Agent Guide
+﻿# Rekonime Agent Guide
 
-## Mandatory skills and workflow
-- Always read `USER_JOURNEY.MD` before proceeding with any task.
+## Start Here
+- Read this file end-to-end before starting any task.
 - Always check the `skills/` folder at the start of a task.
-- Always apply the instructions in `skills/ATOM-OF-THOUGHT.md` for every coding task.
-- For UI or design work (layouts, styling, components, or visual changes), also apply:
-  - `skills/FRONTEND-DESIGN.md`
-  - `skills/FRONTEND-RESPONSIVE-UI.md`
+- Always apply the Atom-of-Thought protocol below at the start of a task.
+- For UI or design work (layouts, styling, components, or visual changes), also apply `skills/FRONTEND-DESIGN.md` and `skills/FRONTEND-RESPONSIVE-UI.md`.
+- Optimize for Lighthouse web audit standards under Slow 4G throttling and a Brave browser user profile.
+- Treat Performance, Accessibility, Best Practices, and SEO as non-negotiable quality gates.
 
-## Graph-based Codebase Context (nodes and edges)
+## Atom-of-Thought Protocol (Internal Only)
+- Decompose requirements into atomic, MECE units.
+- Validate dependencies, edge cases, and assumptions; create sub-atoms when unclear.
+- Implement in dependency order with clean, production-ready code and standard comments.
+- Synthesize into a cohesive solution with natural documentation.
+- Never expose atom labels, phases, confidence scores, or internal reasoning in output.
 
-### Nodes (files and modules)
-- `index.html`: Main catalog page, SEO meta, CSP, and script/style includes.
-- `USER_JOURNEY.MD`: End-to-end user experience map from entry to exit.
-- `home/index.html`: Alias entry point for `/home` (local/static fallback) using the same JS/CSS.
-- `bookmarks.html`: Bookmarks page, shares the same JS/CSS and detail modal.
-- `css/styles.css`: Global styles, component layouts, animations, and responsive rules.
-- `css/themes.css`: Theme system with light/dark modes, accessibility features, and focus states.
-- `js/main.js`: Module entrypoint that bootstraps ThemeManager, KeyboardShortcuts, ServiceWorkerManager, and App.
-- `js/app.js`: Central controller for state, rendering, filtering, search, modals, SEO, and bookmarks.
-- `js/stats.js`: Retention and scoring metrics. Builds score profiles and per-anime stats.
-- `js/recommendations.js`: Recommendation, badges, sorting options, and similarity scoring.
-- `js/reviews.js`: MyAnimeList (via Jikan API) review fetch + rendering + synopsis utilities.
-- `js/discovery.js`: Surprise Me random discovery, seasonal discovery, trending, and "Because You Watched".
-- `js/filterPresets.js`: Quick filter presets (Binge-Worthy, Critical Darlings, Hidden Gems, etc.).
-- `js/keyboardShortcuts.js`: Keyboard navigation system (? for help, / for search, arrow keys for modal).
-- `js/metricGlossary.js`: Metric definitions, tooltips, and educational content for all stats.
-- `js/onboarding.js`: First-time user tour with guided steps through key concepts.
-- `js/themeManager.js`: Light/Dark/Auto theme switching with OS preference detection.
-- `js/serviceWorker.js`: Service Worker registration, update handling, and offline indicators.
-- `js/performanceMonitor.js`: Core Web Vitals + custom performance timing reporter.
-- `js/circuitBreaker.js`: Circuit breaker for external API resilience.
-- `js/healthMonitor.js`: Connectivity + data freshness monitor with health status reporting.
-- `js/core/dependency-container.js`: Lightweight dependency registry for shared services.
-- `js/core/event-bus.js`: Pub/sub bus for cross-module signals.
-- `js/core/store.js`: Minimal store with reducer map and middleware support.
-- `js/services/api-client.js`: HTTP abstraction with interceptors and unified errors.
-- `js/services/rate-limiter.js`: Token bucket rate limiter for external API pacing.
-- `js/services/cache-manager.js`: Safe localStorage access with TTL support.
-- `js/services/schema-validator.js`: Schema validation for persisted storage payloads.
-- `js/services/analytics-service.js`: Analytics abstraction with queue + gtag wrapper.
-- `js/services/error-handler.js`: Centralized error reporting with listeners.
-- `js/services/logger.js`: Structured logger with buffering and persistence.
-- `js/services/data-validator.js`: Runtime catalog validation.
-- `js/charts.js`: Chart.js helpers (not wired in current HTML).
-- `js/data.js`: Embedded fallback dataset (`ANIME_DATA`) for `file://` and fetch failure.
-- `health.html`: Standalone operational health status page.
-- `sw.js`: Service Worker for offline caching and background updates.
-- `version.json`: Build metadata for cache/version tracking (generated).
-- `data/anime.json`: Raw catalog (scraped). Source of truth for builds.
-- `data/anime.full.json`: Full catalog with stats + colorIndex (generated).
-- `data/anime.preview.json`: Preview subset for fast first paint (generated).
-- `data/build-report.json`: Build quality report output (generated, optional).
-- `tools/*.js` and `tools/*.ps1`: Data pipeline utilities.
-- `tools/lib/schema-validator.js`: Build-time catalog validation (schema + custom checks).
-- `tools/lib/integrity-checker.js`: Build-time referential integrity checks.
-- `tools/lib/build-state.js`: Incremental build state tracker (hashes + timestamps).
-- `tools/lib/quality-reporter.js`: Quality report generator + gate evaluation.
-- `tools/lib/errors.js`: Build-time error classes.
-- `tools/schemas/*.json`: JSON schema inputs for pipeline validation.
-- `tools/generate-version.js`: Auto-generates cache version + build metadata.
-- `tools/deploy-data.js`: Data backup + rollback helper.
-- `tools/scraper/*`: Python scraper + metadata enrichers for MAL/Jikan/AniList.
-- `.build-state.json`: Incremental build state (generated).
-- `package.json`: Dev scripts (node:test harness).
-- `vite.config.js`: Vite multi-page build config.
-- `test/*.test.js`: Node built-in unit/integration tests (stats, recommendations, pipeline).
+## Lighthouse Performance Targets (Slow 4G + Brave)
+- Optimize for First Contentful Paint, Largest Contentful Paint, Speed Index, Total Blocking Time, and Cumulative Layout Shift.
+- Prioritize fast initial render, stable layout, and minimal main-thread blocking.
+- Avoid layout shifts by reserving space for images, fonts, and dynamic content.
 
-### Edges (dependencies and relationships)
-- `index.html` -> `css/styles.css`
-- `index.html` -> `css/themes.css`
-- `index.html` -> `js/main.js` (module entrypoint)
-- `js/main.js` -> `ThemeManager`, `Recommendations`, `KeyboardShortcuts`, `ServiceWorkerManager`, `App`, `AnalyticsService`, `Logger`, `PerformanceMonitor`
-- `AGENTS.md` -> `USER_JOURNEY.MD` (required reading before tasks)
-- `home/index.html` -> same JS/CSS stack as `index.html`
-- `bookmarks.html` -> same JS/CSS stack as `index.html`
-- `js/app.js` -> `Stats` (calculations) + `Recommendations` (badges/recs/similar/sort options)
-- `js/app.js` -> `Store` (settings/bookmarks sync)
-- `js/app.js` -> `CacheManager` (settings/bookmarks persistence)
-- `js/app.js` -> `ApiClient` (catalog fetch)
-- `js/app.js` -> `Discovery` (surprise me, seasonal, trending)
-- `js/app.js` -> `FilterPresets` (quick filter presets)
-- `js/app.js` -> `MetricGlossary` (metric tooltips)
-- `js/app.js` -> `Onboarding` (first-time tour)
-- `js/app.js` -> `ReviewsService` (synopsis + review tabs in detail modal)
-- `js/app.js` -> `ThemeManager` (theme switching)
-- `js/app.js` -> `KeyboardShortcuts` (keyboard navigation)
-- `js/app.js` -> `ServiceWorkerManager` (PWA features)
-- `js/app.js` -> `HealthMonitor` (health status + indicator)
-- `js/app.js` -> `DataValidator` (runtime catalog validation)
-- `js/app.js` -> `Logger` (structured error logging)
-- `js/app.js` -> `CacheManager` -> localStorage (settings/bookmarks)
-- `js/app.js` -> `data/*.json` (fetch preview/full/legacy) and `js/data.js` fallback
-- `js/recommendations.js` -> `CacheManager` (mode preference)
-- `js/discovery.js` -> `AnalyticsService` + `CacheManager` (surprise tracking)
-- `js/reviews.js` -> Jikan API (MyAnimeList reviews) (`https://api.jikan.moe`)
-- `js/reviews.js` -> `ApiClient` + `CacheManager` (reviews/synopsis + synopsis cache)
-- `js/reviews.js` -> `CircuitBreaker` (Jikan API resilience)
-- `js/reviews.js` -> `RateLimiter` (Jikan request pacing)
-- `js/reviews.js` -> `SchemaValidator` + `ErrorHandler` (API response validation)
-- `js/reviews.js` -> `HealthMonitor` (latency tracking)
-- `js/healthMonitor.js` -> `CircuitBreaker` (reviews health status)
-- `js/healthMonitor.js` -> `Logger` (listener error logging)
-- `js/onboarding.js` -> `AnalyticsService` + `CacheManager` (tour state)
-- `js/filterPresets.js` -> `AnalyticsService` (preset usage)
-- `js/keyboardShortcuts.js` -> `CacheManager` (acknowledgement flag)
-- `js/themeManager.js` -> `CacheManager` (theme preference)
-- `js/services/cache-manager.js` -> `js/services/schema-validator.js` (storage schema validation)
-- `js/services/analytics-service.js` -> `CacheManager` (queue persistence)
-- `js/services/logger.js` -> `CacheManager` (log buffering)
-- `js/services/error-handler.js` -> `Logger` (structured logging)
-- `js/performanceMonitor.js` -> `AnalyticsService` (metric reporting)
-- `js/app.js` -> YouTube (trailer links and embeds, sanitized to allowed hosts)
-- `tools/build-catalogs.js` -> `tools/lib/schema-validator.js` + `tools/schemas/*.json` (build validation)
-- `tools/build-catalogs.js` -> `tools/lib/integrity-checker.js` (referential checks)
-- `tools/build-catalogs.js` -> `tools/lib/quality-reporter.js` (quality report + gates)
-- `tools/build-catalogs.js` -> `tools/lib/build-state.js` -> `.build-state.json` (incremental tracking)
-- `tools/build-catalogs.js` -> `tools/lib/errors.js` (build errors)
-- `tools/build-catalogs.js` -> `js/stats.js` (precompute stats) -> `data/anime.full.json` + `data/anime.preview.json`
-- `tools/build-catalogs.js` -> `data/build-report.json` (optional report output)
-- `tools/generate-version.js` -> `sw.js` + `version.json`
-- `tools/deploy-data.js` -> `data/anime*.json` (backup/rollback)
-- `tools/regenerate-data.ps1` -> `data/anime.full.json` -> `js/data.js`
-- `tools/merge-scores.js` -> `tools/scraper/output/*.json` -> `data/anime.json`
-- `tools/update_metadata.js` -> Jikan API -> `data/anime.json`
-- `tools/backfill_data.js` -> AniList + MAL HTML scraping -> `data/anime.json`
-- `tools/validate-data.js` -> `data/anime.json` (+ optional embedded data check)
-- `tools/sync-home-index.ps1` -> syncs `home/index.html` with `index.html`
-- `package.json` -> `test/*.test.js` (node:test runner)
-- `test/stats.test.js` -> `js/stats.js`
-- `test/recommendations.test.js` -> `js/recommendations.js`
-- `test/integration/build-catalogs.test.js` -> `tools/build-catalogs.js`
-- `js/serviceWorker.js` -> `sw.js` (service worker registration)
-- `health.html` -> `data/anime.full.json` + Jikan API + service worker registration status
+## Lighthouse Quality Gates
+- Accessibility: semantic HTML, labels, contrast, focus states, and keyboard navigation.
+- Best Practices: safe and modern APIs, CSP-aware changes, and error-free console output.
+- SEO: correct meta, structured headings, descriptive titles, and crawlable content.
 
-## Runtime flows (high-signal paths)
+## Lighthouse Review Checklist
+- Performance: FCP, LCP, Speed Index, TBT, CLS stay within target ranges on Slow 4G.
+- Accessibility: labels, alt text, focus order, contrast, ARIA, and keyboard flows verified.
+- Best Practices: HTTPS, no console errors, modern APIs, CSP-safe assets.
+- SEO: title/meta description, headings, canonical, and crawlable links verified.
 
-### Initial load and data swap
-1. `main.js` initializes logger, analytics, performance monitoring, theme, recommendations mode, keyboard shortcuts, and service worker, then calls `App.init()`.
-2. `App.init()` renders loading state and loads bookmarks.
-3. `App.loadInitialData()` fetches `data/anime.preview.json` via `ApiClient` (or `ANIME_DATA` for `file://`).
-4. `App.applyCatalogPayload()` normalizes data, runs runtime validation, ensures stats, extracts filters, renders UI.
-5. `App.loadFullCatalog()` swaps in `data/anime.full.json` (or `data/anime.json` legacy) and re-renders.
+## Current Lighthouse Baseline (Slow 4G)
+- Source: `plans/rekonime.vercel.app-20260205T114203.json` (Lighthouse 13.0.1, URL `https://rekonime.vercel.app/home/`).
+- Scores: Performance 0.74, Accessibility 1.00, Best Practices 1.00, SEO 1.00.
+- Metrics: FCP 1.23s, LCP 3.56s, Speed Index 1.34s, TBT 681ms, CLS 0.034.
+- Update this baseline when a new report is generated.
 
-### Filtering and sorting
-- Filters are stored in `App.activeFilters` and options in `App.filterOptions`.
-- `App.applyFilters()` produces `App.filteredData`, resets pagination, and re-renders.
-- Active filters sync to URL query params (season/year/genre/theme/etc.) for shareable states and are restored on load/history.
-- Sorting uses `Recommendations.getSortOptions()` + `App.sortAnimeByMetric()`.
+## User Journey (Condensed)
+- Entry points: `/` or `index.html` (primary), `/home` or `home/index.html`, `/bookmarks` or `bookmarks.html`, plus deep links via query params.
+- First load: `App.init()` shows loading state, loads bookmarks, fetches `data/anime.preview.json`, then swaps to `data/anime.full.json`.
+- Discover: scroll, search, filters, Surprise Me, seasonal chips, trending, and presets.
+- Evaluate: detail modal shows synopsis, trailer, reviews, and similar anime; URL updates with `?anime=...`.
+- Decide: bookmark or return to browsing; recommendations personalize based on bookmarks.
+- Persistence: theme, onboarding, shortcuts acknowledgement, bookmarks, and cached synopsis/reviews stored via `CacheManager`.
+- Resilience: embedded `ANIME_DATA` fallback for `file://` or fetch failures; image fallbacks use `data-fallback-src`.
+- PWA: service worker registers, offline indicator appears, and update prompts are shown when new versions exist.
 
-### Search
-- `App.handleHeaderSearch()` matches against `anime.searchText` (built or derived).
-- Selecting a result triggers `data-action="open-anime"` -> `App.showAnimeDetail()`.
+## Codebase Map (Key Files)
+- `index.html`, `home/index.html`, `bookmarks.html`: entry points; include CSS and JS.
+- `css/styles.css`, `css/themes.css`: global styles, theme system, accessibility, responsive rules.
+- `js/main.js`: module entrypoint; bootstraps app services and `App.init()`.
+- `js/app.js`: central controller for state, rendering, filters, search, modals, SEO, bookmarks.
+- `js/stats.js`: metrics and score profiles.
+- `js/recommendations.js`: sorting, badges, similarity scoring.
+- `js/reviews.js`: Jikan reviews + synopsis utilities.
+- `js/discovery.js`: surprise, seasonal, trending, because-you-watched.
+- `js/filterPresets.js`, `js/keyboardShortcuts.js`, `js/metricGlossary.js`, `js/onboarding.js`, `js/themeManager.js`.
+- `js/services/*`: API client, cache, rate limiter, schema validation, analytics, error handling, logging.
+- `data/*.json`: catalog sources (`anime.json`, `anime.full.json`, `anime.preview.json`).
+- `js/data.js`: embedded fallback dataset.
+- `sw.js`, `version.json`, `health.html`: PWA + health surface.
+- `tools/*`: build pipeline, validation, deployment utilities.
+- `test/*.test.js`: node:test coverage for stats, recs, build pipeline.
 
-### Detail modal and deep linking
-- `App.showAnimeDetail()` renders modal, updates URL (`?anime=...`), and sets SEO meta.
-- `App.syncModalWithUrl()` opens/closes modal on back/forward navigation.
-- Modal sections include synopsis, trailer, reviews, and similar anime.
+## Runtime Flows (Key)
+- Initial load and swap: preview data first, then full catalog refresh.
+- Filters and sorting: `App.activeFilters` + `Recommendations.getSortOptions()`.
+- Search: `anime.searchText` matched by `App.handleHeaderSearch()`.
+- Detail modal: `App.showAnimeDetail()` renders, syncs URL, and manages back/forward.
+- Reviews and synopsis: Jikan API via `ReviewsService`; cached via `CacheManager` with TTL.
+- Bookmarks: stored under `rekonime.bookmarks`, rendered in `bookmarks.html`.
 
-### Observability hooks
-- `App` emits `rekonime:data-load-start/end` and `rekonime:modal-opened` for custom performance timings.
-- `PerformanceMonitor` listens for these events and reports metrics via `AnalyticsService`.
-- `ReviewsService` records API latency to `HealthMonitor` for the reviews service.
+## Data Schema (Essentials)
+- Catalog payload: `{ generatedAt, scoreProfile, anime[] }`.
+- Anime object: core identity + metadata, `genres[]`, `themes[]`, `synopsis`, `trailer`, `communityScore`, `searchText`, `episodes[]`, `stats`, `colorIndex`.
+- Stats object: see `js/stats.js` for full fields; includes quality, retention, momentum, consistency, safety, and trend metrics (most scaled with a strictness curve).
 
-### Reviews and synopsis
-- `ReviewsService.fetchReviews()` calls the Jikan API for MyAnimeList reviews via `ApiClient`.
-- Reviews are categorized and rendered with tabs. Synopsis pulls from Jikan when available or falls back to cached/local data.
-- Descriptions are cached with `CacheManager` (TTL ~30 days).
+## DOM & UI Contracts
+- Key IDs: `#anime-grid`, `#recommendations-grid`, `#filter-modal`, `#filter-sections`, `#active-filters`, `#header-search`, `#detail-modal`, `#detail-content`, `#community-reviews-section`, `#similar-anime-section`, `#bookmarks-section`, `#bookmarks-grid`.
+- `data-action`: `open-anime`, `toggle-filter`, `toggle-bookmark`, `load-more`.
+- Image fallbacks: `data-fallback-src` on `img`.
+- Breakpoints: primary `max-width: 960px` and `max-width: 640px`; legacy `768px` and `480px` rules exist.
 
-### Similar anime
-- `Recommendations.getSimilarAnime()` requires at least one shared genre and theme.
-- Similarity score blends tag overlap with retention + satisfaction alignment.
+## External Services & CSP
+- Allowed remote sources: Google Fonts, Jikan API, YouTube / YouTube-nocookie.
+- If you add new remote assets or APIs, update the CSP in `index.html` and `bookmarks.html`.
 
-### Bookmarks
-- Stored via `CacheManager` under `rekonime.bookmarks`.
-- `bookmarks.html` renders via `App.renderBookmarks()` using the same card renderer.
-
-### Trailer autoplay
-- `App.renderTrailerSection()` builds sanitized YouTube URLs and respects data saver settings.
-- `App.setupTrailerAutoplay()` uses IntersectionObserver + scroll fallback, gated by settings.
-
-### Discovery features
-- `Discovery.getSurpriseMe()` returns weighted random anime with quality filtering.
-- `Discovery.getSeasonalFilters()` generates "This Season", "Last Season", "Next Season" chips.
-- `Discovery.getTrending()` calculates trending scores based on recency, MAL scores, and quality metrics.
-- `Discovery.getBecauseYouWatched()` generates personalized recommendations from bookmarks.
-
-### Filter presets
-- `FilterPresets.applyPreset()` applies curated filters (Binge-Worthy, Critical Darlings, Hidden Gems, etc.).
-- Presets are rendered as chips and cards in the filter modal.
-
-### Onboarding
-- `Onboarding.startTour()` launches a 4-step guided tour (welcome, retention, satisfaction, discovery).
-- Tour progress stored via `CacheManager` in `rekonime.onboarding` and `rekonime.tourStep`.
-
-### Keyboard shortcuts
-- `?` shows the keyboard shortcuts help modal.
-- `/` focuses the search input.
-- `Escape` closes modals.
-- `b` navigates to bookmarks.
-- `f` opens filters.
-- `s` opens settings.
-- `r` triggers Surprise Me.
-- `h` goes home and clears filters.
-- Arrow keys navigate anime in detail modal.
-
-### Theme management
-- `ThemeManager.applyTheme()` switches between dark, light, and auto modes.
-- Theme preference stored via `CacheManager` in `rekonime.theme`.
-- Auto mode respects `prefers-color-scheme` OS preference.
-
-### Service Worker / PWA
-- `ServiceWorkerManager.register()` registers `sw.js` for offline caching.
-- Shows update prompt when new versions are available.
-- Displays offline indicator when connectivity is lost.
-- Caches static assets, data JSON, and images with different strategies.
-
-### Health monitoring
-- `HealthMonitor.init()` starts during `App.init()` and tracks connectivity + catalog freshness.
-- Health indicator appears when degraded/offline and includes a retry action.
-- Reconnection triggers a full catalog refresh if data is stale.
-
-## Data schema (core entities)
-
-### Catalog payload
-- `generatedAt`: ISO timestamp.
-- `scoreProfile`: `{ p35, p50, p65, sampleSize?, source? }`
-- `anime`: Array of Anime objects.
-
-### Anime object (normalized)
-- `id`, `title`, `titleEnglish`, `titleJapanese`
-- `malId`, `anilistId`
-- `cover`, `type`, `year`, `season`, `studio`, `source`, `demographic`
-- `genres[]`, `themes[]`
-- `synopsis`, `trailer` (YouTube info)
-- `communityScore` (MAL satisfaction)
-- `searchText` (lowercased, normalized query string)
-- `episodes[]` (each `{ episode, score }`)
-- `stats` (computed if missing)
-- `colorIndex`
-
-### Stats object (detailed)
-- `average`: Mean episode score (1-5).
-- `stdDev`: Standard deviation of episode scores (lower is more consistent).
-- `auc`: Overall score normalized to 0-100 with a strictness curve.
-- `consistency`: `{ label, class }` from `stdDev` buckets.
-- `scoreClass`: CSS class derived from `average`.
-- `episodeCount`: Count of scored episodes.
-- `highestScore`: Max episode score (1-5).
-- `lowestScore`: Min episode score (1-5).
-- `retentionScore`: 0-100 blend of hook, drop safety, momentum, and flow; opening weight scales down for long series and slow-burn can lift.
-- `malSatisfactionScore`: MAL community score (0-10) copied from `communityScore`.
-- `reliabilityScore`: 0-100; hook + session safety + low churn risk + habit safety (scaled for long series).
-- `sessionSafety`: 0-100; percent of episodes above a safety floor, blended with overall quality.
-- `threeEpisodeHook`: 0-100; strictness-adjusted average of first 3 episodes.
-- `habitBreakRisk`: 0-10; longest chain of below-median episodes per 10 eps.
-- `peakScore`: Highest episode score (1-5).
-- `finaleStrength`: 0-100 (50 is neutral); compares final quarter vs earlier episodes.
-- `worthFinishing`: 0-100; finale strength + momentum + narrative acceleration.
-- `peakEpisodeCount`: Count of perfect 5/5 episodes.
-- `momentum`: -100 to 100; last 3 episodes vs overall average.
-- `narrativeAcceleration`: Linear regression slope for second half (can be negative).
-- `comfortScore`: 0-100; flow + emotional stability + entry ease + low stress spikes.
-- `stressSpikes`: 0-10; count of >= 1.5 point drops per 10 episodes.
-- `emotionalStability`: 0-100; higher when episode-to-episode changes are smaller.
-- `barrierToEntry`: Std dev of first 5 episodes (lower is easier to get into).
-- `flowState`: 0-100; inverse of squared episode-to-episode swings.
-- `qualityTrend`: `{ slope, direction }` with direction in `improving|declining|stable`.
-- `qualityDips`: Array of `{ episode, score, deviation }` for dips >= 0.8 below series average.
-- `productionQualityIndex`: 0-100; average + consistency + trend + hook + low churn risk minus dip penalty.
-- `rollingAverage`: Array of `{ episode, rollingAvg }` with window size 3.
-- `controversyPotential`: 0-100; range plus extreme-score bonus.
-- `sharkJump`: `{ episode, dropAmount }` if a permanent rolling-average drop; otherwise `null`.
-- `churnRisk`: `{ score, label, factors }` with score 0-100 and label buckets.
-- `slowBurn`: `{ signal, isActive, momentumScore, finaleStrength }` for slow-burn indicator.
-- Note: Most 0-100 metrics use a strictness curve (`Stats.strictnessExponent`) to emphasize stronger signals.
-
-## DOM contract (IDs and data-action)
-- Key IDs: `#anime-grid`, `#recommendations-grid`, `#best-ranking-1`, `#best-ranking-2`,
-  `#filter-modal`, `#filter-sections`, `#active-filters`, `#header-search`,
-  `#detail-modal`, `#detail-content`, `#community-reviews-section`, `#similar-anime-section`,
-  `#bookmarks-section`, `#bookmarks-grid`.
-- `data-action` values used by delegation: `open-anime`, `toggle-filter`, `toggle-bookmark`, `load-more`.
-- Image fallbacks: use `data-fallback-src` on `img` tags.
-
-## CSS architecture and responsive rules
-- `css/styles.css` contains a base section and a later "Beginner-friendly UX refresh" section.
-  The refresh block redefines `:root` variables and overrides earlier selectors.
-- `css/themes.css` contains theme system with light/dark mode variables, accessibility features
-  (high contrast, large text, reduced motion, data saver), focus states, keyboard shortcuts UI,
-  and theme selector styles.
-- Theme tokens live in the refresh `:root` block (dark palette, radii, shadows).
-- Breakpoints in use: `max-width: 960px` and `max-width: 640px` (primary),
-  plus older `max-width: 768px` and `max-width: 480px` rules earlier in the file.
-  Prefer existing breakpoints; avoid inventing new ones.
-
-## External services and security constraints
-- CSP in `index.html` and `bookmarks.html` restricts remote sources:
-  - Fonts: Google Fonts
-  - Reviews: Jikan API (MyAnimeList)
-  - Trailers: YouTube / YouTube-nocookie
-- URL sanitization is enforced in `App` and `ReviewsService` for images and trailers.
-- If adding new remote assets or APIs, update CSP accordingly.
-
-## Data pipeline graph (tools)
-1. `tools/scraper/mal_scraper.py` -> `tools/scraper/output/*.json`
+## Data Pipeline (Short)
+1. `tools/scraper/*` -> `tools/scraper/output/*.json`
 2. `tools/merge-scores.js` -> `data/anime.json`
-3. `tools/update_metadata.js` and `tools/backfill_data.js` enrich `data/anime.json`
-4. `tools/build-catalogs.js` (schema + integrity + quality gates, incremental state) -> `data/anime.full.json` + `data/anime.preview.json` (+ optional `data/build-report.json` + `.build-state.json`)
-5. `tools/regenerate-data.ps1` -> `js/data.js` (embedded fallback)
-6. `tools/validate-data.js` checks required fields (use `--skip-embedded` if needed)
-7. `tools/sync-home-index.ps1` syncs `home/index.html` with `index.html`
+3. Metadata enrichers -> `data/anime.json`
+4. `tools/build-catalogs.js` -> `data/anime.full.json` + `data/anime.preview.json` (+ optional report/state)
+5. `tools/regenerate-data.ps1` -> `js/data.js`
+6. `tools/validate-data.js` for schema checks
+7. `tools/sync-home-index.ps1` syncs `home/index.html`
 
-## Notes on optional modules
-- `js/charts.js` requires Chart.js (+ ChartDataLabels) and is not included in HTML.
-  If you use it, wire scripts and canvas IDs in the page.
+## Notes
+- `js/charts.js` is optional and not wired by default; wire scripts and canvas IDs if used.
 
-## Maintenance (keep this file adaptive)
-- Treat this file as living documentation: update nodes, edges, flows, and schemas when code changes.
-- When adding/removing files or data flows, reflect the change in both the graph section and the flowchart below.
-- Keep sections concise and editable; prefer short bullets over long prose.
-
-## Flowchart (end-to-end codebase view)
-```mermaid
-flowchart TD
-  %% Runtime entry points
-  index[index.html] --> css[css/styles.css]
-  index --> themes[css/themes.css]
-  index --> main[js/main.js]
-  home[home/index.html] --> css
-  home --> themes
-  home --> main
-  bookmarks[bookmarks.html] --> css
-  bookmarks --> themes
-  bookmarks --> main
-
-  %% Runtime module dependencies
-  main --> app[js/app.js]
-  main --> themeManager[js/themeManager.js]
-  main --> keyboardShortcuts[js/keyboardShortcuts.js]
-  main --> serviceWorkerManager[js/serviceWorker.js]
-  main --> recs[js/recommendations.js]
-  main --> perf[js/performanceMonitor.js]
-  main --> logger[js/services/logger.js]
-  main --> analytics[js/services/analytics-service.js]
-  app --> stats[js/stats.js]
-  app --> recs[js/recommendations.js]
-  app --> reviews[js/reviews.js]
-  app --> health[js/healthMonitor.js]
-  app --> dataValidator[js/services/data-validator.js]
-  app --> discovery[js/discovery.js]
-  app --> filterPresets[js/filterPresets.js]
-  app --> metricGlossary[js/metricGlossary.js]
-  app --> onboarding[js/onboarding.js]
-  app --> themeManager[js/themeManager.js]
-  app --> coreDep[js/core/dependency-container.js]
-  app --> eventBus[js/core/event-bus.js]
-  app --> store[js/core/store.js]
-  app --> cache[js/services/cache-manager.js]
-  cache --> schemaValidator[js/services/schema-validator.js]
-  app --> analytics[js/services/analytics-service.js]
-  app --> api[js/services/api-client.js]
-  app --> errors[js/services/error-handler.js]
-  app --> dataPreview[data/anime.preview.json]
-  app --> dataFull[data/anime.full.json]
-  app --> dataLegacy[data/anime.json]
-  app --> dataEmbed[js/data.js]
-  app --> storage[localStorage (via CacheManager)]
-  reviews --> jikan[Jikan API (MyAnimeList)]
-  reviews --> circuit[js/circuitBreaker.js]
-  reviews --> api
-  reviews --> cache
-  reviews --> schemaValidator
-  reviews --> rateLimiter[js/services/rate-limiter.js]
-  reviews --> errors
-  reviews --> health
-  health --> circuit
-  health --> logger
-  discovery --> analytics
-  filterPresets --> analytics
-  onboarding --> analytics
-  onboarding --> cache
-  themeManager --> cache
-  keyboardShortcuts --> cache
-  recs --> cache
-  analytics --> cache
-  logger --> cache
-  errors --> logger
-  app --> youtube[YouTube / YouTube-nocookie]
-  serviceWorkerManager --> sw[sw.js]
-  healthPage[health.html] --> dataFull
-  healthPage --> jikan
-  healthPage --> sw
-
-  %% Data pipeline
-  scraper[tools/scraper/*] --> scores[tools/scraper/output/*.json]
-  scores --> merge[tools/merge-scores.js]
-  merge --> raw[data/anime.json]
-  raw --> updateMeta[tools/update_metadata.js]
-  raw --> backfill[tools/backfill_data.js]
-  raw --> build[tools/build-catalogs.js]
-  build --> schemaTools[tools/lib/schema-validator.js]
-  build --> schemaFiles[tools/schemas/*.json]
-  build --> integrityTools[tools/lib/integrity-checker.js]
-  build --> qualityTools[tools/lib/quality-reporter.js]
-  build --> buildState[.build-state.json]
-  build --> buildReport[data/build-report.json]
-  build --> full[data/anime.full.json]
-  build --> preview[data/anime.preview.json]
-  full --> regen[tools/regenerate-data.ps1]
-  regen --> embed[js/data.js]
-  raw --> validate[tools/validate-data.js]
-  raw --> syncHome[tools/sync-home-index.ps1]
-  versioner[tools/generate-version.js] --> sw
-  versioner --> versionMeta[version.json]
-  deployData[tools/deploy-data.js] --> raw
-
-  %% Optional charting (not wired by default)
-  charts[js/charts.js] -. optional .-> app
-
-  %% Testing (dev-only)
-  pkg[package.json] --> tests[test/*.test.js]
-  tests --> stats
-  tests --> recs
-  tests --> build
-
-  %% Documentation (non-runtime)
-  agentsDoc[AGENTS.md] -. guides .-> journey[USER_JOURNEY.MD]
-```
+## Maintenance (Keep This Adaptive)
+- Update this file when new modules, flows, schemas, or tools are added or removed.
+- Keep the Codebase Map, Runtime Flows, DOM contracts, and pipeline steps accurate.
+- Prefer concise bullets and current file paths over long prose.
