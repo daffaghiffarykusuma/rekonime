@@ -153,6 +153,7 @@ const App = {
   imageProxyCheckTimeoutMs: 2500,
   imageProxyCheckPromise: null,
   imageProxyStatusLoaded: false,
+  imageProxyCheckScheduled: false,
 
   store: null,
   storeBindingsApplied: false,
@@ -363,9 +364,23 @@ const App = {
   scheduleImageProxyCheck() {
     if (this.imageProxyCheckPromise) return;
     if (this.getImageProxyStatus() !== null) return;
-    this.queueIdleTask(() => {
-      this.checkImageProxyAvailability().catch(() => null);
-    }, { timeout: 2000 });
+    if (this.imageProxyCheckScheduled) return;
+    this.imageProxyCheckScheduled = true;
+    const run = () => {
+      this.queueIdleTask(() => {
+        this.imageProxyCheckScheduled = false;
+        this.checkImageProxyAvailability().catch(() => null);
+      }, { timeout: 5000 });
+    };
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      run();
+      return;
+    }
+    if (document.readyState === 'complete') {
+      run();
+      return;
+    }
+    window.addEventListener('load', run, { once: true });
   },
 
   checkImageProxyAvailability() {
@@ -2181,8 +2196,8 @@ const App = {
   gridRenderedCount: 0,
   gridInitialBatchRendered: false,
   gridDeferredRenderHandle: null,
-  initialGridBatchSize: 6,
-  initialGridBatchSizeMobile: 4,
+  initialGridBatchSize: 4,
+  initialGridBatchSizeMobile: 3,
   gridSortedCache: null,
   gridSortedKey: '',
   gridSortedSource: null,
@@ -4545,7 +4560,7 @@ const App = {
         task();
       }
       if (tasks.length > 0) {
-        this.queueIdleTask(runNext, { timeout: 1200 });
+        this.queueIdleTask(runNext, { timeout: 2600 });
         return;
       }
       this.secondaryRenderInFlight = false;
@@ -4554,7 +4569,7 @@ const App = {
     this.secondaryRenderHandle = this.queueIdleTask(() => {
       this.secondaryRenderHandle = null;
       runNext();
-    }, { timeout: 1200 });
+    }, { timeout: 2600 });
   },
 
   scheduleDeferredFilterUi() {

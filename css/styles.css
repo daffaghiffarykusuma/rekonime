@@ -2775,6 +2775,31 @@ h4 {
   border-bottom-color: var(--bg-secondary);
 }
 
+/* Prevent clipping for edge stats in recommendation cards */
+.recommendation-meta .has-tooltip:first-child>.tooltip {
+  left: 0;
+  transform: none;
+}
+
+.recommendation-meta .has-tooltip:first-child>.tooltip::after,
+.recommendation-meta .has-tooltip:first-child>.tooltip::before {
+  left: 1rem;
+  transform: none;
+}
+
+.recommendation-meta .has-tooltip:last-child>.tooltip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.recommendation-meta .has-tooltip:last-child>.tooltip::after,
+.recommendation-meta .has-tooltip:last-child>.tooltip::before {
+  left: auto;
+  right: 1rem;
+  transform: none;
+}
+
 .modal-content .tooltip {
   z-index: 2100;
 }
