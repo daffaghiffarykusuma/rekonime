@@ -29,7 +29,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.myanimelist.net" crossorigin>
-  <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
   <link rel="dns-prefetch" href="https://api.jikan.moe">
   <link rel="prefetch" href="./assets/index.html">
   <style nonce="rekonime-inline">
@@ -318,20 +317,31 @@
       }
     })();
   </script>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=optional"
-    rel="stylesheet"
-    media="print"
-    data-async-style="true">
-
   <!-- Styles -->
   <link rel="stylesheet" href="./css/watchlist.min.css" nonce="rekonime-inline" media="print" data-noncritical="true">
   <link rel="stylesheet" href="./css/themes.min.css" nonce="rekonime-inline" media="print" data-noncritical="true">
   <script nonce="rekonime-inline">
     (function () {
-      var links = document.querySelectorAll('link[data-async-style], link[data-noncritical]');
+      var links = document.querySelectorAll('link[data-noncritical]');
       if (!links.length) return;
       var enable = function (link) { link.media = 'all'; };
+      var fontHref = 'https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=optional';
+      var loadFontStyles = function () {
+        if (document.querySelector('link[data-font-style="true"]')) return;
+        if (navigator.connection && navigator.connection.saveData) return;
+        var fontLink = document.createElement('link');
+        fontLink.rel = 'stylesheet';
+        fontLink.href = fontHref;
+        fontLink.setAttribute('data-font-style', 'true');
+        document.head.appendChild(fontLink);
+      };
+      var scheduleFontStyles = function () {
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(loadFontStyles, { timeout: 4000 });
+          return;
+        }
+        setTimeout(loadFontStyles, 1200);
+      };
       var activate = function () {
         links.forEach(function (link) {
           if (link.media === 'all') return;
@@ -344,6 +354,7 @@
             // Ignore cross-origin access errors
           }
         });
+        scheduleFontStyles();
       };
       if ('requestAnimationFrame' in window) {
         requestAnimationFrame(function () {
