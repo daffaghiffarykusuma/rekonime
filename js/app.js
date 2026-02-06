@@ -3574,6 +3574,30 @@ const App = {
       this.updateMetaForFilters();
     });
 
+    const queueTooltipPosition = (trigger) => {
+      if (!trigger || typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') return;
+      window.requestAnimationFrame(() => this.positionTooltip(trigger));
+    };
+
+    this.addTrackedListener(document, 'mouseover', (event) => {
+      const trigger = event.target?.closest?.('.has-tooltip');
+      if (!trigger) return;
+      queueTooltipPosition(trigger);
+    });
+
+    this.addTrackedListener(document, 'focusin', (event) => {
+      const trigger = event.target?.closest?.('.has-tooltip');
+      if (!trigger) return;
+      queueTooltipPosition(trigger);
+    });
+
+    this.addTrackedListener(window, 'resize', () => {
+      const activeTrigger = document.querySelector('.has-tooltip:hover, .has-tooltip:focus, .has-tooltip:focus-within');
+      if (activeTrigger) {
+        this.positionTooltip(activeTrigger);
+      }
+    });
+
     // Header search
     this.setupHeaderSearch();
     this.setupActionDelegates();
@@ -4560,7 +4584,7 @@ const App = {
         task();
       }
       if (tasks.length > 0) {
-        this.queueIdleTask(runNext, { timeout: 2600 });
+        this.queueIdleTask(runNext, { timeout: 1200 });
         return;
       }
       this.secondaryRenderInFlight = false;
@@ -4569,7 +4593,34 @@ const App = {
     this.secondaryRenderHandle = this.queueIdleTask(() => {
       this.secondaryRenderHandle = null;
       runNext();
-    }, { timeout: 2600 });
+    }, { timeout: 1200 });
+  },
+
+  positionTooltip(trigger) {
+    const tooltip = trigger?.querySelector?.('.tooltip');
+    if (!tooltip || typeof window === 'undefined') return;
+
+    tooltip.style.setProperty('--tooltip-shift-x', '0px');
+    tooltip.style.setProperty('--tooltip-arrow-shift-x', '0px');
+
+    const viewportWidth = window.innerWidth || document.documentElement?.clientWidth || 0;
+    if (!viewportWidth) return;
+
+    const rect = tooltip.getBoundingClientRect();
+    const gutter = 8;
+    let shift = 0;
+
+    if (rect.left < gutter) {
+      shift = gutter - rect.left;
+    } else if (rect.right > (viewportWidth - gutter)) {
+      shift = (viewportWidth - gutter) - rect.right;
+    }
+
+    if (!Number.isFinite(shift) || shift === 0) return;
+
+    const clampedShift = Math.max(-120, Math.min(120, shift));
+    tooltip.style.setProperty('--tooltip-shift-x', `${clampedShift}px`);
+    tooltip.style.setProperty('--tooltip-arrow-shift-x', `${-clampedShift}px`);
   },
 
   scheduleDeferredFilterUi() {

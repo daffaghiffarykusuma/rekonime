@@ -2693,10 +2693,12 @@ h4 {
 }
 
 .tooltip {
+  --tooltip-shift-x: 0px;
+  --tooltip-arrow-shift-x: 0px;
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% + var(--tooltip-shift-x)));
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -2717,7 +2719,7 @@ h4 {
   position: absolute;
   top: 100%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% + var(--tooltip-arrow-shift-x)));
   border: 6px solid transparent;
   border-top-color: var(--border-color);
 }
@@ -2727,7 +2729,7 @@ h4 {
   position: absolute;
   top: 100%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% + var(--tooltip-arrow-shift-x)));
   border: 5px solid transparent;
   border-top-color: var(--bg-secondary);
   z-index: 1;
@@ -2773,31 +2775,6 @@ h4 {
   margin-bottom: -1px;
   border-top-color: transparent;
   border-bottom-color: var(--bg-secondary);
-}
-
-/* Prevent clipping for edge stats in recommendation cards */
-.recommendation-meta .has-tooltip:first-child>.tooltip {
-  left: 0;
-  transform: none;
-}
-
-.recommendation-meta .has-tooltip:first-child>.tooltip::after,
-.recommendation-meta .has-tooltip:first-child>.tooltip::before {
-  left: 1rem;
-  transform: none;
-}
-
-.recommendation-meta .has-tooltip:last-child>.tooltip {
-  left: auto;
-  right: 0;
-  transform: none;
-}
-
-.recommendation-meta .has-tooltip:last-child>.tooltip::after,
-.recommendation-meta .has-tooltip:last-child>.tooltip::before {
-  left: auto;
-  right: 1rem;
-  transform: none;
 }
 
 .modal-content .tooltip {
