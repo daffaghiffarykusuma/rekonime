@@ -1,5 +1,8 @@
 import { ThemeManager } from './themeManager.js';
 import { Logger } from './services/logger.js';
+import { sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
+import './bootstrap/watchlist-cover-preload.js';
+import './bootstrap/noncritical-styles.js';
 
 const LEGACY_WATCHLIST_STORAGE_KEY = 'rekonime.bookmarks';
 const WATCHLIST_STORAGE_KEY = 'rekonime.watchlist';
@@ -176,26 +179,10 @@ const loadFullApp = async () => {
 };
 
 const sanitizeImageUrl = (rawUrl) => {
-  if (!rawUrl) return '';
-  const value = String(rawUrl).trim();
-  if (!value) return '';
-
-  const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value);
-  if (!hasScheme) {
-    return value;
-  }
-
-  try {
-    const parsed = new URL(value, window.location.href);
-    if (parsed.protocol !== 'https:') return '';
-    const host = parsed.hostname.toLowerCase();
-    const isAllowed = ALLOWED_IMAGE_HOSTS.some((allowed) =>
-      host === allowed || host.endsWith(`.${allowed}`)
-    );
-    return isAllowed ? parsed.toString() : '';
-  } catch (error) {
-    return '';
-  }
+  return sanitizeSafeImageUrl(rawUrl, {
+    allowRelative: false,
+    allowedHosts: ALLOWED_IMAGE_HOSTS
+  });
 };
 
 const buildProxyUrl = (coverUrl) => {

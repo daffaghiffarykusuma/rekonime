@@ -13,6 +13,31 @@ const copyRecursive = (src, dest) => {
   fs.cpSync(src, dest, { recursive: true });
 };
 
+const readBuildVersion = () => {
+  const versionPath = path.join(dist, 'version.json');
+  if (!fs.existsSync(versionPath)) return 'dev';
+  try {
+    const payload = JSON.parse(fs.readFileSync(versionPath, 'utf8'));
+    return String(payload?.version || 'dev');
+  } catch {
+    return 'dev';
+  }
+};
+
+const copyServiceWorker = () => {
+  const swSourcePath = path.join(root, 'sw.js');
+  if (!fs.existsSync(swSourcePath)) return;
+  const cacheVersion = readBuildVersion();
+  const source = fs.readFileSync(swSourcePath, 'utf8');
+  const stamped = source.replace(/__REKONIME_CACHE_VERSION__/g, cacheVersion);
+  const outputPath = path.join(dist, 'sw.js');
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, stamped, 'utf8');
+};
+
 copyRecursive(path.join(root, 'data'), path.join(dist, 'data'));
 copyRecursive(path.join(root, 'js', 'data.js'), path.join(dist, 'js', 'data.js'));
-copyRecursive(path.join(root, 'sw.js'), path.join(dist, 'sw.js'));
+copyRecursive(path.join(root, 'js', 'sw-cache-policy.js'), path.join(dist, 'js', 'sw-cache-policy.js'));
+copyRecursive(path.join(root, 'js', 'bootstrap'), path.join(dist, 'js', 'bootstrap'));
+copyRecursive(path.join(root, 'health.html'), path.join(dist, 'health.html'));
+copyServiceWorker();

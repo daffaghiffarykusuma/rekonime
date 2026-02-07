@@ -1,5 +1,6 @@
 import { ThemeManager } from './themeManager.js';
 import { Logger } from './services/logger.js';
+import './bootstrap/noncritical-styles.js';
 
 let appPromise = null;
 

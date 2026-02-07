@@ -37,6 +37,7 @@ test('build-catalogs generates full and preview outputs', () => {
     inputPath,
     fullPath,
     previewPath,
+    '--no-strict',
     '--report',
     '--report-path',
     reportPath,

@@ -22,8 +22,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        watchlist: resolve(__dirname, 'watchlist.html'),
-        home: resolve(__dirname, 'home/index.html')
+        watchlist: resolve(__dirname, 'watchlist.html')
       },
       output: {
         entryFileNames: 'js/[name].js',

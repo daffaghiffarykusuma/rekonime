@@ -1,59 +1,57 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { extractEmbeddedData, validateEmbeddedAnimeShape } from './lib/embedded-data.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DEFAULT_DATA_PATH = path.join(__dirname, "..", "data", "anime.json");
-const DEFAULT_INDEX_PATH = path.join(__dirname, "..", "index.html");
+const DEFAULT_DATA_PATH = path.join(__dirname, '..', 'data', 'anime.full.json');
+const DEFAULT_EMBEDDED_PATH = path.join(__dirname, '..', 'js', 'data.js');
+const DEFAULT_INDEX_PATH = path.join(__dirname, '..', 'index.html');
 
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
+const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
-function parseEmbeddedData(indexPath) {
-  const html = fs.readFileSync(indexPath, "utf8");
-  const match = html.match(/const ANIME_DATA = (\{.*?\});/s);
-  if (!match) return null;
-  return JSON.parse(match[1]);
-}
+const parseEmbeddedDataScript = (embeddedPath) => {
+  const source = fs.readFileSync(embeddedPath, 'utf8');
+  return extractEmbeddedData(source);
+};
 
-function sanitizeTrailerUrl(rawUrl) {
-  if (!rawUrl) return "";
+const sanitizeTrailerUrl = (rawUrl) => {
+  if (!rawUrl) return '';
   try {
     const parsed = new URL(rawUrl);
-    if (!["http:", "https:"].includes(parsed.protocol)) return "";
+    if (!['http:', 'https:'].includes(parsed.protocol)) return '';
     const host = parsed.hostname.toLowerCase();
-    if (!host.includes("youtube.com") && !host.includes("youtu.be")) return "";
+    if (!host.includes('youtube.com') && !host.includes('youtu.be')) return '';
     return parsed.toString();
   } catch {
-    return "";
+    return '';
   }
-}
+};
 
-function sanitizeTrailerEmbedUrl(rawUrl) {
-  if (!rawUrl) return "";
+const sanitizeTrailerEmbedUrl = (rawUrl) => {
+  if (!rawUrl) return '';
   try {
     const parsed = new URL(rawUrl);
-    if (!["http:", "https:"].includes(parsed.protocol)) return "";
+    if (!['http:', 'https:'].includes(parsed.protocol)) return '';
     const host = parsed.hostname.toLowerCase();
-    if (!host.includes("youtube.com") && !host.includes("youtube-nocookie.com")) return "";
-    parsed.searchParams.delete("autoplay");
+    if (!host.includes('youtube.com') && !host.includes('youtube-nocookie.com')) return '';
+    parsed.searchParams.delete('autoplay');
     return parsed.toString();
   } catch {
-    return "";
+    return '';
   }
-}
+};
 
-function buildTrailerUrls(trailer) {
-  if (!trailer || typeof trailer !== "object") {
-    return { url: "", embedUrl: "" };
+const buildTrailerUrls = (trailer) => {
+  if (!trailer || typeof trailer !== 'object') {
+    return { url: '', embedUrl: '' };
   }
 
   const id = trailer.id;
-  let url = trailer.url || "";
-  let embedUrl = trailer.embedUrl || trailer.embed_url || "";
+  let url = trailer.url || '';
+  let embedUrl = trailer.embedUrl || trailer.embed_url || '';
 
   if (!url && id) {
     url = `https://www.youtube.com/watch?v=${id}`;
@@ -65,38 +63,50 @@ function buildTrailerUrls(trailer) {
 
   return {
     url: sanitizeTrailerUrl(url),
-    embedUrl: sanitizeTrailerEmbedUrl(embedUrl),
+    embedUrl: sanitizeTrailerEmbedUrl(embedUrl)
   };
-}
+};
 
-function normalizeId(anime) {
+const normalizeId = (anime) => {
   const meta = anime.metadata || {};
-  return meta.id || anime.id || "";
-}
+  return meta.id || anime.id || '';
+};
 
-function normalizeTitle(anime) {
+const normalizeTitle = (anime) => {
   const meta = anime.metadata || {};
-  return meta.title || anime.title || "";
-}
+  return meta.title || anime.title || '';
+};
 
-function normalizeScore(anime) {
+const normalizeScore = (anime) => {
   const meta = anime.metadata || {};
-  if (Object.prototype.hasOwnProperty.call(meta, "score")) return meta.score;
+  if (Object.prototype.hasOwnProperty.call(meta, 'score')) return meta.score;
   return anime.score;
-}
+};
 
-function normalizeAniListId(anime) {
+const normalizeAniListId = (anime) => {
   const meta = anime.metadata || {};
-  if (Object.prototype.hasOwnProperty.call(meta, "anilistId")) return meta.anilistId;
+  if (Object.prototype.hasOwnProperty.call(meta, 'anilistId')) return meta.anilistId;
   return anime.anilistId;
-}
+};
 
-function normalizeTrailer(anime) {
+const normalizeTrailer = (anime) => {
   const meta = anime.metadata || {};
   return meta.trailer || anime.trailer || null;
-}
+};
 
-function validateList(animeList, label) {
+const summarize = (title, groups) => {
+  const lines = [];
+  Object.entries(groups).forEach(([key, values]) => {
+    if (!values.length) return;
+    lines.push(`  ${key}: ${values.length}`);
+  });
+  if (!lines.length) {
+    lines.push('  none');
+  }
+  return [`${title}:`, ...lines].join('\n');
+};
+
+const validateList = (animeList, label) => {
   const errors = {
     missingId: [],
     missingTitle: [],
@@ -107,7 +117,7 @@ function validateList(animeList, label) {
     invalidEpisodeScore: [],
     missingEpisodeScore: [],
     missingEpisodeNumber: [],
-    duplicateIds: [],
+    duplicateIds: []
   };
 
   const warnings = {
@@ -116,7 +126,7 @@ function validateList(animeList, label) {
     missingStudio: [],
     missingSource: [],
     missingAnilistId: [],
-    missingEpisodes: [],
+    missingEpisodes: []
   };
 
   const idMap = new Map();
@@ -157,7 +167,7 @@ function validateList(animeList, label) {
       warnings.missingEpisodes.push(id || index + 1);
     } else {
       episodes.forEach((ep) => {
-        if (!ep || typeof ep !== "object") return;
+        if (!ep || typeof ep !== 'object') return;
         if (ep.episode === undefined || ep.episode === null) {
           errors.missingEpisodeNumber.push(id || index + 1);
         }
@@ -181,66 +191,136 @@ function validateList(animeList, label) {
     }
   });
 
-  function summarize(title, groups) {
-    const lines = [];
-    Object.entries(groups).forEach(([key, values]) => {
-      if (!values.length) return;
-      lines.push(`  ${key}: ${values.length}`);
-    });
-    if (!lines.length) {
-      lines.push("  none");
-    }
-    return [`${title}:`, ...lines].join("\n");
+  const hasErrors = Object.values(errors).some((values) => values.length > 0);
+  console.log(`Validation results (${label})`);
+  console.log(summarize('Errors', errors));
+  console.log(summarize('Warnings', warnings));
+  console.log('');
+  return { hasErrors, errors, warnings };
+};
+
+const validateIndexReferences = (indexPath) => {
+  if (!fs.existsSync(indexPath)) {
+    return { hasErrors: false, errors: [], warnings: [`Missing index file: ${indexPath}`] };
+  }
+  const html = fs.readFileSync(indexPath, 'utf8');
+  const errors = [];
+  const warnings = [];
+
+  if (/const\s+ANIME_DATA\s*=/.test(html)) {
+    errors.push('index.html still contains inline ANIME_DATA payload');
+  }
+  if (!/src=["']\/js\/main\.js["']/.test(html)) {
+    warnings.push('index.html does not reference /js/main.js');
   }
 
-  const hasErrors = Object.values(errors).some((values) => values.length > 0);
+  return { hasErrors: errors.length > 0, errors, warnings };
+};
 
-  console.log(`Validation results (${label})`);
-  console.log(summarize("Errors", errors));
-  console.log(summarize("Warnings", warnings));
-  console.log("");
+const parseArgs = (args) => {
+  const values = {};
+  const flags = new Set();
 
-  return { hasErrors, errors, warnings };
-}
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (!arg.startsWith('--')) continue;
+    const [key, inlineValue] = arg.replace(/^--/, '').split('=');
+    if (inlineValue !== undefined) {
+      values[key] = inlineValue;
+      continue;
+    }
+    const next = args[index + 1];
+    if (next && !next.startsWith('--')) {
+      values[key] = next;
+      index += 1;
+    } else {
+      flags.add(key);
+    }
+  }
 
-function main() {
-  const args = process.argv.slice(2);
-  const dataPath = args.includes("--data")
-    ? args[args.indexOf("--data") + 1]
-    : DEFAULT_DATA_PATH;
-  const indexPath = args.includes("--index")
-    ? args[args.indexOf("--index") + 1]
-    : DEFAULT_INDEX_PATH;
-  const skipEmbedded = args.includes("--skip-embedded");
+  return { values, flags };
+};
 
-  const data = readJson(dataPath);
+const runValidation = ({
+  dataPath = DEFAULT_DATA_PATH,
+  embeddedPath = DEFAULT_EMBEDDED_PATH,
+  indexPath = DEFAULT_INDEX_PATH,
+  skipEmbedded = false,
+  skipIndexCheck = false
+} = {}) => {
   const results = [];
-
-  results.push(
-    validateList(data.anime || [], path.relative(process.cwd(), dataPath))
-  );
+  const data = readJson(dataPath);
+  results.push(validateList(data.anime || [], path.relative(process.cwd(), dataPath)));
 
   if (!skipEmbedded) {
-    const embedded = parseEmbeddedData(indexPath);
-    if (embedded && embedded.anime) {
-      results.push(
-        validateList(embedded.anime, path.relative(process.cwd(), indexPath))
-      );
-    } else {
-      console.log(`Validation results (${path.relative(process.cwd(), indexPath)})`);
-      console.log("Errors:");
-      console.log("  missingEmbeddedData: 1");
-      console.log("Warnings:");
-      console.log("  none\n");
+    try {
+      const embedded = parseEmbeddedDataScript(embeddedPath);
+      const shape = validateEmbeddedAnimeShape(embedded, { sampleSize: 50 });
+      if (!shape.valid) {
+        console.log(`Validation results (${path.relative(process.cwd(), embeddedPath)})`);
+        console.log('Errors:');
+        console.log(`  invalidEmbeddedShape: ${shape.errors.length}`);
+        console.log('Warnings:');
+        console.log('  none\n');
+        results.push({ hasErrors: true });
+      } else {
+        results.push(validateList(embedded.anime || [], path.relative(process.cwd(), embeddedPath)));
+      }
+    } catch (error) {
+      console.log(`Validation results (${path.relative(process.cwd(), embeddedPath)})`);
+      console.log('Errors:');
+      console.log('  invalidEmbeddedData: 1');
+      console.log('Warnings:');
+      console.log(`  detail: ${error.message}\n`);
       results.push({ hasErrors: true });
     }
   }
 
-  const hasErrors = results.some((r) => r.hasErrors);
-  if (hasErrors) {
+  if (!skipIndexCheck) {
+    const index = validateIndexReferences(indexPath);
+    console.log(`Index reference check (${path.relative(process.cwd(), indexPath)})`);
+    if (index.errors.length) {
+      console.log('Errors:');
+      index.errors.forEach((error) => console.log(`  - ${error}`));
+    } else {
+      console.log('Errors:\n  none');
+    }
+    if (index.warnings.length) {
+      console.log('Warnings:');
+      index.warnings.forEach((warning) => console.log(`  - ${warning}`));
+    } else {
+      console.log('Warnings:\n  none');
+    }
+    console.log('');
+    results.push({ hasErrors: index.hasErrors });
+  }
+
+  const hasErrors = results.some((result) => result.hasErrors);
+  return { hasErrors };
+};
+
+const main = () => {
+  const { values, flags } = parseArgs(process.argv.slice(2));
+  const result = runValidation({
+    dataPath: values.data || DEFAULT_DATA_PATH,
+    embeddedPath: values.embedded || DEFAULT_EMBEDDED_PATH,
+    indexPath: values.index || DEFAULT_INDEX_PATH,
+    skipEmbedded: flags.has('skip-embedded'),
+    skipIndexCheck: flags.has('skip-index-check')
+  });
+  if (result.hasErrors) {
     process.exitCode = 1;
   }
+};
+
+const isDirectRun = process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
+if (isDirectRun) {
+  main();
 }
 
-main();
-
+export {
+  parseEmbeddedDataScript,
+  runValidation,
+  validateIndexReferences,
+  validateList
+};

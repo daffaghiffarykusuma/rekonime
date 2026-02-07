@@ -1,7 +1,11 @@
 const defaultGates = {
+  // Keep schema/integrity error ratio low enough to block degraded releases.
   maxErrorPercentage: 5,
+  // Catch accidental truncation or malformed episode imports.
   minAverageEpisodes: 8,
+  // Catch duplicated/merged feeds that inflate episode counts unexpectedly.
   maxAverageEpisodes: 30,
+  // Ensure score profile is based on a representative corpus.
   minSampleSize: 1000
 };
 

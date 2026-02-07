@@ -38,7 +38,7 @@
 - Update this baseline when a new report is generated.
 
 ## User Journey (Condensed)
-- Entry points: `/` or `index.html` (primary), `/home` or `home/index.html`, `/watchlist` or `watchlist.html`, plus deep links via query params.
+- Entry points: `/` or `index.html` (primary), `/home` (rewrite alias to `/index.html`), `/watchlist` or `watchlist.html`, plus deep links via query params.
 - First load: `App.init()` shows loading state, loads watchlist, fetches `data/anime.preview.json`, then swaps to `data/anime.full.json`.
 - Discover: scroll, search, filters, Surprise Me, seasonal chips, trending, and presets.
 - Evaluate: detail modal shows synopsis, trailer, reviews, and similar anime; URL updates with `?anime=...`.
@@ -48,7 +48,7 @@
 - PWA: service worker registers, offline indicator appears, and update prompts are shown when new versions exist.
 
 ## Codebase Map (Key Files)
-- `index.html`, `home/index.html`, `watchlist.html`: entry points; include CSS and JS.
+- `index.html`, `watchlist.html`: entry points; include CSS and JS.
 - `css/styles.css`, `css/themes.css`: global styles, theme system, accessibility, responsive rules.
 - `js/main.js`: module entrypoint; bootstraps app services and `App.init()`.
 - `js/app.js`: central controller for state, rendering, filters, search, modals, SEO, watchlist.
@@ -94,7 +94,7 @@
 4. `tools/build-catalogs.js` -> `data/anime.full.json` + `data/anime.preview.json` (+ optional report/state)
 5. `tools/regenerate-data.ps1` -> `js/data.js`
 6. `tools/validate-data.js` for schema checks
-7. `tools/sync-home-index.ps1` syncs `home/index.html`
+7. `tools/check-entrypoint-dedup.js` guards against duplicate home entry templates
 
 ## Notes
 - `js/charts.js` is optional and not wired by default; wire scripts and canvas IDs if used.

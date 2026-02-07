@@ -6,6 +6,7 @@ import { RateLimiter } from './services/rate-limiter.js';
 import { SchemaValidator } from './services/schema-validator.js';
 import { CircuitBreaker } from './circuitBreaker.js';
 import { HealthMonitor } from './healthMonitor.js';
+import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
 
 /**
  * Reviews Service - Fetches and categorizes reviews from MyAnimeList (via Jikan)
@@ -102,39 +103,22 @@ const ReviewsService = {
   },
 
   sanitizeUrl(rawUrl) {
-    if (!rawUrl) return '';
-    const value = String(rawUrl).trim();
-    if (!value) return '';
-    try {
-      const parsed = new URL(value, window.location.href);
-      if (parsed.protocol !== 'https:') return '';
-      return parsed.toString();
-    } catch (error) {
-      return '';
-    }
+    return sanitizeSafeUrl(rawUrl, {
+      allowRelative: false,
+      allowedProtocols: ['https:']
+    });
   },
 
   sanitizeImageUrl(rawUrl) {
-    if (!rawUrl) return '';
-    const value = String(rawUrl).trim();
-    if (!value) return '';
-    try {
-      const parsed = new URL(value, window.location.href);
-      if (parsed.protocol !== 'https:') return '';
-      const host = parsed.hostname.toLowerCase();
-      const allowedHosts = [
+    return sanitizeSafeImageUrl(rawUrl, {
+      allowRelative: false,
+      allowedHosts: [
         'cdn.myanimelist.net',
         'myanimelist.cdn-dena.com',
         'via.placeholder.com',
         'i.ytimg.com'
-      ];
-      const isAllowed = allowedHosts.some(allowed =>
-        host === allowed || host.endsWith(`.${allowed}`)
-      );
-      return isAllowed ? parsed.toString() : '';
-    } catch (error) {
-      return '';
-    }
+      ]
+    });
   },
 
   decodeHtmlEntities(text) {

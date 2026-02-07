@@ -181,10 +181,14 @@ const logIssues = (label, issues, { warnOnly = false } = {}) => {
 const main = () => {
   const startedAt = Date.now();
   const { flags, values, positional } = parseArgs(process.argv.slice(2));
-  const strict = flags.has('strict');
+  const strict = !flags.has('no-strict');
   const incremental = flags.has('incremental');
   const force = flags.has('force');
   const emitReport = flags.has('report');
+
+  if (!strict) {
+    console.warn('Running catalog build in non-strict mode (--no-strict). Use only for local experimentation.');
+  }
 
   const inputPath = positional[0] || DEFAULT_INPUT;
   const fullOutputPath = positional[1] || DEFAULT_FULL_OUTPUT;

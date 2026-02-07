@@ -5,6 +5,9 @@ import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.join(__dirname, '..');
+const distDir = path.join(rootDir, 'dist');
+const versionPath = path.join(distDir, 'version.json');
 
 const generateVersion = () => {
   try {
@@ -12,48 +15,61 @@ const generateVersion = () => {
       .toString()
       .trim();
     return `v${Date.now()}-${commit}`;
-  } catch (error) {
+  } catch {
     return `v${Date.now()}`;
   }
 };
 
-const hashAssets = () => {
-  const assetsDir = path.join(__dirname, '..', 'js');
-  const hash = crypto.createHash('md5');
-  const files = fs.readdirSync(assetsDir).filter(file => file.endsWith('.js')).sort();
-  files.forEach((file) => {
-    const content = fs.readFileSync(path.join(assetsDir, file));
-    hash.update(content);
+const walkFiles = (dirPath) => {
+  if (!fs.existsSync(dirPath)) return [];
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      return walkFiles(fullPath);
+    }
+    return [fullPath];
   });
+};
+
+const hashBuildAssets = () => {
+  const hash = crypto.createHash('md5');
+  const files = walkFiles(distDir)
+    .filter((filePath) => /\.(js|css)$/i.test(filePath))
+    .sort();
+
+  files.forEach((filePath) => {
+    hash.update(path.relative(distDir, filePath));
+    hash.update(fs.readFileSync(filePath));
+  });
+
   return hash.digest('hex').slice(0, 8);
 };
 
-const version = generateVersion();
-const assetHash = hashAssets();
+const ensureDist = () => {
+  if (!fs.existsSync(distDir)) {
+    throw new Error('dist/ not found. Run vite build before generate-version.');
+  }
+};
 
-const swPath = path.join(__dirname, '..', 'sw.js');
-const swContent = fs.readFileSync(swPath, 'utf8');
-const updatedSw = swContent.replace(/const CACHE_VERSION = 'v[^']+'/, `const CACHE_VERSION = '${version}'`);
+const main = () => {
+  ensureDist();
+  const version = generateVersion();
+  const assetHash = hashBuildAssets();
+  const payload = {
+    version,
+    assetHash,
+    buildTime: new Date().toISOString()
+  };
+  fs.writeFileSync(versionPath, JSON.stringify(payload, null, 2));
+  console.log(`Generated version metadata: ${path.relative(rootDir, versionPath)}`);
+  console.log(`Version: ${version}`);
+  console.log(`Asset hash: ${assetHash}`);
+};
 
-if (swContent === updatedSw) {
-  throw new Error('CACHE_VERSION not found in sw.js');
+try {
+  main();
+} catch (error) {
+  console.error(error.message || error);
+  process.exitCode = 1;
 }
-
-fs.writeFileSync(swPath, updatedSw);
-
-const versionPath = path.join(__dirname, '..', 'version.json');
-fs.writeFileSync(
-  versionPath,
-  JSON.stringify(
-    {
-      version,
-      assetHash,
-      buildTime: new Date().toISOString()
-    },
-    null,
-    2
-  )
-);
-
-console.log(`Generated version: ${version}`);
-console.log(`Asset hash: ${assetHash}`);

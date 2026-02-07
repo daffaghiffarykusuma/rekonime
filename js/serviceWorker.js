@@ -8,6 +8,7 @@ import { Logger } from './services/logger.js';
 const ServiceWorkerManager = {
     registration: null,
     updateAvailable: false,
+    updatePromptVisible: false,
     isLocalhost() {
         if (typeof window === 'undefined') return false;
         const host = window.location.hostname;
@@ -36,7 +37,7 @@ const ServiceWorkerManager = {
         }
 
         try {
-            const registration = await navigator.serviceWorker.register('/sw.js');
+            const registration = await navigator.serviceWorker.register('/sw.js', { type: 'module' });
             this.registration = registration;
 
             Logger?.info ? Logger.info('[SW] Registered successfully', { scope: registration.scope }) : console.log('[SW] Registered successfully:', registration.scope);
@@ -100,27 +101,41 @@ const ServiceWorkerManager = {
      * Show update available prompt
      */
     showUpdatePrompt() {
-        // Create update notification
-        const updateBanner = document.createElement('div');
-        updateBanner.id = 'sw-update-banner';
-        updateBanner.className = 'sw-update-banner';
-        updateBanner.innerHTML = `
-      <span class="sw-update-message">🔄 Update available!</span>
+        let updateBanner = document.getElementById('sw-update-banner');
+        if (!updateBanner) {
+            updateBanner = document.createElement('div');
+            updateBanner.id = 'sw-update-banner';
+            updateBanner.className = 'sw-update-banner';
+            updateBanner.innerHTML = `
+      <span class="sw-update-message">Update available!</span>
       <button class="sw-update-btn" id="sw-update-btn">Update Now</button>
       <button class="sw-update-dismiss" id="sw-dismiss-btn">Later</button>
     `;
+            document.body.appendChild(updateBanner);
+        }
 
-        document.body.appendChild(updateBanner);
+        const applyButton = updateBanner.querySelector('#sw-update-btn');
+        const dismissButton = updateBanner.querySelector('#sw-dismiss-btn');
+        if (applyButton) {
+            applyButton.onclick = () => {
+                this.applyUpdate();
+                this.dismissUpdatePrompt();
+            };
+        }
+        if (dismissButton) {
+            dismissButton.onclick = () => {
+                this.dismissUpdatePrompt();
+            };
+        }
+        this.updatePromptVisible = true;
+    },
 
-        // Add event listeners
-        document.getElementById('sw-update-btn').addEventListener('click', () => {
-            this.applyUpdate();
+    dismissUpdatePrompt() {
+        const updateBanner = document.getElementById('sw-update-banner');
+        if (updateBanner) {
             updateBanner.remove();
-        });
-
-        document.getElementById('sw-dismiss-btn').addEventListener('click', () => {
-            updateBanner.remove();
-        });
+        }
+        this.updatePromptVisible = false;
     },
 
     /**
@@ -133,6 +148,7 @@ const ServiceWorkerManager = {
 
         // Tell the waiting SW to skip waiting
         this.registration.waiting.postMessage('skipWaiting');
+        this.dismissUpdatePrompt();
     },
 
     /**

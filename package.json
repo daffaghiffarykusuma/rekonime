@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node tools/minify-static.js && node tools/generate-version.js && node node_modules/vite/bin/vite.js build && node tools/copy-static.js",
-    "minify:static": "node tools/minify-static.js",
+    "build": "node node_modules/vite/bin/vite.js build && node tools/generate-version.js && node tools/copy-static.js",
+    "build:verify": "npm run build && npm run check:build-clean && npm run check:entrypoints",
     "lh:compare": "node tools/compare-lighthouse.js",
     "preview": "vite preview",
     "test": "node --test --import ./test/setup.js \"test/**/*.test.js\"",
@@ -13,8 +13,10 @@
     "test:integration": "node --test --import ./test/setup.js \"test/integration/**/*.test.js\"",
     "test:coverage": "c8 --reporter=html --reporter=text node --test --import ./test/setup.js \"test/**/*.test.js\"",
     "test:e2e": "playwright test",
-    "sync:home": "powershell -ExecutionPolicy Bypass -File ./tools/sync-home-index.ps1",
-    "version:bump": "node tools/generate-version.js",
+    "check:build-clean": "node tools/check-build-clean.js",
+    "data:regenerate": "node tools/regenerate-data.js",
+    "data:validate": "node tools/validate-data.js",
+    "check:entrypoints": "node tools/check-entrypoint-dedup.js",
     "data:backup": "node tools/deploy-data.js backup",
     "data:rollback": "node tools/deploy-data.js rollback"
   },

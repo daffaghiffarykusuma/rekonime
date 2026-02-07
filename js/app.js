@@ -12,6 +12,7 @@ import { Logger } from './services/logger.js';
 import { Store } from './core/store.js';
 import { DependencyContainer } from './core/dependency-container.js';
 import { HealthMonitor } from './healthMonitor.js';
+import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -1337,55 +1338,21 @@ const App = {
     }
   },
 
-  sanitizeUrl(rawUrl, { allowRelative = true } = {}) {
-    if (!rawUrl) return '';
-    const value = String(rawUrl).trim();
-    if (!value) return '';
-
-    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value);
-    if (!hasScheme) {
-      return allowRelative ? value : '';
-    }
-
-    try {
-      const parsed = new URL(value, window.location.href);
-      if (!['http:', 'https:'].includes(parsed.protocol)) return '';
-      return parsed.toString();
-    } catch (error) {
-      return '';
-    }
+  sanitizeUrl(rawUrl, { allowRelative = false } = {}) {
+    return sanitizeSafeUrl(rawUrl, { allowRelative });
   },
 
-  sanitizeImageUrl(rawUrl, { allowRelative = true } = {}) {
-    if (!rawUrl) return '';
-    const value = String(rawUrl).trim();
-    if (!value) return '';
-
-    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value);
-    if (!hasScheme) {
-      return allowRelative ? value : '';
-    }
-
-    try {
-      const parsed = new URL(value, window.location.href);
-      if (parsed.protocol !== 'https:') return '';
-      const host = parsed.hostname.toLowerCase();
-      const allowedHosts = [
+  sanitizeImageUrl(rawUrl, { allowRelative = false } = {}) {
+    return sanitizeSafeImageUrl(rawUrl, {
+      allowRelative,
+      allowedHosts: [
         'cdn.myanimelist.net',
         'myanimelist.cdn-dena.com',
         'via.placeholder.com',
         'i.ytimg.com',
         'images.weserv.nl'
-      ];
-
-      const isAllowed = allowedHosts.some(allowed =>
-        host === allowed || host.endsWith(`.${allowed}`)
-      );
-
-      return isAllowed ? parsed.toString() : '';
-    } catch (error) {
-      return '';
-    }
+      ]
+    });
   },
 
   getAssetPath(path) {
@@ -6586,6 +6553,28 @@ const App = {
     }
   },
 
+  resolveTrailerMessageOrigin(iframe) {
+    if (!iframe) return '';
+    const rawUrl = iframe.dataset?.embedSrc || iframe.getAttribute('src') || '';
+    if (!rawUrl || rawUrl === 'about:blank') return '';
+
+    try {
+      const parsed = new URL(rawUrl, window.location.href);
+      if (parsed.protocol !== 'https:') return '';
+      const host = parsed.hostname.toLowerCase();
+      const allowedHosts = new Set([
+        'youtube.com',
+        'www.youtube.com',
+        'youtube-nocookie.com',
+        'www.youtube-nocookie.com'
+      ]);
+      if (!allowedHosts.has(host)) return '';
+      return parsed.origin;
+    } catch (error) {
+      return '';
+    }
+  },
+
   /**
    * Render the trailer section for the detail modal.
    */
@@ -6702,11 +6691,13 @@ const App = {
 
   sendTrailerCommand(iframe, command) {
     if (!iframe || !iframe.contentWindow) return;
+    const targetOrigin = this.resolveTrailerMessageOrigin(iframe);
+    if (!targetOrigin) return;
     iframe.contentWindow.postMessage(JSON.stringify({
       event: 'command',
       func: command,
       args: []
-    }), '*');
+    }), targetOrigin);
   },
 
   toggleTrailerPlayback() {

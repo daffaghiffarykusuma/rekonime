@@ -2,8 +2,9 @@
  * Service Worker for Rekonime
  * Provides offline caching and data persistence
  */
+import { buildNormalizedDataRequest } from './js/sw-cache-policy.js';
 
-const CACHE_VERSION = 'v1770338261446-a8a1e99';
+const CACHE_VERSION = '__REKONIME_CACHE_VERSION__';
 const STATIC_CACHE = `rekonime-static-${CACHE_VERSION}`;
 const DATA_CACHE = `rekonime-data-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rekonime-images-${CACHE_VERSION}`;
@@ -12,14 +13,34 @@ const IS_LOCALHOST = self.location.hostname === 'localhost' || self.location.hos
 const STATIC_ASSETS = [
     './',
     './index.html',
-    './home/index.html',
     './watchlist.html',
     './css/styles.css',
     './css/themes.css',
+    './css/watchlist.css',
     './js/main.js',
+    './js/watchlist.js',
+    './js/watchlist-main.js',
     './js/data.js',
     './favicon.svg'
 ];
+
+const precacheStaticAssets = async (cache) => {
+    const results = await Promise.allSettled(
+        STATIC_ASSETS.map(async (asset) => {
+            const request = new Request(asset, { cache: 'reload' });
+            const response = await fetch(request);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch ${asset}: ${response.status}`);
+            }
+            await cache.put(request, response);
+        })
+    );
+
+    const failed = results.filter((result) => result.status === 'rejected');
+    if (failed.length) {
+        console.warn(`[SW] Precache skipped ${failed.length} asset(s)`);
+    }
+};
 
 // Install: Cache static assets
 self.addEventListener('install', (event) => {
@@ -31,7 +52,7 @@ self.addEventListener('install', (event) => {
         caches.open(STATIC_CACHE)
             .then((cache) => {
                 console.log('[SW] Caching static assets');
-                return cache.addAll(STATIC_ASSETS);
+                return precacheStaticAssets(cache);
             })
             .catch((error) => {
                 console.error('[SW] Failed to cache static assets:', error);
@@ -84,9 +105,10 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Data JSON files - Cache First with background update
-    if (url.pathname.endsWith('.json')) {
-        event.respondWith(cacheFirstWithBackgroundUpdate(request));
+    // Explicit same-origin JSON data endpoints only.
+    const normalizedDataRequest = buildNormalizedDataRequest(request, self.location.origin);
+    if (normalizedDataRequest) {
+        event.respondWith(cacheFirstWithBackgroundUpdate(normalizedDataRequest));
         return;
     }
 

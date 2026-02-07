@@ -35,9 +35,10 @@ test('header search shows dropdown state', async ({ page }) => {
 
 test('surprise me opens detail modal', async ({ page }) => {
   await page.goto('/');
+  await page.waitForSelector('#anime-grid .anime-card');
   await page.waitForSelector('#surprise-toggle');
   await page.click('#surprise-toggle');
-  await page.waitForSelector('#detail-modal.visible');
+  await page.waitForSelector('#detail-modal.visible', { timeout: 15000 });
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
 });
 

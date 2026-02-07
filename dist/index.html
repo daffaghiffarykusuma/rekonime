@@ -3,9 +3,6 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'nonce-rekonime-inline'; style-src 'self' 'nonce-rekonime-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://cdn.myanimelist.net https://myanimelist.cdn-dena.com https://images.weserv.nl https://via.placeholder.com https://i.ytimg.com data:; connect-src 'self' https://api.jikan.moe ws://localhost:* ws://127.0.0.1:*; frame-src https://www.youtube.com https://www.youtube-nocookie.com; form-action 'self'; upgrade-insecure-requests">
-  <meta name="csp-nonce" content="rekonime-inline">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rekonime - Find Anime You'll Actually Finish</title>
@@ -19,13 +16,13 @@
     content="Discover anime worth your time with two numbers you can trust: Retention Score for watch-through consistency, plus Satisfaction Score from MAL.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="">
-  <meta property="og:image" content="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJla29uaW1lIj4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzAwZDRhYSIvPgogIDx0ZXh0IHg9IjMyIiB5PSI0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMTIxMjEyIj5SPC90ZXh0Pgo8L3N2Zz4K">
+  <meta property="og:image" content="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJla29uaW1lIj4NCiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwMGQ0YWEiLz4NCiAgPHRleHQgeD0iMzIiIHk9IjQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxMjEyMTIiPlI8L3RleHQ+DQo8L3N2Zz4NCg==">
   <meta property="og:image:alt" content="Rekonime logo">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Rekonime - Find Anime You'll Actually Finish">
   <meta name="twitter:description"
     content="Discover anime worth your time with Retention and Satisfaction scores that help you find shows that stay engaging.">
-  <meta name="twitter:image" content="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJla29uaW1lIj4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzAwZDRhYSIvPgogIDx0ZXh0IHg9IjMyIiB5PSI0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMTIxMjEyIj5SPC90ZXh0Pgo8L3N2Zz4K">
+  <meta name="twitter:image" content="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJla29uaW1lIj4NCiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwMGQ0YWEiLz4NCiAgPHRleHQgeD0iMzIiIHk9IjQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxMjEyMTIiPlI8L3RleHQ+DQo8L3N2Zz4NCg==">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 
   <!-- Google Fonts - Sakura Theme (Noto Serif JP, Noto Sans JP) -->
@@ -35,7 +32,7 @@
   <link rel="dns-prefetch" href="https://api.jikan.moe">
   <link rel="preload" href="./assets/anime.preview.json" as="fetch" crossorigin="anonymous">
   <link rel="prefetch" href="./assets/watchlist.html">
-  <style nonce="rekonime-inline">
+  <style>
     :root {
       --sakura-pink: #FFB7C5;
       --sakura-deep: #E89AAB;
@@ -457,68 +454,23 @@
     }
   </style>
   <!-- Styles -->
-  <link rel="stylesheet" href="./css/styles.min.css" nonce="rekonime-inline" media="print" data-noncritical="true">
-  <link rel="stylesheet" href="./css/themes.min.css" nonce="rekonime-inline" media="print" data-noncritical="true">
-  <script nonce="rekonime-inline">
-    (function () {
-      var links = document.querySelectorAll('link[data-noncritical]');
-      if (!links.length) return;
-      var enable = function (link) { link.media = 'all'; };
-      var fontHref = 'https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=optional';
-      var loadFontStyles = function () {
-        if (document.querySelector('link[data-font-style="true"]')) return;
-        if (navigator.connection && navigator.connection.saveData) return;
-        var fontLink = document.createElement('link');
-        fontLink.rel = 'stylesheet';
-        fontLink.href = fontHref;
-        fontLink.setAttribute('data-font-style', 'true');
-        document.head.appendChild(fontLink);
-      };
-      var scheduleFontStyles = function () {
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(loadFontStyles, { timeout: 4000 });
-          return;
-        }
-        setTimeout(loadFontStyles, 1200);
-      };
-      var activate = function () {
-        links.forEach(function (link) {
-          if (link.media === 'all') return;
-          link.addEventListener('load', function () { enable(link); }, { once: true });
-          try {
-            if (link.sheet) {
-              enable(link);
-            }
-          } catch (e) {
-            // Ignore cross-origin access errors
-          }
-        });
-        scheduleFontStyles();
-      };
-      if ('requestAnimationFrame' in window) {
-        requestAnimationFrame(function () {
-          requestAnimationFrame(activate);
-        });
-      } else {
-        setTimeout(activate, 0);
-      }
-    })();
-  </script>
+  <link rel="stylesheet" href="./css/styles.css" media="print" data-noncritical="true">
+  <link rel="stylesheet" href="./css/themes.css" media="print" data-noncritical="true">
   <noscript>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=optional"
       rel="stylesheet">
   </noscript>
-  <script type="module" crossorigin src="./js/logger.js"></script>
-  <script type="module" crossorigin src="./js/main.min.js"></script>
-  <link rel="stylesheet" crossorigin href="./css/logger.css">
+  <script type="module" crossorigin src="./js/main.js"></script>
+  <link rel="modulepreload" crossorigin href="./js/noncritical-styles.js">
+  <link rel="stylesheet" crossorigin href="./css/noncritical-styles.css">
   <link rel="stylesheet" crossorigin href="./css/main.css">
 </head>
 
 <body>
   <main class="app-container" id="app-container">
     <header class="header">
-      <a class="logo logo-link" href="index.html" data-home-link data-action="home-shortcut"
+      <a class="logo logo-link" href="/index.html" data-home-link data-action="home-shortcut"
         aria-label="Rekonime home (clears filters)">
         <div class="logo-icon" aria-hidden="true">R</div>
         <div class="logo-text">
@@ -558,7 +510,7 @@
             <span class="help-label">Help</span>
           </button>
           <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Filters</button>
-          <a class="btn btn-sm btn-outline watchlist-link" href="watchlist.html" aria-label="View watchlist">Watchlist
+          <a class="btn btn-sm btn-outline watchlist-link" href="/watchlist.html" aria-label="View watchlist">Watchlist
             <span aria-hidden="true">&#9733;</span></a>
           <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button"
             aria-label="Open settings" title="Settings">
@@ -716,7 +668,7 @@
       </div>
       <div class="anime-grid" id="anime-grid">
         <noscript>
-          <style nonce="rekonime-inline">
+          <style>
             .skeleton-card {
               display: none !important;
             }
@@ -742,7 +694,7 @@
                 <div class="no-js-card-body">
                   <h4>Bakusou Kyoudai Let's &amp; Go MAX</h4>
                   <p>1998 &bull; Xebec</p>
-                  <a href="index.html?anime=bakusou-kyoudai-lets-go-max">View details</a>
+                  <a href="/index.html?anime=bakusou-kyoudai-lets-go-max">View details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -750,7 +702,7 @@
                 <div class="no-js-card-body">
                   <h4>Q Transformers: Saranaru Ninki Mono e no Michi</h4>
                   <p>2015 &bull; DLE</p>
-                  <a href="index.html?anime=q-transformers-saranaru-ninki-mono-e-no-michi">View details</a>
+                  <a href="/index.html?anime=q-transformers-saranaru-ninki-mono-e-no-michi">View details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -758,7 +710,7 @@
                 <div class="no-js-card-body">
                   <h4>Tenkai Knights</h4>
                   <p>2014 &bull; Bones</p>
-                  <a href="index.html?anime=tenkai-knights">View details</a>
+                  <a href="/index.html?anime=tenkai-knights">View details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -766,7 +718,7 @@
                 <div class="no-js-card-body">
                   <h4>Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou</h4>
                   <p>2016 &bull; Production I.G</p>
-                  <a href="index.html?anime=haikyuu-karasuno-koukou-vs-shiratorizawa-gakuen-koukou">View details</a>
+                  <a href="/index.html?anime=haikyuu-karasuno-koukou-vs-shiratorizawa-gakuen-koukou">View details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -774,7 +726,7 @@
                 <div class="no-js-card-body">
                   <h4>Sousou no Frieren 2nd Season</h4>
                   <p>2026 &bull; Madhouse</p>
-                  <a href="index.html?anime=sousou-no-frieren-2nd-season">View details</a>
+                  <a href="/index.html?anime=sousou-no-frieren-2nd-season">View details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -782,18 +734,18 @@
                 <div class="no-js-card-body">
                   <h4>Ashita no Joe 2</h4>
                   <p>1980 &bull; Tokyo Movie Shinsha</p>
-                  <a href="index.html?anime=ashita-no-joe-2">View details</a>
+                  <a href="/index.html?anime=ashita-no-joe-2">View details</a>
                 </div>
               </article>
             </div>
             <div class="no-js-links">
               <span>Popular filters:</span>
-              <a href="index.html?genre=Action">Action</a>
-              <a href="index.html?genre=Drama">Drama</a>
-              <a href="index.html?genre=Fantasy">Fantasy</a>
-              <a href="index.html?genre=Comedy">Comedy</a>
-              <a href="index.html?genre=Romance">Romance</a>
-              <a href="index.html?theme=Isekai">Isekai</a>
+              <a href="/index.html?genre=Action">Action</a>
+              <a href="/index.html?genre=Drama">Drama</a>
+              <a href="/index.html?genre=Fantasy">Fantasy</a>
+              <a href="/index.html?genre=Comedy">Comedy</a>
+              <a href="/index.html?genre=Romance">Romance</a>
+              <a href="/index.html?theme=Isekai">Isekai</a>
             </div>
           </div>
         </noscript>
@@ -898,4 +850,5 @@
 </body>
 
 </html>
+
 
