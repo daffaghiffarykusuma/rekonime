@@ -4,7 +4,7 @@
  */
 import { buildNormalizedDataRequest } from './js/sw-cache-policy.js';
 
-const CACHE_VERSION = 'v1770428434147-c838623';
+const CACHE_VERSION = 'v1770428804576-a36756b';
 const STATIC_CACHE = `rekonime-static-${CACHE_VERSION}`;
 const DATA_CACHE = `rekonime-data-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rekonime-images-${CACHE_VERSION}`;
