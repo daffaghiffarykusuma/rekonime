@@ -32,9 +32,9 @@
 - SEO: title/meta description, headings, canonical, and crawlable links verified.
 
 ## Current Lighthouse Baseline (Slow 4G)
-- Source: `plans/rekonime.vercel.app-20260206T074023.json` (Lighthouse 13.0.1, URL `https://rekonime.vercel.app/home/`).
-- Scores: Performance 0.82, Accessibility 1.00, Best Practices 1.00, SEO 1.00.
-- Metrics: FCP 1.23s, LCP 1.84s, Speed Index 1.52s, TBT 687ms, CLS 0.034.
+- Source: `plans/rekonime.vercel.app-20260207T085140.json`, `plans/rekonime.vercel.app-20260207T085250.json`, `plans/rekonime.vercel.app-20260207T085345.json` (Lighthouse 13.0.1, URL `https://rekonime.vercel.app/home`).
+- Scores (3-run median): Performance 0.86, Accessibility 1.00, Best Practices 1.00, SEO 1.00.
+- Metrics (3-run median): FCP 1.45s, LCP 1.84s, Speed Index 1.56s, TBT 530.5ms, CLS 0.034.
 - Update this baseline when a new report is generated.
 
 ## User Journey (Condensed)
