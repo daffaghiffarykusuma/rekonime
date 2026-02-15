@@ -85,3 +85,36 @@ test('validate-data fails when js/data.js payload is malformed', () => {
 
   assert.equal(failed, true);
 });
+
+test('validate-data fails on trailer URLs outside trusted hosts', () => {
+  const dir = makeTempDir();
+  const dataPath = path.join(dir, 'anime.full.json');
+  const embeddedPath = path.join(dir, 'data.js');
+  const indexPath = path.join(dir, 'index.html');
+  const payload = createBasePayload();
+
+  payload.anime[0].trailer.url = 'https://youtube.com.evil.example/watch?v=abc123';
+  payload.anime[0].trailer.embedUrl = 'https://youtube.com.evil.example/embed/abc123';
+
+  fs.writeFileSync(dataPath, JSON.stringify(payload));
+  fs.writeFileSync(embeddedPath, serializeEmbeddedData(payload));
+  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.js"></script></body></html>');
+
+  const scriptPath = path.join(process.cwd(), 'tools', 'validate-data.js');
+  let failed = false;
+  try {
+    execFileSync(process.execPath, [
+      scriptPath,
+      '--data',
+      dataPath,
+      '--embedded',
+      embeddedPath,
+      '--index',
+      indexPath
+    ]);
+  } catch (error) {
+    failed = true;
+  }
+
+  assert.equal(failed, true);
+});

@@ -1,0 +1,14 @@
+{
+  "budget": {
+    "major": 0,
+    "minor": 5,
+    "patch": 10
+  },
+  "allow": {
+    "jsdom": {
+      "maxLevel": "major",
+      "until": "2026-06-30",
+      "reason": "Pinned while reviewing breaking changes in jsdom v28 against existing DOM/unit tests."
+    }
+  }
+}

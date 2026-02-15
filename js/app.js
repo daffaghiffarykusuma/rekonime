@@ -13,6 +13,25 @@ import { Store } from './core/store.js';
 import { DependencyContainer } from './core/dependency-container.js';
 import { HealthMonitor } from './healthMonitor.js';
 import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
+import {
+  buildTrailerUrls as buildTrustedTrailerUrls,
+  sanitizeTrailerUrl as sanitizeTrustedTrailerUrl,
+  sanitizeTrailerEmbedUrl as sanitizeTrustedTrailerEmbedUrl,
+  resolveTrustedTrailerMessageOrigin
+} from './security/trailer-url-policy.js';
+import {
+  readImageProxyStatus,
+  getFreshImageProxyStatus,
+  writeImageProxyStatus,
+  isProxyImageUrl as isSharedProxyImageUrl,
+  buildImageProxyUrl as buildSharedImageProxyUrl,
+  probeImageProxyAvailability
+} from './image-proxy.js';
+import {
+  WATCH_STATUS_VALUES,
+  normalizeWatchStatus as normalizeWatchStatusValue,
+  normalizeWatchProgress as normalizeWatchProgressValue
+} from './watchlist-state.js';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -71,7 +90,7 @@ const App = {
   settings: null,
   settingsRendered: false,
   watchlistEntries: new Map(),
-  watchlistStatusOptions: ['planned', 'watching', 'completed', 'dropped'],
+  watchlistStatusOptions: WATCH_STATUS_VALUES,
   seoInitialized: false,
   urlFiltersApplied: false,
   filterQueryMap: {
@@ -325,41 +344,16 @@ const App = {
   loadImageProxyStatus() {
     if (this.imageProxyStatusLoaded) return;
     this.imageProxyStatusLoaded = true;
-    if (typeof window === 'undefined') return;
-    try {
-      const raw = window.localStorage.getItem(this.imageProxyStatusKey);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object') return;
-      const ok = parsed.ok === true ? true : (parsed.ok === false ? false : null);
-      const checkedAt = Number(parsed.checkedAt) || 0;
-      this.imageProxyStatus = { ok, checkedAt };
-    } catch (error) {
-      // Ignore parse errors
-    }
+    this.imageProxyStatus = readImageProxyStatus(this.imageProxyStatusKey);
   },
 
   getImageProxyStatus() {
     this.loadImageProxyStatus();
-    const checkedAt = Number(this.imageProxyStatus?.checkedAt) || 0;
-    if (!checkedAt) return null;
-    if (Date.now() - checkedAt > this.imageProxyStatusTtlMs) return null;
-    const ok = this.imageProxyStatus?.ok;
-    return ok === true ? true : (ok === false ? false : null);
+    return getFreshImageProxyStatus(this.imageProxyStatus, this.imageProxyStatusTtlMs);
   },
 
   storeImageProxyStatus(ok) {
-    const status = {
-      ok: ok === true,
-      checkedAt: Date.now()
-    };
-    this.imageProxyStatus = status;
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(this.imageProxyStatusKey, JSON.stringify(status));
-    } catch (error) {
-      // Ignore storage errors
-    }
+    this.imageProxyStatus = writeImageProxyStatus(this.imageProxyStatusKey, ok);
   },
 
   scheduleImageProxyCheck() {
@@ -386,31 +380,18 @@ const App = {
 
   checkImageProxyAvailability() {
     if (this.imageProxyCheckPromise) return this.imageProxyCheckPromise;
-    this.imageProxyCheckPromise = new Promise((resolve) => {
-      if (typeof window === 'undefined') {
-        this.storeImageProxyStatus(false);
-        resolve(false);
-        return;
-      }
-      const img = new Image();
-      const timeoutId = window.setTimeout(() => {
-        img.src = '';
-        this.storeImageProxyStatus(false);
-        resolve(false);
-      }, this.imageProxyCheckTimeoutMs);
-
-      const finalize = (ok) => {
-        window.clearTimeout(timeoutId);
+    this.imageProxyCheckPromise = probeImageProxyAvailability({ timeoutMs: this.imageProxyCheckTimeoutMs })
+      .then((ok) => {
         this.storeImageProxyStatus(ok);
-        resolve(ok);
-      };
-
-      img.onload = () => finalize(true);
-      img.onerror = () => finalize(false);
-      img.src = `https://images.weserv.nl/?url=cdn.myanimelist.net/images/anime/1/1l.jpg&w=2&h=2&fit=cover&output=webp&cb=${Date.now()}`;
-    }).finally(() => {
-      this.imageProxyCheckPromise = null;
-    });
+        return ok;
+      })
+      .catch(() => {
+        this.storeImageProxyStatus(false);
+        return false;
+      })
+      .finally(() => {
+        this.imageProxyCheckPromise = null;
+      });
 
     return this.imageProxyCheckPromise;
   },
@@ -426,8 +407,7 @@ const App = {
   },
 
   isProxyImageUrl(url) {
-    if (!url) return false;
-    return String(url).includes('images.weserv.nl');
+    return isSharedProxyImageUrl(url);
   },
 
   markImageProxyFailed() {
@@ -894,20 +874,11 @@ const App = {
   },
 
   normalizeWatchStatus(value) {
-    const status = String(value || '').trim().toLowerCase();
-    if (this.watchlistStatusOptions.includes(status)) {
-      return status;
-    }
-    return 'planned';
+    return normalizeWatchStatusValue(value, { fallback: 'planned' });
   },
 
   normalizeWatchProgress(value) {
-    if (!Number.isFinite(value)) {
-      const parsed = Number(value);
-      if (!Number.isFinite(parsed)) return 0;
-      return Math.max(0, Math.floor(parsed));
-    }
-    return Math.max(0, Math.floor(value));
+    return normalizeWatchProgressValue(value);
   },
 
   normalizeWatchTimestamp(value) {
@@ -6487,92 +6458,24 @@ const App = {
    * Build sanitized trailer URLs from stored metadata.
    */
   buildTrailerUrls(trailer) {
-    if (!trailer || typeof trailer !== 'object') {
-      return { url: '', embedUrl: '' };
-    }
-
-    const id = trailer.id;
-    let url = trailer.url || '';
-    let embedUrl = trailer.embedUrl || trailer.embed_url || '';
-
-    if (!url && id) {
-      url = `https://www.youtube.com/watch?v=${id}`;
-    }
-
-    if (!embedUrl && id) {
-      embedUrl = `https://www.youtube.com/embed/${id}`;
-    }
-
-    return {
-      url: this.sanitizeTrailerUrl(url),
-      embedUrl: this.sanitizeTrailerEmbedUrl(embedUrl)
-    };
+    return buildTrustedTrailerUrls(trailer);
   },
 
   /**
    * Ensure trailer URLs only point to trusted YouTube hosts.
    */
   sanitizeTrailerUrl(rawUrl) {
-    if (!rawUrl) return '';
-
-    try {
-      const parsed = new URL(rawUrl);
-      if (parsed.protocol !== 'https:') return '';
-      const host = parsed.hostname.toLowerCase();
-      const allowedHosts = new Set([
-        'youtube.com',
-        'www.youtube.com',
-        'm.youtube.com',
-        'youtu.be'
-      ]);
-      if (!allowedHosts.has(host)) return '';
-      return parsed.toString();
-    } catch (error) {
-      return '';
-    }
+    return sanitizeTrustedTrailerUrl(rawUrl);
   },
 
   sanitizeTrailerEmbedUrl(rawUrl) {
-    if (!rawUrl) return '';
-
-    try {
-      const parsed = new URL(rawUrl);
-      if (parsed.protocol !== 'https:') return '';
-      const host = parsed.hostname.toLowerCase();
-      const allowedHosts = new Set([
-        'youtube.com',
-        'www.youtube.com',
-        'youtube-nocookie.com',
-        'www.youtube-nocookie.com'
-      ]);
-      if (!allowedHosts.has(host)) return '';
-      parsed.searchParams.delete('autoplay');
-      return parsed.toString();
-    } catch (error) {
-      return '';
-    }
+    return sanitizeTrustedTrailerEmbedUrl(rawUrl);
   },
 
   resolveTrailerMessageOrigin(iframe) {
     if (!iframe) return '';
     const rawUrl = iframe.dataset?.embedSrc || iframe.getAttribute('src') || '';
-    if (!rawUrl || rawUrl === 'about:blank') return '';
-
-    try {
-      const parsed = new URL(rawUrl, window.location.href);
-      if (parsed.protocol !== 'https:') return '';
-      const host = parsed.hostname.toLowerCase();
-      const allowedHosts = new Set([
-        'youtube.com',
-        'www.youtube.com',
-        'youtube-nocookie.com',
-        'www.youtube-nocookie.com'
-      ]);
-      if (!allowedHosts.has(host)) return '';
-      return parsed.origin;
-    } catch (error) {
-      return '';
-    }
+    return resolveTrustedTrailerMessageOrigin(rawUrl, window.location.href);
   },
 
   /**
@@ -7042,20 +6945,13 @@ const App = {
 
   buildImageProxyUrl(coverUrl, { width, height } = {}) {
     if (!this.shouldUseImageProxy()) return '';
-    const sanitized = this.sanitizeImageUrl(coverUrl);
-    if (!sanitized) return '';
-    const normalized = sanitized.replace(/^https?:\/\//i, '').replace(/^\/\//, '');
-    const url = new URL('https://images.weserv.nl/');
-    url.searchParams.set('url', normalized);
-    if (Number.isFinite(width)) {
-      url.searchParams.set('w', String(Math.round(width)));
-    }
-    if (Number.isFinite(height)) {
-      url.searchParams.set('h', String(Math.round(height)));
-    }
-    url.searchParams.set('fit', 'cover');
-    url.searchParams.set('output', 'webp');
-    return url.toString();
+    return buildSharedImageProxyUrl(coverUrl, {
+      sanitizeImageUrl: (value) => this.sanitizeImageUrl(value),
+      width,
+      height,
+      fit: 'cover',
+      output: 'webp'
+    });
   },
 
   getImageFallbackSources({ fallbackSrc, placeholder }) {

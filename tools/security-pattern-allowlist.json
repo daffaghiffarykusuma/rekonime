@@ -1,0 +1,22 @@
+{
+  "allow": {
+    "no-eval": [
+      "tools/check-unsafe-patterns.js"
+    ],
+    "no-new-function": [
+      "tools/check-unsafe-patterns.js"
+    ],
+    "no-string-timeout": [
+      "tools/check-unsafe-patterns.js"
+    ],
+    "no-string-interval": [
+      "tools/check-unsafe-patterns.js"
+    ],
+    "no-wildcard-postmessage": [
+      "tools/check-unsafe-patterns.js"
+    ],
+    "no-hostname-includes": [
+      "tools/check-unsafe-patterns.js"
+    ]
+  }
+}

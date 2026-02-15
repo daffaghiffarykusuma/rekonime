@@ -44,3 +44,22 @@ test('validateCatalog flags episode gaps as warnings by default', () => {
   const result = validateCatalog(data);
   assert.ok(result.warnings.some(warning => warning.message.includes('gaps')));
 });
+
+test('validateCatalog rejects insecure or untrusted trailer URLs', () => {
+  const data = [
+    {
+      id: 'bad-trailer',
+      title: 'Bad Trailer',
+      cover: 'https://example.com/cover.jpg',
+      trailer: {
+        url: 'http://youtube.com/watch?v=abc123',
+        embedUrl: 'https://youtube.com.evil.example/embed/abc123'
+      },
+      episodes: [{ episode: 1, score: 4 }]
+    }
+  ];
+
+  const result = validateCatalog(data, { strict: true, allowMissingTrailer: false });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.field === 'trailer'));
+});

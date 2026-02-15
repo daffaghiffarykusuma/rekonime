@@ -1,0 +1,27 @@
+{
+  "data/anime.full.json": {
+    "errors": {
+      "missingScore": 3435,
+      "missingTrailer": 497,
+      "invalidEpisodeScore": 3747,
+      "duplicateIds": 5
+    },
+    "warnings": {
+      "missingStudio": 18,
+      "missingAnilistId": 5
+    }
+  },
+  "js/data.js": {
+    "errors": {
+      "missingScore": 3435,
+      "missingTrailer": 497,
+      "invalidEpisodeScore": 3750,
+      "duplicateIds": 5
+    },
+    "warnings": {
+      "missingStudio": 18,
+      "missingAnilistId": 5
+    }
+  }
+}
+

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Repo hygiene
+        run: npm run -s check:repo-hygiene
+
+      - name: Unit tests
+        run: npm run -s test:unit
+
+      - name: Integration tests
+        run: npm run -s test:integration
+
+      - name: Data validation
+        run: npm run -s data:validate
+
+      - name: Coverage
+        run: npm run -s test:coverage
+
+      - name: Coverage thresholds
+        run: npm run -s check:coverage-thresholds
+
+      - name: Entrypoint dedup
+        run: npm run -s check:entrypoints
+
+      - name: Security checks
+        run: npm run -s check:security

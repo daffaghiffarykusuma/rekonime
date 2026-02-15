@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { extractEmbeddedData, validateEmbeddedAnimeShape } from './lib/embedded-data.js';
+import { buildTrailerUrls } from '../js/security/trailer-url-policy.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,62 +10,13 @@ const __dirname = path.dirname(__filename);
 const DEFAULT_DATA_PATH = path.join(__dirname, '..', 'data', 'anime.full.json');
 const DEFAULT_EMBEDDED_PATH = path.join(__dirname, '..', 'js', 'data.js');
 const DEFAULT_INDEX_PATH = path.join(__dirname, '..', 'index.html');
+const DEFAULT_BASELINE_PATH = path.join(__dirname, 'validation-baseline.json');
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
 const parseEmbeddedDataScript = (embeddedPath) => {
   const source = fs.readFileSync(embeddedPath, 'utf8');
   return extractEmbeddedData(source);
-};
-
-const sanitizeTrailerUrl = (rawUrl) => {
-  if (!rawUrl) return '';
-  try {
-    const parsed = new URL(rawUrl);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return '';
-    const host = parsed.hostname.toLowerCase();
-    if (!host.includes('youtube.com') && !host.includes('youtu.be')) return '';
-    return parsed.toString();
-  } catch {
-    return '';
-  }
-};
-
-const sanitizeTrailerEmbedUrl = (rawUrl) => {
-  if (!rawUrl) return '';
-  try {
-    const parsed = new URL(rawUrl);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return '';
-    const host = parsed.hostname.toLowerCase();
-    if (!host.includes('youtube.com') && !host.includes('youtube-nocookie.com')) return '';
-    parsed.searchParams.delete('autoplay');
-    return parsed.toString();
-  } catch {
-    return '';
-  }
-};
-
-const buildTrailerUrls = (trailer) => {
-  if (!trailer || typeof trailer !== 'object') {
-    return { url: '', embedUrl: '' };
-  }
-
-  const id = trailer.id;
-  let url = trailer.url || '';
-  let embedUrl = trailer.embedUrl || trailer.embed_url || '';
-
-  if (!url && id) {
-    url = `https://www.youtube.com/watch?v=${id}`;
-  }
-
-  if (!embedUrl && id) {
-    embedUrl = `https://www.youtube.com/embed/${id}`;
-  }
-
-  return {
-    url: sanitizeTrailerUrl(url),
-    embedUrl: sanitizeTrailerEmbedUrl(embedUrl)
-  };
 };
 
 const normalizeId = (anime) => {
@@ -105,6 +57,8 @@ const summarize = (title, groups) => {
   }
   return [`${title}:`, ...lines].join('\n');
 };
+
+const normalizeLabel = (value) => String(value || '').replace(/\\/g, '/');
 
 const validateList = (animeList, label) => {
   const errors = {
@@ -196,7 +150,7 @@ const validateList = (animeList, label) => {
   console.log(summarize('Errors', errors));
   console.log(summarize('Warnings', warnings));
   console.log('');
-  return { hasErrors, errors, warnings };
+  return { hasErrors, label, errors, warnings };
 };
 
 const validateIndexReferences = (indexPath) => {
@@ -245,34 +199,46 @@ const runValidation = ({
   dataPath = DEFAULT_DATA_PATH,
   embeddedPath = DEFAULT_EMBEDDED_PATH,
   indexPath = DEFAULT_INDEX_PATH,
+  baselinePath = DEFAULT_BASELINE_PATH,
+  enforceBaseline = false,
   skipEmbedded = false,
   skipIndexCheck = false
 } = {}) => {
   const results = [];
   const data = readJson(dataPath);
-  results.push(validateList(data.anime || [], path.relative(process.cwd(), dataPath)));
+  results.push(validateList(data.anime || [], normalizeLabel(path.relative(process.cwd(), dataPath))));
 
   if (!skipEmbedded) {
     try {
       const embedded = parseEmbeddedDataScript(embeddedPath);
       const shape = validateEmbeddedAnimeShape(embedded, { sampleSize: 50 });
       if (!shape.valid) {
-        console.log(`Validation results (${path.relative(process.cwd(), embeddedPath)})`);
+        console.log(`Validation results (${normalizeLabel(path.relative(process.cwd(), embeddedPath))})`);
         console.log('Errors:');
         console.log(`  invalidEmbeddedShape: ${shape.errors.length}`);
         console.log('Warnings:');
         console.log('  none\n');
-        results.push({ hasErrors: true });
+        results.push({
+          hasErrors: true,
+          label: normalizeLabel(path.relative(process.cwd(), embeddedPath)),
+          errors: { invalidEmbeddedShape: shape.errors.map((_, index) => index) },
+          warnings: {}
+        });
       } else {
-        results.push(validateList(embedded.anime || [], path.relative(process.cwd(), embeddedPath)));
+        results.push(validateList(embedded.anime || [], normalizeLabel(path.relative(process.cwd(), embeddedPath))));
       }
     } catch (error) {
-      console.log(`Validation results (${path.relative(process.cwd(), embeddedPath)})`);
+      console.log(`Validation results (${normalizeLabel(path.relative(process.cwd(), embeddedPath))})`);
       console.log('Errors:');
       console.log('  invalidEmbeddedData: 1');
       console.log('Warnings:');
       console.log(`  detail: ${error.message}\n`);
-      results.push({ hasErrors: true });
+      results.push({
+        hasErrors: true,
+        label: normalizeLabel(path.relative(process.cwd(), embeddedPath)),
+        errors: { invalidEmbeddedData: [1] },
+        warnings: {}
+      });
     }
   }
 
@@ -292,11 +258,64 @@ const runValidation = ({
       console.log('Warnings:\n  none');
     }
     console.log('');
-    results.push({ hasErrors: index.hasErrors });
+    results.push({
+      hasErrors: index.hasErrors,
+      label: normalizeLabel(path.relative(process.cwd(), indexPath)),
+      errors: index.errors.reduce((acc, entry, indexPos) => ({ ...acc, [`indexError${indexPos + 1}`]: [entry] }), {}),
+      warnings: index.warnings.reduce((acc, entry, indexPos) => ({ ...acc, [`indexWarning${indexPos + 1}`]: [entry] }), {})
+    });
   }
 
-  const hasErrors = results.some((result) => result.hasErrors);
-  return { hasErrors };
+  let baselineFailures = [];
+  const baselineLabels = new Set();
+  if (enforceBaseline) {
+    if (!fs.existsSync(baselinePath)) {
+      baselineFailures.push(`Missing baseline file: ${baselinePath}`);
+    } else {
+      const baseline = readJson(baselinePath);
+      Object.keys(baseline || {}).forEach((label) => baselineLabels.add(String(label)));
+      results.forEach((result) => {
+        if (!result?.label) return;
+        const baselineEntry = baseline?.[result.label];
+        if (!baselineEntry) return;
+
+        const compareGroup = (groupName, values = {}, expected = {}) => {
+          const observedKeys = new Set([
+            ...Object.keys(values || {}),
+            ...Object.keys(expected || {})
+          ]);
+          observedKeys.forEach((key) => {
+            const observed = Array.isArray(values[key]) ? values[key].length : 0;
+            const limit = Number.isFinite(expected[key]) ? expected[key] : 0;
+            if (observed > limit) {
+              baselineFailures.push(
+                `${result.label} ${groupName}.${key} exceeded baseline: ${observed} > ${limit}`
+              );
+            }
+          });
+        };
+
+        compareGroup('errors', result.errors, baselineEntry.errors || {});
+        compareGroup('warnings', result.warnings, baselineEntry.warnings || {});
+      });
+    }
+  }
+
+  if (baselineFailures.length) {
+    console.log('Baseline regression check failed:');
+    baselineFailures.forEach((entry) => console.log(`  - ${entry}`));
+    console.log('');
+  }
+
+  const rawErrors = results.some((result) => {
+    if (!result?.hasErrors) return false;
+    if (!enforceBaseline) return true;
+    if (!result.label) return true;
+    return !baselineLabels.has(result.label);
+  });
+
+  const hasErrors = rawErrors || baselineFailures.length > 0;
+  return { hasErrors, baselineFailures };
 };
 
 const main = () => {
@@ -305,6 +324,8 @@ const main = () => {
     dataPath: values.data || DEFAULT_DATA_PATH,
     embeddedPath: values.embedded || DEFAULT_EMBEDDED_PATH,
     indexPath: values.index || DEFAULT_INDEX_PATH,
+    baselinePath: values.baseline || DEFAULT_BASELINE_PATH,
+    enforceBaseline: flags.has('enforce-baseline'),
     skipEmbedded: flags.has('skip-embedded'),
     skipIndexCheck: flags.has('skip-index-check')
   });

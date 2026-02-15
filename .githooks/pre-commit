@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -eu
+
+npm run -s check:repo-hygiene
+npm run -s check:unsafe-patterns

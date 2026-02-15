@@ -30,3 +30,16 @@ test('Logger trims buffer to limit', () => {
   assert.equal(buffer[0].message, 'two');
   assert.equal(buffer[1].message, 'three');
 });
+
+test('Logger persistence is opt-in via localStorage preference', () => {
+  localStorage.removeItem('rekonime.logPersistence');
+  resetLogger();
+  Logger.init({ level: 'info' });
+  assert.equal(Logger.persistLogs, false);
+
+  localStorage.setItem('rekonime.logPersistence', 'enabled');
+  resetLogger();
+  Logger.init({ level: 'info' });
+  assert.equal(Logger.persistLogs, true);
+  localStorage.removeItem('rekonime.logPersistence');
+});

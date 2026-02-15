@@ -3,9 +3,10 @@
 Rekonime is a static, browser-based anime dashboard that highlights how likely a show is to keep viewers watching, paired with community satisfaction. Each title has a detailed modal with scores, synopsis, trailers, and reviews.
 
 ## Quick start
-- Open `index.html` in a browser.
-- Optional (recommended): run a local server for reliable fetch behavior.
-  - Example: `python -m http.server`
+1. Install dependencies: `npm ci`
+2. Run local dev server: `npm run dev`
+3. Optional: install git hooks for pre-commit/pre-push checks:
+   - `npm run hooks:install`
 
 ## What you can do
 - Browse and filter a large anime catalog.
@@ -34,6 +35,34 @@ If you want to refresh data:
      - Optional: `--incremental` uses `.build-state.json` to skip unchanged builds. Override its location with `--state <path>`.
 3) Regenerate the embedded fallback:
    - `powershell -File tools/regenerate-data.ps1`
+
+## Validation workflow
+Run these before opening a PR:
+1. `npm run test:unit`
+2. `npm run test:integration`
+3. `npm run data:validate`
+4. `npm run test:coverage`
+5. `npm run check:coverage-thresholds`
+6. `npm run check:security`
+
+Useful grouped commands:
+- `npm run check:quick` (unit + integration + data validation)
+- `npm run data:validate:strict` (raw validator with no baseline allowances)
+- `npm run test:runtime` (runtime-focused tests)
+- `npm run test:services` (service-layer tests)
+- `npm run test:tools` (pipeline/tooling tests)
+- `npm run test:unit:watch` (watch-mode unit tests)
+- `npm run check:repo-hygiene` (detect tracked generated artifacts)
+- `npm run check:outdated-budget` (dependency update budget + exceptions)
+- `npm run check:unsafe-patterns` (static unsafe API pattern scan)
+- `npm run check:security-headers` (verifies required security headers in `vercel.json`)
+
+Reference docs:
+- CI/local command matrix: `docs/ci-local-matrix.md`
+- Security release checklist: `docs/release-security-checklist.md`
+- Data quality incident playbook: `docs/data-quality-incident-playbook.md`
+- Dependency lifecycle policy: `docs/dependency-lifecycle.md`
+- Module and event contracts: `docs/module-contracts.md`, `docs/event-contracts.md`
 
 ## Project map (high level)
 - `index.html`, `watchlist.html`: pages and static markup (watchlist lives in `watchlist.html`).

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+test-results/
+.build-state.json
+
+tools/scraper/__pycache__/
+*.pyc
+
+data/*.bak-*
+plans/*.tmp
+

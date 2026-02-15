@@ -25,14 +25,15 @@ const Logger = {
   bufferLimit: 120,
   bufferFlushEvery: 10,
   storageKey: 'rekonime.logs',
-  persistLogs: true,
+  persistLogs: false,
+  persistencePreferenceKey: 'rekonime.logPersistence',
   initialized: false,
   globalHandlersInstalled: false,
 
-  init({ level = 'info', persist = true, bufferLimit, captureGlobalErrors = true } = {}) {
+  init({ level = 'info', persist = null, bufferLimit, captureGlobalErrors = true } = {}) {
     if (this.initialized) return;
     this.initialized = true;
-    this.persistLogs = Boolean(persist);
+    this.persistLogs = this.resolvePersistencePreference(persist);
     if (Number.isFinite(bufferLimit) && bufferLimit > 0) {
       this.bufferLimit = bufferLimit;
     }
@@ -45,6 +46,21 @@ const Logger = {
 
   setEnabled(enabled) {
     this.enabled = Boolean(enabled);
+  },
+
+  resolvePersistencePreference(persistOption) {
+    if (typeof persistOption === 'boolean') {
+      return persistOption;
+    }
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    try {
+      const raw = window.localStorage?.getItem(this.persistencePreferenceKey) || '';
+      return raw === 'enabled';
+    } catch {
+      return false;
+    }
   },
 
   setLevel(level) {

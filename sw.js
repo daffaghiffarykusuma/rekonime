@@ -2,13 +2,15 @@
  * Service Worker for Rekonime
  * Provides offline caching and data persistence
  */
-import { buildNormalizedDataRequest } from './js/sw-cache-policy.js';
+import { buildNormalizedDataRequest, hostMatchesAllowlist } from './js/sw-cache-policy.js';
 
 const CACHE_VERSION = '__REKONIME_CACHE_VERSION__';
 const STATIC_CACHE = `rekonime-static-${CACHE_VERSION}`;
 const DATA_CACHE = `rekonime-data-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rekonime-images-${CACHE_VERSION}`;
 const IS_LOCALHOST = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+const MAL_CDN_HOSTS = ['cdn.myanimelist.net', 'myanimelist.cdn-dena.com'];
+const API_HOSTS = ['api.jikan.moe'];
 
 const STATIC_ASSETS = [
     './',
@@ -100,8 +102,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     // Skip external image CDNs (MAL, etc.) - let browser handle directly
-    if (url.hostname.includes('cdn.myanimelist.net') ||
-        url.hostname.includes('myanimelist.cdn-dena.com')) {
+    if (hostMatchesAllowlist(url.hostname, MAL_CDN_HOSTS)) {
         return;
     }
 
@@ -125,7 +126,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     // API requests (Jikan) - Network First with cache fallback
-    if (url.hostname.includes('api.jikan.moe')) {
+    if (hostMatchesAllowlist(url.hostname, API_HOSTS)) {
         event.respondWith(networkFirstWithCacheFallback(request));
         return;
     }

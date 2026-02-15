@@ -10,8 +10,9 @@
 
 ## Atom-of-Thought Protocol (Internal Only)
 - Decompose requirements into atomic, MECE units.
+- Model atoms as a Directed Acyclic Graph (DAG): atoms are nodes, dependencies are directed edges, and cycles are disallowed.
 - Validate dependencies, edge cases, and assumptions; create sub-atoms when unclear.
-- Implement in dependency order with clean, production-ready code and standard comments.
+- Implement in topological dependency order (parallelize only independent nodes) with clean, production-ready code and standard comments.
 - Synthesize into a cohesive solution with natural documentation.
 - Never expose atom labels, phases, confidence scores, or internal reasoning in output.
 
@@ -32,7 +33,7 @@
 - SEO: title/meta description, headings, canonical, and crawlable links verified.
 
 ## Current Lighthouse Baseline (Slow 4G)
-- Source: `plans/rekonime.vercel.app-20260207T085140.json`, `plans/rekonime.vercel.app-20260207T085250.json`, `plans/rekonime.vercel.app-20260207T085345.json` (Lighthouse 13.0.1, URL `https://rekonime.vercel.app/home`).
+- Source: `plans/rekonime.vercel.app-20260207T085345.json` (Lighthouse 13.0.1, URL `https://rekonime.vercel.app/home`).
 - Scores (3-run median): Performance 0.86, Accessibility 1.00, Best Practices 1.00, SEO 1.00.
 - Metrics (3-run median): FCP 1.45s, LCP 1.84s, Speed Index 1.56s, TBT 530.5ms, CLS 0.034.
 - Update this baseline when a new report is generated.
@@ -57,11 +58,14 @@
 - `js/reviews.js`: Jikan reviews + synopsis utilities.
 - `js/discovery.js`: surprise, seasonal, trending, because-you-watched.
 - `js/filterPresets.js`, `js/keyboardShortcuts.js`, `js/metricGlossary.js`, `js/onboarding.js`, `js/themeManager.js`.
+- `js/security/trailer-url-policy.js`: shared trailer URL allowlist/sanitization policy.
+- `js/image-proxy.js`: shared image proxy URL/status utilities for app and watchlist entry points.
+- `js/watchlist-state.js`: shared watchlist status/progress normalization helpers.
 - `js/services/*`: API client, cache, rate limiter, schema validation, analytics, error handling, logging.
 - `data/*.json`: catalog sources (`anime.json`, `anime.full.json`, `anime.preview.json`).
 - `js/data.js`: embedded fallback dataset.
 - `sw.js`, `version.json`, `health.html`: PWA + health surface.
-- `tools/*`: build pipeline, validation, deployment utilities.
+- `tools/*`: build pipeline, validation, deployment utilities, security checks, and coverage/report guards.
 - `test/*.test.js`: node:test coverage for stats, recs, build pipeline.
 
 ## Runtime Flows (Key)
@@ -95,6 +99,7 @@
 5. `tools/regenerate-data.ps1` -> `js/data.js`
 6. `tools/validate-data.js` for schema checks
 7. `tools/check-entrypoint-dedup.js` guards against duplicate home entry templates
+8. `tools/check-repo-hygiene.js`, `tools/check-coverage-thresholds.js`, `tools/check-outdated-budget.js`, and `tools/check-unsafe-patterns.js` gate CI/local quality and security checks
 
 ## Notes
 - `js/charts.js` is optional and not wired by default; wire scripts and canvas IDs if used.

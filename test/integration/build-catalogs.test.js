@@ -52,3 +52,35 @@ test('build-catalogs generates full and preview outputs', () => {
   const full = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
   assert.equal(full.anime.length, 1);
 });
+
+test('build-catalogs strict mode fails quality gates on undersized corpus', () => {
+  const dir = makeTempDir();
+  const inputPath = path.join(dir, 'anime.json');
+  const fullPath = path.join(dir, 'anime.full.json');
+  const previewPath = path.join(dir, 'anime.preview.json');
+
+  const payload = {
+    anime: [
+      {
+        id: 'alpha',
+        title: 'Alpha',
+        cover: 'https://example.com/alpha.jpg',
+        episodes: [
+          { episode: 1, score: 4.2 },
+          { episode: 2, score: 4.1 }
+        ]
+      }
+    ]
+  };
+
+  fs.writeFileSync(inputPath, JSON.stringify(payload));
+  const scriptPath = path.join(process.cwd(), 'tools', 'build-catalogs.js');
+  let failed = false;
+  try {
+    execFileSync(process.execPath, [scriptPath, inputPath, fullPath, previewPath]);
+  } catch (error) {
+    failed = true;
+  }
+
+  assert.equal(failed, true);
+});

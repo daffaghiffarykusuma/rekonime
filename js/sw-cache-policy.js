@@ -4,6 +4,22 @@ const JSON_CACHE_ALLOWLIST = new Set([
   '/version.json'
 ]);
 
+const normalizeHostname = (hostname) => String(hostname || '').trim().toLowerCase();
+
+const hostMatchesAllowlist = (hostname, allowlist = []) => {
+  const host = normalizeHostname(hostname);
+  if (!host) return false;
+  const allowed = Array.isArray(allowlist) ? allowlist : [];
+  for (const entry of allowed) {
+    const normalized = normalizeHostname(entry);
+    if (!normalized) continue;
+    if (host === normalized || host.endsWith(`.${normalized}`)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const normalizePathname = (pathname) => {
   const raw = String(pathname || '');
   const withLeadingSlash = raw.startsWith('/') ? raw : `/${raw}`;
@@ -33,6 +49,7 @@ const buildNormalizedDataRequest = (request, serviceWorkerOrigin) => {
 export {
   JSON_CACHE_ALLOWLIST,
   normalizePathname,
+  hostMatchesAllowlist,
   getNormalizedDataJsonUrl,
   buildNormalizedDataRequest
 };

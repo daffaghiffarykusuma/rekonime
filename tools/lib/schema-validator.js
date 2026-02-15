@@ -1,6 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  sanitizeTrailerUrl,
+  sanitizeTrailerEmbedUrl
+} from '../../js/security/trailer-url-policy.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -256,17 +260,10 @@ const isHttpsUrl = (rawUrl) => {
 };
 
 const isValidTrailerUrl = (rawUrl, { allowNoCookie = false } = {}) => {
-  if (!rawUrl) return false;
-  try {
-    const parsed = new URL(rawUrl);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-    const host = parsed.hostname.toLowerCase();
-    const allowed = ['youtube.com', 'youtu.be'];
-    if (allowNoCookie) allowed.push('youtube-nocookie.com');
-    return allowed.some(domain => host === domain || host.endsWith(`.${domain}`));
-  } catch {
-    return false;
+  if (allowNoCookie) {
+    return Boolean(sanitizeTrailerEmbedUrl(rawUrl));
   }
+  return Boolean(sanitizeTrailerUrl(rawUrl));
 };
 
 const validateEpisodeSequence = (episodes, animeId, issues, options) => {

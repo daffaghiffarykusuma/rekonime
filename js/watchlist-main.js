@@ -1,6 +1,19 @@
 import { ThemeManager } from './themeManager.js';
 import { Logger } from './services/logger.js';
 import { sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
+import {
+  readImageProxyStatus,
+  getFreshImageProxyStatus,
+  writeImageProxyStatus,
+  isProxyImageUrl,
+  buildImageProxyUrl,
+  probeImageProxyAvailability
+} from './image-proxy.js';
+import {
+  WATCH_STATUS_VALUES,
+  normalizeWatchStatus,
+  normalizeWatchProgress
+} from './watchlist-state.js';
 import './bootstrap/watchlist-cover-preload.js';
 import './bootstrap/noncritical-styles.js';
 
@@ -14,7 +27,6 @@ const ALLOWED_IMAGE_HOSTS = [
   'via.placeholder.com',
   'images.weserv.nl'
 ];
-const WATCH_STATUS_VALUES = ['planned', 'watching', 'completed', 'dropped'];
 const WATCH_STATUS_OPTIONS = [
   { value: '', label: 'Not tracking' },
   { value: 'planned', label: 'Planned' },
@@ -71,65 +83,32 @@ const initNonCriticalServices = () => {
 const loadImageProxyStatus = () => {
   if (imageProxyStatusLoaded || typeof window === 'undefined') return;
   imageProxyStatusLoaded = true;
-  try {
-    const raw = localStorage.getItem(IMAGE_PROXY_STATUS_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return;
-    const ok = parsed.ok === true ? true : (parsed.ok === false ? false : null);
-    const checkedAt = Number(parsed.checkedAt) || 0;
-    imageProxyStatus = { ok, checkedAt };
-  } catch (error) {
-    // Ignore parse errors
-  }
+  imageProxyStatus = readImageProxyStatus(IMAGE_PROXY_STATUS_KEY);
 };
 
 const getImageProxyStatus = () => {
   loadImageProxyStatus();
-  const checkedAt = Number(imageProxyStatus?.checkedAt) || 0;
-  if (!checkedAt) return null;
-  if (Date.now() - checkedAt > IMAGE_PROXY_STATUS_TTL_MS) return null;
-  const ok = imageProxyStatus?.ok;
-  return ok === true ? true : (ok === false ? false : null);
+  return getFreshImageProxyStatus(imageProxyStatus, IMAGE_PROXY_STATUS_TTL_MS);
 };
 
 const storeImageProxyStatus = (ok) => {
-  imageProxyStatus = { ok: ok === true, checkedAt: Date.now() };
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(IMAGE_PROXY_STATUS_KEY, JSON.stringify(imageProxyStatus));
-  } catch (error) {
-    // Ignore storage errors
-  }
+  imageProxyStatus = writeImageProxyStatus(IMAGE_PROXY_STATUS_KEY, ok);
 };
 
 const checkImageProxyAvailability = () => {
   if (imageProxyCheckPromise) return imageProxyCheckPromise;
-  imageProxyCheckPromise = new Promise((resolve) => {
-    if (typeof window === 'undefined') {
-      storeImageProxyStatus(false);
-      resolve(false);
-      return;
-    }
-    const img = new Image();
-    const timeoutId = window.setTimeout(() => {
-      img.src = '';
-      storeImageProxyStatus(false);
-      resolve(false);
-    }, IMAGE_PROXY_CHECK_TIMEOUT_MS);
-
-    const finalize = (ok) => {
-      window.clearTimeout(timeoutId);
+  imageProxyCheckPromise = probeImageProxyAvailability({ timeoutMs: IMAGE_PROXY_CHECK_TIMEOUT_MS })
+    .then((ok) => {
       storeImageProxyStatus(ok);
-      resolve(ok);
-    };
-
-    img.onload = () => finalize(true);
-    img.onerror = () => finalize(false);
-    img.src = `https://images.weserv.nl/?url=cdn.myanimelist.net/images/anime/1/1l.jpg&w=2&h=2&fit=cover&output=webp&cb=${Date.now()}`;
-  }).finally(() => {
-    imageProxyCheckPromise = null;
-  });
+      return ok;
+    })
+    .catch(() => {
+      storeImageProxyStatus(false);
+      return false;
+    })
+    .finally(() => {
+      imageProxyCheckPromise = null;
+    });
 
   return imageProxyCheckPromise;
 };
@@ -149,11 +128,6 @@ const shouldUseImageProxy = () => {
     return true;
   }
   return status === true;
-};
-
-const isProxyUrl = (url) => {
-  if (!url) return false;
-  return String(url).includes('images.weserv.nl');
 };
 
 const markImageProxyFailed = () => {
@@ -187,18 +161,13 @@ const sanitizeImageUrl = (rawUrl) => {
 
 const buildProxyUrl = (coverUrl) => {
   if (!shouldUseImageProxy()) return '';
-  const sanitized = sanitizeImageUrl(coverUrl);
-  if (!sanitized) return '';
-  const host = new URL(sanitized).hostname.toLowerCase();
-  if (host === 'images.weserv.nl') return sanitized;
-  const normalized = sanitized.replace(/^https?:\/\//i, '').replace(/^\/\//, '');
-  const url = new URL('https://images.weserv.nl/');
-  url.searchParams.set('url', normalized);
-  url.searchParams.set('w', String(CARD_DIMENSIONS.width));
-  url.searchParams.set('h', String(CARD_DIMENSIONS.height));
-  url.searchParams.set('fit', 'cover');
-  url.searchParams.set('output', 'webp');
-  return url.toString();
+  return buildImageProxyUrl(coverUrl, {
+    sanitizeImageUrl,
+    width: CARD_DIMENSIONS.width,
+    height: CARD_DIMENSIONS.height,
+    fit: 'cover',
+    output: 'webp'
+  });
 };
 
 const parseLegacyWatchlist = () => {
@@ -240,20 +209,6 @@ const parseWatchlist = () => {
   } catch (error) {
     return null;
   }
-};
-
-const normalizeWatchStatus = (value) => {
-  const status = String(value || '').trim().toLowerCase();
-  if (WATCH_STATUS_VALUES.includes(status)) {
-    return status;
-  }
-  return 'planned';
-};
-
-const normalizeWatchProgress = (value) => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 0;
-  return Math.max(0, Math.floor(parsed));
 };
 
 const shouldShowWatchProgress = (status) => {
@@ -877,7 +832,7 @@ const setupGridHandlers = () => {
   grid.addEventListener('error', (event) => {
     const img = event.target;
     if (!img || img.tagName !== 'IMG') return;
-    if (isProxyUrl(img.currentSrc || img.src)) {
+    if (isProxyImageUrl(img.currentSrc || img.src)) {
       markImageProxyFailed();
     }
     if (img.dataset.fallbackApplied) return;

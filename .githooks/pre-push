@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -eu
+
+npm run -s test:unit
+npm run -s test:integration
+npm run -s data:validate
