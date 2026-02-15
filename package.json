@@ -27,6 +27,7 @@
     "test:e2e": "playwright test",
     "check:build-clean": "node tools/check-build-clean.js",
     "data:regenerate": "node tools/regenerate-data.js",
+    "data:refresh-scores": "node tools/refresh-scores.js",
     "data:validate": "node tools/validate-data.js --enforce-baseline --baseline tools/validation-baseline.json",
     "data:validate:strict": "node tools/validate-data.js",
     "check:entrypoints": "node tools/check-entrypoint-dedup.js",
