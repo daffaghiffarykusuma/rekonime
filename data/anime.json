@@ -4292,11 +4292,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.89
+          "score": 3.88
         },
         {
           "episode": 2,
-          "score": 4.12
+          "score": 4.13
         },
         {
           "episode": 3,
@@ -4316,7 +4316,7 @@
         },
         {
           "episode": 7,
-          "score": 4.27
+          "score": 4.25
         },
         {
           "episode": 8,
@@ -5390,27 +5390,27 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.08
+          "score": 4.07
         },
         {
           "episode": 2,
-          "score": 4.4
-        },
-        {
-          "episode": 3,
-          "score": 4.4
-        },
-        {
-          "episode": 4,
-          "score": 4.43
-        },
-        {
-          "episode": 5,
           "score": 4.39
         },
         {
+          "episode": 3,
+          "score": 4.39
+        },
+        {
+          "episode": 4,
+          "score": 4.42
+        },
+        {
+          "episode": 5,
+          "score": 4.37
+        },
+        {
           "episode": 6,
-          "score": 4.52
+          "score": 4.51
         },
         {
           "episode": 7,
@@ -5426,7 +5426,7 @@
         },
         {
           "episode": 10,
-          "score": 4.51
+          "score": 4.5
         },
         {
           "episode": 11,
@@ -11600,7 +11600,7 @@
           "thumbnail": "https://i.ytimg.com/vi/ZfWsw9daBy8/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 7.05,
+        "score": 7.04,
         "type": "TV",
         "title_english": "Inexpressive Kashiwada and Expressive Oota",
         "title_japanese": "顔に出ない柏田さんと顔に出る太田君"
@@ -11616,7 +11616,7 @@
         },
         {
           "episode": 3,
-          "score": 4.18
+          "score": 4.16
         },
         {
           "episode": 4,
@@ -11636,7 +11636,7 @@
         },
         {
           "episode": 8,
-          "score": 4.31
+          "score": 4.32
         },
         {
           "episode": 9,
@@ -11652,7 +11652,7 @@
         },
         {
           "episode": 12,
-          "score": 4.13
+          "score": 4.14
         }
       ],
       "scrape_errors": []
@@ -16030,7 +16030,7 @@
           "thumbnail": "https://i.ytimg.com/vi/poUibdNvxPQ/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 7.24,
+        "score": 7.25,
         "type": "TV",
         "title_english": "Tune In to the Midnight Heart",
         "title_japanese": "真夜中ハートチューン"
@@ -16042,7 +16042,7 @@
         },
         {
           "episode": 2,
-          "score": 4.23
+          "score": 4.24
         },
         {
           "episode": 3,
@@ -16050,15 +16050,27 @@
         },
         {
           "episode": 4,
-          "score": 4.23
+          "score": 4.24
         },
         {
           "episode": 5,
-          "score": 4.5
+          "score": 4.49
         },
         {
           "episode": 6,
-          "score": 4.45
+          "score": 4.44
+        },
+        {
+          "episode": 7,
+          "score": 4.29
+        },
+        {
+          "episode": 8,
+          "score": 4.4
+        },
+        {
+          "episode": 9,
+          "score": 4.34
         }
       ],
       "scrape_errors": [],
@@ -19151,7 +19163,7 @@
           "thumbnail": "https://i.ytimg.com/vi/iSRJs8e5aRo/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 6.5,
+        "score": 6.45,
         "type": "TV",
         "title_english": "You Can't Be In a Rom-Com with Your Childhood Friends!",
         "title_japanese": "幼馴染とはラブコメにならない"
@@ -19159,27 +19171,39 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.84
+          "score": 3.82
         },
         {
           "episode": 2,
-          "score": 4.09
+          "score": 4.07
         },
         {
           "episode": 3,
-          "score": 4.14
+          "score": 4.13
         },
         {
           "episode": 4,
-          "score": 4.2
+          "score": 4.19
         },
         {
           "episode": 5,
-          "score": 4.3
+          "score": 4.28
         },
         {
           "episode": 6,
-          "score": 4.32
+          "score": 4.27
+        },
+        {
+          "episode": 7,
+          "score": 4.19
+        },
+        {
+          "episode": 8,
+          "score": 4.09
+        },
+        {
+          "episode": 9,
+          "score": 4.29
         }
       ],
       "scrape_errors": [],
@@ -20955,7 +20979,7 @@
           "thumbnail": "https://i.ytimg.com/vi/rqp_JkzslnM/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 7.75,
+        "score": 7.58,
         "type": "TV",
         "title_english": "Shiboyugi: Playing Death Games to Put Food on the Table",
         "title_japanese": "死亡遊戯で飯を食う。"
@@ -20963,27 +20987,39 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.31
+          "score": 4.29
         },
         {
           "episode": 2,
-          "score": 4.28
+          "score": 4.27
         },
         {
           "episode": 3,
-          "score": 4.37
-        },
-        {
-          "episode": 4,
           "score": 4.34
         },
         {
+          "episode": 4,
+          "score": 4.33
+        },
+        {
           "episode": 5,
-          "score": 4.05
+          "score": 4.04
         },
         {
           "episode": 6,
-          "score": 4.27
+          "score": 4.22
+        },
+        {
+          "episode": 7,
+          "score": 3.8
+        },
+        {
+          "episode": 8,
+          "score": 4.12
+        },
+        {
+          "episode": 9,
+          "score": 3.87
         }
       ],
       "scrape_errors": [],
@@ -23144,7 +23180,7 @@
           "thumbnail": "https://i.ytimg.com/vi/9-JreaprnO0/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 8.22,
+        "score": 8.21,
         "type": "TV",
         "title_english": "Spy x Family Season 3",
         "title_japanese": "SPY×FAMILY Season 3"
@@ -23152,7 +23188,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.19
+          "score": 4.18
         },
         {
           "episode": 2,
@@ -23192,7 +23228,7 @@
         },
         {
           "episode": 11,
-          "score": 4.52
+          "score": 4.53
         },
         {
           "episode": 12,
@@ -23200,7 +23236,7 @@
         },
         {
           "episode": 13,
-          "score": 4.48
+          "score": 4.47
         }
       ],
       "scrape_errors": []
@@ -24568,11 +24604,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.11
+          "score": 4.1
         },
         {
           "episode": 2,
-          "score": 4.24
+          "score": 4.25
         },
         {
           "episode": 3,
@@ -24584,7 +24620,7 @@
         },
         {
           "episode": 5,
-          "score": 4.2
+          "score": 4.19
         },
         {
           "episode": 6,
@@ -24600,11 +24636,11 @@
         },
         {
           "episode": 9,
-          "score": 4.27
+          "score": 4.28
         },
         {
           "episode": 10,
-          "score": 4.19
+          "score": 4.2
         },
         {
           "episode": 11,
@@ -24612,7 +24648,7 @@
         },
         {
           "episode": 12,
-          "score": 4.41
+          "score": 4.4
         }
       ],
       "scrape_errors": []
@@ -25702,7 +25738,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.67
+          "score": 3.66
         },
         {
           "episode": 2,
@@ -25722,7 +25758,7 @@
         },
         {
           "episode": 6,
-          "score": 4.24
+          "score": 4.23
         },
         {
           "episode": 7,
@@ -25730,7 +25766,7 @@
         },
         {
           "episode": 8,
-          "score": 3.93
+          "score": 3.92
         },
         {
           "episode": 9,
@@ -25746,7 +25782,7 @@
         },
         {
           "episode": 12,
-          "score": 3.85
+          "score": 3.87
         }
       ],
       "scrape_errors": []
@@ -27652,15 +27688,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.22
+          "score": 4.21
         },
         {
           "episode": 2,
-          "score": 4.27
+          "score": 4.26
         },
         {
           "episode": 3,
-          "score": 4.34
+          "score": 4.33
         },
         {
           "episode": 4,
@@ -27672,7 +27708,7 @@
         },
         {
           "episode": 6,
-          "score": 4.3
+          "score": 4.29
         },
         {
           "episode": 7,
@@ -27688,19 +27724,19 @@
         },
         {
           "episode": 10,
-          "score": 4.59
+          "score": 4.58
         },
         {
           "episode": 11,
-          "score": 4.56
+          "score": 4.55
         },
         {
           "episode": 12,
-          "score": 4.48
+          "score": 4.47
         },
         {
           "episode": 13,
-          "score": 4.32
+          "score": 4.31
         }
       ],
       "scrape_errors": []
@@ -29098,7 +29134,7 @@
           "thumbnail": "https://i.ytimg.com/vi/AVcXFW1fqAk/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 7.31,
+        "score": 7.3,
         "type": "TV",
         "title_english": "Yano-kun's Ordinary Days",
         "title_japanese": "矢野くんの普通の日々"
@@ -29106,7 +29142,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.11
+          "score": 4.1
         },
         {
           "episode": 2,
@@ -29126,31 +29162,31 @@
         },
         {
           "episode": 6,
-          "score": 4.74
+          "score": 4.73
         },
         {
           "episode": 7,
-          "score": 4.41
+          "score": 4.4
         },
         {
           "episode": 8,
-          "score": 4.42
+          "score": 4.41
         },
         {
           "episode": 9,
-          "score": 4.47
+          "score": 4.46
         },
         {
           "episode": 10,
-          "score": 4.51
+          "score": 4.5
         },
         {
           "episode": 11,
-          "score": 4.44
+          "score": 4.43
         },
         {
           "episode": 12,
-          "score": 4.23
+          "score": 4.22
         }
       ],
       "scrape_errors": []
@@ -30794,7 +30830,7 @@
           "thumbnail": "https://i.ytimg.com/vi/JGYY6Pui5Kc/hqdefault.jpg",
           "source": "anilist"
         },
-        "score": 8.53,
+        "score": 8.59,
         "type": "TV",
         "title_english": "[Oshi No Ko] Season 3",
         "title_japanese": "【推しの子】 第3期"
@@ -30802,11 +30838,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.38
+          "score": 4.36
         },
         {
           "episode": 2,
-          "score": 4.45
+          "score": 4.44
         },
         {
           "episode": 3,
@@ -30818,7 +30854,19 @@
         },
         {
           "episode": 5,
-          "score": 4.47
+          "score": 4.49
+        },
+        {
+          "episode": 6,
+          "score": 4.51
+        },
+        {
+          "episode": 7,
+          "score": 4.71
+        },
+        {
+          "episode": 8,
+          "score": 4.66
         }
       ],
       "scrape_errors": [],
@@ -71656,7 +71704,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "Third season of One Punch Man.",
-        "score": 4.73,
+        "score": 4.75,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -71686,7 +71734,7 @@
         },
         {
           "episode": 4,
-          "score": 2.86
+          "score": 2.87
         },
         {
           "episode": 5,
@@ -71698,7 +71746,7 @@
         },
         {
           "episode": 7,
-          "score": 2.3
+          "score": 2.31
         },
         {
           "episode": 8,
@@ -71706,11 +71754,11 @@
         },
         {
           "episode": 9,
-          "score": 3.17
+          "score": 3.18
         },
         {
           "episode": 10,
-          "score": 2.23
+          "score": 2.24
         },
         {
           "episode": 11,
@@ -71718,7 +71766,7 @@
         },
         {
           "episode": 12,
-          "score": 2.9
+          "score": 2.91
         }
       ],
       "scrape_errors": []
@@ -84138,7 +84186,7 @@
         "themes": [],
         "demographic": "Shounen",
         "synopsis": "Second season of Sousou no Frieren.",
-        "score": 9.21,
+        "score": 9.16,
         "episodes_count": 10,
         "trailer": {
           "site": "youtube",
@@ -84156,23 +84204,27 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.64
+          "score": 4.63
         },
         {
           "episode": 2,
-          "score": 4.64
+          "score": 4.62
         },
         {
           "episode": 3,
-          "score": 4.59
+          "score": 4.58
         },
         {
           "episode": 4,
-          "score": 4.6
+          "score": 4.57
         },
         {
           "episode": 5,
-          "score": 4.53
+          "score": 4.5
+        },
+        {
+          "episode": 6,
+          "score": 4.54
         }
       ],
       "scrape_errors": [],
@@ -90379,11 +90431,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.47
+          "score": 4.49
         },
         {
           "episode": 2,
-          "score": 4.66
+          "score": 4.67
         },
         {
           "episode": 3,
@@ -90391,7 +90443,7 @@
         },
         {
           "episode": 4,
-          "score": 4.71
+          "score": 4.72
         },
         {
           "episode": 5,
@@ -90403,23 +90455,23 @@
         },
         {
           "episode": 7,
-          "score": 4.67
+          "score": 4.68
         },
         {
           "episode": 8,
-          "score": 4.73
+          "score": 4.74
         },
         {
           "episode": 9,
-          "score": 4.62
+          "score": 4.64
         },
         {
           "episode": 10,
-          "score": 4.57
+          "score": 4.58
         },
         {
           "episode": 11,
-          "score": 4.57
+          "score": 4.59
         }
       ],
       "scrape_errors": []
@@ -90690,7 +90742,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "In ancient China, during the Warring States period, a former servant named Xin rises through the ranks with a dream: to become the greatest general under the heavens. Fighting alongside King Ying Zheng of Qin—who seeks to unify China and end the chaos—Xin leads his own unit, the Fei Xin Force, onto the battlefield.\n\nWith power reclaimed from the influential Chancellor Buwei Lü, King Ying Zheng begins laying the groundwork for a new, unified legal state with the support of key allies like strategist Changping Jun and legalist Li Si.\n\nAs Qin launches a campaign to seize new territory from the state of Zhao, their advance is halted by the brilliant strategist, Li Mu. In response, Changping Jun devises a bold plan: to bypass Zhao's defenses and strike at the key city of Gyou, near Zhao's capital.\n\nTo carry out this risky maneuver, a powerful coalition army is formed—led by the tacticians Ou Sen (Wang Jian), Kan Ki (Huan Yi), and the warrior queen Yo Tan Wa (Yang Duanhe). Joining them are the next generation of Qin commanders: Xin's Fei Xin Force, Mou Ten (Meng Tian)'s Gaku Ka Unit, and Ou Hon (Wang Ben)'s Gyoku Hou Unit, each operating independently.\n\nThe fierce battle for Gyou begins, as the future of Qin's unification hangs in the balance.\n\n(Source: MAL News)",
-        "score": 8.7,
+        "score": 8.69,
         "episodes_count": 13,
         "trailer": {
           "site": "youtube",
@@ -90736,7 +90788,7 @@
         },
         {
           "episode": 8,
-          "score": 4.65
+          "score": 4.66
         },
         {
           "episode": 9,
@@ -90744,15 +90796,15 @@
         },
         {
           "episode": 10,
-          "score": 4.58
+          "score": 4.59
         },
         {
           "episode": 11,
-          "score": 4.57
+          "score": 4.58
         },
         {
           "episode": 12,
-          "score": 4.57
+          "score": 4.56
         },
         {
           "episode": 13,
@@ -91008,11 +91060,11 @@
         },
         {
           "episode": 9,
-          "score": 4.73
+          "score": 4.72
         },
         {
           "episode": 10,
-          "score": 4.45
+          "score": 4.44
         }
       ],
       "scrape_errors": []
@@ -91673,7 +91725,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Sequel to Jujutsu Kaisen 2nd Season.",
-        "score": 8.6,
+        "score": 8.58,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -91691,11 +91743,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.23
+          "score": 4.22
         },
         {
           "episode": 2,
-          "score": 4.31
+          "score": 4.3
         },
         {
           "episode": 3,
@@ -91703,19 +91755,27 @@
         },
         {
           "episode": 4,
-          "score": 4.62
+          "score": 4.61
         },
         {
           "episode": 5,
-          "score": 4.29
+          "score": 4.28
         },
         {
           "episode": 6,
-          "score": 4.32
+          "score": 4.3
         },
         {
           "episode": 7,
-          "score": 4.35
+          "score": 4.32
+        },
+        {
+          "episode": 8,
+          "score": 4.46
+        },
+        {
+          "episode": 9,
+          "score": 4.68
         }
       ],
       "scrape_errors": [],
@@ -92907,31 +92967,39 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.4
+          "score": 4.39
         },
         {
           "episode": 2,
-          "score": 4.58
+          "score": 4.57
         },
         {
           "episode": 3,
-          "score": 4.59
+          "score": 4.58
         },
         {
           "episode": 4,
-          "score": 4.62
+          "score": 4.6
         },
         {
           "episode": 5,
-          "score": 4.5
+          "score": 4.48
         },
         {
           "episode": 6,
-          "score": 4.66
+          "score": 4.62
         },
         {
           "episode": 7,
-          "score": 4.45
+          "score": 4.48
+        },
+        {
+          "episode": 8,
+          "score": 4.44
+        },
+        {
+          "episode": 9,
+          "score": 4.67
         }
       ],
       "scrape_errors": [],
@@ -93433,7 +93501,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "\"Hero\" is the worst punishment in the world. Those convicted of heinous crimes are sentenced to become \"Heroes\" and forced to enter the mandatory military service in the war against the Demon Lords. These convicts are not even allowed to die—if killed, they will be resurrected to fight another day.\n\nHero Xylo Forbartz, former head of the Order of the Holy Knights, leads a penal unit of deplorables fighting on the front lines. It is in these direst of circumstances that he meets Teoritta, one of the world's strongest weapons. \"When every last enemy has been defeated, you are to shower me with praise and pat my head.\" In order to survive and to take revenge on those who wronged him, he makes a pact with the goddess and launches headfirst into a maelstrom of war and intrigue.\n\n(Source: Official site, edited)",
-        "score": 8.24,
+        "score": 8.18,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -93455,11 +93523,11 @@
         },
         {
           "episode": 2,
-          "score": 4.17
+          "score": 4.15
         },
         {
           "episode": 3,
-          "score": 4.36
+          "score": 4.35
         },
         {
           "episode": 4,
@@ -93467,10 +93535,22 @@
         },
         {
           "episode": 5,
-          "score": 4.4
+          "score": 4.39
         },
         {
           "episode": 6,
+          "score": 4.48
+        },
+        {
+          "episode": 7,
+          "score": 4.48
+        },
+        {
+          "episode": 8,
+          "score": 4.46
+        },
+        {
+          "episode": 9,
           "score": 4.54
         }
       ],
@@ -99435,7 +99515,7 @@
         "themes": [],
         "demographic": "Josei",
         "synopsis": "Thirty-five-year-old novelist Makio Koudai never had a good relationship with her older sister Minori, who always berated her for being different. Due to this, Makio is not stricken with grief upon hearing the news that Minori and her husband die in a car crash. But when Makio is asked to identify their bodies, she runs into her 15-year-old niece, Asa Takumi, whom she has not seen in years.\n\nStruggling to process her parents' death, Makio reassures Asa that her complicated feelings are valid and suggests that the teenager start writing in a diary as a way to cope with the loss. Upon learning that no other relatives wanted to take in Asa, Makio decides to become her guardian despite her lack of experience. In a world full of uncertainty, the novelist and teenager must learn to live with each other while figuring themselves out.\n\n[Written by MAL Rewrite]",
-        "score": 8.54,
+        "score": 8.69,
         "episodes_count": 13,
         "trailer": {
           "site": "youtube",
@@ -99453,19 +99533,19 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.52
+          "score": 4.48
         },
         {
           "episode": 2,
-          "score": 4.58
+          "score": 4.56
         },
         {
           "episode": 3,
-          "score": 4.75
+          "score": 4.74
         },
         {
           "episode": 4,
-          "score": 4.69
+          "score": 4.67
         },
         {
           "episode": 5,
@@ -99473,7 +99553,19 @@
         },
         {
           "episode": 6,
-          "score": 4.8
+          "score": 4.78
+        },
+        {
+          "episode": 7,
+          "score": 4.7
+        },
+        {
+          "episode": 8,
+          "score": 4.78
+        },
+        {
+          "episode": 9,
+          "score": 4.58
         }
       ],
       "scrape_errors": [],
@@ -100698,7 +100790,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second season of Jigokuraku.",
-        "score": 8.19,
+        "score": 8.23,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -100716,23 +100808,35 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.18
+          "score": 4.17
         },
         {
           "episode": 2,
-          "score": 4.4
+          "score": 4.39
         },
         {
           "episode": 3,
-          "score": 4.5
+          "score": 4.49
         },
         {
           "episode": 4,
-          "score": 4.44
+          "score": 4.41
         },
         {
           "episode": 5,
-          "score": 4.49
+          "score": 4.46
+        },
+        {
+          "episode": 6,
+          "score": 4.56
+        },
+        {
+          "episode": 7,
+          "score": 4.62
+        },
+        {
+          "episode": 8,
+          "score": 4.55
         }
       ],
       "scrape_errors": [],
@@ -102069,7 +102173,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Next to Miyu Suzuki, a trendy and bubbly high school girl, sits Yuusuke Tani, a quiet and frank boy. Their interactions are brief, limited to Suzuki's unprompted random questions and Tani's succinct answers. Yet, beneath these simple exchanges, feelings of love are quietly blossoming.\n\nSuzuki sees Tani for who he is: a straightforward boy who respects everyone equally, completely unconcerned about fitting in. Unlike Tani, she is too hung up on what everyone else thinks, desperate to keep her crush a secret. However, a slight misunderstanding leads to Suzuki confessing her feelings—and to her delight, Tani feels the same. Jittery with excitement, the young couple starts dating, embarking on a wonderful journey of friendship and love.\n\n[Written by MAL Rewrite]",
-        "score": 8.18,
+        "score": 8.2,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -102087,23 +102191,35 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.61
+          "score": 4.58
         },
         {
           "episode": 2,
-          "score": 4.62
+          "score": 4.58
         },
         {
           "episode": 3,
-          "score": 4.63
+          "score": 4.62
         },
         {
           "episode": 4,
-          "score": 4.59
+          "score": 4.57
         },
         {
           "episode": 5,
-          "score": 4.72
+          "score": 4.68
+        },
+        {
+          "episode": 6,
+          "score": 4.49
+        },
+        {
+          "episode": 7,
+          "score": 4.62
+        },
+        {
+          "episode": 8,
+          "score": 4.68
         }
       ],
       "scrape_errors": [],
@@ -104416,7 +104532,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second part of Enen no Shouboutai: San no Shou.",
-        "score": 8.05,
+        "score": 8.02,
         "episodes_count": 13,
         "trailer": {
           "site": "youtube",
@@ -104434,7 +104550,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.18
+          "score": 4.17
         },
         {
           "episode": 2,
@@ -104446,15 +104562,23 @@
         },
         {
           "episode": 4,
-          "score": 4.39
+          "score": 4.38
         },
         {
           "episode": 5,
-          "score": 4.39
+          "score": 4.38
         },
         {
           "episode": 6,
-          "score": 4.31
+          "score": 4.34
+        },
+        {
+          "episode": 7,
+          "score": 4.35
+        },
+        {
+          "episode": 8,
+          "score": 4.04
         }
       ],
       "scrape_errors": [],
@@ -108044,7 +108168,7 @@
         ],
         "demographic": "Shoujo",
         "synopsis": "Idol group F/ACE has recently risen in popularity all thanks to Tamon Fukuhara—its handsome, wild, and talented leader. Seventeen-year-old Utage Kinoshita is one of the vocal fans who greatly admires F/ACE. As her life revolves around worshiping Tamon, Utage works at a housecleaning company to earn money and continue supporting him.\n\nWhen her coworker gets sick, Utage is assigned to a new client with the same name as Tamon. She believes it is merely a coincidence—until she comes face to face with the real celebrity! Her surprise only grows when she discovers that, unlike the extroverted superstar known to the public, Tamon is actually a gloomy guy with no friends or self-confidence.\n\nGiven that Utage's adoration for Tamon knows no bounds, she vows to keep his secret and stay by his side—but dealing with Tamon's contrasting behaviors in and out of work might be the toughest job out there.\n\n[Written by MAL Rewrite]",
-        "score": 7.91,
+        "score": 7.89,
         "episodes_count": 13,
         "trailer": {
           "site": "youtube",
@@ -108062,31 +108186,43 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.44
+          "score": 4.42
         },
         {
           "episode": 2,
-          "score": 4.49
+          "score": 4.48
         },
         {
           "episode": 3,
-          "score": 4.5
+          "score": 4.47
         },
         {
           "episode": 4,
-          "score": 4.55
+          "score": 4.52
         },
         {
           "episode": 5,
-          "score": 4.58
+          "score": 4.57
         },
         {
           "episode": 6,
-          "score": 4.46
+          "score": 4.43
         },
         {
           "episode": 7,
-          "score": 4.49
+          "score": 4.44
+        },
+        {
+          "episode": 8,
+          "score": 4.55
+        },
+        {
+          "episode": 9,
+          "score": 4.51
+        },
+        {
+          "episode": 10,
+          "score": 4.6
         }
       ],
       "scrape_errors": [],
@@ -125310,7 +125446,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second season of Ranma ½ (2024).",
-        "score": 7.76,
+        "score": 7.75,
         "episodes_count": 12,
         "trailer": {
           "site": "youtube",
@@ -125328,7 +125464,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.39
+          "score": 4.38
         },
         {
           "episode": 2,
@@ -125340,7 +125476,7 @@
         },
         {
           "episode": 4,
-          "score": 4.44
+          "score": 4.43
         },
         {
           "episode": 5,
@@ -125352,7 +125488,7 @@
         },
         {
           "episode": 7,
-          "score": 4.38
+          "score": 4.37
         },
         {
           "episode": 8,
@@ -125360,11 +125496,11 @@
         },
         {
           "episode": 9,
-          "score": 4.42
+          "score": 4.41
         },
         {
           "episode": 10,
-          "score": 4.35
+          "score": 4.34
         }
       ],
       "scrape_errors": []
@@ -132959,7 +133095,7 @@
         "themes": [],
         "demographic": "Shounen",
         "synopsis": "Third season of Fumetsu no Anata e.",
-        "score": 7.66,
+        "score": 7.61,
         "episodes_count": 22,
         "trailer": {
           "site": "youtube",
@@ -132977,19 +133113,19 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.25
-        },
-        {
-          "episode": 2,
           "score": 4.24
         },
         {
+          "episode": 2,
+          "score": 4.23
+        },
+        {
           "episode": 3,
-          "score": 4.4
+          "score": 4.39
         },
         {
           "episode": 4,
-          "score": 4.4
+          "score": 4.39
         },
         {
           "episode": 5,
@@ -133001,11 +133137,11 @@
         },
         {
           "episode": 7,
-          "score": 3.89
+          "score": 3.88
         },
         {
           "episode": 8,
-          "score": 4.04
+          "score": 4.05
         },
         {
           "episode": 9,
@@ -133021,7 +133157,7 @@
         },
         {
           "episode": 12,
-          "score": 4.22
+          "score": 4.21
         },
         {
           "episode": 13,
@@ -133033,11 +133169,11 @@
         },
         {
           "episode": 15,
-          "score": 4.42
+          "score": 4.39
         },
         {
           "episode": 16,
-          "score": 3.93
+          "score": 3.91
         }
       ],
       "scrape_errors": []
@@ -135494,11 +135630,11 @@
         },
         {
           "episode": 2,
-          "score": 4.43
+          "score": 4.42
         },
         {
           "episode": 3,
-          "score": 4.38
+          "score": 4.37
         },
         {
           "episode": 4,
@@ -135514,7 +135650,7 @@
         },
         {
           "episode": 7,
-          "score": 4.31
+          "score": 4.29
         },
         {
           "episode": 8,
@@ -135530,7 +135666,7 @@
         },
         {
           "episode": 11,
-          "score": 4.52
+          "score": 4.51
         },
         {
           "episode": 12,
@@ -135933,7 +136069,7 @@
         },
         {
           "episode": 6,
-          "score": 4.47
+          "score": 4.46
         },
         {
           "episode": 7,
@@ -135945,15 +136081,15 @@
         },
         {
           "episode": 9,
-          "score": 4.37
+          "score": 4.36
         },
         {
           "episode": 10,
-          "score": 4.31
+          "score": 4.3
         },
         {
           "episode": 11,
-          "score": 4.39
+          "score": 4.38
         },
         {
           "episode": 12,
@@ -149143,7 +149279,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "Tanzaburou Toujima has spent his entire life chasing a dream: to become Kamen Rider. Now, at 40, reality has nearly caught up with him, and he's on the verge of letting go of his childhood fantasy.\n\nThat is, until he gets caught up in a crime wave led by the \"Fake Shocker\" gang—turning his long-time dream into something far more dangerous.\n\nWhat starts as a pretend hero's journey quickly becomes something real. The ultimate Kamen Rider fantasy is about to begin!\n\n(Source: MAL News)",
-        "score": 7.57,
+        "score": 7.56,
         "episodes_count": 24,
         "trailer": {
           "site": "youtube",
@@ -149161,11 +149297,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.5
+          "score": 4.49
         },
         {
           "episode": 2,
-          "score": 4.46
+          "score": 4.45
         },
         {
           "episode": 3,
@@ -149173,19 +149309,19 @@
         },
         {
           "episode": 4,
-          "score": 4.51
+          "score": 4.5
         },
         {
           "episode": 5,
-          "score": 4.48
+          "score": 4.47
         },
         {
           "episode": 6,
-          "score": 4.42
+          "score": 4.41
         },
         {
           "episode": 7,
-          "score": 4.57
+          "score": 4.56
         },
         {
           "episode": 8,
@@ -149201,35 +149337,39 @@
         },
         {
           "episode": 11,
-          "score": 4.32
+          "score": 4.31
         },
         {
           "episode": 12,
-          "score": 4.44
+          "score": 4.42
         },
         {
           "episode": 13,
-          "score": 4.38
+          "score": 4.37
         },
         {
           "episode": 14,
-          "score": 4.22
+          "score": 4.21
         },
         {
           "episode": 15,
-          "score": 4.06
+          "score": 4.05
         },
         {
           "episode": 16,
-          "score": 4.64
+          "score": 4.62
         },
         {
           "episode": 17,
-          "score": 4.2
+          "score": 4.22
         },
         {
           "episode": 18,
-          "score": 4.64
+          "score": 4.62
+        },
+        {
+          "episode": 19,
+          "score": 4.37
         }
       ],
       "scrape_errors": []
@@ -165345,15 +165485,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.06
+          "score": 4.05
         },
         {
           "episode": 2,
-          "score": 4.17
+          "score": 4.15
         },
         {
           "episode": 3,
-          "score": 4.26
+          "score": 4.24
         },
         {
           "episode": 4,
@@ -165369,7 +165509,7 @@
         },
         {
           "episode": 7,
-          "score": 4.3
+          "score": 4.29
         },
         {
           "episode": 8,
@@ -165385,7 +165525,7 @@
         },
         {
           "episode": 11,
-          "score": 4.1
+          "score": 4.09
         },
         {
           "episode": 12,
@@ -172604,7 +172744,7 @@
         },
         {
           "episode": 5,
-          "score": 4.35
+          "score": 4.34
         },
         {
           "episode": 6,
@@ -172616,15 +172756,15 @@
         },
         {
           "episode": 8,
-          "score": 4.13
+          "score": 4.12
         },
         {
           "episode": 9,
-          "score": 4.32
+          "score": 4.31
         },
         {
           "episode": 10,
-          "score": 4.29
+          "score": 4.28
         },
         {
           "episode": 11,
@@ -172901,19 +173041,19 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.26
+          "score": 4.25
         },
         {
           "episode": 2,
-          "score": 4.29
+          "score": 4.3
         },
         {
           "episode": 3,
-          "score": 4.34
+          "score": 4.33
         },
         {
           "episode": 4,
-          "score": 4.46
+          "score": 4.45
         },
         {
           "episode": 5,
@@ -172921,10 +173061,22 @@
         },
         {
           "episode": 6,
-          "score": 4.53
+          "score": 4.51
         },
         {
           "episode": 7,
+          "score": 4.41
+        },
+        {
+          "episode": 8,
+          "score": 4.5
+        },
+        {
+          "episode": 9,
+          "score": 4.46
+        },
+        {
+          "episode": 10,
           "score": 4.4
         }
       ],
@@ -179797,7 +179949,7 @@
         ],
         "demographic": "Shoujo",
         "synopsis": "After seeing Izumi Sano at a high jump competition, Mizuki Ashiya became completely enamored by him—even moving from the United States to Japan and enrolling in the same institute as him. However, Sano's academy is an all-boys school!\n\nDue to her bright personality, Mizuki quickly befriends her class without drawing suspension to her gender. To her surprise, she ends up being not only Sano's classmate but also his roommate. Though she is now able to admire Sano in close proximity, she learns that Sano has quit high jumping and refuses to pick up the sport ever again for unknown reasons. Moreover, the academy's doctor, Hokuto Umeda, might be onto Mizuki's facade. Now, Mizuki has to find a way to reignite Sano's passion—all without revealing her secret.\n\n[Written by MAL Rewrite]",
-        "score": 7.04,
+        "score": 7.01,
         "episodes_count": 12,
         "anilistId": 177580,
         "trailer": {
@@ -179815,7 +179967,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.03
+          "score": 4.01
         },
         {
           "episode": 2,
@@ -179823,7 +179975,7 @@
         },
         {
           "episode": 3,
-          "score": 4.3
+          "score": 4.29
         },
         {
           "episode": 4,
@@ -179831,15 +179983,27 @@
         },
         {
           "episode": 5,
-          "score": 4.17
+          "score": 4.14
         },
         {
           "episode": 6,
-          "score": 4.2
+          "score": 4.19
         },
         {
           "episode": 7,
-          "score": 4.38
+          "score": 4.36
+        },
+        {
+          "episode": 8,
+          "score": 4.12
+        },
+        {
+          "episode": 9,
+          "score": 4.12
+        },
+        {
+          "episode": 10,
+          "score": 4.13
         }
       ],
       "scrape_errors": [],
@@ -220870,7 +221034,7 @@
         ],
         "demographic": "",
         "synopsis": "Oda Akira is the kind of guy who people forget is even there. His unassuming nature pays off, though, when his entire class is swept away to a fantasy world, and he slips easily into his new role as a silent assassin. Between his suspiciously high starting stats and too many details that don't fit, Akira is sure something is wrong. But digging into royal secrets is a dangerous game, and when Akira uncovers an evil scheme, he also makes a powerful enemy—the very king who brought him to this world! With the help of the elven spirit medium Amelia, can he find the power to set things right, and get his revenge?\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.59,
+        "score": 6.58,
         "episodes_count": 12,
         "anilistId": 186794,
         "trailer": {
@@ -220900,11 +221064,11 @@
         },
         {
           "episode": 4,
-          "score": 3.63
+          "score": 3.62
         },
         {
           "episode": 5,
-          "score": 4.05
+          "score": 4.04
         },
         {
           "episode": 6,
@@ -220920,7 +221084,7 @@
         },
         {
           "episode": 9,
-          "score": 3.87
+          "score": 3.86
         },
         {
           "episode": 10,
@@ -220928,7 +221092,7 @@
         },
         {
           "episode": 11,
-          "score": 3.8
+          "score": 3.79
         },
         {
           "episode": 12,
@@ -252473,7 +252637,7 @@
         ],
         "demographic": "",
         "synopsis": "By the mid-21st century, Tokyo's criminal underworld is ruled by Demon Lords—crime bosses who have undergone ether enhancement surgery, granting them terrifying superpowers. The only ones who can take them down are Heroes, bounty hunters who boost their own ether powers using the drug E3 (E-Three). With legalized killing as part of the job, being a Hero is less about justice and more about survival.\n\nYashiro, known as the Reaper, is one such Hero—an independent enforcer who works alone. That is, until Jougamine, a high school girl and self-proclaimed \"apprentice,\" forces her way into his life. Reluctantly taking her under his wing, Yashiro soon finds himself caught in a whirlwind of deadly conflicts.\n\n(Source: MAL News)",
-        "score": 6.5,
+        "score": 6.51,
         "episodes_count": 24,
         "anilistId": 187989,
         "trailer": {
@@ -252491,7 +252655,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.66
+          "score": 3.65
         },
         {
           "episode": 2,
@@ -252499,7 +252663,7 @@
         },
         {
           "episode": 3,
-          "score": 4.08
+          "score": 4.09
         },
         {
           "episode": 4,
@@ -252507,11 +252671,19 @@
         },
         {
           "episode": 5,
-          "score": 4.03
+          "score": 4.02
         },
         {
           "episode": 6,
-          "score": 4.1
+          "score": 4.09
+        },
+        {
+          "episode": 7,
+          "score": 4.28
+        },
+        {
+          "episode": 8,
+          "score": 4.19
         }
       ],
       "scrape_errors": [],
@@ -252539,7 +252711,7 @@
         ],
         "demographic": "",
         "synopsis": "Since ancient times, the ninja and the yakuza have been at war, spilling blood around the world as empires rise and fall. So when, in the modern age, Shinoha, a ninja, meets Kiwami, a gangster following the path of the yakuza—the gokudo—and discovers they have common interests, the obvious assumption is that nothing good can come of it. But can it be that one burgeoning bromance will shake up a 300-year grudge?\n\nWho will win the struggle for real ultimate power?\n\n(Source: Kodansha USA)",
-        "score": 6.43,
+        "score": 6.41,
         "episodes_count": 12,
         "anilistId": 186914,
         "trailer": {
@@ -252561,11 +252733,11 @@
         },
         {
           "episode": 2,
-          "score": 3.76
+          "score": 3.77
         },
         {
           "episode": 3,
-          "score": 3.61
+          "score": 3.62
         },
         {
           "episode": 4,
@@ -252581,27 +252753,27 @@
         },
         {
           "episode": 7,
-          "score": 3.84
+          "score": 3.83
         },
         {
           "episode": 8,
-          "score": 3.78
+          "score": 3.77
         },
         {
           "episode": 9,
-          "score": 4.01
+          "score": 4
         },
         {
           "episode": 10,
-          "score": 4.15
+          "score": 4.16
         },
         {
           "episode": 11,
-          "score": 3.99
+          "score": 4
         },
         {
           "episode": 12,
-          "score": 3.93
+          "score": 3.94
         }
       ],
       "scrape_errors": []
@@ -256338,7 +256510,7 @@
         ],
         "demographic": "",
         "synopsis": "Third season of Isekai Quartet.",
-        "score": 7.43,
+        "score": 7.42,
         "episodes_count": 11,
         "anilistId": 194447,
         "trailer": {
@@ -256947,7 +257119,7 @@
         },
         {
           "episode": 3,
-          "score": 4.04
+          "score": 4.05
         },
         {
           "episode": 4,
@@ -256963,7 +257135,7 @@
         },
         {
           "episode": 7,
-          "score": 4.23
+          "score": 4.24
         },
         {
           "episode": 8,
@@ -256975,15 +257147,15 @@
         },
         {
           "episode": 10,
-          "score": 4.19
+          "score": 4.18
         },
         {
           "episode": 11,
-          "score": 4.28
+          "score": 4.27
         },
         {
           "episode": 12,
-          "score": 4.32
+          "score": 4.3
         }
       ],
       "scrape_errors": []
@@ -257683,7 +257855,7 @@
         ],
         "demographic": "",
         "synopsis": "Second season of Ao no Orchestra.",
-        "score": 7.25,
+        "score": 7.45,
         "episodes_count": 21,
         "anilistId": 170018,
         "trailer": {
@@ -257701,19 +257873,19 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.99
+          "score": 4.01
         },
         {
           "episode": 2,
-          "score": 4.05
+          "score": 4.06
         },
         {
           "episode": 3,
-          "score": 3.98
+          "score": 4
         },
         {
           "episode": 4,
-          "score": 4.08
+          "score": 4.06
         },
         {
           "episode": 5,
@@ -257725,19 +257897,19 @@
         },
         {
           "episode": 7,
-          "score": 4.29
+          "score": 4.31
         },
         {
           "episode": 8,
-          "score": 3.9
+          "score": 3.94
         },
         {
           "episode": 9,
-          "score": 4.37
+          "score": 4.38
         },
         {
           "episode": 10,
-          "score": 4.33
+          "score": 4.34
         },
         {
           "episode": 11,
@@ -257745,23 +257917,23 @@
         },
         {
           "episode": 12,
-          "score": 4.09
+          "score": 4.1
         },
         {
           "episode": 13,
-          "score": 3.81
+          "score": 3.84
         },
         {
           "episode": 14,
-          "score": 3.93
+          "score": 3.97
         },
         {
           "episode": 15,
-          "score": 4.44
+          "score": 4.45
         },
         {
           "episode": 16,
-          "score": 4.32
+          "score": 4.35
         },
         {
           "episode": 17,
@@ -257769,7 +257941,19 @@
         },
         {
           "episode": 18,
-          "score": 4.43
+          "score": 4.51
+        },
+        {
+          "episode": 19,
+          "score": 4.22
+        },
+        {
+          "episode": 20,
+          "score": 4.33
+        },
+        {
+          "episode": 21,
+          "score": 4.34
         }
       ],
       "scrape_errors": []
@@ -267335,7 +267519,7 @@
         ],
         "demographic": "",
         "synopsis": "Youki died in a traffic accident and was reborn in a fantasy world! However, instead of being the hero of legends, he ended up reincarnating into an overpowered demon. Having no desires to become the Demon Lord, he sits around in the Demon Lord's castle as a random low rank guardian. One day, the Hero's party comes to attack and on a whim he knocks out the entire hero party. Healing up the Hero party and then preparing to send them back to town, he notices the female priest and falls in love at first sight!\n\n(Source: MU)",
-        "score": 6.49,
+        "score": 6.33,
         "episodes_count": 13,
         "anilistId": 195515,
         "trailer": {
@@ -267353,7 +267537,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.89
+          "score": 3.88
         },
         {
           "episode": 2,
@@ -267361,19 +267545,31 @@
         },
         {
           "episode": 3,
-          "score": 4.01
+          "score": 4.02
         },
         {
           "episode": 4,
-          "score": 4.01
+          "score": 3.99
         },
         {
           "episode": 5,
-          "score": 3.53
+          "score": 3.52
         },
         {
           "episode": 6,
-          "score": 4.01
+          "score": 3.97
+        },
+        {
+          "episode": 7,
+          "score": 3.65
+        },
+        {
+          "episode": 8,
+          "score": 4.02
+        },
+        {
+          "episode": 9,
+          "score": 3.93
         }
       ],
       "scrape_errors": [],
@@ -267400,7 +267596,7 @@
         ],
         "demographic": "",
         "synopsis": "Van, the fourth son of a powerful noble, is only two years old when he remembers his past life as a salaryman in Japan. With his adult brain in a young body, he's considered a child prodigy...until he displays the \"Production Magic\" skill when he turns eight. In a family that favors offensive magic, this crafting skill is considered useless in battle, and Van is banished to oversee a tiny country town in disgrace. With only his personal maid, the memories of his past life, and his \"worthless\" magic, can Van improve the fortunes of this little village—and himself?\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.85,
+        "score": 6.83,
         "episodes_count": 0,
         "anilistId": 191205,
         "trailer": {
@@ -267422,15 +267618,15 @@
         },
         {
           "episode": 2,
-          "score": 3.96
+          "score": 3.95
         },
         {
           "episode": 3,
-          "score": 4.03
+          "score": 4.02
         },
         {
           "episode": 4,
-          "score": 4.11
+          "score": 4.1
         },
         {
           "episode": 5,
@@ -267439,6 +267635,18 @@
         {
           "episode": 6,
           "score": 3.89
+        },
+        {
+          "episode": 7,
+          "score": 4.14
+        },
+        {
+          "episode": 8,
+          "score": 3.93
+        },
+        {
+          "episode": 9,
+          "score": 4.09
         }
       ],
       "scrape_errors": [],
@@ -267649,7 +267857,7 @@
         ],
         "demographic": "",
         "synopsis": "Our hero wakes up one day in a brand new world…but his new life doesn’t come with fighting skills or magic powers, or even arms and legs! He’s reborn as a helpless egg, stuck in an unfamiliar forest surrounded by terrifying, hungry beasts. But eggs hatch, hatchlings grow up, and humble beginnings can lead to something great. He’ll do his best to become the strongest dragon ever, and no measly shell will get in his way!\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.59,
+        "score": 6.5,
         "episodes_count": 0,
         "anilistId": 187941,
         "trailer": {
@@ -267667,15 +267875,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.67
+          "score": 3.69
         },
         {
           "episode": 2,
-          "score": 3.82
+          "score": 3.84
         },
         {
           "episode": 3,
-          "score": 3.75
+          "score": 3.7
         },
         {
           "episode": 4,
@@ -267684,6 +267892,18 @@
         {
           "episode": 5,
           "score": 4.01
+        },
+        {
+          "episode": 6,
+          "score": 3.93
+        },
+        {
+          "episode": 7,
+          "score": 3.83
+        },
+        {
+          "episode": 8,
+          "score": 3.79
         }
       ],
       "scrape_errors": [],
@@ -277417,7 +277637,7 @@
         ],
         "demographic": "",
         "synopsis": "Saddled with amnesia, Yuuri awakens on an interstellar cruiser drifting through space. Unfortunately, a lack of memories is the least of Yuuri's problems. Among the four other crew members is a Gnosia: a Gnos infectee whose goal is the eradication of humanity. The Gnosia appears human in all other respects, so the uninfected have little choice but to vote on whom they suspect to be the enemy, hoping to neutralize the Gnosia by putting them into cold sleep. If the Gnosia survives the vote, they will eliminate one crew member during the cruiser's following warp, when only the Gnosia remains conscious.\n\nVoting quickly proves to be an unreliable strategy, and Yuuri is left one-on-one with the Gnosia. Just when all hope seems lost, time seemingly loops back to when Yuuri first awakened. With each time loop, however, conditions aboard the ship change—neither the size of the crew nor the members' identities remain constant. Trapped in both time and space, Yuuri must figure out how to escape the loops and save humanity from the Gnosia.\n\n[Written by MAL Rewrite]",
-        "score": 7.53,
+        "score": 7.56,
         "episodes_count": null,
         "anilistId": 185116,
         "trailer": {
@@ -277435,11 +277655,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.19
+          "score": 4.16
         },
         {
           "episode": 2,
-          "score": 4.29
+          "score": 4.28
         },
         {
           "episode": 3,
@@ -277447,7 +277667,7 @@
         },
         {
           "episode": 4,
-          "score": 4.35
+          "score": 4.34
         },
         {
           "episode": 5,
@@ -277455,7 +277675,7 @@
         },
         {
           "episode": 6,
-          "score": 4.31
+          "score": 4.32
         },
         {
           "episode": 7,
@@ -277463,11 +277683,11 @@
         },
         {
           "episode": 8,
-          "score": 4.68
+          "score": 4.67
         },
         {
           "episode": 9,
-          "score": 4.53
+          "score": 4.52
         },
         {
           "episode": 10,
@@ -277475,7 +277695,7 @@
         },
         {
           "episode": 11,
-          "score": 4.6
+          "score": 4.59
         },
         {
           "episode": 12,
@@ -277483,27 +277703,35 @@
         },
         {
           "episode": 13,
-          "score": 4.39
+          "score": 4.38
         },
         {
           "episode": 14,
-          "score": 4.44
+          "score": 4.43
         },
         {
           "episode": 15,
-          "score": 4.63
+          "score": 4.61
         },
         {
           "episode": 16,
-          "score": 4.65
+          "score": 4.63
         },
         {
           "episode": 17,
-          "score": 4.47
+          "score": 4.45
         },
         {
           "episode": 18,
-          "score": 4.49
+          "score": 4.47
+        },
+        {
+          "episode": 19,
+          "score": 4.22
+        },
+        {
+          "episode": 20,
+          "score": 4.13
         }
       ],
       "scrape_errors": []
@@ -304978,7 +305206,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.01
+          "score": 4.02
         },
         {
           "episode": 2,
@@ -304986,7 +305214,7 @@
         },
         {
           "episode": 3,
-          "score": 4.12
+          "score": 4.1
         },
         {
           "episode": 4,
@@ -304994,15 +305222,15 @@
         },
         {
           "episode": 5,
-          "score": 4.29
+          "score": 4.28
         },
         {
           "episode": 6,
-          "score": 4.3
+          "score": 4.28
         },
         {
           "episode": 7,
-          "score": 4.21
+          "score": 4.2
         },
         {
           "episode": 8,
@@ -305010,19 +305238,19 @@
         },
         {
           "episode": 9,
-          "score": 4.18
+          "score": 4.15
         },
         {
           "episode": 10,
-          "score": 4.26
+          "score": 4.25
         },
         {
           "episode": 11,
-          "score": 4.18
+          "score": 4.16
         },
         {
           "episode": 12,
-          "score": 4.23
+          "score": 4.21
         }
       ],
       "scrape_errors": []
@@ -306864,7 +307092,7 @@
         ],
         "demographic": "",
         "synopsis": "Ever since childhood, Scarlet El Vandimion has preferred to deal with wrongdoers by using her fists. However, to preserve her family's image, she suppresses her instincts and tolerates the abuse inflicted by her childish fiancé, Second Prince Kyle Von Pallistan. Only Kyle's brother, First Prince Julius, is aware that there is more to Scarlet than meets the eye, but she cares little about his growing interest.\n\nIn the middle of a ball, Kyle accuses Scarlet of harassing Terenezza Hopkins, a commoner that has taken his heart. Scarlet's engagement to Kyle is nullified, leaving her outraged that all of her efforts to endure thus far have amounted to nothing. Scarlet dons her studded leather gloves, once again becoming the \"Mad Dog Princess.\" Joined by Julius and werebeast Nanaka, Scarlet is ready to give filthy nobles a taste of their own medicine—one punch at a time.\n\n[Written by MAL Rewrite]",
-        "score": 7.38,
+        "score": 7.37,
         "episodes_count": 13,
         "anilistId": 181447,
         "trailer": {
@@ -306898,7 +307126,7 @@
         },
         {
           "episode": 5,
-          "score": 4.32
+          "score": 4.31
         },
         {
           "episode": 6,
@@ -306906,15 +307134,15 @@
         },
         {
           "episode": 7,
-          "score": 4.22
+          "score": 4.21
         },
         {
           "episode": 8,
-          "score": 4.33
+          "score": 4.32
         },
         {
           "episode": 9,
-          "score": 4.14
+          "score": 4.13
         },
         {
           "episode": 10,
@@ -306926,11 +307154,11 @@
         },
         {
           "episode": 12,
-          "score": 4.33
+          "score": 4.32
         },
         {
           "episode": 13,
-          "score": 4.29
+          "score": 4.28
         }
       ],
       "scrape_errors": []
@@ -307223,19 +307451,19 @@
         },
         {
           "episode": 2,
-          "score": 3.97
+          "score": 3.96
         },
         {
           "episode": 3,
-          "score": 4.12
+          "score": 4.1
         },
         {
           "episode": 4,
-          "score": 4.16
+          "score": 4.15
         },
         {
           "episode": 5,
-          "score": 4.13
+          "score": 4.12
         },
         {
           "episode": 6,
@@ -307247,7 +307475,7 @@
         },
         {
           "episode": 8,
-          "score": 4.39
+          "score": 4.4
         },
         {
           "episode": 9,
@@ -307259,11 +307487,11 @@
         },
         {
           "episode": 11,
-          "score": 4.32
+          "score": 4.33
         },
         {
           "episode": 12,
-          "score": 4.13
+          "score": 4.12
         }
       ],
       "scrape_errors": []
@@ -307289,7 +307517,7 @@
         ],
         "demographic": "",
         "synopsis": "It is common knowledge that nobles will do anything for power; lying, manipulation, and extortion are the usual tactics. However, one family is exempt from this generalization: House Grail, whose main tenets are truth and integrity. The youngest daughter, Constance Grail, is just as moral as the rest of her family, believing in always doing the right thing and helping those in need.\n\nHowever, these ideals do not help her when her fiancé cheats on her with another woman. Framed by his lover in the hope of her downfall, Constance has no one to hear her pleas for justice. Everyone turns a blind eye, save for one—the spirit of the infamous Scarlet Castiel—who possesses Constance and turns the tables on her accuser. However, this aid does not come without a price.\n\nTen years ago, Scarlet was executed for the attempted murder of Princess Cecilia. But this was actually a setup; as blunt and harsh as Scarlet could be, she would never stoop so low as to use poison. She has no idea who orchestrated her incrimination, but Scarlet demands that Constance—as the only one who can see her—help her exact revenge on all those who wronged her!\n\n[Written by MAL Rewrite]",
-        "score": 7.07,
+        "score": 7.03,
         "episodes_count": 0,
         "anilistId": 183270,
         "trailer": {
@@ -307307,7 +307535,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.15
+          "score": 4.13
         },
         {
           "episode": 2,
@@ -307315,19 +307543,31 @@
         },
         {
           "episode": 3,
-          "score": 4.29
-        },
-        {
-          "episode": 4,
           "score": 4.28
         },
         {
+          "episode": 4,
+          "score": 4.26
+        },
+        {
           "episode": 5,
-          "score": 4.27
+          "score": 4.26
         },
         {
           "episode": 6,
+          "score": 4.27
+        },
+        {
+          "episode": 7,
+          "score": 4.04
+        },
+        {
+          "episode": 8,
           "score": 4.29
+        },
+        {
+          "episode": 9,
+          "score": 4.11
         }
       ],
       "scrape_errors": [],
@@ -307354,7 +307594,7 @@
         ],
         "demographic": "Shoujo",
         "synopsis": "On the day before her downfall, Lady Tiararose Lapis Clementille recalls that she is in an otome game that she had once played in her former life. She used to adore the main love interest Prince Hartknights Lapis-Lazuli Lactomuth, but unfortunately, she was not reincarnated as the heroine, but rather as is his worst enemy—the villainess fiancée.\n\nAt their graduation ceremony, without blinking an eye, Hartknights condemns Tiararose for alleged crimes, breaks off his engagement, and proclaims the heroine Akari as his new bride-to-be. No matter whether Tiararose is innocent, he banishes her from the kingdom. But before her sentence can be carried out, a shocking figure appears. Aquasteed Marineforest, the prince of a powerful neighboring country, has been harboring feelings for Tiararose for quite some time, and announces his intention to marry her!\n\nAdored by the prince of another kingdom, what awaits the villainess on her path to a happy ending?\n\n[Written by MAL Rewrite]",
-        "score": 6.27,
+        "score": 6.14,
         "episodes_count": 12,
         "anilistId": 195518,
         "trailer": {
@@ -307372,23 +307612,35 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.7
+          "score": 3.67
         },
         {
           "episode": 2,
-          "score": 3.74
+          "score": 3.73
         },
         {
           "episode": 3,
-          "score": 3.88
+          "score": 3.87
         },
         {
           "episode": 4,
-          "score": 3.99
+          "score": 3.96
         },
         {
           "episode": 5,
-          "score": 4.12
+          "score": 4.08
+        },
+        {
+          "episode": 6,
+          "score": 4.1
+        },
+        {
+          "episode": 7,
+          "score": 3.69
+        },
+        {
+          "episode": 8,
+          "score": 3.92
         }
       ],
       "scrape_errors": [],
@@ -308643,7 +308895,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "Azusa Kannawa, ace of the publicity department, is known for her unmatched reliability. Her coworkers, on the other hand, find her no-nonsense demeanor intimidating. Yet, unbeknownst to them, a socially awkward woman hides underneath the facade, simply struggling with casual communication and masking it with a strong attitude. However, her mask begins to crack when a promising rookie, Yuu Kamegawa, joins the team and Azusa gets assigned as his mentor.\n\nDetermined to guide Kamegawa just like how her senior once trained her, Kannawa puts utmost effort into showing him the ropes. But as they grow closer, she slowly lowers her guard, gradually revealing that the seemingly rigid department ace might actually be far kinder than anyone initially thought.\n\n[Written by MAL Rewrite]",
-        "score": 7.05,
+        "score": 7.04,
         "episodes_count": 12,
         "anilistId": 185575,
         "trailer": {
@@ -308665,7 +308917,7 @@
         },
         {
           "episode": 2,
-          "score": 4.28
+          "score": 4.26
         },
         {
           "episode": 3,
@@ -308681,7 +308933,7 @@
         },
         {
           "episode": 6,
-          "score": 4.46
+          "score": 4.45
         },
         {
           "episode": 7,
@@ -308705,7 +308957,7 @@
         },
         {
           "episode": 12,
-          "score": 4.3
+          "score": 4.29
         }
       ],
       "scrape_errors": []
@@ -309446,7 +309698,7 @@
         ],
         "demographic": "",
         "synopsis": "Yakou, a gentle human woman, works at a detective agency. Tounome is a smart and gentle invisible man. The invisible man's ability is perfect for detective work. However, the blind Yakou can still figure out where Tounome is, even if he disappears. Before they know it, the two become attracted to each other...?\n\n(Source: Seven Seas Entertainment)",
-        "score": 7.36,
+        "score": 7.4,
         "episodes_count": 12,
         "anilistId": 185039,
         "trailer": {
@@ -309464,15 +309716,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.29
+          "score": 4.26
         },
         {
           "episode": 2,
-          "score": 4.55
+          "score": 4.54
         },
         {
           "episode": 3,
-          "score": 4.5
+          "score": 4.48
         },
         {
           "episode": 4,
@@ -309480,11 +309732,23 @@
         },
         {
           "episode": 5,
-          "score": 4.48
+          "score": 4.45
         },
         {
           "episode": 6,
-          "score": 4.53
+          "score": 4.43
+        },
+        {
+          "episode": 7,
+          "score": 4.58
+        },
+        {
+          "episode": 8,
+          "score": 4.5
+        },
+        {
+          "episode": 9,
+          "score": 4.56
         }
       ],
       "scrape_errors": [],
@@ -309851,7 +310115,7 @@
         ],
         "demographic": "",
         "synopsis": "I'm Rei Hitoma, a self-professed misanthrope thanks to some past trauma. Just when I thought my new teaching job in the mountains would provide a chill, rejuvenating environment, it turns out that this school is actually for demi-humans who want to become full-fledged human beings! There's a mermaid, a werewolf, a rabbit, and a bird...all of whom are now my charges. It's my duty to teach them about humankind—and maybe in the process, I'll learn a few things myself. This isn't an alternate world or a case of reincarnation. It's just the story of a teacher at a somewhat peculiar school, and his students who are striving to become human.\n\n(Source: Yen Press)",
-        "score": 6.25,
+        "score": 6.24,
         "episodes_count": 13,
         "anilistId": 198374,
         "trailer": {
@@ -309873,7 +310137,7 @@
         },
         {
           "episode": 2,
-          "score": 3.81
+          "score": 3.78
         },
         {
           "episode": 3,
@@ -309881,11 +310145,23 @@
         },
         {
           "episode": 4,
-          "score": 4.4
+          "score": 4.38
         },
         {
           "episode": 5,
+          "score": 3.89
+        },
+        {
+          "episode": 6,
           "score": 3.9
+        },
+        {
+          "episode": 7,
+          "score": 4.18
+        },
+        {
+          "episode": 8,
+          "score": 3.99
         }
       ],
       "scrape_errors": [],
@@ -310001,7 +310277,7 @@
         ],
         "demographic": "",
         "synopsis": "This is a world where killing and torture are legalized. Sero, a part-time worker at a torture company, enjoys torturing people every day with his senior colleague, Siu. With the addition of new part-timers Mike and Hugh, fun torture life continues!\n\nThe gap between the at-home, easy-going workplace and the gruesome torture is bound to attract a lot of addicts! \n\n(Source: Hakusensha, translated)",
-        "score": 5.7,
+        "score": 5.75,
         "episodes_count": 12,
         "anilistId": 197731,
         "trailer": {
@@ -310019,15 +310295,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.34
+          "score": 3.33
         },
         {
           "episode": 2,
-          "score": 3.66
+          "score": 3.65
         },
         {
           "episode": 3,
-          "score": 4.02
+          "score": 4.03
         },
         {
           "episode": 4,
@@ -310035,11 +310311,19 @@
         },
         {
           "episode": 5,
-          "score": 4.23
+          "score": 4.24
         },
         {
           "episode": 6,
-          "score": 4.41
+          "score": 4.4
+        },
+        {
+          "episode": 7,
+          "score": 4.12
+        },
+        {
+          "episode": 8,
+          "score": 4.05
         }
       ],
       "scrape_errors": [],
@@ -392087,7 +392371,7 @@
         },
         {
           "episode": 4,
-          "score": 3.75
+          "score": 3.74
         },
         {
           "episode": 5,
@@ -392119,7 +392403,7 @@
         },
         {
           "episode": 12,
-          "score": 4.02
+          "score": 4.03
         }
       ],
       "scrape_errors": []
@@ -392145,7 +392429,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "In a future where children are few and regarded as Japan's most valuable assets, Christmas has become a mere legend of the past. For the students of Daikoku Welfare Academy—a boarding school where they are educated, protected, and monitored—the mythical Santa Claus is a forgotten character of fiction. For the adults, Santa Claus is a very real menace that needs to be neutralized by the Saint Nick Pursuit Unit in case he makes an appearance.\n\nShiori Fuyumura, a student of Daikoku Welfare Academy, is determined to find her best friend, Ichie Ono, who has been declared dead after being missing for six months. One morning, Fuyumura summons her fellow class representative, Kazushige Sanda, only to attack the unknowing boy. She is convinced that Sanda is the descendant of the infamous Santa Claus—the only person who can make her wish of finding Ono come true—and is determined to force out his dormant true self by any means necessary.\n\n[Written by MAL Rewrite]",
-        "score": 7.48,
+        "score": 7.47,
         "episodes_count": 12,
         "anilistId": 179302,
         "trailer": {
@@ -392175,7 +392459,7 @@
         },
         {
           "episode": 4,
-          "score": 4.36
+          "score": 4.35
         },
         {
           "episode": 5,
@@ -392187,7 +392471,7 @@
         },
         {
           "episode": 7,
-          "score": 4.4
+          "score": 4.39
         },
         {
           "episode": 8,
@@ -392252,7 +392536,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.16
+          "score": 4.17
         },
         {
           "episode": 2,
@@ -392288,11 +392572,11 @@
         },
         {
           "episode": 10,
-          "score": 4.35
+          "score": 4.36
         },
         {
           "episode": 11,
-          "score": 4.51
+          "score": 4.52
         },
         {
           "episode": 12,
@@ -392372,7 +392656,7 @@
         },
         {
           "episode": 9,
-          "score": 3.99
+          "score": 3.98
         },
         {
           "episode": 10,
@@ -392380,11 +392664,11 @@
         },
         {
           "episode": 11,
-          "score": 3.86
+          "score": 3.87
         },
         {
           "episode": 12,
-          "score": 3.5
+          "score": 3.52
         }
       ],
       "scrape_errors": []
@@ -392431,7 +392715,7 @@
         },
         {
           "episode": 2,
-          "score": 4.28
+          "score": 4.29
         },
         {
           "episode": 3,
@@ -392459,15 +392743,15 @@
         },
         {
           "episode": 9,
-          "score": 4.45
+          "score": 4.44
         },
         {
           "episode": 10,
-          "score": 4.42
+          "score": 4.41
         },
         {
           "episode": 11,
-          "score": 4.46
+          "score": 4.44
         }
       ],
       "scrape_errors": []
@@ -392491,7 +392775,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "After waking from a long cryogenic sleep, high school student Akira Himegami finds himself in a world he no longer recognizes. The city lies in ruins from war, society is now governed by an organization called OWEL, and traditional marriage has been replaced by a new system known as \"Elsie.\"\n\nAs Akira struggles to comprehend this drastically changed future, a familiar figure appears before him—Yuugure, who bears a strong resemblance to his girlfriend Towasa. To his shock, Yuugure smiles gently and proposes: \"Akira... please marry me.\"\n\nConfused by her sudden proposal, Akira agrees to travel with Yuugure, holding onto hope that somewhere in this world, the real Towasa is still alive.\n\nAlong their journey, they encounter the evolving forms of love in this new era and reflect on what their bond truly means.\n\n(Source: MAL News)",
-        "score": 6.52,
+        "score": 6.54,
         "episodes_count": 12,
         "anilistId": 195153,
         "trailer": {
@@ -392513,7 +392797,7 @@
         },
         {
           "episode": 2,
-          "score": 4.09
+          "score": 4.08
         },
         {
           "episode": 3,
@@ -392525,7 +392809,7 @@
         },
         {
           "episode": 5,
-          "score": 3.91
+          "score": 3.92
         },
         {
           "episode": 6,
@@ -392537,7 +392821,7 @@
         },
         {
           "episode": 8,
-          "score": 3.86
+          "score": 3.87
         },
         {
           "episode": 9,
@@ -392549,11 +392833,11 @@
         },
         {
           "episode": 11,
-          "score": 3.72
+          "score": 3.71
         },
         {
           "episode": 12,
-          "score": 3.53
+          "score": 3.52
         }
       ],
       "scrape_errors": []
@@ -392608,11 +392892,11 @@
         },
         {
           "episode": 4,
-          "score": 3.96
+          "score": 3.95
         },
         {
           "episode": 5,
-          "score": 3.85
+          "score": 3.84
         },
         {
           "episode": 6,
@@ -392624,11 +392908,11 @@
         },
         {
           "episode": 8,
-          "score": 3.72
+          "score": 3.73
         },
         {
           "episode": 9,
-          "score": 3.73
+          "score": 3.74
         },
         {
           "episode": 10,
@@ -392683,11 +392967,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.23
+          "score": 4.22
         },
         {
           "episode": 2,
-          "score": 4.27
+          "score": 4.26
         },
         {
           "episode": 3,
@@ -392695,7 +392979,7 @@
         },
         {
           "episode": 4,
-          "score": 4.25
+          "score": 4.26
         },
         {
           "episode": 5,
@@ -392727,7 +393011,7 @@
         },
         {
           "episode": 12,
-          "score": 4.24
+          "score": 4.25
         }
       ],
       "scrape_errors": []
@@ -392774,11 +393058,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.03
+          "score": 4.04
         },
         {
           "episode": 2,
-          "score": 4.05
+          "score": 4.06
         },
         {
           "episode": 3,
@@ -392790,11 +393074,11 @@
         },
         {
           "episode": 5,
-          "score": 4.01
+          "score": 4
         },
         {
           "episode": 6,
-          "score": 3.98
+          "score": 3.99
         },
         {
           "episode": 7,
@@ -392814,7 +393098,7 @@
         },
         {
           "episode": 11,
-          "score": 4.13
+          "score": 4.14
         },
         {
           "episode": 12,
@@ -392822,7 +393106,7 @@
         },
         {
           "episode": 13,
-          "score": 4.07
+          "score": 4.06
         }
       ],
       "scrape_errors": []
@@ -392849,7 +393133,7 @@
         "themes": [],
         "demographic": "Shoujo",
         "synopsis": "Wealthy, handsome, and successful, Arthur Louis Zetes is no stranger to the greed of people. Constantly doubting those around him, he has no faith in humanity; thus, he makes a request for the perfect maid—a robot maid. However, his butler is unable to acquire such a servant due to technological limitations, so he finds the next best substitute.\n\nMarie Evans is a former child prodigy in martial arts known for her lack of expression. Drowning in debt, she readily accepts the offer to be a maid that acts like a robot. While Arthur is often blunt towards humans, he cannot help but dote on his personal robot; in turn, Marie is moved by his drive and consideration toward her.\n\n[Written by MAL Rewrite]",
-        "score": 6.9,
+        "score": 6.91,
         "episodes_count": 12,
         "anilistId": 179992,
         "trailer": {
@@ -392867,7 +393151,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.99
+          "score": 3.98
         },
         {
           "episode": 2,
@@ -392875,15 +393159,15 @@
         },
         {
           "episode": 3,
-          "score": 3.97
+          "score": 3.95
         },
         {
           "episode": 4,
-          "score": 4.11
+          "score": 4.1
         },
         {
           "episode": 5,
-          "score": 4.27
+          "score": 4.26
         },
         {
           "episode": 6,
@@ -392895,7 +393179,7 @@
         },
         {
           "episode": 8,
-          "score": 4.11
+          "score": 4.1
         },
         {
           "episode": 9,
@@ -392903,15 +393187,15 @@
         },
         {
           "episode": 10,
-          "score": 4.28
+          "score": 4.27
         },
         {
           "episode": 11,
-          "score": 4.23
+          "score": 4.21
         },
         {
           "episode": 12,
-          "score": 4.26
+          "score": 4.23
         }
       ],
       "scrape_errors": []
@@ -392956,7 +393240,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.87
+          "score": 3.86
         },
         {
           "episode": 2,
@@ -392964,11 +393248,11 @@
         },
         {
           "episode": 3,
-          "score": 4.25
+          "score": 4.24
         },
         {
           "episode": 4,
-          "score": 4.06
+          "score": 4.05
         },
         {
           "episode": 5,
@@ -392984,15 +393268,15 @@
         },
         {
           "episode": 8,
-          "score": 4.18
+          "score": 4.15
         },
         {
           "episode": 9,
-          "score": 4.27
+          "score": 4.26
         },
         {
           "episode": 10,
-          "score": 3.91
+          "score": 3.9
         },
         {
           "episode": 11,
@@ -393000,7 +393284,7 @@
         },
         {
           "episode": 12,
-          "score": 4.08
+          "score": 4.06
         }
       ],
       "scrape_errors": []
@@ -393026,7 +393310,7 @@
         ],
         "demographic": "",
         "synopsis": "Through her college years, Sam Young devoted hours upon hours to developing her adventure puzzle game, Ruminate. Despite being very ill as a child, Sam aspires to become a true game developer. But when her favorite gaming streamer, Marshall Law, tests the game, he horribly misunderstands it and declares it the worst game he has ever played. As a result, his fans bombard Sam's game with negative reviews, jeopardizing her dreams.\n\nTo make matters worse, Marshall moves in as Sam's new neighbor, unaware that she is the developer he so harshly criticized. Although he appears caring and kind, she struggles to befriend him. Before she can develop her second game, Evermake, Sam must first figure out a way to repair her ruined reputation.\n\n[Written by MAL Rewrite]",
-        "score": 6.77,
+        "score": 6.76,
         "episodes_count": 12,
         "anilistId": 193968,
         "trailer": {
@@ -393056,23 +393340,23 @@
         },
         {
           "episode": 4,
-          "score": 4.04
+          "score": 4.03
         },
         {
           "episode": 5,
-          "score": 3.91
+          "score": 3.89
         },
         {
           "episode": 6,
-          "score": 3.88
+          "score": 3.87
         },
         {
           "episode": 7,
-          "score": 3.91
+          "score": 3.9
         },
         {
           "episode": 8,
-          "score": 3.96
+          "score": 3.95
         },
         {
           "episode": 9,
@@ -393138,7 +393422,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.01
+          "score": 4.02
         },
         {
           "episode": 2,
@@ -393146,11 +393430,11 @@
         },
         {
           "episode": 3,
-          "score": 4.16
+          "score": 4.17
         },
         {
           "episode": 4,
-          "score": 4.06
+          "score": 4.05
         }
       ],
       "scrape_errors": []
@@ -393175,7 +393459,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "\"e-Pulse,\" which is generated by human thoughts and emotions, was used as the energy source for the AI support device \"Sapotama.\" From the shadows of this remarkable development, terrifying monsters appear. Digimon are living beings that evolve by consuming e-Pulse.\n\nTomoro Tenma is drawn into an extraordinary experience after meeting Gekkomon, who suddenly appears from his Sapotama. While living together with Kyo Sawashiro and other members of the bounty hunting team \"Golden Dawn,\" Tomoro renews his resolve. What new future will be forged by humans and Digimon?\n\n(Source: Official site)",
-        "score": 7.04,
+        "score": 7.06,
         "episodes_count": null,
         "anilistId": 188388,
         "trailer": {
@@ -393197,7 +393481,7 @@
         },
         {
           "episode": 2,
-          "score": 4.06
+          "score": 4.07
         },
         {
           "episode": 3,
@@ -393209,11 +393493,11 @@
         },
         {
           "episode": 5,
-          "score": 4.16
+          "score": 4.17
         },
         {
           "episode": 6,
-          "score": 4.17
+          "score": 4.16
         },
         {
           "episode": 7,
@@ -393221,11 +393505,11 @@
         },
         {
           "episode": 8,
-          "score": 3.99
+          "score": 4
         },
         {
           "episode": 9,
-          "score": 4.26
+          "score": 4.28
         },
         {
           "episode": 10,
@@ -393233,35 +393517,47 @@
         },
         {
           "episode": 11,
-          "score": 4.06
+          "score": 4.07
         },
         {
           "episode": 12,
-          "score": 4.38
+          "score": 4.39
         },
         {
           "episode": 13,
-          "score": 4.12
+          "score": 4.13
         },
         {
           "episode": 14,
-          "score": 4.11
+          "score": 4.12
         },
         {
           "episode": 15,
-          "score": 3.6
+          "score": 3.61
         },
         {
           "episode": 16,
-          "score": 4.51
+          "score": 4.49
         },
         {
           "episode": 17,
-          "score": 4.2
+          "score": 4.22
         },
         {
           "episode": 18,
-          "score": 4.5
+          "score": 4.49
+        },
+        {
+          "episode": 19,
+          "score": 4.36
+        },
+        {
+          "episode": 20,
+          "score": 4.47
+        },
+        {
+          "episode": 21,
+          "score": 4.45
         }
       ],
       "scrape_errors": []
@@ -393308,15 +393604,15 @@
         },
         {
           "episode": 2,
-          "score": 4.35
+          "score": 4.36
         },
         {
           "episode": 3,
-          "score": 4.21
+          "score": 4.22
         },
         {
           "episode": 4,
-          "score": 4.39
+          "score": 4.4
         },
         {
           "episode": 5,
@@ -393324,31 +393620,31 @@
         },
         {
           "episode": 6,
-          "score": 4.18
+          "score": 4.19
         },
         {
           "episode": 7,
-          "score": 4.1
+          "score": 4.11
         },
         {
           "episode": 8,
-          "score": 4.15
+          "score": 4.16
         },
         {
           "episode": 9,
-          "score": 4.3
+          "score": 4.31
         },
         {
           "episode": 10,
-          "score": 4.06
+          "score": 4.07
         },
         {
           "episode": 11,
-          "score": 4.09
+          "score": 4.1
         },
         {
           "episode": 12,
-          "score": 4.13
+          "score": 4.15
         }
       ],
       "scrape_errors": []
@@ -393376,7 +393672,7 @@
         ],
         "demographic": "",
         "synopsis": "Kaede Yakumo, an ordinary 17-year-old high school girl, unexpectedly wakes up in another world with only her backpack alongside her. After aimlessly wandering around trying to understand her whereabouts, Kaede gives up and decides to look for anything useful in her belongings, which leads her to discover an unfamiliar book. Inside, the book lists recipes for producing potions using a simple command word, \"create,\" and a note telling her to think of this new experience as a game.\n\nWith a clear path laid out in front of her, Kaede vows to use the potions she crafts for her survival—and hopefully find the person who unfairly transported her to this world in order to return home.\n\n[Written by MAL Rewrite]",
-        "score": 6.43,
+        "score": 6.44,
         "episodes_count": 12,
         "anilistId": 198561,
         "trailer": {
@@ -393394,11 +393690,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 2.84
+          "score": 2.85
         },
         {
           "episode": 2,
-          "score": 3.68
+          "score": 3.7
         },
         {
           "episode": 3,
@@ -393406,35 +393702,35 @@
         },
         {
           "episode": 4,
-          "score": 4
+          "score": 4.01
         },
         {
           "episode": 5,
-          "score": 4.02
-        },
-        {
-          "episode": 6,
-          "score": 4.1
-        },
-        {
-          "episode": 7,
-          "score": 3.98
-        },
-        {
-          "episode": 8,
           "score": 4.03
         },
         {
+          "episode": 6,
+          "score": 4.11
+        },
+        {
+          "episode": 7,
+          "score": 3.99
+        },
+        {
+          "episode": 8,
+          "score": 4.05
+        },
+        {
           "episode": 9,
-          "score": 3.98
+          "score": 3.99
         },
         {
           "episode": 10,
-          "score": 4.06
+          "score": 4.07
         },
         {
           "episode": 11,
-          "score": 4.08
+          "score": 4.09
         },
         {
           "episode": 12,
@@ -393508,11 +393804,11 @@
         },
         {
           "episode": 7,
-          "score": 3.97
+          "score": 3.96
         },
         {
           "episode": 8,
-          "score": 4.11
+          "score": 4.09
         },
         {
           "episode": 9,
@@ -393559,7 +393855,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Lunia, the daughter of the Count of Persephone, was shunned by her father and treated like a tool by her half-brother, leading a lonely life. Meanwhile, she is chosen by a priest to be engaged to Hades, the head of the Duke of Khronoa family, and decides to marry into the cursed duke family. The Duke of Khronoa, feared as the \"King of the Underworld,\" is cursed with a short lifespan if he does not marry a bride chosen by the emperor. However, Hades tells Lunia that he has no intention of loving her.\n\nIn order to keep Hades alive, Lunia deceived him and spent the night with him, then disappeared without realizing that she was pregnant with his child. Seven years later, Hades somehow managed to find Lunia and tried to take her back with the child...\n\n(Source: Honto, translated)",
-        "score": 5.7,
+        "score": 5.69,
         "episodes_count": 12,
         "anilistId": 198312,
         "trailer": {
@@ -393621,7 +393917,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.56
+          "score": 3.54
         },
         {
           "episode": 2,
@@ -393649,7 +393945,7 @@
         },
         {
           "episode": 8,
-          "score": 4.08
+          "score": 4.07
         },
         {
           "episode": 9,
@@ -393657,19 +393953,19 @@
         },
         {
           "episode": 10,
-          "score": 4.02
+          "score": 3.98
         },
         {
           "episode": 11,
-          "score": 3.78
+          "score": 3.79
         },
         {
           "episode": 12,
-          "score": 4.11
+          "score": 4.09
         },
         {
           "episode": 13,
-          "score": 3.83
+          "score": 3.84
         },
         {
           "episode": 14,
@@ -393677,19 +393973,31 @@
         },
         {
           "episode": 15,
-          "score": 3.82
+          "score": 3.81
         },
         {
           "episode": 16,
-          "score": 4.35
+          "score": 4.31
         },
         {
           "episode": 17,
-          "score": 4.27
+          "score": 4.24
         },
         {
           "episode": 18,
-          "score": 3.73
+          "score": 3.8
+        },
+        {
+          "episode": 19,
+          "score": 3.53
+        },
+        {
+          "episode": 20,
+          "score": 3.61
+        },
+        {
+          "episode": 21,
+          "score": 3.67
         }
       ],
       "scrape_errors": []
@@ -393719,7 +394027,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second season of Mato Seihei no Slave.",
-        "score": 7.49,
+        "score": 7.47,
         "episodes_count": 12,
         "anilistId": 176276,
         "trailer": {
@@ -393737,7 +394045,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.19
+          "score": 4.18
         },
         {
           "episode": 2,
@@ -393745,15 +394053,19 @@
         },
         {
           "episode": 3,
-          "score": 4.42
+          "score": 4.41
         },
         {
           "episode": 4,
-          "score": 4.45
+          "score": 4.44
         },
         {
           "episode": 5,
           "score": 4.32
+        },
+        {
+          "episode": 6,
+          "score": 4.26
         }
       ],
       "scrape_errors": [],
@@ -393797,11 +394109,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.94
+          "score": 3.93
         },
         {
           "episode": 2,
-          "score": 4.14
+          "score": 4.13
         },
         {
           "episode": 3,
@@ -393809,19 +394121,27 @@
         },
         {
           "episode": 4,
-          "score": 4.2
+          "score": 4.19
         },
         {
           "episode": 5,
-          "score": 4.26
+          "score": 4.24
         },
         {
           "episode": 6,
-          "score": 4.28
+          "score": 4.26
         },
         {
           "episode": 7,
-          "score": 0
+          "score": 4.2
+        },
+        {
+          "episode": 8,
+          "score": 4.61
+        },
+        {
+          "episode": 9,
+          "score": 4.1
         }
       ],
       "scrape_errors": [],
@@ -393849,7 +394169,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Two and a half years have passed since the Lost July incident, a catastrophe that reduced an entire city to ruins and sent shockwaves across the world.\n\nOn the desert planet of No Man's Land, Vash the Stampede, a gunslinger who swore never to take a life, faces his final confrontation with his brother, Millions Knives, who seeks the complete destruction of humanity. As their fates collide, the battle that will determine the future of both mankind and the planet begins.\n\n(Source: MAL News)",
-        "score": 7.35,
+        "score": 7.26,
         "episodes_count": 12,
         "anilistId": 163144,
         "trailer": {
@@ -393867,15 +394187,35 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.02
+          "score": 4.01
         },
         {
-          "episode": 13,
-          "score": 0
+          "episode": 2,
+          "score": 4.2
         },
         {
-          "episode": 14,
-          "score": 0
+          "episode": 3,
+          "score": 4.16
+        },
+        {
+          "episode": 4,
+          "score": 4.18
+        },
+        {
+          "episode": 5,
+          "score": 4.13
+        },
+        {
+          "episode": 6,
+          "score": 3.9
+        },
+        {
+          "episode": 7,
+          "score": 3.93
+        },
+        {
+          "episode": 8,
+          "score": 4.08
         }
       ],
       "scrape_errors": [],
@@ -393901,7 +394241,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "\"Orn Doula, today will be your last day in the party.\"\n\nOrn, once a skilled Swordsman, had adapted to the role of Enchanter to fill a crucial gap in the Hero Party. However, one day, the party leader abruptly dismisses him, claiming his skills are lacking. Branded a \"weakling\" and a \"jack of all trades, master of none,\" by his former comrades, Orn is cast out without a second thought.\n\nDetermined to start anew, he returns to adventuring—this time as a Swordsman, the role he originally excelled in. But his time as an Enchanter was far from wasted. The experience, knowledge, and countless original spells he developed in the Hero Party have forged him into a warrior unlike any other. Now, armed with an unconventional set of skills, Orn is ready to carve his own path—one that will prove his true strength to the world.\n\n(Source: MAL News)",
-        "score": 6.71,
+        "score": 6.67,
         "episodes_count": 0,
         "anilistId": 187264,
         "trailer": {
@@ -393939,11 +394279,23 @@
         },
         {
           "episode": 6,
-          "score": 4.17
+          "score": 4.16
         },
         {
           "episode": 7,
-          "score": 3.87
+          "score": 3.84
+        },
+        {
+          "episode": 8,
+          "score": 4.02
+        },
+        {
+          "episode": 9,
+          "score": 3.8
+        },
+        {
+          "episode": 10,
+          "score": 3.92
         }
       ],
       "scrape_errors": [],
@@ -393990,23 +394342,35 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.24
+          "score": 4.22
         },
         {
           "episode": 2,
-          "score": 4.4
+          "score": 4.38
         },
         {
           "episode": 3,
-          "score": 4.35
+          "score": 4.34
         },
         {
           "episode": 4,
-          "score": 4.32
+          "score": 4.29
         },
         {
           "episode": 5,
-          "score": 4.32
+          "score": 4.31
+        },
+        {
+          "episode": 6,
+          "score": 4.3
+        },
+        {
+          "episode": 7,
+          "score": 4.59
+        },
+        {
+          "episode": 8,
+          "score": 4.51
         }
       ],
       "scrape_errors": [],
@@ -394030,7 +394394,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Born blind, Kunon aims to be the first person to use water magic to create new eyes for himself. After five months of study, he has already surpassed his teacher, and continues to grow his talents. Not only can his magic help him sense color, but he can also use it to make handy items and even conjure a whole cat! Word of his skills and ingenuity soon reach the court and earn him a spot as disciple to the most powerful magician in the land. But is his ultimate goal even attainable?\n\n(Source: Yen Press)",
-        "score": 6.6,
+        "score": 6.58,
         "episodes_count": 13,
         "anilistId": 186333,
         "trailer": {
@@ -394052,11 +394416,11 @@
         },
         {
           "episode": 2,
-          "score": 3.73
+          "score": 3.72
         },
         {
           "episode": 3,
-          "score": 3.86
+          "score": 3.87
         },
         {
           "episode": 4,
@@ -394068,11 +394432,23 @@
         },
         {
           "episode": 6,
-          "score": 4.11
+          "score": 4.1
         },
         {
           "episode": 7,
-          "score": 4.13
+          "score": 4.14
+        },
+        {
+          "episode": 8,
+          "score": 4.11
+        },
+        {
+          "episode": 9,
+          "score": 4.03
+        },
+        {
+          "episode": 10,
+          "score": 4.09
         }
       ],
       "scrape_errors": [],
@@ -394100,7 +394476,7 @@
         ],
         "demographic": "",
         "synopsis": "Already at his wit's end, 29-year-old corporate slave Seiichirou Kondou suddenly witnesses the ground opening up and swallowing a woman. Amid his efforts to save her, the two are transported to another world. He soon learns that the people in this world summoned a saint to save their kingdom from a plague. As compensation for dragging Kondou into the mess, the kingdom assures him that they will provide him with a comfortable life and fulfill any of his desires. To everyone's surprise, Kondou asks for a job.\n\nAfter successfully becoming an accountant at the Royal Palace, Kondou devotes himself to his new post. His accurate and thorough work catches the attention of various high-ranking officials and knights, especially Aresh Indolark, the cold-hearted Knight Captain. As Kondou adjusts to his new exhausting and dangerous environment, he begins to find solace in the company of Aresh, whose icy demeanor may be just a facade.\n\n[Written by MAL Rewrite]",
-        "score": 6.99,
+        "score": 6.93,
         "episodes_count": 12,
         "anilistId": 183661,
         "trailer": {
@@ -394118,7 +394494,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.16
+          "score": 4.14
         },
         {
           "episode": 2,
@@ -394126,19 +394502,31 @@
         },
         {
           "episode": 3,
-          "score": 4.39
+          "score": 4.36
         },
         {
           "episode": 4,
-          "score": 4.41
+          "score": 4.39
         },
         {
           "episode": 5,
-          "score": 4.27
+          "score": 4.25
         },
         {
           "episode": 6,
-          "score": 4.41
+          "score": 4.31
+        },
+        {
+          "episode": 7,
+          "score": 4.19
+        },
+        {
+          "episode": 8,
+          "score": 4.09
+        },
+        {
+          "episode": 9,
+          "score": 4.29
         }
       ],
       "scrape_errors": [],
@@ -394165,7 +394553,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Flum Apricot was never meant to be a hero. Despite zero stats across the board and a power she can't even use, she somehow finds herself included in a party of heroes. But Flum's life hits rock bottom when the party's renowned sage, Jean Inteige, decides that the useless girl is dead weight, and arranges to have her sold into slavery. Tossed to monsters to be feasted upon for her master's entertainment, Flum makes the desperate choice to reach for a cursed weapon... and something new awakens within her. A grimdark tale about one woman's blood-soaked quest to reclaim her life!\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.59,
+        "score": 6.48,
         "episodes_count": 12,
         "anilistId": 191718,
         "trailer": {
@@ -394187,23 +394575,35 @@
         },
         {
           "episode": 2,
-          "score": 4.04
+          "score": 4.03
         },
         {
           "episode": 3,
-          "score": 4.08
+          "score": 4.07
         },
         {
           "episode": 4,
-          "score": 4.17
+          "score": 4.16
         },
         {
           "episode": 5,
-          "score": 4.24
+          "score": 4.22
         },
         {
           "episode": 6,
-          "score": 4.03
+          "score": 3.98
+        },
+        {
+          "episode": 7,
+          "score": 4.08
+        },
+        {
+          "episode": 8,
+          "score": 4
+        },
+        {
+          "episode": 9,
+          "score": 4.01
         }
       ],
       "scrape_errors": [],
@@ -394251,7 +394651,7 @@
         },
         {
           "episode": 2,
-          "score": 4.3
+          "score": 4.29
         },
         {
           "episode": 3,
@@ -394259,11 +394659,23 @@
         },
         {
           "episode": 4,
-          "score": 4.51
+          "score": 4.5
         },
         {
           "episode": 5,
-          "score": 4.5
+          "score": 4.52
+        },
+        {
+          "episode": 6,
+          "score": 4.37
+        },
+        {
+          "episode": 7,
+          "score": 4.46
+        },
+        {
+          "episode": 8,
+          "score": 4.36
         }
       ],
       "scrape_errors": [],
@@ -394287,7 +394699,7 @@
         "themes": [],
         "demographic": "Seinen",
         "synopsis": "With an endearing protagonist and luscious art, this seaside slice-of-life story offers tranquility in the chaos of the modern world. For two years, Wakana Kinme has run a laundry service in the seaside resort town of Atami, where she's built a fulfilling life making friends with the locals and visiting hot springs. Although Wakana has no knowledge of her own past, her cleaning services safeguard memories imbued in customers' precious items.\n\n(Source: Square Enix)",
-        "score": 6.91,
+        "score": 6.87,
         "episodes_count": 0,
         "anilistId": 194028,
         "trailer": {
@@ -394305,15 +394717,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.05
+          "score": 4.04
         },
         {
           "episode": 2,
-          "score": 4.13
+          "score": 4.12
         },
         {
           "episode": 3,
-          "score": 4.29
+          "score": 4.26
         },
         {
           "episode": 4,
@@ -394321,11 +394733,23 @@
         },
         {
           "episode": 5,
-          "score": 4.18
+          "score": 4.16
         },
         {
           "episode": 6,
           "score": 4.21
+        },
+        {
+          "episode": 7,
+          "score": 4.25
+        },
+        {
+          "episode": 8,
+          "score": 4.32
+        },
+        {
+          "episode": 9,
+          "score": 4.27
         }
       ],
       "scrape_errors": [],
@@ -394350,7 +394774,7 @@
         "themes": [],
         "demographic": "Shounen",
         "synopsis": "Always ready for a fight! Destruction for destruction's sake! The online streamer Aoringo is a troll, making the worst of the worst of boundary-pushing flamebait content and raking in the revenue from the hate-watchers. You may think he's nothing more than a bottom feeder and a drain on society, but in reality, he's high school dropout Soji Enishiro, a caring older brother with a sweet tooth who loves nothing more than his little sister. His viral videos? Just a way to pay his sister's medical bills. And even if all of humanity hates him, he doesn't care, so long as his little sister gets better. But then, something very strange begins to happen...  Don't miss the debut of this modern-day occult exorcism battle manga!\n\n(Source: Kodansha USA)",
-        "score": 6.41,
+        "score": 6.38,
         "episodes_count": 12,
         "anilistId": 187901,
         "trailer": {
@@ -394368,23 +394792,35 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.66
+          "score": 3.65
         },
         {
           "episode": 2,
-          "score": 3.86
+          "score": 3.84
         },
         {
           "episode": 3,
-          "score": 4.02
+          "score": 4
         },
         {
           "episode": 4,
-          "score": 4.26
+          "score": 4.23
         },
         {
           "episode": 5,
-          "score": 4.1
+          "score": 4.07
+        },
+        {
+          "episode": 6,
+          "score": 3.84
+        },
+        {
+          "episode": 7,
+          "score": 4.01
+        },
+        {
+          "episode": 8,
+          "score": 4.11
         }
       ],
       "scrape_errors": [],
@@ -394413,7 +394849,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Deep within the Black Forest teeming with poisonous mushrooms, a witch named Luna lives alone. With skin that is poisonous to the touch and a breath that will kill if close enough, she is forced to stay secluded from nearby civilization. Even with these conditions, Luna still visits a nearby city to deliver medicine and buy new books to read.\n\nDespite Luna having never done harm to any of the city’s residents, many are scared to associate with her, as she is a black witch in a kingdom ruled by white witches. Only able to watch from a distance while people receive her medicine and freely converse with one another, Luna is drawn toward their lives, even if it sometimes means putting herself in danger.\n\n[Written by MAL Rewrite]",
-        "score": 7.12,
+        "score": 7.05,
         "episodes_count": 12,
         "anilistId": 185514,
         "trailer": {
@@ -394431,15 +394867,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.28
+          "score": 4.26
         },
         {
           "episode": 2,
-          "score": 4.36
+          "score": 4.35
         },
         {
           "episode": 3,
-          "score": 4.18
+          "score": 4.15
         },
         {
           "episode": 4,
@@ -394451,11 +394887,19 @@
         },
         {
           "episode": 6,
-          "score": 3.95
+          "score": 3.96
         },
         {
           "episode": 7,
-          "score": 4.2
+          "score": 4.16
+        },
+        {
+          "episode": 8,
+          "score": 4.15
+        },
+        {
+          "episode": 9,
+          "score": 4.27
         }
       ],
       "scrape_errors": [],
@@ -394502,23 +394946,35 @@
         },
         {
           "episode": 2,
-          "score": 3.93
+          "score": 3.89
         },
         {
           "episode": 3,
-          "score": 4.11
+          "score": 4.09
         },
         {
           "episode": 4,
-          "score": 4.01
+          "score": 3.97
         },
         {
           "episode": 5,
-          "score": 3.95
+          "score": 3.96
         },
         {
           "episode": 6,
-          "score": 4.15
+          "score": 4.14
+        },
+        {
+          "episode": 7,
+          "score": 4.11
+        },
+        {
+          "episode": 8,
+          "score": 4.32
+        },
+        {
+          "episode": 9,
+          "score": 4.21
         }
       ],
       "scrape_errors": [],
@@ -394545,7 +395001,7 @@
         ],
         "demographic": "",
         "synopsis": "Ever since she was a young girl, Sooha was told to hide her superhuman abilities to avoid getting mistaken for a vampire. Having been accused of being one and blamed for her childhood friend's death, Sooha enrolls in Decelis Academy—a night school where supernatural beings, such as vampires and werewolves, allegedly cannot enter.\n\nAt the academy, Sooha soon encounters Heli, a student who offers friendship despite discovering her secret. Heli introduces Sooha to his close friends—Jaan, Jino, Shion, Jakah, Noa, and Solon—who all have different powers as well. But their connection seems to run deeper than just that; they are curiously drawn to her, feeling as if they would do anything she wishes.\n\nIn light of a recent murder that is said to be the work of a vampire, Heli and his friends' unsettling history slowly unravels. While the seven boys try to shield Sooha from the world of the supernatural, she inevitably gets entangled in the centuries-old rivalry between vampires and werewolves. As tensions intensify, Sooha realizes that she may be closer than ever to the creatures she hates the most.\n\n[Written by MAL Rewrite]",
-        "score": 6.57,
+        "score": 6.52,
         "episodes_count": 12,
         "anilistId": 181443,
         "trailer": {
@@ -394563,7 +395019,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.8
+          "score": 3.79
         },
         {
           "episode": 2,
@@ -394579,15 +395035,23 @@
         },
         {
           "episode": 5,
-          "score": 4.02
+          "score": 3.97
         },
         {
           "episode": 6,
-          "score": 3.92
+          "score": 3.98
         },
         {
           "episode": 7,
-          "score": 0
+          "score": 4.05
+        },
+        {
+          "episode": 8,
+          "score": 3.85
+        },
+        {
+          "episode": 9,
+          "score": 3.36
         }
       ],
       "scrape_errors": [],
@@ -394614,7 +395078,7 @@
         ],
         "demographic": "",
         "synopsis": "Arne Neuntöte is a vampire detective who manipulates supernatural powers. Lynn Reinweiß is a nobleman's daughter who loves vampires. Their worlds should never have crossed, but they join hands to solve a bloody mystery. In the darkest of nights, Lynn finds herself in desperate need of help. Then she wanders into the mysterious city of \"Lügenberg,\" where non-humans live.\n\nLynn's world changes drastically when she encounters \"Arne,\" a vampire who is called \"the worst\" in the city. And tonight, a new \"murder case\" has occurred. What is the truth behind the bizarre incidents that take place in a world where humanity and the bizarre intersect?\n\n\"Come on, human. You may dance merrily under the crimson moon.\" \n\n(Source: Steam, edited)",
-        "score": 6.3,
+        "score": 6.22,
         "episodes_count": 12,
         "anilistId": 183984,
         "trailer": {
@@ -394636,15 +395100,15 @@
         },
         {
           "episode": 2,
-          "score": 3.8
+          "score": 3.79
         },
         {
           "episode": 3,
-          "score": 3.95
+          "score": 3.94
         },
         {
           "episode": 4,
-          "score": 3.73
+          "score": 3.75
         },
         {
           "episode": 5,
@@ -394652,7 +395116,19 @@
         },
         {
           "episode": 6,
-          "score": 3.7
+          "score": 3.73
+        },
+        {
+          "episode": 7,
+          "score": 3.65
+        },
+        {
+          "episode": 8,
+          "score": 3.67
+        },
+        {
+          "episode": 9,
+          "score": 3.92
         }
       ],
       "scrape_errors": [],
@@ -394678,7 +395154,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Office Lady Tsuda Akane, age 28, seems like she's got it all together. Beautiful, brainy, and an indispensable office worker for a robotics manufacturer, Akane's admired at work...because her colleagues can't see her at home. Privately, Akane's a hot mess with an apartment that looks more like a landfill than a living space. Good thing she drunkenly ordered a new android named Nadeshiko to help her clean up! Well, maybe not good, because the beautiful lady android that arrives is a horny hottie. Akane's about to get more service than she expected!\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.56,
+        "score": 6.21,
         "episodes_count": 8,
         "anilistId": 192867,
         "trailer": {
@@ -394700,19 +395176,27 @@
         },
         {
           "episode": 2,
-          "score": 3.99
+          "score": 3.98
         },
         {
           "episode": 3,
-          "score": 4.06
+          "score": 4.04
         },
         {
           "episode": 4,
-          "score": 4.33
+          "score": 4.31
         },
         {
           "episode": 5,
-          "score": 4.29
+          "score": 4.26
+        },
+        {
+          "episode": 6,
+          "score": 4.08
+        },
+        {
+          "episode": 7,
+          "score": 4.32
         }
       ],
       "scrape_errors": [],
@@ -394739,7 +395223,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second season of Ao no Miburo.",
-        "score": 6.96,
+        "score": 7.03,
         "episodes_count": 0,
         "anilistId": 189258,
         "trailer": {
@@ -394757,7 +395241,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.85
+          "score": 3.84
         }
       ],
       "scrape_errors": [],
@@ -394788,7 +395272,7 @@
         ],
         "demographic": "",
         "synopsis": "Alba is reborn as the son of a poor nobleman. He is unable to use magic due to a disease and is destined to have a short life, so he is taken in by the duke's family. There, he meets Orsis, who was his favorite person in a previous life. While this coincidence seems to good to be true, he remembers that he is why his beloved lost his smile, and begins to search for a way to live a long life so that he can continue to love him.\n\n(Source: MU, edited)",
-        "score": 5.6,
+        "score": 5.53,
         "episodes_count": 0,
         "anilistId": 199446,
         "trailer": {
@@ -394806,7 +395290,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 2.98
+          "score": 2.96
         },
         {
           "episode": 2,
@@ -394814,7 +395298,11 @@
         },
         {
           "episode": 3,
-          "score": 3.88
+          "score": 3.92
+        },
+        {
+          "episode": 8,
+          "score": 4
         }
       ],
       "scrape_errors": [],
@@ -394843,7 +395331,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Rei Ichidou, Gou Reietsu, Kiyoshi Shusse, Jin Daima, and Dai Monohoshi are five mischievous boys attending Ichiou Junior High. Each with an eccentric personality and a knack for chaos, they've earned a reputation as the infamous \"Kimen-gumi.\"\n\nOne day, new transfer student Yui Kawa and her friend Chie Uru encounter the group and soon find themselves drawn into their antics. Around them are other colorful cliques—from the handsome \"Iro Otoko-gumi\" led by Shou Kireide, to the delinquent \"Ban-gumi\" led by You Nihiruda, the athletic \"Ude-gumi\" led by Kai Undou, and the tough girl squad \"Onna-gumi\" led by Jako Amano.\n\nAs time passes and a new spring begins, the everyday lives of these eccentric students unfold in a lively and comedic school story.\n\n(Source: MAL News)",
-        "score": 5.34,
+        "score": 5.39,
         "episodes_count": 12,
         "anilistId": 200556,
         "trailer": {
@@ -394861,15 +395349,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.57
+          "score": 3.45
         },
         {
           "episode": 2,
-          "score": 3.59
+          "score": 3.6
         },
         {
           "episode": 3,
-          "score": 3.43
+          "score": 3.41
         },
         {
           "episode": 4,
@@ -394877,11 +395365,23 @@
         },
         {
           "episode": 5,
-          "score": 3.53
+          "score": 3.56
         },
         {
           "episode": 6,
-          "score": 3.2
+          "score": 3.54
+        },
+        {
+          "episode": 7,
+          "score": 3.41
+        },
+        {
+          "episode": 8,
+          "score": 3.22
+        },
+        {
+          "episode": 9,
+          "score": 2
         }
       ],
       "scrape_errors": [],
@@ -394911,7 +395411,7 @@
         ],
         "demographic": "",
         "synopsis": "Akina and his friends, having strayed into the Fantasma, find their path blocked by \"Fantôme Fighters\".\n\nThe only ones who can stand against them are the special \"Mythisch Fighters\" chosen by the cards.\n\nWhat is a Fantôme Fighter—\n\nThe collective name for those who confront reality and fight to protect the fabricated.\n\nWhat is a Mythisch Fighter—\n\nThe collective name for those who withstand the Fantôme and fight to protect the real.\n\nWill the parallactic be erased, or will it become the verity?\n—Stand up and fight with your existence on the line.\n\n(Source: Official Twitter)",
-        "score": 6.43,
+        "score": 6.42,
         "episodes_count": 0,
         "anilistId": 203296,
         "trailer": null,
@@ -394942,11 +395442,11 @@
         },
         {
           "episode": 6,
-          "score": 4
+          "score": 4.08
         },
         {
           "episode": 7,
-          "score": 0
+          "score": 4.29
         }
       ],
       "scrape_errors": [],
