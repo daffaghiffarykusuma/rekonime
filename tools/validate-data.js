@@ -11,6 +11,7 @@ const DEFAULT_DATA_PATH = path.join(__dirname, '..', 'data', 'anime.full.json');
 const DEFAULT_EMBEDDED_PATH = path.join(__dirname, '..', 'js', 'data.js');
 const DEFAULT_INDEX_PATH = path.join(__dirname, '..', 'index.html');
 const DEFAULT_BASELINE_PATH = path.join(__dirname, 'validation-baseline.json');
+const NON_TOLERATED_BASELINE_ERRORS = new Set(['duplicateIds']);
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
@@ -297,6 +298,17 @@ const runValidation = ({
 
         compareGroup('errors', result.errors, baselineEntry.errors || {});
         compareGroup('warnings', result.warnings, baselineEntry.warnings || {});
+
+        NON_TOLERATED_BASELINE_ERRORS.forEach((key) => {
+          const allowed = Number(baselineEntry?.errors?.[key] ?? 0);
+          const observed = Array.isArray(result?.errors?.[key]) ? result.errors[key].length : 0;
+          if (allowed > 0) {
+            baselineFailures.push(`${result.label} errors.${key} baseline allowance must be 0`);
+          }
+          if (observed > 0) {
+            baselineFailures.push(`${result.label} errors.${key} must be 0 (observed ${observed})`);
+          }
+        });
       });
     }
   }

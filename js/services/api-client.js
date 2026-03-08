@@ -188,7 +188,6 @@ const ApiClient = {
         const error = new Error(`HTTP ${processedResponse.status}`);
         error.status = processedResponse.status;
         error.response = processedResponse;
-        await this.handleError(error, context);
         throw error;
       }
 
@@ -200,6 +199,19 @@ const ApiClient = {
   },
 
   async handleError(error, context) {
+    if (error && error.__apiClientHandled) {
+      return;
+    }
+    if (error && typeof error === 'object') {
+      try {
+        Object.defineProperty(error, '__apiClientHandled', {
+          value: true,
+          configurable: true
+        });
+      } catch {
+        error.__apiClientHandled = true;
+      }
+    }
     ErrorHandler.report(error, { source: 'ApiClient', ...context });
     for (const interceptor of this.errorInterceptors) {
       await interceptor(error, context);

@@ -22,6 +22,7 @@
     "test:integration": "node --test --import ./test/setup.js \"test/integration/**/*.test.js\"",
     "test:runtime": "node --test --import ./test/setup.js \"test/unit/watchlist*.test.js\" \"test/unit/reviews.test.js\" \"test/integration/app-*.test.js\"",
     "test:services": "node --test --import ./test/setup.js \"test/unit/*service*.test.js\" \"test/unit/api-client.test.js\" \"test/unit/cache-manager.test.js\" \"test/unit/schema-validator.test.js\"",
+    "test:scraper": "node tools/run-scraper-tests.js",
     "test:tools": "node --test --import ./test/setup.js \"test/unit/pipeline-schema-validator.test.js\" \"test/unit/integrity-checker.test.js\" \"test/unit/embedded-data.test.js\" \"test/unit/quality-reporter.test.js\" \"test/integration/build-catalogs.test.js\" \"test/integration/validate-data.test.js\"",
     "test:coverage": "c8 --reporter=html --reporter=text --reporter=json-summary node --test --import ./test/setup.js \"test/**/*.test.js\"",
     "test:e2e": "playwright test",

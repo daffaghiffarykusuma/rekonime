@@ -50,12 +50,15 @@ Useful grouped commands:
 - `npm run data:validate:strict` (raw validator with no baseline allowances)
 - `npm run test:runtime` (runtime-focused tests)
 - `npm run test:services` (service-layer tests)
+- `npm run test:scraper` (Python scraper host-policy regressions)
 - `npm run test:tools` (pipeline/tooling tests)
 - `npm run test:unit:watch` (watch-mode unit tests)
 - `npm run check:repo-hygiene` (detect tracked generated artifacts)
 - `npm run check:outdated-budget` (dependency update budget + exceptions)
 - `npm run check:unsafe-patterns` (static unsafe API pattern scan)
 - `npm run check:security-headers` (verifies required security headers in `vercel.json`)
+
+`npm run check:coverage-thresholds` now generates coverage first if `coverage/coverage-summary.json` is missing.
 
 Reference docs:
 - CI/local command matrix: `docs/ci-local-matrix.md`

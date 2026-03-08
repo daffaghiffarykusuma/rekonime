@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const SUMMARY_PATH = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
 
@@ -9,10 +10,27 @@ const THRESHOLDS = {
   'tools/lib/schema-validator.js': { lines: 55, branches: 50 }
 };
 
-const readSummary = () => {
-  if (!fs.existsSync(SUMMARY_PATH)) {
-    throw new Error(`Missing coverage summary at ${SUMMARY_PATH}. Run test:coverage first.`);
+const ensureCoverageSummary = () => {
+  if (fs.existsSync(SUMMARY_PATH)) {
+    return;
   }
+
+  const command = process.platform === 'win32'
+    ? { file: 'cmd.exe', args: ['/d', '/s', '/c', 'npm.cmd run test:coverage'] }
+    : { file: 'npm', args: ['run', 'test:coverage'] };
+
+  const result = spawnSync(command.file, command.args, {
+    cwd: process.cwd(),
+    stdio: 'inherit'
+  });
+
+  if (result.status !== 0 || !fs.existsSync(SUMMARY_PATH)) {
+    throw new Error(`Missing coverage summary at ${SUMMARY_PATH}. Failed to generate it via test:coverage.`);
+  }
+};
+
+const readSummary = () => {
+  ensureCoverageSummary();
   return JSON.parse(fs.readFileSync(SUMMARY_PATH, 'utf8'));
 };
 

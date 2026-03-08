@@ -12,6 +12,7 @@ import { Logger } from './services/logger.js';
 import { Store } from './core/store.js';
 import { DependencyContainer } from './core/dependency-container.js';
 import { HealthMonitor } from './healthMonitor.js';
+import { createImageProxyRuntime } from './image-proxy-runtime.js';
 import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
 import {
   buildTrailerUrls as buildTrustedTrailerUrls,
@@ -20,12 +21,8 @@ import {
   resolveTrustedTrailerMessageOrigin
 } from './security/trailer-url-policy.js';
 import {
-  readImageProxyStatus,
-  getFreshImageProxyStatus,
-  writeImageProxyStatus,
   isProxyImageUrl as isSharedProxyImageUrl,
-  buildImageProxyUrl as buildSharedImageProxyUrl,
-  probeImageProxyAvailability
+  buildImageProxyUrl as buildSharedImageProxyUrl
 } from './image-proxy.js';
 import {
   WATCH_STATUS_VALUES,
@@ -168,12 +165,9 @@ const App = {
     seed: { width: 32, height: 45 }
   },
   imageProxyStatusKey: 'rekonime.imageProxyStatus',
-  imageProxyStatus: { ok: null, checkedAt: 0 },
   imageProxyStatusTtlMs: 6 * 60 * 60 * 1000,
   imageProxyCheckTimeoutMs: 2500,
-  imageProxyCheckPromise: null,
-  imageProxyStatusLoaded: false,
-  imageProxyCheckScheduled: false,
+  imageProxyRuntime: null,
 
   store: null,
   storeBindingsApplied: false,
@@ -341,69 +335,42 @@ const App = {
     return clamped;
   },
 
+  getImageProxyRuntime() {
+    if (!this.imageProxyRuntime) {
+      this.imageProxyRuntime = createImageProxyRuntime({
+        storageKey: this.imageProxyStatusKey,
+        ttlMs: this.imageProxyStatusTtlMs,
+        timeoutMs: this.imageProxyCheckTimeoutMs,
+        queueTask: (callback, options = {}) => this.queueIdleTask(callback, { timeout: options.timeout ?? 1500 }),
+        waitForLoad: true
+      });
+    }
+    return this.imageProxyRuntime;
+  },
+
   loadImageProxyStatus() {
-    if (this.imageProxyStatusLoaded) return;
-    this.imageProxyStatusLoaded = true;
-    this.imageProxyStatus = readImageProxyStatus(this.imageProxyStatusKey);
+    this.getImageProxyRuntime().loadStatus();
   },
 
   getImageProxyStatus() {
-    this.loadImageProxyStatus();
-    return getFreshImageProxyStatus(this.imageProxyStatus, this.imageProxyStatusTtlMs);
+    return this.getImageProxyRuntime().getStatus();
   },
 
   storeImageProxyStatus(ok) {
-    this.imageProxyStatus = writeImageProxyStatus(this.imageProxyStatusKey, ok);
+    this.getImageProxyRuntime().storeStatus(ok);
   },
 
   scheduleImageProxyCheck() {
-    if (this.imageProxyCheckPromise) return;
-    if (this.getImageProxyStatus() !== null) return;
-    if (this.imageProxyCheckScheduled) return;
-    this.imageProxyCheckScheduled = true;
-    const run = () => {
-      this.queueIdleTask(() => {
-        this.imageProxyCheckScheduled = false;
-        this.checkImageProxyAvailability().catch(() => null);
-      }, { timeout: 5000 });
-    };
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      run();
-      return;
-    }
-    if (document.readyState === 'complete') {
-      run();
-      return;
-    }
-    window.addEventListener('load', run, { once: true });
+    this.getImageProxyRuntime().scheduleCheck({ timeout: 5000 });
   },
 
   checkImageProxyAvailability() {
-    if (this.imageProxyCheckPromise) return this.imageProxyCheckPromise;
-    this.imageProxyCheckPromise = probeImageProxyAvailability({ timeoutMs: this.imageProxyCheckTimeoutMs })
-      .then((ok) => {
-        this.storeImageProxyStatus(ok);
-        return ok;
-      })
-      .catch(() => {
-        this.storeImageProxyStatus(false);
-        return false;
-      })
-      .finally(() => {
-        this.imageProxyCheckPromise = null;
-      });
-
-    return this.imageProxyCheckPromise;
+    return this.getImageProxyRuntime().checkAvailability();
   },
 
   shouldUseImageProxy() {
     if (!this.features.imageProxy) return false;
-    const status = this.getImageProxyStatus();
-    if (status === null) {
-      this.scheduleImageProxyCheck();
-      return true;
-    }
-    return status === true;
+    return this.getImageProxyRuntime().shouldUseProxy();
   },
 
   isProxyImageUrl(url) {
@@ -411,7 +378,7 @@ const App = {
   },
 
   markImageProxyFailed() {
-    this.storeImageProxyStatus(false);
+    this.getImageProxyRuntime().markFailed();
   },
 
   getImageDimensions(kind) {

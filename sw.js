@@ -20,7 +20,6 @@ const STATIC_ASSETS = [
     './css/themes.css',
     './css/watchlist.css',
     './js/main.js',
-    './js/watchlist.js',
     './js/watchlist-main.js',
     './js/data.js',
     './favicon.svg'
@@ -40,7 +39,7 @@ const precacheStaticAssets = async (cache) => {
 
     const failed = results.filter((result) => result.status === 'rejected');
     if (failed.length) {
-        console.warn(`[SW] Precache skipped ${failed.length} asset(s)`);
+        throw new Error(`Failed to precache ${failed.length} asset(s)`);
     }
 };
 
@@ -58,6 +57,7 @@ self.addEventListener('install', (event) => {
             })
             .catch((error) => {
                 console.error('[SW] Failed to cache static assets:', error);
+                throw error;
             })
     );
     self.skipWaiting();
@@ -109,13 +109,17 @@ self.addEventListener('fetch', (event) => {
     // Explicit same-origin JSON data endpoints only.
     const normalizedDataRequest = buildNormalizedDataRequest(request, self.location.origin);
     if (normalizedDataRequest) {
-        event.respondWith(cacheFirstWithBackgroundUpdate(normalizedDataRequest));
+        const { response, background } = cacheFirstWithBackgroundUpdate(normalizedDataRequest);
+        event.respondWith(response);
+        event.waitUntil(background);
         return;
     }
 
     // Images - Stale While Revalidate (only for same-origin images)
     if (isImageRequest(request)) {
-        event.respondWith(staleWhileRevalidate(request, IMAGE_CACHE));
+        const { response, background } = staleWhileRevalidate(request, IMAGE_CACHE);
+        event.respondWith(response);
+        event.waitUntil(background);
         return;
     }
 
@@ -174,68 +178,65 @@ async function cacheFirst(request, cacheName = STATIC_CACHE) {
 }
 
 // Strategy: Cache First with Background Update
-async function cacheFirstWithBackgroundUpdate(request) {
-    const cache = await caches.open(DATA_CACHE);
-    const cached = await cache.match(request);
-
-    // Always try to fetch fresh data in background
-    const fetchPromise = fetch(request)
-        .then(async (response) => {
+function cacheFirstWithBackgroundUpdate(request) {
+    const cachePromise = caches.open(DATA_CACHE);
+    const background = cachePromise
+        .then(async (cache) => {
+            const response = await fetch(request);
             if (response.ok) {
-                // Update cache with fresh data
-                cache.put(request, response.clone());
+                await cache.put(request, response.clone());
             }
             return response;
         })
         .catch((error) => {
             console.log('[SW] Background fetch failed:', error);
-            // Return cached if available, otherwise rethrow
-            if (cached) {
-                return cached;
-            }
             throw error;
         });
 
-    // Return cached immediately if available
-    if (cached) {
-        // Return cached but also trigger background update
-        fetchPromise.catch(() => { }); // Ignore errors for background fetch
-        return cached;
-    }
+    const response = cachePromise
+        .then(async (cache) => {
+            const cached = await cache.match(request);
+            if (cached) {
+                return cached;
+            }
+            return background;
+        });
 
-    // No cache - wait for fetch
-    return fetchPromise;
+    return {
+        response,
+        background: background.then(() => undefined).catch(() => undefined)
+    };
 }
 
 // Strategy: Stale While Revalidate
-async function staleWhileRevalidate(request, cacheName) {
-    const cache = await caches.open(cacheName);
-    const cached = await cache.match(request);
-
-    // Always fetch fresh
-    const fetchPromise = fetch(request)
-        .then((response) => {
+function staleWhileRevalidate(request, cacheName) {
+    const cachePromise = caches.open(cacheName);
+    const background = cachePromise
+        .then(async (cache) => {
+            const response = await fetch(request);
             if (response.ok) {
-                cache.put(request, response.clone());
+                await cache.put(request, response.clone());
             }
             return response;
         })
         .catch((error) => {
             console.log('[SW] Image fetch failed:', error);
-            if (cached) {
-                return cached;
-            }
             throw error;
         });
 
-    // Return cached immediately if available
-    if (cached) {
-        fetchPromise.catch(() => { }); // Ignore errors for background fetch
-        return cached;
-    }
+    const response = cachePromise
+        .then(async (cache) => {
+            const cached = await cache.match(request);
+            if (cached) {
+                return cached;
+            }
+            return background;
+        });
 
-    // No cache - wait for fetch
-    return fetchPromise;
+    return {
+        response,
+        background: background.then(() => undefined).catch(() => undefined)
+    };
 }
 
 // Strategy: Network First with Cache Fallback

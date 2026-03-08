@@ -1,13 +1,11 @@
 import { ThemeManager } from './themeManager.js';
 import { Logger } from './services/logger.js';
+import { initDeferredRuntimeServices, queueIdleTask } from './bootstrap/deferred-runtime.js';
+import { createImageProxyRuntime } from './image-proxy-runtime.js';
 import { sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
 import {
-  readImageProxyStatus,
-  getFreshImageProxyStatus,
-  writeImageProxyStatus,
   isProxyImageUrl,
-  buildImageProxyUrl,
-  probeImageProxyAvailability
+  buildImageProxyUrl
 } from './image-proxy.js';
 import {
   WATCH_STATUS_VALUES,
@@ -39,33 +37,24 @@ const IMAGE_PROXY_STATUS_TTL_MS = 6 * 60 * 60 * 1000;
 const IMAGE_PROXY_CHECK_TIMEOUT_MS = 2500;
 
 let appInitPromise = null;
-let imageProxyStatus = { ok: null, checkedAt: 0 };
-let imageProxyStatusLoaded = false;
-let imageProxyCheckPromise = null;
 let currentWatchlistFilter = 'all';
-
-const queueIdleTask = (callback, timeoutMs = 2000) => {
-  if (typeof callback !== 'function') return;
-  if (typeof window === 'undefined') {
-    callback();
-    return;
-  }
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(callback, { timeout: timeoutMs });
-  } else {
-    window.setTimeout(callback, 0);
-  }
-};
+const imageProxyRuntime = createImageProxyRuntime({
+  storageKey: IMAGE_PROXY_STATUS_KEY,
+  ttlMs: IMAGE_PROXY_STATUS_TTL_MS,
+  timeoutMs: IMAGE_PROXY_CHECK_TIMEOUT_MS,
+  queueTask: (callback, options = {}) => queueIdleTask(callback, options.timeout ?? 2000),
+  waitForLoad: false
+});
 
 const initNonCriticalServices = () => {
-  queueIdleTask(async () => {
-    try {
-      const [swModule, analyticsModule, perfModule] = await Promise.all([
+  initDeferredRuntimeServices({
+    timeoutMs: 2000,
+    loadModules: async () => Promise.all([
         import('./serviceWorker.js'),
         import('./services/analytics-service.js'),
         import('./performanceMonitor.js')
-      ]);
-
+      ]),
+    onReady: async ([swModule, analyticsModule, perfModule]) => {
       const { ServiceWorkerManager } = swModule;
       const { AnalyticsService } = analyticsModule;
       const { PerformanceMonitor } = perfModule;
@@ -74,64 +63,23 @@ const initNonCriticalServices = () => {
       PerformanceMonitor.init();
       ServiceWorkerManager.register();
       ServiceWorkerManager.initConnectivityListeners();
-    } catch (error) {
+    },
+    onError: (error) => {
       Logger?.warn?.('Deferred services failed to init', { error });
     }
   });
 };
 
-const loadImageProxyStatus = () => {
-  if (imageProxyStatusLoaded || typeof window === 'undefined') return;
-  imageProxyStatusLoaded = true;
-  imageProxyStatus = readImageProxyStatus(IMAGE_PROXY_STATUS_KEY);
-};
-
-const getImageProxyStatus = () => {
-  loadImageProxyStatus();
-  return getFreshImageProxyStatus(imageProxyStatus, IMAGE_PROXY_STATUS_TTL_MS);
-};
-
-const storeImageProxyStatus = (ok) => {
-  imageProxyStatus = writeImageProxyStatus(IMAGE_PROXY_STATUS_KEY, ok);
-};
-
-const checkImageProxyAvailability = () => {
-  if (imageProxyCheckPromise) return imageProxyCheckPromise;
-  imageProxyCheckPromise = probeImageProxyAvailability({ timeoutMs: IMAGE_PROXY_CHECK_TIMEOUT_MS })
-    .then((ok) => {
-      storeImageProxyStatus(ok);
-      return ok;
-    })
-    .catch(() => {
-      storeImageProxyStatus(false);
-      return false;
-    })
-    .finally(() => {
-      imageProxyCheckPromise = null;
-    });
-
-  return imageProxyCheckPromise;
-};
-
 const scheduleImageProxyCheck = () => {
-  if (imageProxyCheckPromise) return;
-  if (getImageProxyStatus() !== null) return;
-  queueIdleTask(() => {
-    checkImageProxyAvailability().catch(() => null);
-  }, 2000);
+  imageProxyRuntime.scheduleCheck({ timeout: 2000 });
 };
 
 const shouldUseImageProxy = () => {
-  const status = getImageProxyStatus();
-  if (status === null) {
-    scheduleImageProxyCheck();
-    return true;
-  }
-  return status === true;
+  return imageProxyRuntime.shouldUseProxy();
 };
 
 const markImageProxyFailed = () => {
-  storeImageProxyStatus(false);
+  imageProxyRuntime.markFailed();
 };
 
 const loadFullApp = async () => {

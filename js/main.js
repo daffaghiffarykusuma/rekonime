@@ -1,5 +1,6 @@
 import { ThemeManager } from './themeManager.js';
 import { Logger } from './services/logger.js';
+import { initDeferredRuntimeServices } from './bootstrap/deferred-runtime.js';
 import './bootstrap/noncritical-styles.js';
 
 let appPromise = null;
@@ -11,31 +12,18 @@ const loadApp = () => {
   return appPromise;
 };
 
-const queueIdleTask = (callback, timeoutMs = 7000) => {
-  if (typeof callback !== 'function') return;
-  if (typeof window === 'undefined') {
-    callback();
-    return;
-  }
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(callback, { timeout: timeoutMs });
-  } else {
-    window.setTimeout(callback, 0);
-  }
-};
-
 const initNonCriticalServices = () => {
-  const runDeferredInit = () => queueIdleTask(async () => {
-    try {
-      const [app, keyboardModule, swModule, analyticsModule, perfModule, recsModule] = await Promise.all([
+  initDeferredRuntimeServices({
+    timeoutMs: 7000,
+    loadModules: async () => Promise.all([
         loadApp(),
         import('./keyboardShortcuts.js'),
         import('./serviceWorker.js'),
         import('./services/analytics-service.js'),
         import('./performanceMonitor.js'),
         import('./recommendations.js')
-      ]);
-
+      ]),
+    onReady: async ([app, keyboardModule, swModule, analyticsModule, perfModule, recsModule]) => {
       const { KeyboardShortcuts } = keyboardModule;
       const { ServiceWorkerManager } = swModule;
       const { AnalyticsService } = analyticsModule;
@@ -49,22 +37,11 @@ const initNonCriticalServices = () => {
       KeyboardShortcuts.init();
       ServiceWorkerManager.register();
       ServiceWorkerManager.initConnectivityListeners();
-    } catch (error) {
+    },
+    onError: (error) => {
       Logger?.warn?.('Deferred services failed to init', { error });
     }
   });
-
-  if (typeof window === 'undefined') {
-    runDeferredInit();
-    return;
-  }
-
-  if (document.readyState === 'complete') {
-    runDeferredInit();
-    return;
-  }
-
-  window.addEventListener('load', runDeferredInit, { once: true });
 };
 
 const bootstrap = () => {

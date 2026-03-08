@@ -118,3 +118,56 @@ test('validate-data fails on trailer URLs outside trusted hosts', () => {
 
   assert.equal(failed, true);
 });
+
+test('validate-data rejects duplicate ids even when baseline allows them', () => {
+  const dir = makeTempDir();
+  const dataPath = path.join(dir, 'anime.full.json');
+  const embeddedPath = path.join(dir, 'data.js');
+  const indexPath = path.join(dir, 'index.html');
+  const baselinePath = path.join(dir, 'baseline.json');
+  const payload = createBasePayload();
+
+  payload.anime.push({
+    ...payload.anime[0],
+    malId: 456,
+    title: 'Alpha Duplicate'
+  });
+
+  const dataLabel = path.relative(process.cwd(), dataPath).replace(/\\/g, '/');
+  const embeddedLabel = path.relative(process.cwd(), embeddedPath).replace(/\\/g, '/');
+
+  fs.writeFileSync(dataPath, JSON.stringify(payload));
+  fs.writeFileSync(embeddedPath, serializeEmbeddedData(payload));
+  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.js"></script></body></html>');
+  fs.writeFileSync(baselinePath, JSON.stringify({
+    [dataLabel]: {
+      errors: { duplicateIds: 2 },
+      warnings: {}
+    },
+    [embeddedLabel]: {
+      errors: { duplicateIds: 2 },
+      warnings: {}
+    }
+  }));
+
+  const scriptPath = path.join(process.cwd(), 'tools', 'validate-data.js');
+  let failed = false;
+  try {
+    execFileSync(process.execPath, [
+      scriptPath,
+      '--data',
+      dataPath,
+      '--embedded',
+      embeddedPath,
+      '--index',
+      indexPath,
+      '--baseline',
+      baselinePath,
+      '--enforce-baseline'
+    ]);
+  } catch {
+    failed = true;
+  }
+
+  assert.equal(failed, true);
+});

@@ -23,6 +23,12 @@ cd tools/scraper
 pip install -r requirements.txt
 ```
 
+## Tests
+
+```bash
+python -m unittest discover -s tests -p "test_*.py"
+```
+
 ## Usage
 
 ### Single Anime (with metadata)

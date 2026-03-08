@@ -245,33 +245,50 @@
 
     if (schema.enum && !schema.enum.includes(value)) return false;
 
-    if (schema.type) {
-      switch (schema.type) {
-        case 'string':
-          if (typeof value !== 'string') return false;
-          if (schema.minLength && value.length < schema.minLength) return false;
-          if (schema.maxLength && value.length > schema.maxLength) return false;
-          if (schema.pattern) {
-            const regex = new RegExp(schema.pattern);
-            if (!regex.test(value)) return false;
-          }
-          return true;
-        case 'boolean':
-          return typeof value === 'boolean';
-        case 'number':
-          return Number.isFinite(value);
-        case 'integer':
-          return Number.isInteger(value);
-        case 'array':
-          return this.validateArray(schema, value);
-        case 'object':
-          return this.validateObject(schema, value);
-        default:
-          return true;
-      }
+    const types = this.normalizeTypes(schema.type);
+    if (types.length > 0) {
+      return types.some((type) => this.validateTypedSchema(type, schema, value));
     }
 
     return true;
+  },
+
+  normalizeTypes(type) {
+    if (Array.isArray(type)) {
+      return type.filter((entry) => typeof entry === 'string' && entry.length > 0);
+    }
+    if (typeof type === 'string' && type.length > 0) {
+      return [type];
+    }
+    return [];
+  },
+
+  validateTypedSchema(type, schema, value) {
+    switch (type) {
+      case 'string':
+        if (typeof value !== 'string') return false;
+        if (schema.minLength && value.length < schema.minLength) return false;
+        if (schema.maxLength && value.length > schema.maxLength) return false;
+        if (schema.pattern) {
+          const regex = new RegExp(schema.pattern);
+          if (!regex.test(value)) return false;
+        }
+        return true;
+      case 'boolean':
+        return typeof value === 'boolean';
+      case 'number':
+        return Number.isFinite(value);
+      case 'integer':
+        return Number.isInteger(value);
+      case 'null':
+        return value === null;
+      case 'array':
+        return this.validateArray(schema, value);
+      case 'object':
+        return this.validateObject(schema, value);
+      default:
+        return true;
+    }
   },
 
   validateArray(schema, value) {
@@ -305,6 +322,14 @@
       const allowed = new Set(Object.keys(schema.properties));
       for (const key of Object.keys(value)) {
         if (!allowed.has(key)) return false;
+      }
+    }
+
+    if (schema.additionalProperties && typeof schema.additionalProperties === 'object' && schema.properties) {
+      const defined = new Set(Object.keys(schema.properties));
+      for (const [key, entryValue] of Object.entries(value)) {
+        if (defined.has(key)) continue;
+        if (!this.validateSchema(schema.additionalProperties, entryValue)) return false;
       }
     }
 

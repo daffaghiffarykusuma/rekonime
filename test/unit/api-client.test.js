@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ApiClient } from '../../js/services/api-client.js';
+import { ErrorHandler } from '../../js/services/error-handler.js';
 import { createResponse } from '../helpers/mocks.js';
 
 test('ApiClient getServiceUrl builds params', () => {
@@ -60,5 +61,22 @@ test('ApiClient request uses interceptors', async () => {
   assert.equal(String(calls[0].url).includes('intercepted=true'), true);
   assert.equal(calls[0].options.headers['X-Test'], '1');
 
+  globalThis.fetch = originalFetch;
+});
+
+test('ApiClient reports non-ok responses once', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalReport = ErrorHandler.report;
+  let reportCount = 0;
+
+  globalThis.fetch = async () => createResponse({ error: 'boom' }, { status: 500 });
+  ErrorHandler.report = () => {
+    reportCount += 1;
+  };
+
+  await assert.rejects(() => ApiClient.getJson('https://example.com/fail'));
+  assert.equal(reportCount, 1);
+
+  ErrorHandler.report = originalReport;
   globalThis.fetch = originalFetch;
 });

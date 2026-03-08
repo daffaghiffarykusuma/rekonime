@@ -55,6 +55,65 @@ const sanitizeTagList = (tags) => {
   return cleaned;
 };
 
+const writeJsonAtomic = (filePath, payload) => {
+  const directory = path.dirname(filePath);
+  const tempPath = path.join(directory, `.${path.basename(filePath)}.${process.pid}.tmp`);
+  fs.writeFileSync(tempPath, JSON.stringify(payload));
+  fs.renameSync(tempPath, filePath);
+};
+
+const resolveUniqueAnimeIds = (animeList) => {
+  const seen = new Map();
+  const collisions = [];
+
+  const nextUniqueId = (baseId, anime, index) => {
+    const malId = Number(anime?.malId);
+    if (Number.isInteger(malId) && malId > 0) {
+      const candidate = `${baseId}-${malId}`;
+      if (!seen.has(candidate)) {
+        return candidate;
+      }
+    }
+
+    const year = Number(anime?.year);
+    if (Number.isInteger(year) && year > 0) {
+      const candidate = `${baseId}-${year}`;
+      if (!seen.has(candidate)) {
+        return candidate;
+      }
+    }
+
+    let counter = Math.max(2, (seen.get(baseId) || 1) + 1);
+    let candidate = `${baseId}-dup-${counter}`;
+    while (seen.has(candidate)) {
+      counter += 1;
+      candidate = `${baseId}-dup-${counter}`;
+    }
+    return candidate;
+  };
+
+  const items = animeList.map((anime, index) => {
+    const baseId = String(anime?.id || '').trim() || `anime-${index + 1}`;
+    if (!seen.has(baseId)) {
+      seen.set(baseId, 1);
+      return { ...anime, id: baseId };
+    }
+
+    const uniqueId = nextUniqueId(baseId, anime, index);
+    seen.set(baseId, (seen.get(baseId) || 1) + 1);
+    seen.set(uniqueId, 1);
+    collisions.push({
+      previousId: baseId,
+      nextId: uniqueId,
+      animeId: anime?.id || baseId,
+      title: anime?.title || `index-${index}`
+    });
+    return { ...anime, id: uniqueId };
+  });
+
+  return { items, collisions };
+};
+
 const normalizeAnime = (anime) => {
   const normalizedGenres = sanitizeTagList(anime?.metadata?.genres || anime?.genres || []);
   const normalizedThemes = sanitizeTagList(anime?.metadata?.themes || anime?.themes || []);
@@ -242,9 +301,15 @@ const main = () => {
   }
 
   const normalized = animeList.map(normalizeAnime);
-  const scoreProfile = Stats.buildScoreProfile(normalized);
+  const { items: normalizedWithUniqueIds, collisions: idCollisions } = resolveUniqueAnimeIds(normalized);
+  logIssues('Resolved duplicate ids', idCollisions.map((entry) => ({
+    field: 'id',
+    animeId: entry.previousId,
+    message: `${entry.title} -> ${entry.nextId}`
+  })), { warnOnly: true });
+  const scoreProfile = Stats.buildScoreProfile(normalizedWithUniqueIds);
 
-  const fullCatalog = normalized.map((anime, index) => {
+  const fullCatalog = normalizedWithUniqueIds.map((anime, index) => {
     try {
       return {
         ...anime,
@@ -296,8 +361,8 @@ const main = () => {
     anime: previewCatalog
   };
 
-  fs.writeFileSync(fullOutputPath, JSON.stringify(fullPayload));
-  fs.writeFileSync(previewOutputPath, JSON.stringify(previewPayload));
+  writeJsonAtomic(fullOutputPath, fullPayload);
+  writeJsonAtomic(previewOutputPath, previewPayload);
 
   const durationMs = Date.now() - startedAt;
   const report = buildQualityReport({
@@ -322,7 +387,7 @@ const main = () => {
   }
 
   if (emitReport) {
-    fs.writeFileSync(reportOutputPath, JSON.stringify(report, null, 2));
+    writeJsonAtomic(reportOutputPath, report);
     console.log(`Wrote quality report to ${reportOutputPath}`);
   }
 

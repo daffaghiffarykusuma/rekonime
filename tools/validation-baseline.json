@@ -3,8 +3,8 @@
     "errors": {
       "missingScore": 3435,
       "missingTrailer": 497,
-      "invalidEpisodeScore": 3747,
-      "duplicateIds": 5
+      "invalidEpisodeScore": 3724,
+      "duplicateIds": 0
     },
     "warnings": {
       "missingStudio": 18,
@@ -15,8 +15,8 @@
     "errors": {
       "missingScore": 3435,
       "missingTrailer": 497,
-      "invalidEpisodeScore": 3750,
-      "duplicateIds": 5
+      "invalidEpisodeScore": 3724,
+      "duplicateIds": 0
     },
     "warnings": {
       "missingStudio": 18,
@@ -24,4 +24,3 @@
     }
   }
 }
-

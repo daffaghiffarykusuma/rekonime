@@ -266,10 +266,17 @@ class MALScraper:
         host = parsed.netloc.lower()
         path = parsed.path
 
-        if "youtu.be" in host:
+        if host == "youtu.be" or host.endswith(".youtu.be"):
             return path.strip("/").split("/")[0] or None
 
-        if "youtube.com" in host or "youtube-nocookie.com" in host:
+        allowed_hosts = {
+            "youtube.com",
+            "www.youtube.com",
+            "m.youtube.com",
+            "youtube-nocookie.com",
+            "www.youtube-nocookie.com",
+        }
+        if host in allowed_hosts:
             if path.startswith("/embed/"):
                 return path.split("/embed/")[1].split("/")[0] or None
             if path == "/watch":

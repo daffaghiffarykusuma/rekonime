@@ -33,7 +33,19 @@ test('SchemaValidator validates watchlist schema', () => {
     version: 1,
     updatedAt: now,
     entries: [
-      { id: 'anime-1', status: 'planned', progress: 0, updatedAt: now }
+      {
+        id: 'anime-1',
+        status: 'planned',
+        progress: 0,
+        updatedAt: now,
+        snapshot: {
+          id: 'anime-1',
+          title: 'Anime 1',
+          cover: 'https://cdn.myanimelist.net/images/anime/1/1.jpg',
+          year: null,
+          studio: 'Studio A'
+        }
+      }
     ]
   };
   const bad = {
@@ -44,6 +56,47 @@ test('SchemaValidator validates watchlist schema', () => {
   };
   assert.equal(SchemaValidator.validate('rekonime.watchlist', ok), true);
   assert.equal(SchemaValidator.validate('rekonime.watchlist', bad), false);
+});
+
+test('SchemaValidator validates union types and null values', () => {
+  const now = Date.now();
+  const numericYear = {
+    version: 1,
+    updatedAt: now,
+    entries: [{
+      id: 'anime-1',
+      status: 'planned',
+      progress: 0,
+      updatedAt: now,
+      snapshot: {
+        id: 'anime-1',
+        title: 'Anime 1',
+        cover: 'https://cdn.myanimelist.net/images/anime/1/1.jpg',
+        year: 2024,
+        studio: 'Studio A'
+      }
+    }]
+  };
+  const invalidYear = {
+    version: 1,
+    updatedAt: now,
+    entries: [{
+      id: 'anime-1',
+      status: 'planned',
+      progress: 0,
+      updatedAt: now,
+      snapshot: {
+        id: 'anime-1',
+        title: 'Anime 1',
+        cover: 'https://cdn.myanimelist.net/images/anime/1/1.jpg',
+        year: { bad: true },
+        studio: 'Studio A'
+      }
+    }]
+  };
+
+  assert.equal(SchemaValidator.validate('rekonime.watchlist', numericYear), true);
+  assert.equal(SchemaValidator.validate('rekonime.watchlist', invalidYear), false);
 });
 
 test('SchemaValidator validates jikan review payload shape', () => {
