@@ -20,9 +20,9 @@ const checkEpisodeCount = (anime, animeId) => {
   };
 };
 
-const checkReferentialIntegrity = (animeList = []) => {
+const checkReferentialIntegrity = (animeList = [], options = {}) => {
   const issues = [];
-  const uniqueIssues = validateUniqueIds(animeList);
+  const uniqueIssues = validateUniqueIds(animeList, options);
   issues.push(...uniqueIssues);
 
   animeList.forEach((anime, index) => {

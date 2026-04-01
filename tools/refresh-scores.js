@@ -9,6 +9,7 @@ const DEFAULT_DATA_PATH = path.join(__dirname, '..', 'data', 'anime.json');
 const DEFAULT_SAVE_INTERVAL = 25;
 const DEFAULT_MAL_DELAY_MS = 1200;
 const DEFAULT_JIKAN_DELAY_MS = 400;
+const DEFAULT_CONCURRENCY = 4;
 const MAX_RETRIES = 4;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -26,6 +27,7 @@ const parseArgs = (argv) => {
     saveInterval: DEFAULT_SAVE_INTERVAL,
     malDelayMs: DEFAULT_MAL_DELAY_MS,
     jikanDelayMs: DEFAULT_JIKAN_DELAY_MS,
+    concurrency: DEFAULT_CONCURRENCY,
     malIds: null
   };
 
@@ -52,6 +54,8 @@ const parseArgs = (argv) => {
       options.malDelayMs = Math.max(0, parseNumberArg(value, DEFAULT_MAL_DELAY_MS));
     } else if (key === 'jikan-delay-ms' && value) {
       options.jikanDelayMs = Math.max(0, parseNumberArg(value, DEFAULT_JIKAN_DELAY_MS));
+    } else if (key === 'concurrency' && value) {
+      options.concurrency = Math.max(1, parseNumberArg(value, DEFAULT_CONCURRENCY));
     } else if (key === 'mal-ids' && value) {
       const ids = value
         .split(',')
@@ -109,11 +113,54 @@ const parseEpisodeScores = (html) => {
   return episodes.sort((left, right) => left.episode - right.episode);
 };
 
+const sanitizeEpisodeList = (episodes) => {
+  if (!Array.isArray(episodes)) return [];
+
+  return episodes
+    .map((episode) => ({
+      episode: Number(episode?.episode),
+      score: Number(episode?.score)
+    }))
+    .filter((episode) => (
+      Number.isInteger(episode.episode) &&
+      episode.episode > 0 &&
+      Number.isFinite(episode.score) &&
+      episode.score >= 1 &&
+      episode.score <= 5
+    ))
+    .sort((left, right) => left.episode - right.episode);
+};
+
+class ServiceScheduler {
+  constructor(intervalMs) {
+    this.intervalMs = Math.max(0, Number(intervalMs) || 0);
+    this.nextRunAt = 0;
+    this.queue = Promise.resolve();
+  }
+
+  schedule(task) {
+    const run = async () => {
+      const waitMs = Math.max(0, this.nextRunAt - Date.now());
+      if (waitMs > 0) {
+        await sleep(waitMs);
+      }
+
+      this.nextRunAt = Date.now() + this.intervalMs;
+      return task();
+    };
+
+    const scheduled = this.queue.then(run, run);
+    this.queue = scheduled.catch(() => undefined);
+    return scheduled;
+  }
+}
+
 const episodesChanged = (existing, incoming) => {
-  if (!Array.isArray(existing) || existing.length !== incoming.length) return true;
+  const current = sanitizeEpisodeList(existing);
+  if (current.length !== incoming.length) return true;
   for (let i = 0; i < incoming.length; i += 1) {
-    if (existing[i]?.episode !== incoming[i].episode) return true;
-    if (existing[i]?.score !== incoming[i].score) return true;
+    if (current[i]?.episode !== incoming[i].episode) return true;
+    if (current[i]?.score !== incoming[i].score) return true;
   }
   return false;
 };
@@ -201,26 +248,34 @@ const main = async () => {
     console.log(`Mode: filtered MAL IDs (${options.malIds.size})`);
   }
   console.log(`Data path: ${path.relative(process.cwd(), options.dataPath)}`);
-  console.log(`MAL delay: ${options.malDelayMs}ms | Jikan delay: ${options.jikanDelayMs}ms | Save interval: ${options.saveInterval}`);
+  console.log(`MAL delay: ${options.malDelayMs}ms | Jikan delay: ${options.jikanDelayMs}ms | Save interval: ${options.saveInterval} | Concurrency: ${options.concurrency}`);
 
-  for (let i = 0; i < target.length; i += 1) {
-    const absoluteIndex = startIndex + i;
-    const { anime } = target[i];
+  const malScheduler = new ServiceScheduler(options.malDelayMs);
+  const jikanScheduler = new ServiceScheduler(options.jikanDelayMs);
+
+  const writeProgress = () => {
+    fs.writeFileSync(options.dataPath, `${JSON.stringify(root, null, 2)}\n`, 'utf8');
+  };
+
+  const processEntry = async ({ anime }, absoluteIndex, total) => {
     const malId = Number(getMalId(anime));
     const title = anime?.metadata?.title || anime?.title || `index-${absoluteIndex}`;
     const slug = getSlug(anime);
 
-    stats.processed += 1;
-
     if (!Number.isFinite(malId)) {
       stats.episodeErrors += 1;
       stats.scoreErrors += 1;
-      continue;
+      stats.processed += 1;
+      return;
     }
 
-    let nextCommunityScore = null;
-    try {
-      nextCommunityScore = await fetchCommunityScore(malId);
+    const [communityResult, episodesResult] = await Promise.allSettled([
+      jikanScheduler.schedule(() => fetchCommunityScore(malId)),
+      malScheduler.schedule(() => fetchEpisodeScores(malId, slug))
+    ]);
+
+    if (communityResult.status === 'fulfilled') {
+      const nextCommunityScore = communityResult.value;
       if (!anime.metadata || typeof anime.metadata !== 'object') anime.metadata = {};
       const previous = Number(anime.metadata.score);
       if (Number.isFinite(nextCommunityScore) && previous !== nextCommunityScore) {
@@ -229,46 +284,61 @@ const main = async () => {
       } else {
         stats.unchangedCommunityScore += 1;
       }
-    } catch (error) {
+    } else {
       stats.scoreErrors += 1;
-      console.error(`[${absoluteIndex + 1}/${target.length}] Score fetch failed for "${title}" (MAL ${malId}): ${error.message}`);
+      console.error(`[${absoluteIndex + 1}/${total}] Score fetch failed for "${title}" (MAL ${malId}): ${communityResult.reason?.message || communityResult.reason}`);
     }
 
-    if (options.jikanDelayMs > 0) {
-      await sleep(options.jikanDelayMs);
-    }
-
-    try {
-      const episodes = await fetchEpisodeScores(malId, slug);
+    if (episodesResult.status === 'fulfilled') {
+      const episodes = sanitizeEpisodeList(episodesResult.value);
+      const sanitizedExisting = sanitizeEpisodeList(anime.episodes);
       if (episodes.length > 0) {
-        const hasChanges = episodesChanged(anime.episodes, episodes);
+        const hasChanges = episodesChanged(sanitizedExisting, episodes);
         if (hasChanges) {
           anime.episodes = episodes;
+          stats.updatedEpisodes += 1;
+        } else if (!Array.isArray(anime.episodes) || anime.episodes.length !== sanitizedExisting.length) {
+          anime.episodes = sanitizedExisting;
           stats.updatedEpisodes += 1;
         } else {
           stats.unchangedEpisodes += 1;
         }
+      } else if (episodesChanged(anime.episodes, sanitizedExisting)) {
+        anime.episodes = sanitizedExisting;
+        stats.updatedEpisodes += 1;
       } else {
         stats.unchangedEpisodes += 1;
       }
-    } catch (error) {
+    } else {
       stats.episodeErrors += 1;
-      console.error(`[${absoluteIndex + 1}/${target.length}] Episode fetch failed for "${title}" (MAL ${malId}): ${error.message}`);
+      console.error(`[${absoluteIndex + 1}/${total}] Episode fetch failed for "${title}" (MAL ${malId}): ${episodesResult.reason?.message || episodesResult.reason}`);
     }
 
-    if (options.malDelayMs > 0) {
-      await sleep(options.malDelayMs);
-    }
+    stats.processed += 1;
 
     if (stats.processed % options.saveInterval === 0) {
-      fs.writeFileSync(options.dataPath, `${JSON.stringify(root, null, 2)}\n`, 'utf8');
-      console.log(`Saved progress: ${stats.processed}/${target.length}`);
+      writeProgress();
+      console.log(`Saved progress: ${stats.processed}/${total}`);
     } else if (stats.processed % 10 === 0) {
-      console.log(`Progress: ${stats.processed}/${target.length}`);
+      console.log(`Progress: ${stats.processed}/${total}`);
     }
-  }
+  };
 
-  fs.writeFileSync(options.dataPath, `${JSON.stringify(root, null, 2)}\n`, 'utf8');
+  let cursor = 0;
+  const workerCount = Math.min(options.concurrency, target.length || 1);
+
+  const worker = async () => {
+    while (cursor < target.length) {
+      const currentIndex = cursor;
+      cursor += 1;
+      const absoluteIndex = startIndex + currentIndex;
+      await processEntry(target[currentIndex], absoluteIndex, target.length);
+    }
+  };
+
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+
+  writeProgress();
 
   console.log('\nRefresh complete.');
   console.log(`Processed: ${stats.processed}`);

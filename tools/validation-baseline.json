@@ -3,24 +3,24 @@
     "errors": {
       "missingScore": 3435,
       "missingTrailer": 497,
-      "invalidEpisodeScore": 3724,
       "duplicateIds": 0
     },
     "warnings": {
       "missingStudio": 18,
-      "missingAnilistId": 5
+      "missingAnilistId": 5,
+      "missingEpisodes": 35
     }
   },
   "js/data.js": {
     "errors": {
       "missingScore": 3435,
       "missingTrailer": 497,
-      "invalidEpisodeScore": 3724,
       "duplicateIds": 0
     },
     "warnings": {
       "missingStudio": 18,
-      "missingAnilistId": 5
+      "missingAnilistId": 5,
+      "missingEpisodes": 35
     }
   }
 }

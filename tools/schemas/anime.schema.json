@@ -13,7 +13,15 @@
     "cover": { "type": "string", "minLength": 1 },
     "year": { "type": ["integer", "null"] },
     "season": { "type": "string" },
-    "studio": { "type": "string" },
+    "studio": {
+      "anyOf": [
+        { "type": "string" },
+        {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      ]
+    },
     "source": { "type": "string" },
     "type": { "type": "string" },
     "demographic": { "type": "string" },

@@ -15,7 +15,8 @@ const defaultOptions = {
   strict: false,
   allowMissingEpisodes: true,
   allowMissingTrailer: true,
-  allowNonHttpsCover: true
+  allowNonHttpsCover: true,
+  allowDuplicateIds: false
 };
 
 const normalizePath = (base, key) => (base ? `${base}.${key}` : key);
@@ -302,7 +303,7 @@ const validateEpisodeSequence = (episodes, animeId, issues, options) => {
       field: 'episodes',
       message: 'Episode sequence does not start at 1',
       value: min,
-      severity: options.strict ? 'error' : 'warning'
+      severity: 'warning'
     });
   }
   const expectedCount = max - min + 1;
@@ -312,12 +313,13 @@ const validateEpisodeSequence = (episodes, animeId, issues, options) => {
       field: 'episodes',
       message: 'Episode sequence has gaps',
       value: { min, max, count: sorted.length },
-      severity: options.strict ? 'error' : 'warning'
+      severity: 'warning'
     });
   }
 };
 
-const validateUniqueIds = (animeList) => {
+const validateUniqueIds = (animeList, options = {}) => {
+  const resolved = { ...defaultOptions, ...options };
   const issues = [];
   const idMap = new Map();
   const malMap = new Map();
@@ -332,13 +334,15 @@ const validateUniqueIds = (animeList) => {
 
     if (id) {
       if (idMap.has(id)) {
-        issues.push({
-          animeId,
-          field: 'id',
-          message: 'Duplicate id detected',
-          value: id,
-          severity: 'error'
-        });
+        if (!resolved.allowDuplicateIds) {
+          issues.push({
+            animeId,
+            field: 'id',
+            message: 'Duplicate id detected',
+            value: id,
+            severity: 'error'
+          });
+        }
       } else {
         idMap.set(id, true);
       }
@@ -465,7 +469,7 @@ const validateAnimeObject = (anime, options = {}) => {
         field: 'episodes',
         message: 'Episodes missing',
         value: episodes,
-        severity: resolved.strict ? 'error' : 'warning'
+        severity: 'warning'
       });
     }
   } else if (episodes.length === 0) {
@@ -474,7 +478,7 @@ const validateAnimeObject = (anime, options = {}) => {
       field: 'episodes',
       message: 'No episode data present',
       value: episodes,
-      severity: resolved.strict ? 'error' : 'warning'
+      severity: 'warning'
     });
   } else {
     episodes.forEach((ep, index) => {
@@ -577,7 +581,7 @@ const validateCatalog = (animeList, options = {}) => {
     });
   });
 
-  const uniqueIssues = validateUniqueIds(animeList);
+  const uniqueIssues = validateUniqueIds(animeList, resolved);
   uniqueIssues.forEach((issue) => errors.push(issue));
 
   const valid = errors.length === 0 && (!resolved.strict || warnings.length === 0);

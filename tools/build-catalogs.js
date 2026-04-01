@@ -276,18 +276,26 @@ const main = () => {
   const raw = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   const animeList = Array.isArray(raw.anime) ? raw.anime : [];
 
-  const validation = validateCatalog(animeList, { strict });
+  const validation = validateCatalog(animeList, { strict, allowDuplicateIds: true });
   logIssues('Validation errors', validation.errors);
   logIssues('Validation warnings', validation.warnings, { warnOnly: true });
 
-  if (!validation.valid && strict) {
+  if (validation.errors.length && strict) {
     throw new ValidationError('Build failed due to validation errors', {
       errorCount: validation.errors.length,
       warningCount: validation.warnings.length
     });
   }
 
-  const integrityIssues = checkReferentialIntegrity(animeList);
+  const normalized = animeList.map(normalizeAnime);
+  const { items: normalizedWithUniqueIds, collisions: idCollisions } = resolveUniqueAnimeIds(normalized);
+  logIssues('Resolved duplicate ids', idCollisions.map((entry) => ({
+    field: 'id',
+    animeId: entry.previousId,
+    message: `${entry.title} -> ${entry.nextId}`
+  })), { warnOnly: true });
+
+  const integrityIssues = checkReferentialIntegrity(normalizedWithUniqueIds);
   const integrityErrors = integrityIssues.filter(issue => issue.severity === 'error');
   const integrityWarnings = integrityIssues.filter(issue => issue.severity !== 'error');
 
@@ -300,13 +308,6 @@ const main = () => {
     });
   }
 
-  const normalized = animeList.map(normalizeAnime);
-  const { items: normalizedWithUniqueIds, collisions: idCollisions } = resolveUniqueAnimeIds(normalized);
-  logIssues('Resolved duplicate ids', idCollisions.map((entry) => ({
-    field: 'id',
-    animeId: entry.previousId,
-    message: `${entry.title} -> ${entry.nextId}`
-  })), { warnOnly: true });
   const scoreProfile = Stats.buildScoreProfile(normalizedWithUniqueIds);
 
   const fullCatalog = normalizedWithUniqueIds.map((anime, index) => {
