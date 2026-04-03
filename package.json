@@ -36,7 +36,9 @@
     "data:rollback": "node tools/deploy-data.js rollback"
   },
   "overrides": {
-    "rollup": "^4.59.0"
+    "rollup": "^4.59.0",
+    "brace-expansion": "^5.0.5",
+    "picomatch": "^4.0.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.1",
