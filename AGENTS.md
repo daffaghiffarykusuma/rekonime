@@ -7,6 +7,7 @@
 - For UI or design work (layouts, styling, components, or visual changes), also apply `skills/FRONTEND-DESIGN.md` and `skills/FRONTEND-RESPONSIVE-UI.md`.
 - Optimize for Lighthouse web audit standards under Slow 4G throttling and a Brave browser user profile.
 - Treat Performance, Accessibility, Best Practices, and SEO as non-negotiable quality gates.
+- For dependency or lockfile changes, run `npm.cmd audit` and `npm run -s check:security` locally before push; if a vulnerable version is installed, update `package.json` and `package-lock.json` together before finishing the task.
 
 ## Atom-of-Thought Protocol (Internal Only)
 - Decompose requirements into atomic, MECE units.
