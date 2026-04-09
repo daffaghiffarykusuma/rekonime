@@ -1,26 +1,26 @@
 {
   "data/anime.full.json": {
     "errors": {
-      "missingScore": 3435,
-      "missingTrailer": 497,
+      "missingScore": 3506,
+      "missingTrailer": 499,
       "duplicateIds": 0
     },
     "warnings": {
-      "missingStudio": 18,
-      "missingAnilistId": 5,
-      "missingEpisodes": 35
+      "missingStudio": 19,
+      "missingAnilistId": 6,
+      "missingEpisodes": 74
     }
   },
   "js/data.js": {
     "errors": {
-      "missingScore": 3435,
-      "missingTrailer": 497,
+      "missingScore": 3506,
+      "missingTrailer": 499,
       "duplicateIds": 0
     },
     "warnings": {
-      "missingStudio": 18,
-      "missingAnilistId": 5,
-      "missingEpisodes": 35
+      "missingStudio": 19,
+      "missingAnilistId": 6,
+      "missingEpisodes": 74
     }
   }
 }
