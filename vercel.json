@@ -1,7 +1,9 @@
 {
+  "redirects": [
+    { "source": "/home/", "destination": "/home", "permanent": true }
+  ],
   "rewrites": [
-    { "source": "/home", "destination": "/index.html" },
-    { "source": "/home/", "destination": "/index.html" }
+    { "source": "/home", "destination": "/index.html" }
   ],
   "headers": [
     {
