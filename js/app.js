@@ -2541,15 +2541,15 @@ const App = {
         const data = apiClient
           ? await apiClient.getJson(url, fetchOptions)
           : await (async () => {
-              const response = await fetch(url, fetchOptions);
-              if (!response.ok) {
-                const error = new Error(`HTTP ${response.status}`);
-                error.status = response.status;
-                error.response = response;
-                throw error;
-              }
-              return response.json();
-            })();
+            const response = await fetch(url, fetchOptions);
+            if (!response.ok) {
+              const error = new Error(`HTTP ${response.status}`);
+              error.status = response.status;
+              error.response = response;
+              throw error;
+            }
+            return response.json();
+          })();
 
         if (!this.isValidCatalogPayload(data)) {
           throw new Error('Invalid catalog payload');
@@ -2713,6 +2713,49 @@ const App = {
 
     if (rankings2) {
       rankings2.setAttribute('aria-busy', 'true');
+    }
+
+    this.renderDeferredUiLoadingState();
+  },
+
+  renderDeferredUiLoadingState() {
+    const genreContainer = document.getElementById('genre-chips');
+    const themeContainer = document.getElementById('theme-chips');
+    const seasonalContainer = document.getElementById('seasonal-chips');
+    const modeContainer = document.getElementById('mode-chips');
+
+    if (genreContainer) {
+      genreContainer.setAttribute('aria-busy', 'true');
+      setHTML(genreContainer, `
+        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
+        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
+        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
+      `);
+    }
+
+    if (themeContainer) {
+      themeContainer.setAttribute('aria-busy', 'true');
+      setHTML(themeContainer, `
+        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading themes</button>
+        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading themes</button>
+        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading themes</button>
+      `);
+    }
+
+    if (seasonalContainer) {
+      seasonalContainer.setAttribute('aria-busy', 'true');
+      setHTML(seasonalContainer, `
+        <button class="seasonal-chip" type="button" disabled aria-hidden="true">Loading seasonal picks</button>
+      `);
+    }
+
+    if (modeContainer) {
+      modeContainer.setAttribute('aria-busy', 'true');
+      setHTML(modeContainer, `
+        <button class="mode-chip" type="button" disabled aria-hidden="true">Loading options</button>
+        <button class="mode-chip" type="button" disabled aria-hidden="true">Loading options</button>
+        <button class="mode-chip" type="button" disabled aria-hidden="true">Loading options</button>
+      `);
     }
   },
 
@@ -4205,7 +4248,12 @@ const App = {
     };
 
     const renderGroup = (type, options, container) => {
-      if (!container || !options || options.length === 0) return;
+      if (!container) return;
+      if (!options || options.length === 0) {
+        container.replaceChildren();
+        container.removeAttribute('aria-busy');
+        return;
+      }
       const limit = limits[type] || 12;
       const state = this.quickFilterState[type] || { expanded: false };
       const expanded = type === 'genres' ? true : state.expanded;
@@ -4241,6 +4289,7 @@ const App = {
         : '';
 
       setHTML(container, `${chipsMarkup}${toggleMarkup}`);
+      container.removeAttribute('aria-busy');
     };
 
     renderGroup('genres', this.filterOptions.genres, genreContainer);
@@ -4437,64 +4486,64 @@ const App = {
       this.filteredData = this.animeData;
     } else {
       this.filteredData = this.animeData.filter(anime => {
-      // Check season-year filter
-      if (this.activeFilters.seasonYear.length > 0) {
-        const animeSeasonYear = `${anime.season} ${anime.year}`;
-        if (!this.activeFilters.seasonYear.includes(animeSeasonYear)) {
-          return false;
+        // Check season-year filter
+        if (this.activeFilters.seasonYear.length > 0) {
+          const animeSeasonYear = `${anime.season} ${anime.year}`;
+          if (!this.activeFilters.seasonYear.includes(animeSeasonYear)) {
+            return false;
+          }
         }
-      }
 
-      // Check year filter (independent of season)
-      if (this.activeFilters.year.length > 0) {
-        // Compare as strings since filter values are stored as strings
-        if (!this.activeFilters.year.includes(String(anime.year))) {
-          return false;
+        // Check year filter (independent of season)
+        if (this.activeFilters.year.length > 0) {
+          // Compare as strings since filter values are stored as strings
+          if (!this.activeFilters.year.includes(String(anime.year))) {
+            return false;
+          }
         }
-      }
 
-      // Check studio filter (OR logic within category, handle array studios)
-      if (this.activeFilters.studio.length > 0) {
-        const animeStudios = Array.isArray(anime.studio) ? anime.studio : [anime.studio];
-        const hasMatchingStudio = animeStudios.some(s => this.activeFilters.studio.includes(s));
-        if (!hasMatchingStudio) {
-          return false;
+        // Check studio filter (OR logic within category, handle array studios)
+        if (this.activeFilters.studio.length > 0) {
+          const animeStudios = Array.isArray(anime.studio) ? anime.studio : [anime.studio];
+          const hasMatchingStudio = animeStudios.some(s => this.activeFilters.studio.includes(s));
+          if (!hasMatchingStudio) {
+            return false;
+          }
         }
-      }
 
-      // Check source filter
-      if (this.activeFilters.source.length > 0) {
-        if (!this.activeFilters.source.includes(anime.source)) {
-          return false;
+        // Check source filter
+        if (this.activeFilters.source.length > 0) {
+          if (!this.activeFilters.source.includes(anime.source)) {
+            return false;
+          }
         }
-      }
 
-      // Check genres filter (anime must have ALL of the selected genres)
-      if (this.activeFilters.genres.length > 0) {
-        const hasAllGenres = anime.genres &&
-          this.activeFilters.genres.every(g => anime.genres.includes(g));
-        if (!hasAllGenres) {
-          return false;
+        // Check genres filter (anime must have ALL of the selected genres)
+        if (this.activeFilters.genres.length > 0) {
+          const hasAllGenres = anime.genres &&
+            this.activeFilters.genres.every(g => anime.genres.includes(g));
+          if (!hasAllGenres) {
+            return false;
+          }
         }
-      }
 
-      // Check themes filter (anime must have ALL of the selected themes)
-      if (this.activeFilters.themes.length > 0) {
-        const hasAllThemes = anime.themes &&
-          this.activeFilters.themes.every(t => anime.themes.includes(t));
-        if (!hasAllThemes) {
-          return false;
+        // Check themes filter (anime must have ALL of the selected themes)
+        if (this.activeFilters.themes.length > 0) {
+          const hasAllThemes = anime.themes &&
+            this.activeFilters.themes.every(t => anime.themes.includes(t));
+          if (!hasAllThemes) {
+            return false;
+          }
         }
-      }
 
-      // Check demographic filter
-      if (this.activeFilters.demographic.length > 0) {
-        if (!this.activeFilters.demographic.includes(anime.demographic)) {
-          return false;
+        // Check demographic filter
+        if (this.activeFilters.demographic.length > 0) {
+          if (!this.activeFilters.demographic.includes(anime.demographic)) {
+            return false;
+          }
         }
-      }
 
-      return true;
+        return true;
       });
     }
 
@@ -4577,9 +4626,10 @@ const App = {
 
     if (!Number.isFinite(shift) || shift === 0) return;
 
-    const clampedShift = Math.max(-120, Math.min(120, shift));
-    tooltip.style.setProperty('--tooltip-shift-x', `${clampedShift}px`);
-    tooltip.style.setProperty('--tooltip-arrow-shift-x', `${-clampedShift}px`);
+    const maxArrowShift = Math.max(0, (rect.width / 2) - 12);
+    const arrowShift = Math.max(-maxArrowShift, Math.min(maxArrowShift, -shift));
+    tooltip.style.setProperty('--tooltip-shift-x', `${shift}px`);
+    tooltip.style.setProperty('--tooltip-arrow-shift-x', `${arrowShift}px`);
   },
 
   scheduleDeferredFilterUi() {
@@ -4610,6 +4660,7 @@ const App = {
     const filters = Discovery.getSeasonalFilters(this.animeData);
     if (filters.length === 0) {
       container.replaceChildren();
+      container.removeAttribute('aria-busy');
       return;
     }
 
@@ -4626,6 +4677,7 @@ const App = {
         </button>
       `;
     }).join(''));
+    container.removeAttribute('aria-busy');
   },
 
   /**
@@ -4668,6 +4720,7 @@ const App = {
         </button>
       `;
     }).join(''));
+    container.removeAttribute('aria-busy');
 
     if (contextEl) {
       const nextContext = Recommendations.getModeContext(currentMode);

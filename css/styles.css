@@ -2703,7 +2703,7 @@ h4 {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   padding: 0.65rem 0.85rem;
-  max-width: 240px;
+  max-width: min(240px, calc(100vw - 16px));
   width: max-content;
   box-shadow: var(--shadow);
   z-index: 100;
@@ -3122,6 +3122,23 @@ h4 {
   background: var(--bg-secondary);
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.recommendation-stat {
+  display: inline-flex;
+  align-items: center;
+  overflow: visible;
+}
+
+.recommendation-stat .tooltip {
+  left: 0;
+  transform: translateX(var(--tooltip-shift-x));
+}
+
+.recommendation-stat .tooltip::after,
+.recommendation-stat .tooltip::before {
+  left: 1.5rem;
+  transform: translateX(var(--tooltip-arrow-shift-x));
 }
 
 .recommendation-reason {
