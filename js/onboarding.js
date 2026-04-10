@@ -104,69 +104,67 @@ const Onboarding = {
     const contents = {
       welcome: `
         <div class="onboarding-step">
-          <div class="onboarding-icon">🌸</div>
+          <div class="onboarding-icon" aria-hidden="true">R</div>
           <h2 class="onboarding-title">Welcome to Rekonime</h2>
           <p class="onboarding-description">
-            Find anime you'll actually finish. We analyze watch-through patterns to recommend 
-            shows that stay engaging from start to finish.
+            Rekonime helps you skip the filler and find anime that stays rewarding from the first episode to the finale.
           </p>
           <div class="onboarding-value-props">
             <div class="value-prop">
-              <span class="value-prop-icon">📊</span>
-              <span class="value-prop-text">Retention Scores predict completion</span>
+              <span class="value-prop-icon" aria-hidden="true">1</span>
+              <span class="value-prop-text">Finish Rate highlights which shows keep viewers invested</span>
             </div>
             <div class="value-prop">
-              <span class="value-prop-icon">⭐</span>
-              <span class="value-prop-text">Satisfaction from MAL community</span>
+              <span class="value-prop-icon" aria-hidden="true">2</span>
+              <span class="value-prop-text">Community scores reveal what viewers loved most</span>
             </div>
             <div class="value-prop">
-              <span class="value-prop-icon">🎯</span>
-              <span class="value-prop-text">Smart filtering by mood & genre</span>
+              <span class="value-prop-icon" aria-hidden="true">3</span>
+              <span class="value-prop-text">Mood-first filters help you find the right pick faster</span>
             </div>
           </div>
           <div class="onboarding-actions">
             <button class="btn btn-primary onboarding-primary" data-action="onboarding-next">
-              Take a quick tour
+              Show me around
             </button>
             <button class="btn btn-outline onboarding-secondary" data-action="onboarding-skip">
-              Start exploring
+              Skip to recommendations
             </button>
           </div>
         </div>
       `,
       retention: `
         <div class="onboarding-step">
-          <div class="onboarding-icon">📈</div>
-          <h2 class="onboarding-title">Understanding Retention Score</h2>
+          <div class="onboarding-icon" aria-hidden="true">R</div>
+          <h2 class="onboarding-title">What Finish Rate Tells You</h2>
           <p class="onboarding-description">
-            Our signature metric: a 0-100 scale measuring how consistently viewers 
-            watch through an entire series without dropping off.
+            Finish Rate is Rekonime's clearest signal for staying power: a 0 to 100 score that estimates how reliably a series keeps viewers watching.
           </p>
           <div class="onboarding-retention-demo">
             <div class="retention-demo-high">
               <div class="retention-demo-bar">
-                <progress class="retention-demo-progress" value="92" max="100" aria-label="High retention example"></progress>
+                <progress class="retention-demo-progress" value="92" max="100" aria-label="High Finish Rate example"></progress>
               </div>
               <div class="retention-demo-info">
                 <span class="retention-demo-score">92%</span>
-                <span class="retention-demo-label">High retention</span>
+                <span class="retention-demo-label">High Finish Rate</span>
               </div>
-              <p class="retention-demo-desc">Most viewers finish the whole series</p>
+              <p class="retention-demo-desc">A strong sign the series keeps delivering</p>
             </div>
             <div class="retention-demo-low">
               <div class="retention-demo-bar">
-                <progress class="retention-demo-progress is-low" value="45" max="100" aria-label="Low retention example"></progress>
+                <progress class="retention-demo-progress is-low" value="45" max="100" aria-label="Low Finish Rate example"></progress>
               </div>
               <div class="retention-demo-info">
                 <span class="retention-demo-score">45%</span>
-                <span class="retention-demo-label">Low retention</span>
+                <span class="retention-demo-label">Low Finish Rate</span>
               </div>
-              <p class="retention-demo-desc">Many viewers drop off early</p>
+              <p class="retention-demo-desc">Expect more drop-off before the ending</p>
             </div>
           </div>
           <div class="onboarding-actions">
             <button class="btn btn-primary onboarding-primary" data-action="onboarding-next">
-              Next: Satisfaction Score
+              Next: community score
             </button>
             <button class="btn btn-outline onboarding-secondary" data-action="onboarding-skip">
               Skip tour
@@ -176,11 +174,10 @@ const Onboarding = {
       `,
       satisfaction: `
         <div class="onboarding-step">
-          <div class="onboarding-icon">⭐</div>
-          <h2 class="onboarding-title">Understanding Satisfaction</h2>
+          <div class="onboarding-icon" aria-hidden="true">S</div>
+          <h2 class="onboarding-title">What Community Scores Add</h2>
           <p class="onboarding-description">
-            Community ratings from MyAnimeList (MAL), the world's largest anime database. 
-            This represents overall quality and enjoyment.
+            Community scores from MyAnimeList add the audience verdict: how strongly people rated the anime after they watched it.
           </p>
           <div class="onboarding-satisfaction-demo">
             <div class="satisfaction-example">
@@ -191,23 +188,23 @@ const Onboarding = {
             </div>
           </div>
           <div class="onboarding-two-scores">
-            <h3>Why two scores matter:</h3>
+            <h3>Why both signals matter</h3>
             <div class="two-scores-grid">
               <div class="score-box">
-                <span class="score-box-icon">📊</span>
-                <span class="score-box-title">Retention</span>
-                <span class="score-box-desc">Consistency — will you finish?</span>
+                <span class="score-box-icon" aria-hidden="true">R</span>
+                <span class="score-box-title">Finish Rate</span>
+                <span class="score-box-desc">Staying power: will it keep you watching?</span>
               </div>
               <div class="score-box">
-                <span class="score-box-icon">⭐</span>
+                <span class="score-box-icon" aria-hidden="true">S</span>
                 <span class="score-box-title">Satisfaction</span>
-                <span class="score-box-desc">Quality — is it actually good?</span>
+                <span class="score-box-desc">Audience payoff: did viewers think it delivered?</span>
               </div>
             </div>
           </div>
           <div class="onboarding-actions">
             <button class="btn btn-primary onboarding-primary" data-action="onboarding-next">
-              Next: Finding Anime
+              Next: finding your next watch
             </button>
             <button class="btn btn-outline onboarding-secondary" data-action="onboarding-skip">
               Skip tour
@@ -217,40 +214,40 @@ const Onboarding = {
       `,
       discovery: `
         <div class="onboarding-step">
-          <div class="onboarding-icon">🎯</div>
-          <h2 class="onboarding-title">Finding Your Next Watch</h2>
+          <div class="onboarding-icon" aria-hidden="true">Go</div>
+          <h2 class="onboarding-title">Find the Right Watch Faster</h2>
           <p class="onboarding-description">
-            Discover anime that matches your mood with powerful filtering and smart recommendations.
+            Use search, filters, and tailored recommendations to move from browsing to a confident pick faster.
           </p>
           <div class="onboarding-features">
             <div class="feature-item">
-              <span class="feature-icon">🔍</span>
+              <span class="feature-icon" aria-hidden="true">A</span>
               <div class="feature-info">
-                <span class="feature-title">Smart Search</span>
-                <span class="feature-desc">Find by English, Japanese, or romaji titles</span>
+                <span class="feature-title">Smarter search</span>
+                <span class="feature-desc">Search by English, Japanese, or romaji titles</span>
               </div>
             </div>
             <div class="feature-item">
-              <span class="feature-icon">🏷️</span>
+              <span class="feature-icon" aria-hidden="true">B</span>
               <div class="feature-info">
-                <span class="feature-title">Genre & Theme Filters</span>
-                <span class="feature-desc">Mix and match to find your vibe</span>
+                <span class="feature-title">Genre and theme filters</span>
+                <span class="feature-desc">Zero in on the exact vibe you want tonight</span>
               </div>
             </div>
             <div class="feature-item">
-              <span class="feature-icon">🔖</span>
+              <span class="feature-icon" aria-hidden="true">C</span>
               <div class="feature-info">
-                <span class="feature-title">Watchlist</span>
-                <span class="feature-desc">Track planned, watching, and completed shows</span>
+                <span class="feature-title">Progress tracking</span>
+                <span class="feature-desc">Save what to watch next and keep tabs on what you finish</span>
               </div>
             </div>
           </div>
           <div class="onboarding-actions">
             <button class="btn btn-primary onboarding-primary" data-action="onboarding-complete">
-              Start exploring
+              Start discovering
             </button>
             <button class="btn btn-outline onboarding-secondary" data-action="onboarding-restart">
-              Restart tour
+              Restart the tour
             </button>
           </div>
         </div>
@@ -286,8 +283,8 @@ const Onboarding = {
         </div>
         <div class="onboarding-progress">
           ${this.steps.map((_, index) => `
-            <button class="onboarding-indicator ${index === 0 ? 'is-active' : ''}" 
-                    data-action="onboarding-goto" 
+            <button class="onboarding-indicator ${index === 0 ? 'is-active' : ''}"
+                    data-action="onboarding-goto"
                     data-step="${index}"
                     aria-label="Go to step ${index + 1}">
             </button>

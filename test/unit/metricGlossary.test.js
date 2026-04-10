@@ -5,7 +5,7 @@ import { MetricGlossary } from '../../js/metricGlossary.js';
 test('MetricGlossary get returns definitions', () => {
   const def = MetricGlossary.get('retentionScore');
   assert.ok(def);
-  assert.equal(def.title.includes('Retention'), true);
+  assert.equal(def.title.includes('Finish Rate'), true);
 });
 
 test('MetricGlossary formatValue formats key types', () => {
@@ -28,5 +28,5 @@ test('MetricGlossary interpretValue returns scale match', () => {
 test('MetricGlossary getTooltip builds content', () => {
   const html = MetricGlossary.getTooltip('retentionScore', 80);
   assert.equal(typeof html, 'string');
-  assert.ok(html.includes('Retention'));
+  assert.ok(html.includes('Finish Rate'));
 });

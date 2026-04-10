@@ -63,7 +63,7 @@ const Charts = {
       average: { key: 'average', label: 'Average Score', max: 5, suffix: '', lowerIsBetter: false },
       auc: { key: 'auc', label: 'Overall Score', max: 100, suffix: '%', lowerIsBetter: false },
       consistency: { key: 'stdDev', label: 'Score Spread', max: 2, suffix: '', lowerIsBetter: true },
-      retention: { key: 'retentionScore', label: 'Retention Score', max: 100, suffix: '%', lowerIsBetter: false },
+      retention: { key: 'retentionScore', label: 'Finish Rate', max: 100, suffix: '%', lowerIsBetter: false },
       satisfaction: { key: 'malSatisfactionScore', label: 'Satisfaction Score (MAL)', max: 10, suffix: '/10', lowerIsBetter: false }
     };
     return metrics[sortKey] || { key: 'average', label: 'Average Score', max: 5, suffix: '', lowerIsBetter: false };
@@ -81,7 +81,7 @@ const Charts = {
       escapist: { key: 'comfortScore', label: 'Relaxation Score', max: 100, suffix: '%' },
       focuser: { key: 'productionQualityIndex', label: 'Quality Score', max: 100, suffix: '%' }
     };
-    return metrics[profile] || { key: 'retentionScore', label: 'Retention Score', max: 100, suffix: '%' };
+    return metrics[profile] || { key: 'retentionScore', label: 'Finish Rate', max: 100, suffix: '%' };
   },
 
   /**

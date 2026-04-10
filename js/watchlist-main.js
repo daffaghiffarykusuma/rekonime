@@ -27,11 +27,11 @@ const ALLOWED_IMAGE_HOSTS = [
   'images.weserv.nl'
 ];
 const WATCH_STATUS_OPTIONS = [
-  { value: '', label: 'Not tracking' },
-  { value: 'planned', label: 'Planned' },
-  { value: 'watching', label: 'Watching' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'dropped', label: 'Dropped' }
+  { value: '', label: 'Not saved' },
+  { value: 'planned', label: 'Want to watch' },
+  { value: 'watching', label: 'Watching now' },
+  { value: 'completed', label: 'Finished' },
+  { value: 'dropped', label: 'Stopped' }
 ];
 const IMAGE_PROXY_STATUS_KEY = 'rekonime.imageProxyStatus';
 const IMAGE_PROXY_STATUS_TTL_MS = 6 * 60 * 60 * 1000;
@@ -413,7 +413,7 @@ const buildWatchlistControls = (item, entry) => {
 
   const label = document.createElement('div');
   label.className = 'watchlist-controls-label';
-  label.textContent = 'Watch status';
+  label.textContent = 'Your watch status';
   wrapper.appendChild(label);
 
   const select = document.createElement('select');
@@ -441,7 +441,7 @@ const buildWatchlistControls = (item, entry) => {
 
   const progressLabel = document.createElement('span');
   progressLabel.className = 'watchlist-controls-progress-label';
-  progressLabel.textContent = 'Episode';
+  progressLabel.textContent = 'Episodes watched';
   progressWrap.appendChild(progressLabel);
 
   const stepper = document.createElement('div');
@@ -452,7 +452,7 @@ const buildWatchlistControls = (item, entry) => {
   dec.className = 'watchlist-controls-stepper-btn';
   dec.setAttribute('data-action', 'watch-progress-dec');
   dec.setAttribute('data-anime-id', item.id);
-  dec.setAttribute('aria-label', 'Decrease episode');
+  dec.setAttribute('aria-label', 'Decrease watched episodes');
   dec.textContent = '−';
 
   const input = document.createElement('input');
@@ -463,7 +463,7 @@ const buildWatchlistControls = (item, entry) => {
   input.setAttribute('data-action', 'watch-progress');
   input.setAttribute('data-anime-id', item.id);
   input.setAttribute('inputmode', 'numeric');
-  input.setAttribute('aria-label', 'Episode progress');
+  input.setAttribute('aria-label', 'Episodes watched');
   input.value = String(Number.isFinite(entry?.progress) ? entry.progress : 0);
 
   const total = document.createElement('span');
@@ -480,7 +480,7 @@ const buildWatchlistControls = (item, entry) => {
   inc.className = 'watchlist-controls-stepper-btn';
   inc.setAttribute('data-action', 'watch-progress-inc');
   inc.setAttribute('data-anime-id', item.id);
-  inc.setAttribute('aria-label', 'Increase episode');
+  inc.setAttribute('aria-label', 'Increase watched episodes');
   inc.textContent = '+';
 
   stepper.appendChild(dec);
@@ -549,11 +549,11 @@ const renderWatchlistFilters = (counts) => {
   const container = document.getElementById('watchlist-filter-chips');
   if (!container) return;
   const filters = [
-    { key: 'all', label: 'All' },
-    { key: 'planned', label: 'Planned' },
-    { key: 'watching', label: 'Watching' },
-    { key: 'completed', label: 'Completed' },
-    { key: 'dropped', label: 'Dropped' }
+    { key: 'all', label: 'All titles' },
+    { key: 'planned', label: 'Want to watch' },
+    { key: 'watching', label: 'Watching now' },
+    { key: 'completed', label: 'Finished' },
+    { key: 'dropped', label: 'Stopped' }
   ];
 
   setHTML(container, filters.map((filter) => {

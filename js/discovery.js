@@ -259,7 +259,7 @@ const Discovery = {
         if (this.hasSeason(animeList, current.seasonYear)) {
             filters.push({
                 key: 'current',
-                label: '🌸 This Season',
+                label: 'This season',
                 value: current.seasonYear,
                 highlight: true
             });
@@ -268,7 +268,7 @@ const Discovery = {
         if (this.hasSeason(animeList, previous.seasonYear)) {
             filters.push({
                 key: 'previous',
-                label: '🍂 Last Season',
+                label: 'Last season',
                 value: previous.seasonYear,
                 highlight: false
             });
@@ -277,7 +277,7 @@ const Discovery = {
         if (this.hasSeason(animeList, next.seasonYear)) {
             filters.push({
                 key: 'next',
-                label: '🌱 Next Season',
+                label: 'Next season',
                 value: next.seasonYear,
                 highlight: false
             });

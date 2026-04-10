@@ -5,23 +5,23 @@
   <meta charset="UTF-8">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rekonime - Find Anime You'll Actually Finish</title>
+  <title>Rekonime | Discover Anime You'll Want to Finish</title>
   <meta name="description"
-    content="Discover anime worth your time. Rekonime uses Retention and Satisfaction scores to find shows that stay engaging from start to finish.">
+    content="Discover anime worth starting and satisfying to finish. Rekonime blends finish-rate insights with community ratings to surface shows that stay rewarding from episode one to the finale.">
   <meta name="theme-color" content="#FFB7C5">
   <link rel="canonical" href="">
   <meta property="og:site_name" content="Rekonime">
-  <meta property="og:title" content="Rekonime - Find Anime You'll Actually Finish">
+  <meta property="og:title" content="Rekonime | Discover Anime You'll Want to Finish">
   <meta property="og:description"
-    content="Discover anime worth your time with two numbers you can trust: Retention Score for watch-through consistency, plus Satisfaction Score from MAL.">
+    content="Find anime that earns your time with finish-rate insights and trusted community scores that highlight strong starts, steady momentum, and satisfying payoffs.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="">
   <meta property="og:image" content="/favicon.svg">
   <meta property="og:image:alt" content="Rekonime logo">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Rekonime - Find Anime You'll Actually Finish">
+  <meta name="twitter:title" content="Rekonime | Discover Anime You'll Want to Finish">
   <meta name="twitter:description"
-    content="Discover anime worth your time with Retention and Satisfaction scores that help you find shows that stay engaging.">
+    content="Find anime that stays compelling from the first episode to the final one with finish-rate insights and trusted community ratings.">
   <meta name="twitter:image" content="/favicon.svg">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
@@ -471,21 +471,21 @@
   <main class="app-container" id="app-container">
     <header class="header">
       <a class="logo logo-link" href="/index.html" data-home-link data-action="home-shortcut"
-        aria-label="Rekonime home (clears filters)">
+        aria-label="Go to Rekonime home and clear filters">
         <div class="logo-icon" aria-hidden="true">R</div>
         <div class="logo-text">
           <span class="logo-title">Rekonime</span>
-          <span class="logo-tagline">Anime worth your time</span>
+          <span class="logo-tagline">Find stories you will want to finish</span>
         </div>
       </a>
       <div class="header-controls">
         <div class="header-search-wrapper">
           <form class="search-form" id="header-search-form" action="" method="GET" role="search">
             <input type="text" id="header-search" name="search" class="header-search-input"
-              placeholder="Search anime..." aria-label="Search anime" aria-autocomplete="list" aria-expanded="false"
+              placeholder="Search by title, genre, or theme" aria-label="Search anime titles, genres, or themes" aria-autocomplete="list" aria-expanded="false"
               aria-controls="header-search-dropdown" role="combobox" autocomplete="off">
             <noscript>
-              <button class="btn btn-sm btn-outline search-submit" type="submit">Search</button>
+              <button class="btn btn-sm btn-outline search-submit" type="submit">Search titles</button>
             </noscript>
           </form>
           <div class="header-search-dropdown" id="header-search-dropdown" role="listbox" aria-label="Search results">
@@ -493,9 +493,9 @@
           </div>
         </div>
         <button class="btn btn-sm btn-primary surprise-btn" id="surprise-toggle" type="button"
-          aria-label="Surprise me with a random anime" title="Surprise Me">
+          aria-label="Show me a surprise anime pick" title="Pick for Me">
           <span class="surprise-icon" aria-hidden="true">🎲</span>
-          <span class="surprise-label">Surprise Me</span>
+          <span class="surprise-label">Pick for Me</span>
         </button>
         <div class="header-sort">
           <label class="sort-label" for="sort-select">Sort</label>
@@ -504,18 +504,18 @@
           </div>
         </div>
         <div class="header-actions">
-          <button class="btn btn-sm btn-outline help-btn" id="help-toggle" type="button" aria-label="Open help and tour"
-            title="Help & Tour">
+          <button class="btn btn-sm btn-outline help-btn" id="help-toggle" type="button" aria-label="Open the quick tour and help"
+            title="Quick Tour">
             <span class="help-icon" aria-hidden="true">?</span>
-            <span class="help-label">Help</span>
+            <span class="help-label">Quick Tour</span>
           </button>
-          <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Filters</button>
-          <a class="btn btn-sm btn-outline watchlist-link" href="/watchlist.html" aria-label="View watchlist">Watchlist
+          <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Refine Results</button>
+          <a class="btn btn-sm btn-outline watchlist-link" href="/watchlist.html" aria-label="Open my watchlist">My Watchlist
             <span aria-hidden="true">&#9733;</span></a>
           <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button"
-            aria-label="Open settings" title="Settings">
+            aria-label="Open viewing preferences" title="Viewing Preferences">
             <span class="settings-icon" aria-hidden="true">&#9881;</span>
-            <span class="settings-label">Settings</span>
+            <span class="settings-label">Preferences</span>
           </button>
         </div>
       </div>
@@ -523,11 +523,11 @@
 
     <div class="active-filters is-empty" id="active-filters">
       <div class="active-filters-content">
-        <span class="active-filters-label" id="active-filters-label">Active filters</span>
+        <span class="active-filters-label" id="active-filters-label">Showing</span>
         <div class="active-filters-list" id="active-filters-list"></div>
       </div>
       <button class="btn btn-sm btn-outline active-filters-clear is-hidden" id="active-filters-clear" type="button">
-        Clear filters
+        Reset filters
       </button>
     </div>
 
@@ -540,23 +540,23 @@
         <span class="floating-petal petal-5">🌸</span>
       </div>
       <div class="discovery-garden-content">
-        <h3 class="discovery-title">Discover Your Next Journey</h3>
+        <h3 class="discovery-title">Find Your Next Favorite Faster</h3>
         <p class="discovery-subtitle">
-          Like cherry blossoms, great anime moments are fleeting but unforgettable.
-          Let us help you find your next favorite story.
+          Skip the endless scrolling. Rekonime highlights anime with strong momentum, satisfying payoffs,
+          and the kind of quality that keeps you watching.
         </p>
         <div class="discovery-tips">
           <div class="tip-card">
             <span class="tip-icon">📊</span>
-            <h4>Two Numbers Matter</h4>
-            <p>Retention = consistency. Satisfaction = quality.</p>
-            <button class="tip-cta" data-action="learn-scores">Learn more</button>
+            <h4>Choose with confidence</h4>
+            <p>Finish Rate shows staying power. Satisfaction shows how much viewers loved it.</p>
+            <button class="tip-cta" data-action="learn-scores">See how scoring works</button>
           </div>
           <div class="tip-card">
             <span class="tip-icon">🎭</span>
-            <h4>Filter by Mood</h4>
-            <p>Use Genre and Theme chips to find your vibe.</p>
-            <button class="tip-cta" data-action="scroll-to-filters">Try filters</button>
+            <h4>Match your mood</h4>
+            <p>Use genre and theme shortcuts to narrow the catalog in seconds.</p>
+            <button class="tip-cta" data-action="scroll-to-filters">Browse by mood</button>
           </div>
         </div>
       </div>
@@ -565,9 +565,9 @@
     <div class="quick-filters" id="quick-filters">
       <div class="quick-filters-tabs" role="tablist" aria-label="Quick filters">
         <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" role="tab"
-          id="quick-tab-genres" aria-selected="true" aria-controls="genre-chips" tabindex="0">Genre</button>
+          id="quick-tab-genres" aria-selected="true" aria-controls="genre-chips" tabindex="0">Genres</button>
         <button class="quick-tab" type="button" data-action="quick-tab" data-tab="themes" role="tab"
-          id="quick-tab-themes" aria-selected="false" aria-controls="theme-chips" tabindex="-1">Theme</button>
+          id="quick-tab-themes" aria-selected="false" aria-controls="theme-chips" tabindex="-1">Themes</button>
       </div>
       <div class="quick-filters-panel">
         <div class="quick-filters-track is-active" id="genre-chips" data-filter-group="genres" data-label="Genre"
@@ -582,7 +582,7 @@
     </div>
 
     <div class="seasonal-filters" id="seasonal-filters">
-      <div class="seasonal-filters-label">Seasonal:</div>
+      <div class="seasonal-filters-label">Seasonal picks:</div>
       <div class="seasonal-chips" id="seasonal-chips">
         <!-- Populated by JS -->
       </div>
@@ -591,17 +591,17 @@
     <section class="recommendations-section" id="recommendations-section">
       <div class="recommendations-header">
         <div>
-          <h2>Recommended for you</h2>
+          <h2>Best Bets for You</h2>
           <p class="section-subtitle" id="recommendations-context">
-            Retention-first picks blended with MAL satisfaction for more dependable recommendations.
+            Dependable picks ranked to balance strong finish rates with community approval.
           </p>
         </div>
-        <button class="help-link" data-action="explain-recommendations" aria-label="How we pick recommendations">
-          <span>How we pick these</span>
+        <button class="help-link" data-action="explain-recommendations" aria-label="Learn why these recommendations were selected">
+          <span>Why these made the cut</span>
         </button>
       </div>
       <div class="recommendation-modes" id="recommendation-modes">
-        <span class="modes-label">Discover by:</span>
+        <span class="modes-label">Tune recommendations:</span>
         <div class="mode-chips" id="mode-chips">
           <!-- Populated by JS -->
         </div>
@@ -618,7 +618,7 @@
 
     <section class="because-you-watched-section is-hidden" id="because-you-watched-section">
       <div class="byw-header">
-        <h2>Because You Watched</h2>
+        <h2>More Like What You Loved</h2>
         <div class="byw-seed" id="byw-seed">
           <!-- Populated by JS -->
         </div>
@@ -631,13 +631,13 @@
     <section class="trending-section" id="trending-section">
       <div class="trending-header">
         <div class="trending-title-group">
-          <h2>🔥 Trending Now</h2>
+          <h2>🔥 Trending Right Now</h2>
           <span class="trending-live-indicator">
             <span class="live-dot"></span>
             Live
           </span>
         </div>
-        <p class="section-subtitle">What's getting attention this week</p>
+        <p class="section-subtitle">Anime drawing the most attention this week</p>
       </div>
       <div class="trending-grid" id="trending-grid">
         <!-- Populated by JS -->
@@ -646,13 +646,13 @@
 
     <section class="rankings-section" id="rankings-section">
       <div class="ranking-card" id="ranking-card-1">
-        <h3 id="ranking-title-1">Top Retention</h3>
+        <h3 id="ranking-title-1">Best Finish Rate</h3>
         <div id="best-ranking-1">
           <div class="skeleton-card skeleton-ranking"></div>
         </div>
       </div>
       <div class="ranking-card" id="ranking-card-2">
-        <h3 id="ranking-title-2">Highest Satisfaction (MAL)</h3>
+        <h3 id="ranking-title-2">Most Loved by Viewers</h3>
         <div id="best-ranking-2">
           <div class="skeleton-card skeleton-ranking"></div>
         </div>
@@ -662,8 +662,8 @@
     <section class="grid-section" id="catalog-section">
       <div class="section-header">
         <div>
-          <h2>Browse the catalog</h2>
-          <p class="section-subtitle">Explore all titles, sorted by what matters to you.</p>
+          <h2>Explore Every Title</h2>
+          <p class="section-subtitle">Browse the full catalog and sort it around what matters most to you.</p>
         </div>
       </div>
       <div class="anime-grid" id="anime-grid">
@@ -685,8 +685,8 @@
           </style>
           <div class="no-js-catalog">
             <div class="no-js-notice">
-              <h3>JavaScript is required for the full Rekonime experience.</h3>
-              <p>Here are a few featured titles to get you started:</p>
+              <h3>Turn on JavaScript to unlock recommendations, filters, and watch tracking.</h3>
+              <p>Until then, here are a few featured titles to explore:</p>
             </div>
             <div class="no-js-cards">
               <article class="no-js-card">
@@ -694,7 +694,7 @@
                 <div class="no-js-card-body">
                   <h4>Bakusou Kyoudai Let's &amp; Go MAX</h4>
                   <p>1998 &bull; Xebec</p>
-                  <a href="/index.html?anime=bakusou-kyoudai-lets-go-max">View details</a>
+                  <a href="/index.html?anime=bakusou-kyoudai-lets-go-max">Open details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -702,7 +702,7 @@
                 <div class="no-js-card-body">
                   <h4>Q Transformers: Saranaru Ninki Mono e no Michi</h4>
                   <p>2015 &bull; DLE</p>
-                  <a href="/index.html?anime=q-transformers-saranaru-ninki-mono-e-no-michi">View details</a>
+                  <a href="/index.html?anime=q-transformers-saranaru-ninki-mono-e-no-michi">Open details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -710,7 +710,7 @@
                 <div class="no-js-card-body">
                   <h4>Tenkai Knights</h4>
                   <p>2014 &bull; Bones</p>
-                  <a href="/index.html?anime=tenkai-knights">View details</a>
+                  <a href="/index.html?anime=tenkai-knights">Open details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -718,7 +718,7 @@
                 <div class="no-js-card-body">
                   <h4>Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou</h4>
                   <p>2016 &bull; Production I.G</p>
-                  <a href="/index.html?anime=haikyuu-karasuno-koukou-vs-shiratorizawa-gakuen-koukou">View details</a>
+                  <a href="/index.html?anime=haikyuu-karasuno-koukou-vs-shiratorizawa-gakuen-koukou">Open details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -726,7 +726,7 @@
                 <div class="no-js-card-body">
                   <h4>Sousou no Frieren 2nd Season</h4>
                   <p>2026 &bull; Madhouse</p>
-                  <a href="/index.html?anime=sousou-no-frieren-2nd-season">View details</a>
+                  <a href="/index.html?anime=sousou-no-frieren-2nd-season">Open details</a>
                 </div>
               </article>
               <article class="no-js-card">
@@ -734,12 +734,12 @@
                 <div class="no-js-card-body">
                   <h4>Ashita no Joe 2</h4>
                   <p>1980 &bull; Tokyo Movie Shinsha</p>
-                  <a href="/index.html?anime=ashita-no-joe-2">View details</a>
+                  <a href="/index.html?anime=ashita-no-joe-2">Open details</a>
                 </div>
               </article>
             </div>
             <div class="no-js-links">
-              <span>Popular filters:</span>
+              <span>Popular shortcuts:</span>
               <a href="/index.html?genre=Action">Action</a>
               <a href="/index.html?genre=Drama">Drama</a>
               <a href="/index.html?genre=Fantasy">Fantasy</a>
@@ -765,8 +765,8 @@
     </section>
   </div>
 
-  <button class="filter-fab" id="filter-fab" type="button" data-action="scroll-to-filters" aria-label="Jump to filters">
-    Filters ↑
+  <button class="filter-fab" id="filter-fab" type="button" data-action="scroll-to-filters" aria-label="Jump to filters and sorting">
+    Refine ↑
   </button>
 
   <div class="modal-overlay filter-modal-overlay" id="filter-modal" hidden inert>
@@ -774,8 +774,8 @@
       tabindex="-1">
       <div class="filter-modal-header">
         <div>
-          <h2 class="filter-modal-title" id="filter-modal-title">Find your next watch</h2>
-          <p class="filter-modal-subtitle">Mix and match to narrow down what you're in the mood for.</p>
+          <h2 class="filter-modal-title" id="filter-modal-title">Refine your next great watch</h2>
+          <p class="filter-modal-subtitle">Combine genres, themes, studios, and seasons to surface the right pick faster.</p>
         </div>
         <button class="modal-close" id="close-filter-modal" type="button" aria-label="Close filters">&times;</button>
       </div>
@@ -784,8 +784,8 @@
           <!-- Populated by JS -->
         </div>
         <div class="filter-modal-actions">
-          <button class="btn btn-clear" id="clear-filters" type="button">Clear All</button>
-          <button class="btn btn-primary" id="apply-filters" type="button">Apply Filters</button>
+          <button class="btn btn-clear" id="clear-filters" type="button">Reset all</button>
+          <button class="btn btn-primary" id="apply-filters" type="button">Show matches</button>
         </div>
       </div>
     </div>
@@ -797,8 +797,8 @@
       <button class="modal-close" id="close-settings" type="button" aria-label="Close settings">&times;</button>
       <div class="settings-modal-body">
         <div class="settings-modal-header">
-          <h2 class="settings-modal-title" id="settings-modal-title">Settings</h2>
-          <p class="settings-modal-subtitle">Adjust playback and data usage.</p>
+          <h2 class="settings-modal-title" id="settings-modal-title">Viewing preferences</h2>
+          <p class="settings-modal-subtitle">Choose how Rekonime looks, moves, and uses data.</p>
         </div>
         <div id="settings-content"></div>
       </div>
@@ -820,7 +820,7 @@
   <div class="modal-overlay metric-help-overlay" id="metric-help-modal" hidden inert>
     <div class="modal-content metric-help-content" role="dialog" aria-modal="true" aria-labelledby="metric-help-title">
       <button class="modal-close" id="close-metric-help" type="button" aria-label="Close help">&times;</button>
-      <h2 class="visually-hidden" id="metric-help-title">Metric help</h2>
+      <h2 class="visually-hidden" id="metric-help-title">Score guide</h2>
       <div class="metric-help-body" id="metric-help-body">
         <!-- Populated by JS -->
       </div>
@@ -831,16 +831,16 @@
   <div class="offline-indicator" id="offline-indicator" role="status" aria-live="polite" hidden>
     <span class="offline-icon" aria-hidden="true">!</span>
     <div class="offline-content">
-      <span class="offline-title">You're offline</span>
-      <span class="offline-features">Checking offline features...</span>
+      <span class="offline-title">You are offline</span>
+      <span class="offline-features">Using saved data where available.</span>
     </div>
   </div>
 
   <!-- Update Notification -->
   <div class="update-notification" id="update-notification" role="alert" aria-live="polite" hidden>
     <span class="update-icon" aria-hidden="true">✨</span>
-    <span class="update-text">Update available! Refresh to get the latest version.</span>
-    <button class="update-btn" id="update-btn" type="button">Update Now</button>
+    <span class="update-text">A newer version of Rekonime is ready.</span>
+    <button class="update-btn" id="update-btn" type="button">Refresh now</button>
     <button class="update-dismiss" id="update-dismiss" type="button"
       aria-label="Dismiss update notification">&times;</button>
   </div>

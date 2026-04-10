@@ -9,9 +9,9 @@ const MetricGlossary = {
      */
     definitions: {
         retentionScore: {
-            title: 'Retention Score (0-100)',
-            shortDesc: 'How consistently viewers watch through the entire series',
-            fullDesc: 'Measures how likely you are to finish the entire series without dropping off. Based on episode-by-episode analysis of viewer behavior.',
+            title: 'Finish Rate (0-100)',
+            shortDesc: 'How likely viewers are to keep watching through the series',
+            fullDesc: 'Measures how likely you are to keep watching and finish the series without dropping off. Based on episode-by-episode analysis of viewer behavior.',
             components: [
                 { name: '3-Episode Hook', weight: '35%', desc: 'Opening strength and initial engagement' },
                 { name: 'Drop Safety', weight: '30%', desc: 'Low churn probability throughout' },

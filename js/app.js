@@ -772,11 +772,11 @@ const App = {
     const totalText = Number.isFinite(episodeCount) && episodeCount > 0 ? `of ${episodeCount}` : '';
 
     const options = [
-      { value: '', label: 'Not tracking' },
-      { value: 'planned', label: 'Planned' },
-      { value: 'watching', label: 'Watching' },
-      { value: 'completed', label: 'Completed' },
-      { value: 'dropped', label: 'Dropped' }
+      { value: '', label: 'Not saved' },
+      { value: 'planned', label: 'Want to watch' },
+      { value: 'watching', label: 'Watching now' },
+      { value: 'completed', label: 'Finished' },
+      { value: 'dropped', label: 'Stopped' }
     ];
 
     const optionsHtml = options.map((option) => {
@@ -787,26 +787,26 @@ const App = {
     return `
       <div class="detail-watchlist">
         <div class="detail-watchlist-label">
-          <span class="detail-watchlist-title">Watch status</span>
-          <span class="detail-watchlist-subtitle">Track your progress</span>
+          <span class="detail-watchlist-title">Your watch status</span>
+          <span class="detail-watchlist-subtitle">Save progress and pick up where you left off</span>
         </div>
         <div class="detail-watchlist-controls">
           <label class="watchlist-select-wrapper">
-            <span class="visually-hidden">Watch status</span>
+            <span class="visually-hidden">Choose your watch status</span>
             <select class="watchlist-select" id="watchlist-select" data-action="watch-status" data-anime-id="${safeId}">
               ${optionsHtml}
             </select>
           </label>
           <div class="watchlist-progress ${showProgress ? '' : 'is-hidden'}" id="watchlist-progress">
-            <span class="watchlist-progress-label">Episode</span>
+            <span class="watchlist-progress-label">Episodes watched</span>
             <div class="watchlist-progress-stepper">
-              <button class="watchlist-stepper" type="button" data-action="watch-progress-dec" data-anime-id="${safeId}" aria-label="Decrease episode">
+              <button class="watchlist-stepper" type="button" data-action="watch-progress-dec" data-anime-id="${safeId}" aria-label="Decrease watched episodes">
                 <span aria-hidden="true">−</span>
               </button>
               <input class="watchlist-progress-input" id="watchlist-progress-input" type="number" min="0" step="1" ${maxAttr}
-                value="${this.escapeAttr(String(progress))}" data-action="watch-progress" data-anime-id="${safeId}" inputmode="numeric" aria-label="Episode progress">
+                value="${this.escapeAttr(String(progress))}" data-action="watch-progress" data-anime-id="${safeId}" inputmode="numeric" aria-label="Episodes watched">
               <span class="watchlist-progress-total" id="watchlist-progress-total">${this.escapeHtml(totalText)}</span>
-              <button class="watchlist-stepper" type="button" data-action="watch-progress-inc" data-anime-id="${safeId}" aria-label="Increase episode">
+              <button class="watchlist-stepper" type="button" data-action="watch-progress-inc" data-anime-id="${safeId}" aria-label="Increase watched episodes">
                 <span aria-hidden="true">+</span>
               </button>
             </div>
@@ -2253,7 +2253,7 @@ const App = {
       } else {
         console.error('Failed to initialize app:', error);
       }
-      this.showError('We couldn\'t load the catalog. Try refreshing - if it persists, the data might be updating.');
+      this.showError('We could not load the catalog right now. Refresh to try again. If it still fails, the catalog may be updating.');
     }
   },
 
@@ -4755,7 +4755,7 @@ const App = {
           <div class="recommendation-info">
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
             <div class="recommendation-meta">
-              <span>Retention ${retention}</span>
+              <span>Finish Rate ${retention}</span>
               <span>MAL ${malScore}</span>
             </div>
             <div class="recommendation-reason">${this.escapeHtml(anime.reason || '')}</div>
@@ -4803,7 +4803,7 @@ const App = {
           <div class="trending-info">
             <div class="trending-title">${this.escapeHtml(anime.title)}</div>
             <div class="trending-meta">
-              ${anime.year || 'Unknown'} · Retention ${retention}
+              ${anime.year || 'Unknown'} · Finish Rate ${retention}
             </div>
           </div>
         </div>
@@ -4910,7 +4910,7 @@ const App = {
           <div class="card-badges"></div>
           <div class="card-stats"></div>
           <div class="retention-meter">
-            <progress class="retention-progress" value="0" max="100" aria-label="Retention score"></progress>
+            <progress class="retention-progress" value="0" max="100" aria-label="Finish Rate"></progress>
           </div>
           <div class="card-reason"></div>
         </div>
@@ -5186,7 +5186,7 @@ const App = {
       }).join('')}
             </div>
             <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-              <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Retention score"></progress>
+              <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Finish Rate"></progress>
             </div>
             <div class="card-reason">${safeReason}</div>
           </div>
@@ -5204,7 +5204,7 @@ const App = {
     const largeTextEnabled = Boolean(settings.largeText);
 
     const titleMarkup = includeTitle
-      ? '<div class="filter-section-title">Settings</div>'
+      ? '<div class="filter-section-title">Viewing preferences</div>'
       : '';
 
     const themeSelector = ThemeManager.renderThemeSelector();
@@ -5221,8 +5221,8 @@ const App = {
         <div class="settings-list">
           <label class="settings-row">
             <span class="settings-text">
-              <span class="settings-title">Trailer autoplay</span>
-              <span class="settings-description">Auto-starts trailers as you scroll. Default on desktop, off on mobile. When off, you can still press play.</span>
+              <span class="settings-title">Autoplay trailers</span>
+              <span class="settings-description">Start trailers automatically while browsing details. Enabled by default on desktop and off on mobile.</span>
             </span>
             <span class="settings-toggle">
               <input class="settings-toggle-input" type="checkbox" data-setting-key="trailerAutoplay" ${autoplayEnabled ? 'checked' : ''} aria-label="Toggle trailer autoplay">
@@ -5232,7 +5232,7 @@ const App = {
           <label class="settings-row">
             <span class="settings-text">
               <span class="settings-title">Data saver</span>
-              <span class="settings-description">Disables embedded trailers to save bandwidth. You will miss inline video previews and need to open YouTube.</span>
+              <span class="settings-description">Reduce data use by skipping embedded trailers. You can still open the trailer on YouTube when you want it.</span>
             </span>
             <span class="settings-toggle">
               <input class="settings-toggle-input" type="checkbox" data-setting-key="dataSaver" ${dataSaverEnabled ? 'checked' : ''} aria-label="Toggle data saver mode">
@@ -5247,7 +5247,7 @@ const App = {
           <label class="settings-row">
             <span class="settings-text">
               <span class="settings-title">Reduced motion</span>
-              <span class="settings-description">Disables animations, particle effects, and transitions for a calmer experience.</span>
+              <span class="settings-description">Reduce animations and motion effects for a calmer, easier-to-follow experience.</span>
             </span>
             <span class="settings-toggle">
               <input class="settings-toggle-input" type="checkbox" data-setting-key="reducedMotion" ${reducedMotionEnabled ? 'checked' : ''} aria-label="Toggle reduced motion">
@@ -5257,7 +5257,7 @@ const App = {
           <label class="settings-row">
             <span class="settings-text">
               <span class="settings-title">High contrast</span>
-              <span class="settings-description">Increases contrast for better visibility. Uses stronger borders and removes shadows.</span>
+              <span class="settings-description">Increase visual contrast with stronger edges and fewer decorative effects.</span>
             </span>
             <span class="settings-toggle">
               <input class="settings-toggle-input" type="checkbox" data-setting-key="highContrast" ${highContrastEnabled ? 'checked' : ''} aria-label="Toggle high contrast">
@@ -5267,7 +5267,7 @@ const App = {
           <label class="settings-row">
             <span class="settings-text">
               <span class="settings-title">Large text</span>
-              <span class="settings-description">Increases base font size for better readability.</span>
+              <span class="settings-description">Increase text size across the interface for easier reading.</span>
             </span>
             <span class="settings-toggle">
               <input class="settings-toggle-input" type="checkbox" data-setting-key="largeText" ${largeTextEnabled ? 'checked' : ''} aria-label="Toggle large text">
@@ -5280,7 +5280,7 @@ const App = {
         <div class="settings-row settings-row--note">
           <span class="settings-text">
             <span class="settings-title">Keyboard shortcuts</span>
-            <span class="settings-description">Press <kbd class="settings-kbd">?</kbd> anytime to see all keyboard shortcuts</span>
+            <span class="settings-description">Press <kbd class="settings-kbd">?</kbd> at any time to open the shortcut guide.</span>
           </span>
         </div>
       </div>
@@ -5312,7 +5312,7 @@ const App = {
 
     if (active.length === 0) {
       list.replaceChildren();
-      label.textContent = 'Active filters';
+      label.textContent = 'Showing';
       clearBtn.classList.add('is-hidden');
       container.classList.add('is-empty');
       emptyState.classList.remove('is-hidden');
@@ -5321,7 +5321,7 @@ const App = {
 
     container.classList.remove('is-empty');
     emptyState.classList.add('is-hidden');
-    label.textContent = `Active filters (${active.length})`;
+    label.textContent = `Showing (${active.length})`;
     clearBtn.classList.remove('is-hidden');
     setHTML(list, active.map(item => {
       const displayValue = String(item.value);
@@ -5369,8 +5369,8 @@ const App = {
       const hasEpisodes = episodeCount > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore ?? 0)}%` : 'N/A';
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
-      const retentionTooltipTitle = this.escapeHtml('Retention Score');
-      const retentionTooltipText = this.escapeHtml('How likely you are to finish. Based on strong starts, low drop-off risk, and consistent pacing.');
+      const retentionTooltipTitle = this.escapeHtml('Finish Rate');
+      const retentionTooltipText = this.escapeHtml('How likely you are to keep watching and finish. Based on strong starts, low drop-off risk, and consistent pacing.');
       const satisfactionTooltipTitle = this.escapeHtml('Satisfaction Score');
       const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
       const safeRetention = this.escapeHtml(retention);
@@ -5401,7 +5401,7 @@ const App = {
             <div class="recommendation-title">${safeTitle}</div>
             <div class="recommendation-meta">
               <span class="recommendation-stat has-tooltip" tabindex="0">
-                Retention ${safeRetention}
+                Finish Rate ${safeRetention}
                 <div class="tooltip tooltip--bottom" role="tooltip">
                   <div class="tooltip-title">${retentionTooltipTitle}</div>
                   <div class="tooltip-text">${retentionTooltipText}</div>
@@ -5509,7 +5509,7 @@ const App = {
         valueDisplay = `${score}%`;
         valueClass = Recommendations.getRetentionClass(score);
       }
-      labelDisplay = 'retention score';
+      labelDisplay = 'finish rate';
     } else if (metric === 'satisfaction') {
       if (Number.isFinite(anime.communityScore)) {
         valueDisplay = `${anime.communityScore.toFixed(1)}/10`;
@@ -6038,7 +6038,7 @@ const App = {
       <div class="similar-anime">
         <div class="detail-section-header">
           <h3>Similar Anime</h3>
-          <span class="detail-section-note">Shared genre + theme, aligned retention and satisfaction</span>
+          <span class="detail-section-note">Shared genre + theme, aligned finish rate and satisfaction</span>
         </div>
         ${similarResults.length > 0 ? `
           <div class="similar-grid">
@@ -6080,7 +6080,7 @@ const App = {
                       <span class="similar-tag">Themes: ${safeThemes}</span>
                     </div>
                     <div class="similar-stats">
-                      <span class="similar-stat ${retentionClass}">Retention ${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
+                      <span class="similar-stat ${retentionClass}">Finish Rate ${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
                       <span class="similar-stat ${satisfactionClass}">Satisfaction (MAL) ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
                     </div>
                   </div>
@@ -6180,9 +6180,9 @@ const App = {
       // Show error in modal
       setHTML(content, `
         <div class="error-message">
-          <h2>Anime Not Found</h2>
-          <p>We couldn't find the anime you're looking for.</p>
-          <button class="btn btn-primary detail-close-button" data-action="close-detail">Close</button>
+          <h2>That title is not available</h2>
+          <p>We could not find that anime in the current catalog.</p>
+          <button class="btn btn-primary detail-close-button" data-action="close-detail">Back to browsing</button>
         </div>
       `);
       reportModalOpened({ status: 'not_found' });
@@ -6296,10 +6296,10 @@ const App = {
           <div class="detail-stats">
             <div class="detail-stat has-tooltip" tabindex="0">
               <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
-              <span class="detail-stat-label">Retention Score</span>
+              <span class="detail-stat-label">Finish Rate</span>
               <div class="tooltip" role="tooltip">
-                <div class="tooltip-title">Retention Score</div>
-                <div class="tooltip-text">How consistently people keep watching across episodes. Factors in strong starts, low drop-off, and steady pacing.</div>
+                <div class="tooltip-title">Finish Rate</div>
+                <div class="tooltip-text">How reliably viewers keep watching through the series. Factors in strong starts, low drop-off, and steady pacing.</div>
               </div>
             </div>
             <div class="detail-stat has-tooltip" tabindex="0">
@@ -6363,7 +6363,7 @@ const App = {
           <div class="detail-section-header">
             <h3>Why it sticks</h3>
           </div>
-          <p class="detail-empty">No episode scores yet. Retention appears once episode scores are available.</p>
+          <p class="detail-empty">No episode scores yet. Finish Rate appears once episode scores are available.</p>
         </div>
       `}
       <div id="synopsis-section">
@@ -6821,7 +6821,7 @@ const App = {
       const safeMessage = this.escapeHtml(message);
       setHTML(container, `
         <div class="error-message">
-          <h2>Error</h2>
+          <h2>Something went wrong</h2>
           <p>${safeMessage}</p>
         </div>
       `);
@@ -6922,17 +6922,17 @@ const App = {
   showRecommendationsHelp() {
     const content = `
       <div class="recommendations-help">
-        <h3>How We Pick Recommendations</h3>
-        <p>Our recommendation algorithm balances two key factors:</p>
+        <h3>Why These Recommendations Stand Out</h3>
+        <p>Rekonime balances two signals to keep suggestions both useful and trustworthy:</p>
         <div class="help-factor">
-          <strong>Retention Score (60%)</strong>
-          <p>How likely you are to finish the series. Based on watch-through patterns.</p>
+          <strong>Finish Rate (60%)</strong>
+          <p>How likely a show is to keep viewers watching through the full run.</p>
         </div>
         <div class="help-factor">
           <strong>Satisfaction Score (40%)</strong>
-          <p>Community rating from MyAnimeList. Represents overall quality.</p>
+          <p>Community sentiment from MyAnimeList that reflects how strongly viewers rated it.</p>
         </div>
-        <p class="help-note">This combination helps find anime that's both engaging and high-quality.</p>
+        <p class="help-note">Together, they surface anime that is easier to stick with and more likely to pay off.</p>
       </div>
     `;
 
@@ -7140,9 +7140,9 @@ const App = {
       // Anime not found - show error in modal
       setHTML(content, `
         <div class="error-message">
-          <h2>Anime Not Found</h2>
-          <p>We couldn't find the anime you're looking for. It may have been removed or the ID is incorrect.</p>
-          <button class="btn btn-primary detail-close-button" data-action="close-detail">Go Back</button>
+          <h2>That title is not available</h2>
+          <p>We could not find that anime. The link may be outdated or the catalog may have changed.</p>
+          <button class="btn btn-primary detail-close-button" data-action="close-detail">Back to browsing</button>
         </div>
       `);
       return false;
@@ -7228,7 +7228,7 @@ const App = {
     }).join('')}
           </div>
           <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-            <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Retention score"></progress>
+            <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Finish Rate"></progress>
           </div>
           <div class="card-reason">${safeReason}</div>
         </div>

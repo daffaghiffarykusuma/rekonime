@@ -14,9 +14,9 @@ const FilterPresets = {
      */
     presets: {
         'binge-worthy': {
-            label: '🍿 Binge-Worthy',
-            description: 'High flow state, low stress spikes',
-            icon: '🍿',
+            label: 'Binge Ready',
+            description: 'Smooth pacing and fewer rough patches',
+            icon: 'B',
             sort: 'flowState',
             minRetention: 75,
             filterFn: (anime) => {
@@ -27,9 +27,9 @@ const FilterPresets = {
         },
 
         'critical-darlings': {
-            label: '⭐ Critical Darlings',
-            description: 'Top satisfaction scores from MAL',
-            icon: '⭐',
+            label: 'Critics and Fans Love',
+            description: 'Top community ratings on MyAnimeList',
+            icon: 'C',
             sort: 'satisfaction',
             minMalScore: 8.0,
             filterFn: (anime) => {
@@ -38,9 +38,9 @@ const FilterPresets = {
         },
 
         'hidden-gems': {
-            label: '💎 Hidden Gems',
-            description: 'High retention, lower MAL scores',
-            icon: '💎',
+            label: 'Overlooked Standouts',
+            description: 'Strong finish rates with less mainstream buzz',
+            icon: 'O',
             sort: 'retention',
             filterFn: (anime) => {
                 const stats = anime.stats;
@@ -50,9 +50,9 @@ const FilterPresets = {
         },
 
         'easy-watches': {
-            label: '😌 Easy Watches',
-            description: 'Low barrier to entry, comfortable',
-            icon: '😌',
+            label: 'Easy to Settle Into',
+            description: 'Comfortable picks with a gentle learning curve',
+            icon: 'E',
             sort: 'comfort',
             filterFn: (anime) => {
                 const stats = anime.stats;
@@ -65,9 +65,9 @@ const FilterPresets = {
         },
 
         'strong-starters': {
-            label: '🚀 Strong Starters',
-            description: 'Hook you in the first 3 episodes',
-            icon: '🚀',
+            label: 'Hooks You Fast',
+            description: 'Strong opening episodes that pull you in quickly',
+            icon: 'H',
             sort: 'retention',
             filterFn: (anime) => {
                 const stats = anime.stats;
@@ -77,9 +77,9 @@ const FilterPresets = {
         },
 
         'great-endings': {
-            label: '🏁 Great Endings',
-            description: 'Stick the landing',
-            icon: '🏁',
+            label: 'Great Payoffs',
+            description: 'Endings that feel worth the time investment',
+            icon: 'G',
             sort: 'retention',
             filterFn: (anime) => {
                 const stats = anime.stats;
@@ -153,7 +153,7 @@ const FilterPresets = {
               data-preset="${key}"
               title="${preset.description}">
         <span class="preset-icon">${preset.icon}</span>
-        <span class="preset-label">${preset.label.replace(/^\S+\s/, '')}</span>
+        <span class="preset-label">${preset.label}</span>
       </button>
     `;
     },
@@ -167,7 +167,7 @@ const FilterPresets = {
 
         return `
       <div class="filter-presets">
-        <span class="presets-label">Quick picks:</span>
+        <span class="presets-label">Curated shortcuts:</span>
         <div class="preset-chips">
           ${presets.map(p => this.renderPresetChip(p.key, p.key === activeKey)).join('')}
         </div>
@@ -183,13 +183,13 @@ const FilterPresets = {
 
         return `
       <div class="filter-section filter-section--presets">
-        <div class="filter-section-title">Quick Picks</div>
-        <p class="filter-section-hint">Jump-start your search with curated selections</p>
+        <div class="filter-section-title">Curated shortcuts</div>
+        <p class="filter-section-hint">Start with proven discovery paths instead of a blank slate.</p>
         <div class="preset-grid">
           ${presets.map(p => `
             <button class="preset-card" data-action="apply-preset" data-preset="${p.key}">
               <span class="preset-card-icon">${p.icon}</span>
-              <span class="preset-card-label">${p.label.replace(/^\S+\s/, '')}</span>
+              <span class="preset-card-label">${p.label}</span>
               <span class="preset-card-desc">${p.description}</span>
             </button>
           `).join('')}

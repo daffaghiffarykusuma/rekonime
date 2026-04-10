@@ -32,7 +32,7 @@ const Recommendations = {
   },
 
   /**
-   * Get recommended anime based on Retention Score with a satisfaction nudge (MAL)
+   * Get recommended anime based on finish likelihood with a satisfaction nudge (MAL)
    * @param {Array} animeList - Array of anime objects with stats
    * @param {number} limit - Maximum number of recommendations
    * @returns {Array} Array of recommended anime with reasons
@@ -167,20 +167,20 @@ const Recommendations = {
 
     if (!hasEpisodes) {
       if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) {
-        return 'Loved by the community';
+        return 'A clear community favorite';
       }
-      return 'New entry, check back soon';
+      return 'Fresh listing with more data coming soon';
     }
 
-    if (retentionScore !== null && retentionScore >= 85) reasons.push('Hard to put down');
-    if (churnRiskScore !== null && churnRiskScore <= 25) reasons.push('Viewers stick around');
-    if (hookScore !== null && hookScore >= 80) reasons.push('Hooks you early');
-    if (finishScore !== null && finishScore >= 70) reasons.push('Worth the finale');
-    if (flowScore !== null && flowScore >= 85) reasons.push('Smooth pacing');
-    if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) reasons.push('Community favorite');
+    if (retentionScore !== null && retentionScore >= 85) reasons.push('Easy to keep watching');
+    if (churnRiskScore !== null && churnRiskScore <= 25) reasons.push('Strong finish potential');
+    if (hookScore !== null && hookScore >= 80) reasons.push('Grabs you quickly');
+    if (finishScore !== null && finishScore >= 70) reasons.push('Pays off by the ending');
+    if (flowScore !== null && flowScore >= 85) reasons.push('Great episode-to-episode momentum');
+    if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) reasons.push('Widely praised by viewers');
 
     if (reasons.length === 0) {
-      return 'Reliable pick';
+      return 'A dependable next watch';
     }
 
     return reasons.slice(0, 2).join(' + ');
@@ -192,8 +192,8 @@ const Recommendations = {
    */
   getRankingTitles() {
     return {
-      title1: 'Top Retention',
-      title2: 'Highest Satisfaction (MAL)',
+      title1: 'Highest Finish Rate',
+      title2: 'Most Loved by Viewers',
       metric1: 'retention',
       metric2: 'satisfaction'
     };
@@ -205,8 +205,8 @@ const Recommendations = {
    */
   getSortOptions() {
     return [
-      { value: 'retention', label: 'Sort by: Retention Score' },
-      { value: 'satisfaction', label: 'Sort by: Satisfaction Score (MAL)' }
+      { value: 'retention', label: 'Best chance you will finish' },
+      { value: 'satisfaction', label: 'Highest community rating' }
     ];
   },
 
@@ -223,16 +223,16 @@ const Recommendations = {
     const hookScore = Number.isFinite(anime?.stats?.threeEpisodeHook) ? anime.stats.threeEpisodeHook : null;
 
     if (hasEpisodes && retentionScore !== null && retentionScore >= 85) {
-      badges.push({ label: 'Keeps You Hooked', class: 'badge-retention' });
+      badges.push({ label: 'Hard to stop watching', class: 'badge-retention' });
     }
     if (malSatisfactionScore !== null && malSatisfactionScore >= 8.5) {
-      badges.push({ label: 'Fan Favorite', class: 'badge-satisfaction' });
+      badges.push({ label: 'Viewer favorite', class: 'badge-satisfaction' });
     }
     if (hasEpisodes && hookScore !== null && hookScore >= 80) {
-      badges.push({ label: 'Great First Impression', class: 'badge-strong-start' });
+      badges.push({ label: 'Strong opening episodes', class: 'badge-strong-start' });
     }
     if (hasEpisodes && retentionScore !== null && retentionScore >= 80 && (malSatisfactionScore === null || malSatisfactionScore < 7.2)) {
-      badges.push({ label: 'Underrated Pick', class: 'badge-hidden-gem' });
+      badges.push({ label: 'Underrated standout', class: 'badge-hidden-gem' });
     }
 
     return badges.slice(0, 2);
@@ -253,23 +253,23 @@ const Recommendations = {
 
     return [
       {
-        label: 'Retention',
+        label: 'Finish Rate',
         value: retentionScore !== null ? retentionScore : 'N/A',
         suffix: retentionScore !== null ? '%' : '',
         class: this.getRetentionClass(retentionScore),
         tooltip: {
-          title: 'Retention Score',
-          text: 'How consistently people keep watching across episodes.'
+          title: 'Finish Rate',
+          text: 'How reliably a show keeps viewers watching all the way through.'
         }
       },
       {
-        label: 'Satisfaction (MAL)',
+        label: 'Community Score',
         value: malSatisfactionScore !== null ? malSatisfactionScore.toFixed(1) : 'N/A',
         suffix: malSatisfactionScore !== null ? '/10' : '',
         class: this.getMalSatisfactionClass(malSatisfactionScore),
         tooltip: {
-          title: 'Satisfaction Score',
-          text: 'Community rating from MyAnimeList.'
+          title: 'Community Score',
+          text: 'Audience rating from MyAnimeList.'
         }
       },
       {
@@ -319,9 +319,9 @@ const Recommendations = {
   },
 
   /**
-   * Get retention score if available
+   * Get finish-rate source score if available
    * @param {Object} anime - Anime object
-   * @returns {number|null} Retention score
+   * @returns {number|null} Finish-rate source score
    */
   getRetentionScore(anime) {
     const hasEpisodes = this.getEpisodeCount(anime) > 0;
@@ -413,8 +413,8 @@ const Recommendations = {
   },
 
   /**
-   * Map Retention Score to CSS class
-   * @param {number|null} value - Retention score
+   * Map finish-rate score to CSS class
+   * @param {number|null} value - Finish-rate score
    * @returns {string} CSS class name
    */
   getRetentionClass(value) {
@@ -448,33 +448,33 @@ const Recommendations = {
   modes: {
     balanced: {
       label: 'Balanced',
-      description: 'Best of both worlds',
+      description: 'Strong finishability with broad audience approval',
       icon: '⚖️',
       weights: { retention: 0.75, satisfaction: 0.25 }
     },
     binge: {
       label: 'Binge Mode',
-      description: 'High retention, hard to stop watching',
+      description: 'Fast hooks and momentum that keep you going',
       icon: '🔥',
       weights: { retention: 0.9, satisfaction: 0.1 },
       boosters: ['flowState', 'threeEpisodeHook']
     },
     quality: {
       label: 'Critical Acclaim',
-      description: 'Highest community ratings',
+      description: 'Led by top audience scores',
       icon: '⭐',
       weights: { retention: 0.3, satisfaction: 0.7 }
     },
     discovery: {
       label: 'Hidden Gems',
-      description: 'High retention, lower popularity',
+      description: 'Excellent staying power with less mainstream attention',
       icon: '💎',
       weights: { retention: 0.8, satisfaction: 0.2 },
       filter: (anime) => (anime.communityScore || 0) < 7.8
     },
     comfort: {
       label: 'Comfort Shows',
-      description: 'Easy to watch, low stress',
+      description: 'Relaxed picks that are easy to settle into',
       icon: '😌',
       weights: { retention: 0.6, satisfaction: 0.4 },
       boosters: ['comfortScore'],
@@ -583,21 +583,21 @@ const Recommendations = {
 
     switch (modeKey) {
       case 'binge':
-        if (stats?.flowState >= 85) return 'Flows perfectly - hard to pause';
-        if (stats?.threeEpisodeHook >= 85) return 'Hooks you immediately';
-        return 'Built for binge-watching';
+        if (stats?.flowState >= 85) return 'Built for long watch sessions';
+        if (stats?.threeEpisodeHook >= 85) return 'Hooks you almost immediately';
+        return 'A strong binge candidate';
 
       case 'quality':
-        if (anime.communityScore >= 8.5) return 'Critically acclaimed';
-        return 'Highly rated by the community';
+        if (anime.communityScore >= 8.5) return 'One of the strongest audience favorites';
+        return 'Backed by a standout community score';
 
       case 'discovery':
-        if (stats?.retentionScore >= 85) return 'Underappreciated gem';
-        return 'Worth more attention';
+        if (stats?.retentionScore >= 85) return 'An overlooked show with serious staying power';
+        return 'Deserves far more attention';
 
       case 'comfort':
-        if (stats?.comfortScore >= 80) return 'Perfect comfort viewing';
-        return 'Easy, enjoyable watching';
+        if (stats?.comfortScore >= 80) return 'An especially easy, cozy watch';
+        return 'Low-friction viewing for a relaxed session';
 
       default:
         return this.getRecommendationReason(anime);
@@ -609,11 +609,11 @@ const Recommendations = {
    */
   getModeContext(modeKey = this.currentMode) {
     const contexts = {
-      balanced: 'Retention-first picks blended with MAL satisfaction for more dependable recommendations.',
-      binge: 'Shows that are hard to stop watching - high flow state and strong hooks.',
-      quality: 'Top-rated by the community - focus on critical acclaim and satisfaction.',
-      discovery: 'Hidden gems with high retention but lower mainstream popularity.',
-      comfort: 'Easy, stress-free shows perfect for relaxing and unwinding.'
+      balanced: 'Balanced picks that combine strong staying power with trusted audience approval.',
+      binge: 'Momentum-heavy shows that make it easy to keep watching one more episode.',
+      quality: 'Audience-loved titles led by standout community ratings.',
+      discovery: 'Less obvious picks with impressive staying power and upside.',
+      comfort: 'Relaxed, lower-stress shows that are easy to sink into.'
     };
     return contexts[modeKey] || contexts.balanced;
   },
@@ -713,27 +713,27 @@ const Recommendations = {
 
     // High similarity
     if (similarityScore >= 0.7 && sharedGenres.length >= 2) {
-      return `Very similar to ${seedAnime.title}`;
+      return `A close match to what you liked about ${seedAnime.title}`;
     }
 
     // Genre-focused
     if (sharedGenres.length >= 2 && sharedThemes.length === 0) {
       const genres = sharedGenres.slice(0, 2).join(' + ');
-      return `Same ${genres} vibes as ${seedAnime.title}`;
+      return `Carries the same ${genres} energy as ${seedAnime.title}`;
     }
 
     // Theme-focused
     if (sharedThemes.length >= 2 && sharedGenres.length === 0) {
       const themes = sharedThemes.slice(0, 2).join(' + ');
-      return `${themes} like ${seedAnime.title}`;
+      return `Shares the ${themes} appeal of ${seedAnime.title}`;
     }
 
     // Mixed
     if (sharedGenres.length > 0 && sharedThemes.length > 0) {
-      return `Fans of ${seedAnime.title} also enjoy`;
+      return `A strong follow-up for fans of ${seedAnime.title}`;
     }
 
-    return `Because you watched ${seedAnime.title}`;
+    return `Recommended because you watched ${seedAnime.title}`;
   }
 };
 

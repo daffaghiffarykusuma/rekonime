@@ -39,14 +39,14 @@ test('combineAlignmentScores returns weighted average', () => {
 
 test('getRecommendationReason handles missing episodes with high community score', () => {
   const anime = baseAnime({ episodes: [], stats: {} });
-  assert.equal(Recommendations.getRecommendationReason(anime), 'Loved by the community');
+  assert.equal(Recommendations.getRecommendationReason(anime), 'A clear community favorite');
 });
 
 test('getBadges returns at most two badges', () => {
   const badges = Recommendations.getBadges(baseAnime());
   assert.equal(badges.length, 2);
-  assert.equal(badges[0].label, 'Keeps You Hooked');
-  assert.equal(badges[1].label, 'Fan Favorite');
+  assert.equal(badges[0].label, 'Hard to stop watching');
+  assert.equal(badges[1].label, 'Viewer favorite');
 });
 
 test('getSimilarAnime returns empty when base themes missing', () => {

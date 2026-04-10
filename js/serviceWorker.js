@@ -108,9 +108,9 @@ const ServiceWorkerManager = {
             updateBanner.id = 'sw-update-banner';
             updateBanner.className = 'sw-update-banner';
             setHTML(updateBanner, `
-      <span class="sw-update-message">Update available!</span>
-      <button class="sw-update-btn" id="sw-update-btn">Update Now</button>
-      <button class="sw-update-dismiss" id="sw-dismiss-btn">Later</button>
+      <span class="sw-update-message">A newer version of Rekonime is ready.</span>
+      <button class="sw-update-btn" id="sw-update-btn">Refresh now</button>
+      <button class="sw-update-dismiss" id="sw-dismiss-btn">Dismiss</button>
     `);
             document.body.appendChild(updateBanner);
         }
@@ -170,7 +170,7 @@ const ServiceWorkerManager = {
             indicator.id = 'offline-indicator';
             indicator.className = 'offline-indicator';
             indicator.setAttribute('hidden', '');
-            setHTML(indicator, "<span class=\"offline-icon\" aria-hidden=\"true\">!</span><div class=\"offline-content\"><span class=\"offline-title\">You're offline</span><span class=\"offline-features\">Checking offline features...</span></div>");
+            setHTML(indicator, "<span class=\"offline-icon\" aria-hidden=\"true\">!</span><div class=\"offline-content\"><span class=\"offline-title\">You are offline</span><span class=\"offline-features\">Using saved data where available.</span></div>");
             document.body.appendChild(indicator);
         }
 
@@ -268,7 +268,7 @@ const ServiceWorkerManager = {
         setHTML(target, `
       <span class="offline-icon" aria-hidden="true">!</span>
       <div class="offline-content">
-        <span class="offline-title">You're offline</span>
+        <span class="offline-title">You are offline</span>
         <span class="offline-features">${features}</span>
       </div>
     `);
