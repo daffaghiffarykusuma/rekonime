@@ -13,7 +13,9 @@ const REQUIRED_HEADERS = [
 const REQUIRED_CSP_TOKENS = [
   "default-src 'self'",
   "object-src 'none'",
-  "frame-ancestors 'none'"
+  "frame-ancestors 'none'",
+  "trusted-types rekonime-html",
+  "require-trusted-types-for 'script'"
 ];
 
 const main = () => {

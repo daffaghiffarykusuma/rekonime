@@ -12,6 +12,7 @@ import {
   normalizeWatchStatus,
   normalizeWatchProgress
 } from './watchlist-state.js';
+import { setHTML } from './security/trusted-types.js';
 import './bootstrap/watchlist-cover-preload.js';
 import './bootstrap/noncritical-styles.js';
 
@@ -555,7 +556,7 @@ const renderWatchlistFilters = (counts) => {
     { key: 'dropped', label: 'Dropped' }
   ];
 
-  container.innerHTML = filters.map((filter) => {
+  setHTML(container, filters.map((filter) => {
     const isActive = currentWatchlistFilter === filter.key;
     const count = Number.isFinite(counts[filter.key]) ? counts[filter.key] : 0;
     return `
@@ -565,7 +566,7 @@ const renderWatchlistFilters = (counts) => {
         <span class="chip-count">${count}</span>
       </button>
     `;
-  }).join('');
+  }).join(''));
 };
 
 const filterWatchlistByStatus = (entries) => {
@@ -671,7 +672,7 @@ const renderWatchlist = () => {
 
   if (!entries.length) {
     section.classList.add('is-empty');
-    grid.innerHTML = '';
+    grid.replaceChildren();
     return;
   }
 

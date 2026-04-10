@@ -1,4 +1,5 @@
 import { CacheManager } from './services/cache-manager.js';
+import { setHTML } from './security/trusted-types.js';
 
 /**
  * Keyboard Shortcuts System for Rekonime
@@ -105,10 +106,10 @@ const KeyboardShortcuts = {
                 hint.className = 'keyboard-hint';
                 hint.setAttribute('role', 'status');
                 hint.setAttribute('aria-live', 'polite');
-                hint.innerHTML = `
+                setHTML(hint, `
           <span class="keyboard-hint-text">Press <kbd>?</kbd> for keyboard shortcuts</span>
           <button class="keyboard-hint-close" aria-label="Dismiss hint">&times;</button>
-        `;
+        `);
 
                 document.body.appendChild(hint);
 
@@ -265,7 +266,7 @@ const KeyboardShortcuts = {
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-labelledby', 'shortcuts-modal-title');
 
-        modal.innerHTML = `
+        setHTML(modal, `
       <div class="modal-content shortcuts-modal-content">
         <button class="modal-close" id="close-shortcuts" type="button" aria-label="Close keyboard shortcuts">
           &times;
@@ -296,7 +297,7 @@ const KeyboardShortcuts = {
           </div>
         </div>
       </div>
-    `;
+    `);
 
         document.body.appendChild(modal);
         document.body.classList.add('is-scroll-locked');

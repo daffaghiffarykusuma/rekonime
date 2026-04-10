@@ -4,6 +4,7 @@
  */
 
 import { Logger } from './services/logger.js';
+import { setHTML } from './security/trusted-types.js';
 
 const ServiceWorkerManager = {
     registration: null,
@@ -106,11 +107,11 @@ const ServiceWorkerManager = {
             updateBanner = document.createElement('div');
             updateBanner.id = 'sw-update-banner';
             updateBanner.className = 'sw-update-banner';
-            updateBanner.innerHTML = `
+            setHTML(updateBanner, `
       <span class="sw-update-message">Update available!</span>
       <button class="sw-update-btn" id="sw-update-btn">Update Now</button>
       <button class="sw-update-dismiss" id="sw-dismiss-btn">Later</button>
-    `;
+    `);
             document.body.appendChild(updateBanner);
         }
 
@@ -169,7 +170,7 @@ const ServiceWorkerManager = {
             indicator.id = 'offline-indicator';
             indicator.className = 'offline-indicator';
             indicator.setAttribute('hidden', '');
-            indicator.innerHTML = "<span class=\"offline-icon\" aria-hidden=\"true\">!</span><div class=\"offline-content\"><span class=\"offline-title\">You're offline</span><span class=\"offline-features\">Checking offline features...</span></div>";
+            setHTML(indicator, "<span class=\"offline-icon\" aria-hidden=\"true\">!</span><div class=\"offline-content\"><span class=\"offline-title\">You're offline</span><span class=\"offline-features\">Checking offline features...</span></div>");
             document.body.appendChild(indicator);
         }
 
@@ -264,13 +265,13 @@ const ServiceWorkerManager = {
         if (!target) return;
         const capabilities = await this.getOfflineCapabilities();
         const features = this.formatOfflineFeatures(capabilities);
-        target.innerHTML = `
+        setHTML(target, `
       <span class="offline-icon" aria-hidden="true">!</span>
       <div class="offline-content">
         <span class="offline-title">You're offline</span>
         <span class="offline-features">${features}</span>
       </div>
-    `;
+    `);
     },
 
     /**

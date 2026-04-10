@@ -1,5 +1,6 @@
 import { CacheManager } from './services/cache-manager.js';
 import { AnalyticsService } from './services/analytics-service.js';
+import { setHTML } from './security/trusted-types.js';
 
 /**
  * Onboarding system for first-time users
@@ -87,7 +88,7 @@ const Onboarding = {
     const indicators = document.querySelectorAll('.onboarding-indicator');
 
     if (contentEl) {
-      contentEl.innerHTML = content;
+      setHTML(contentEl, content);
       this.attachStepListeners();
     }
 
@@ -274,7 +275,7 @@ const Onboarding = {
     modal.className = 'onboarding-overlay';
     modal.setAttribute('aria-hidden', 'false');
 
-    modal.innerHTML = `
+    setHTML(modal, `
       <div class="onboarding-backdrop" data-action="onboarding-backdrop"></div>
       <div class="onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
         <button class="onboarding-close" data-action="onboarding-skip" aria-label="Close tour">
@@ -293,7 +294,7 @@ const Onboarding = {
           `).join('')}
         </div>
       </div>
-    `;
+    `);
 
     document.body.appendChild(modal);
 

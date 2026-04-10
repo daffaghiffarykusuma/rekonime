@@ -21,6 +21,11 @@ import {
   resolveTrustedTrailerMessageOrigin
 } from './security/trailer-url-policy.js';
 import {
+  setHTML,
+  insertHTML,
+  replaceOuterHTML
+} from './security/trusted-types.js';
+import {
   isProxyImageUrl as isSharedProxyImageUrl,
   buildImageProxyUrl as buildSharedImageProxyUrl
 } from './image-proxy.js';
@@ -613,12 +618,40 @@ const App = {
   },
 
   decodeHtmlEntities(value) {
-    if (typeof document === 'undefined') {
-      return String(value ?? '');
+    if (!value) return '';
+    const named = {
+      amp: '&',
+      lt: '<',
+      gt: '>',
+      quot: '"',
+      apos: '\'',
+      nbsp: ' ',
+      rsquo: '\'',
+      lsquo: '\'',
+      ldquo: '"',
+      rdquo: '"',
+      mdash: '-',
+      ndash: '-',
+      hellip: '...'
+    };
+
+    let decoded = String(value);
+    for (let i = 0; i < 2; i += 1) {
+      decoded = decoded
+        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+          const code = Number.parseInt(hex, 16);
+          return Number.isFinite(code) ? String.fromCharCode(code) : _;
+        })
+        .replace(/&#(\d+);/g, (_, num) => {
+          const code = Number.parseInt(num, 10);
+          return Number.isFinite(code) ? String.fromCharCode(code) : _;
+        })
+        .replace(/&([a-z]+);/gi, (match, name) => {
+          const key = String(name || '').toLowerCase();
+          return Object.prototype.hasOwnProperty.call(named, key) ? named[key] : match;
+        });
     }
-    const textarea = document.createElement('textarea');
-    textarea.innerHTML = String(value ?? '');
-    return textarea.value;
+    return decoded;
   },
 
   escapeCssValue(value) {
@@ -627,6 +660,27 @@ const App = {
       return window.CSS.escape(raw);
     }
     return raw.replace(/["\\]/g, '\\$&');
+  },
+
+  sanitizeClassToken(value) {
+    const token = String(value ?? '').trim();
+    if (!token) return '';
+    return /^[A-Za-z0-9_-]+$/.test(token) ? token : '';
+  },
+
+  sanitizeClassList(...values) {
+    const tokens = [];
+    values.flat().forEach((value) => {
+      String(value ?? '')
+        .split(/\s+/)
+        .forEach((token) => {
+          const safeToken = this.sanitizeClassToken(token);
+          if (safeToken && !tokens.includes(safeToken)) {
+            tokens.push(safeToken);
+          }
+        });
+    });
+    return tokens.join(' ');
   },
 
   isPlainObject(value) {
@@ -1790,9 +1844,9 @@ const App = {
     }
 
     if (current) {
-      current.outerHTML = markup;
+      replaceOuterHTML(current, markup);
     } else if (reviewsSection) {
-      reviewsSection.insertAdjacentHTML('beforebegin', markup);
+      insertHTML(reviewsSection, 'beforebegin', markup);
     }
 
     const modalContent = document.querySelector('#detail-modal .modal-content');
@@ -1998,7 +2052,7 @@ const App = {
   renderSettingsModal() {
     const container = document.getElementById('settings-content');
     if (!container) return;
-    container.innerHTML = this.renderSettingsPanel({ includeTitle: false });
+    setHTML(container, this.renderSettingsPanel({ includeTitle: false }));
     this.updateSettingsUi();
     this.settingsRendered = true;
   },
@@ -2083,7 +2137,7 @@ const App = {
     const items = this.getWatchlistDisplayItems();
     if (items.length === 0) {
       section.classList.add('is-empty');
-      grid.innerHTML = '';
+      grid.replaceChildren();
       return;
     }
 
@@ -2091,7 +2145,7 @@ const App = {
     if (this.features.templatePooling) {
       grid.replaceChildren(this.renderAnimeCardsDom(items, { startIndex: 0 }));
     } else {
-      grid.innerHTML = this.renderAnimeCards(items, { startIndex: 0 });
+      setHTML(grid, this.renderAnimeCards(items, { startIndex: 0 }));
     }
   },
 
@@ -2212,9 +2266,9 @@ const App = {
     if (!select) return;
 
     const options = Recommendations.getSortOptions();
-    select.innerHTML = options.map(opt =>
+    setHTML(select, options.map(opt =>
       `<option value="${opt.value}">${opt.label}</option>`
-    ).join('');
+    ).join(''));
 
     if (!options.some(option => option.value === this.currentSort)) {
       this.currentSort = options[0]?.value || 'retention';
@@ -2716,14 +2770,14 @@ const App = {
     }
 
     const retryButton = '<button class="health-retry" type="button" data-action="check-connectivity">Retry</button>';
-    indicator.innerHTML = `
+    setHTML(indicator, `
       <span class="health-icon" aria-hidden="true">${icon}</span>
       <div class="health-message">
         <div class="health-title">${title}</div>
         <div class="health-detail">${detail}</div>
       </div>
       ${retryButton}
-    `;
+    `);
 
     if (!existing) {
       document.body.appendChild(indicator);
@@ -3200,7 +3254,7 @@ const App = {
     this.headerSearchState.results = [];
     this.headerSearchState.activeIndex = -1;
     if (dropdown) {
-      dropdown.innerHTML = '';
+      dropdown.replaceChildren();
       this.updateHeaderSearchDropdownVisibility(dropdown, false);
     }
     if (input) {
@@ -3944,7 +3998,7 @@ const App = {
     }
 
     if (matches.length === 0) {
-      dropdown.innerHTML = `
+      setHTML(dropdown, `
         <div class="search-no-results" role="status" aria-live="polite">
           <div class="search-no-results-title">No matches yet.</div>
           <div class="search-no-results-hint">Try English title or a shorter query.</div>
@@ -3953,13 +4007,13 @@ const App = {
             <span class="search-no-results-tip">Shorter query</span>
           </div>
         </div>
-      `;
+      `);
       this.updateHeaderSearchDropdownVisibility(dropdown, true);
       this.setHeaderSearchActiveIndex(-1, { scroll: false });
       return;
     }
 
-    dropdown.innerHTML = matches.map((anime, index) => {
+    setHTML(dropdown, matches.map((anime, index) => {
       const altTitles = [anime.titleEnglish, anime.titleJapanese]
         .map(value => String(value || '').trim())
         .filter(Boolean)
@@ -3989,7 +4043,7 @@ const App = {
         </div>
       </div>
     `;
-    }).join('');
+    }).join(''));
 
     this.updateHeaderSearchDropdownVisibility(dropdown, true);
     this.setHeaderSearchActiveIndex(this.headerSearchState.activeIndex, { scroll: false });
@@ -4115,7 +4169,7 @@ const App = {
     }).join('');
 
     html += filtersMarkup;
-    container.innerHTML = html;
+    setHTML(container, html);
     this.filterPanelRendered = true;
   },
 
@@ -4186,7 +4240,7 @@ const App = {
         `
         : '';
 
-      container.innerHTML = `${chipsMarkup}${toggleMarkup}`;
+      setHTML(container, `${chipsMarkup}${toggleMarkup}`);
     };
 
     renderGroup('genres', this.filterOptions.genres, genreContainer);
@@ -4555,11 +4609,11 @@ const App = {
 
     const filters = Discovery.getSeasonalFilters(this.animeData);
     if (filters.length === 0) {
-      container.innerHTML = '';
+      container.replaceChildren();
       return;
     }
 
-    container.innerHTML = filters.map(filter => {
+    setHTML(container, filters.map(filter => {
       const isActive = this.activeFilters.seasonYear.includes(filter.value);
       const highlightClass = filter.highlight ? 'is-highlight' : '';
       const activeClass = isActive ? 'active' : '';
@@ -4571,7 +4625,7 @@ const App = {
           ${this.escapeHtml(filter.label)}
         </button>
       `;
-    }).join('');
+    }).join(''));
   },
 
   /**
@@ -4601,7 +4655,7 @@ const App = {
     const currentMode = Recommendations.currentMode;
     const contextEl = document.getElementById('recommendations-context');
 
-    container.innerHTML = Object.entries(modes).map(([key, mode]) => {
+    setHTML(container, Object.entries(modes).map(([key, mode]) => {
       const isActive = key === currentMode;
       return `
         <button class="mode-chip ${isActive ? 'active' : ''}"
@@ -4613,7 +4667,7 @@ const App = {
           <span class="mode-label">${this.escapeHtml(mode.label)}</span>
         </button>
       `;
-    }).join('');
+    }).join(''));
 
     if (contextEl) {
       const nextContext = Recommendations.getModeContext(currentMode);
@@ -4667,14 +4721,14 @@ const App = {
       });
       const seedLoadAttrs = this.getImageLoadingAttrs(0, { eagerCount: 1, priorityCount: 0 });
       const seedPriorityAttr = seedLoadAttrs.fetchpriority ? `fetchpriority="${seedLoadAttrs.fetchpriority}"` : '';
-      seedContainer.innerHTML = `
+      setHTML(seedContainer, `
         <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="" class="byw-seed-cover" ${seedDimAttrs} loading="${seedLoadAttrs.loading}" decoding="${seedLoadAttrs.decoding}" ${seedPriorityAttr} ${seedFallbackAttrs}>
         <span class="byw-seed-title">${this.escapeHtml(basedOn.title)}</span>
-      `;
+      `);
     }
 
     // Render recommendations
-    grid.innerHTML = recommendations.map((anime, index) => {
+    setHTML(grid, recommendations.map((anime, index) => {
       const episodeCount = this.getEpisodeCount(anime);
       const hasEpisodes = episodeCount > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
@@ -4708,7 +4762,7 @@ const App = {
           </div>
         </div>
       `;
-    }).join('');
+    }).join(''));
   },
 
   /**
@@ -4722,7 +4776,7 @@ const App = {
 
     const trending = Discovery.getTrending(this.animeData, 6);
 
-    grid.innerHTML = trending.map((anime, index) => {
+    setHTML(grid, trending.map((anime, index) => {
       const rank = index + 1;
       const rankClass = rank <= 3 ? 'top-3' : '';
       const episodeCount = this.getEpisodeCount(anime);
@@ -4754,7 +4808,7 @@ const App = {
           </div>
         </div>
       `;
-    }).join('');
+    }).join(''));
   },
 
   /**
@@ -4843,7 +4897,7 @@ const App = {
     const cardDims = this.getImageDimensions('card');
     const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
     const template = document.createElement('template');
-    template.innerHTML = `
+    setHTML(template, `
       <div class="anime-card" data-action="open-anime" role="button" tabindex="0" aria-label="View details">
         <div class="card-media">
           <img class="card-cover" ${cardDimAttrs} loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
@@ -4861,7 +4915,7 @@ const App = {
           <div class="card-reason"></div>
         </div>
       </div>
-    `;
+    `);
     this.animeCardTemplate = template;
   },
 
@@ -4958,33 +5012,37 @@ const App = {
 
     const yearEl = card.querySelector('.card-year');
     if (yearEl) {
-      yearEl.innerHTML = `${safeYear} &bull; ${safeStudio}`;
+      setHTML(yearEl, `${safeYear} &bull; ${safeStudio}`);
     }
 
     const badgesContainer = card.querySelector('.card-badges');
     if (badgesContainer) {
       if (badges.length > 0) {
-        badgesContainer.innerHTML = badges
-          .map(badge => `<span class="card-badge ${badge.class}">${this.escapeHtml(badge.label)}</span>`)
-          .join('');
+        setHTML(badgesContainer, badges
+          .map((badge) => {
+            const badgeClass = this.sanitizeClassList('card-badge', badge.class);
+            return `<span class="${badgeClass}">${this.escapeHtml(badge.label)}</span>`;
+          })
+          .join(''));
         badgesContainer.hidden = false;
       } else {
-        badgesContainer.innerHTML = '';
+        badgesContainer.replaceChildren();
         badgesContainer.hidden = true;
       }
     }
 
     const statsContainer = card.querySelector('.card-stats');
     if (statsContainer) {
-      statsContainer.innerHTML = cardStats.map(stat => {
+      setHTML(statsContainer, cardStats.map(stat => {
         const safeValue = this.escapeHtml(stat.value);
         const safeSuffix = this.escapeHtml(stat.suffix || '');
         const safeLabel = this.escapeHtml(stat.label);
         const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
         const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
+        const statValueClass = this.sanitizeClassList('stat-value', stat.class);
         return `
           <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
-            <span class="stat-value ${stat.class || ''}">${safeValue}${safeSuffix}</span>
+            <span class="${statValueClass}">${safeValue}${safeSuffix}</span>
             <span class="stat-label">${safeLabel}</span>
             ${stat.tooltip ? `
               <div class="tooltip tooltip--bottom" role="tooltip">
@@ -4994,7 +5052,7 @@ const App = {
             ` : ''}
           </div>
         `;
-      }).join('');
+      }).join(''));
     }
 
     const meter = card.querySelector('.retention-meter');
@@ -5099,7 +5157,10 @@ const App = {
             <div class="card-year">${safeYear} &bull; ${safeStudio}</div>
             ${badges.length > 0 ? `
               <div class="card-badges">
-                ${badges.map(b => `<span class="card-badge ${b.class}">${this.escapeHtml(b.label)}</span>`).join('')}
+                ${badges.map((badge) => {
+        const badgeClass = this.sanitizeClassList('card-badge', badge.class);
+        return `<span class="${badgeClass}">${this.escapeHtml(badge.label)}</span>`;
+      }).join('')}
               </div>
             ` : ''}
             <div class="card-stats">
@@ -5109,9 +5170,10 @@ const App = {
         const safeLabel = this.escapeHtml(stat.label);
         const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
         const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
+        const statValueClass = this.sanitizeClassList('stat-value', stat.class);
         return `
                 <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
-                  <span class="stat-value ${stat.class || ''}">${safeValue}${safeSuffix}</span>
+                  <span class="${statValueClass}">${safeValue}${safeSuffix}</span>
                   <span class="stat-label">${safeLabel}</span>
                   ${stat.tooltip ? `
                     <div class="tooltip tooltip--bottom" role="tooltip">
@@ -5249,7 +5311,7 @@ const App = {
     });
 
     if (active.length === 0) {
-      list.innerHTML = '';
+      list.replaceChildren();
       label.textContent = 'Active filters';
       clearBtn.classList.add('is-hidden');
       container.classList.add('is-empty');
@@ -5261,7 +5323,7 @@ const App = {
     emptyState.classList.add('is-hidden');
     label.textContent = `Active filters (${active.length})`;
     clearBtn.classList.remove('is-hidden');
-    list.innerHTML = active.map(item => {
+    setHTML(list, active.map(item => {
       const displayValue = String(item.value);
       const safeValueText = this.escapeHtml(displayValue);
       const safeValueAttr = this.escapeAttr(displayValue);
@@ -5278,7 +5340,7 @@ const App = {
           <span class="active-filter-pill-remove" aria-hidden="true">&times;</span>
         </button>
       `;
-    }).join('');
+    }).join(''));
   },
 
   /**
@@ -5298,11 +5360,11 @@ const App = {
 
 
     if (recommendations.length === 0) {
-      container.innerHTML = '<p class="no-data">No recommendations available</p>';
+      setHTML(container, '<p class="no-data">No recommendations available</p>');
       return;
     }
 
-    container.innerHTML = recommendations.map((anime, index) => {
+    setHTML(container, recommendations.map((anime, index) => {
       const episodeCount = this.getEpisodeCount(anime);
       const hasEpisodes = episodeCount > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore ?? 0)}%` : 'N/A';
@@ -5357,7 +5419,7 @@ const App = {
             </div>
         </div>
       `;
-    }).join('');
+    }).join(''));
   },
 
   getTopAnimeByMetric(animeList, metric) {
@@ -5417,17 +5479,17 @@ const App = {
     // Ranking 1
     const best1 = this.getTopAnimeByMetric(dataToUse, rankingConfig.metric1);
     if (best1) {
-      container1.innerHTML = this.renderRankingCard(best1, rankingConfig.metric1);
+      setHTML(container1, this.renderRankingCard(best1, rankingConfig.metric1));
     } else {
-      container1.innerHTML = '<p class="no-data">No anime match filters</p>';
+      setHTML(container1, '<p class="no-data">No anime match filters</p>');
     }
 
     // Ranking 2
     const best2 = this.getTopAnimeByMetric(dataToUse, rankingConfig.metric2);
     if (best2) {
-      container2.innerHTML = this.renderRankingCard(best2, rankingConfig.metric2);
+      setHTML(container2, this.renderRankingCard(best2, rankingConfig.metric2));
     } else {
-      container2.innerHTML = '<p class="no-data">No anime match filters</p>';
+      setHTML(container2, '<p class="no-data">No anime match filters</p>');
     }
   },
 
@@ -5472,14 +5534,17 @@ const App = {
     const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
     const rankingDims = this.getImageDimensions('ranking');
     const rankingDimAttrs = rankingDims ? `width="${rankingDims.width}" height="${rankingDims.height}"` : '';
+    const safeValueClass = this.sanitizeClassList('ranking-score', valueClass);
+    const safeValueDisplay = this.escapeHtml(valueDisplay);
+    const safeLabelDisplay = this.escapeHtml(labelDisplay);
     return `
       <div class="ranking-anime">
         <img src="${safeRankCover}" ${rankSrcsetAttr} ${rankSizesAttr} alt="${this.escapeHtml(anime.title)}" class="ranking-cover" ${rankingDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${rankFallbackAttrs}>
         <div class="ranking-info">
           <div class="ranking-title">${this.escapeHtml(anime.title)}</div>
-          <div class="ranking-score ${valueClass}">
-            <span class="score-value">${valueDisplay}</span>
-            <span class="score-label">${labelDisplay}</span>
+          <div class="${safeValueClass}">
+            <span class="score-value">${safeValueDisplay}</span>
+            <span class="score-label">${safeLabelDisplay}</span>
           </div>
         </div>
       </div>
@@ -5505,12 +5570,12 @@ const App = {
     let sorted = this.getSortedGridData({ requiredCount: initialEndIndex });
 
     if (sorted.length === 0) {
-      container.innerHTML = `
+      setHTML(container, `
         <div class="no-results">
           <h3>No matches yet</h3>
           <p>Try removing a filter or two—there might be a hidden gem waiting.</p>
         </div>
-      `;
+      `);
       return;
     }
 
@@ -5530,7 +5595,7 @@ const App = {
       if (this.features.templatePooling && this.features.diffRendering) {
         this.diffRenderAnimeGrid(container, visibleAnime, { startIndex });
       } else {
-        container.innerHTML = this.renderAnimeCards(visibleAnime, { startIndex });
+        setHTML(container, this.renderAnimeCards(visibleAnime, { startIndex }));
       }
     } else if (visibleAnime.length > 0) {
       const loadMoreEl = container.querySelector('.load-more-container');
@@ -5540,7 +5605,7 @@ const App = {
       if (this.features.templatePooling) {
         container.appendChild(this.renderAnimeCardsDom(visibleAnime, { startIndex }));
       } else {
-        container.insertAdjacentHTML('beforeend', this.renderAnimeCards(visibleAnime, { startIndex }));
+        insertHTML(container, 'beforeend', this.renderAnimeCards(visibleAnime, { startIndex }));
       }
     }
 
@@ -5562,7 +5627,7 @@ const App = {
 
     // Add "Load More" button if there are more items
     if (hasMore) {
-      container.insertAdjacentHTML('beforeend', `
+      insertHTML(container, 'beforeend', `
         <div class="load-more-container">
           <button class="load-more-btn" data-action="load-more">
             Load More (${Math.max(countForMore - requestedEndIndex, 0)} remaining)
@@ -6089,9 +6154,9 @@ const App = {
     };
 
     if (hasCachedDetail) {
-      content.innerHTML = cachedDetail;
+      setHTML(content, cachedDetail);
     } else if (!skipModalOpen) {
-      content.innerHTML = this.renderDetailSkeleton();
+      setHTML(content, this.renderDetailSkeleton());
     }
     if (!skipModalOpen) {
       this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
@@ -6113,13 +6178,13 @@ const App = {
       }
       this.resetMetaToDefault();
       // Show error in modal
-      content.innerHTML = `
+      setHTML(content, `
         <div class="error-message">
           <h2>Anime Not Found</h2>
           <p>We couldn't find the anime you're looking for.</p>
           <button class="btn btn-primary detail-close-button" data-action="close-detail">Close</button>
         </div>
-      `;
+      `);
       reportModalOpened({ status: 'not_found' });
       return;
     }
@@ -6214,7 +6279,7 @@ const App = {
     const similarSection = this.renderSimilarAnimeSection(anime);
     const watchlistControls = this.renderWatchlistControls(anime);
 
-    content.innerHTML = `
+    setHTML(content, `
       <div class="detail-header">
         <img src="${safeCover}" ${detailSrcsetAttr} ${detailSizesAttr} alt="${safeTitle}" class="detail-cover" ${detailDimAttrs} ${detailFallbackAttrs}>
         <div class="detail-info">
@@ -6311,7 +6376,7 @@ const App = {
       <div id="similar-anime-section">
         ${similarSection}
       </div>
-    `;
+    `);
 
     this.cacheDetail(anime.id, content.innerHTML);
     this.updateWatchlistControls(anime.id);
@@ -6341,18 +6406,18 @@ const App = {
     if (!Number.isFinite(parsedMalId)) {
       if (synopsisSection) {
         if (fallbackSynopsis) {
-          synopsisSection.innerHTML = this.renderSynopsis(fallbackSynopsis);
+          setHTML(synopsisSection, this.renderSynopsis(fallbackSynopsis));
         } else {
-          synopsisSection.innerHTML = '';
+          synopsisSection.replaceChildren();
         }
       }
       if (reviewsSection) {
-        reviewsSection.innerHTML = `
+        setHTML(reviewsSection, `
           <div class="community-reviews">
             <h3>Community Reviews</h3>
             <p class="no-reviews">Reviews are unavailable for this title.</p>
           </div>
-        `;
+        `);
       }
       return;
     }
@@ -6368,17 +6433,17 @@ const App = {
       // Update synopsis section
       if (synopsisSection) {
         if (data.description) {
-          synopsisSection.innerHTML = reviewsService.renderSynopsis(data.description);
+          setHTML(synopsisSection, reviewsService.renderSynopsis(data.description));
         } else if (fallbackSynopsis) {
-          synopsisSection.innerHTML = reviewsService.renderSynopsis(fallbackSynopsis);
+          setHTML(synopsisSection, reviewsService.renderSynopsis(fallbackSynopsis));
         } else {
-          synopsisSection.innerHTML = '';
+          synopsisSection.replaceChildren();
         }
       }
 
       // Update reviews section
       if (reviewsSection) {
-        reviewsSection.innerHTML = reviewsService.renderReviewsSection(data, 'positive');
+        setHTML(reviewsSection, reviewsService.renderReviewsSection(data, 'positive'));
         reviewsService.initTabSwitching(data);
       }
 
@@ -6396,7 +6461,7 @@ const App = {
       // Clear synopsis loading state on error
       if (synopsisSection) {
         if (!fallbackSynopsis) {
-          synopsisSection.innerHTML = '';
+          synopsisSection.replaceChildren();
         }
       }
 
@@ -6416,7 +6481,7 @@ const App = {
         } catch (loadError) {
           // keep generic markup
         }
-        reviewsSection.innerHTML = errorMarkup;
+        setHTML(reviewsSection, errorMarkup);
       }
     }
   },
@@ -6754,12 +6819,12 @@ const App = {
     const container = document.getElementById('app-container');
     if (container) {
       const safeMessage = this.escapeHtml(message);
-      container.innerHTML = `
+      setHTML(container, `
         <div class="error-message">
           <h2>Error</h2>
           <p>${safeMessage}</p>
         </div>
-      `;
+      `);
     }
   },
 
@@ -6834,7 +6899,7 @@ const App = {
     const modal = document.getElementById('metric-help-modal');
 
     if (body && modal) {
-      body.innerHTML = content;
+      setHTML(body, content);
       this.setModalVisibility('metric-help-modal', true, { initialFocusSelector: '#close-metric-help' });
 
       const analytics = this.getAnalytics();
@@ -6875,7 +6940,7 @@ const App = {
     const modal = document.getElementById('metric-help-modal');
 
     if (body && modal) {
-      body.innerHTML = content;
+      setHTML(body, content);
       this.setModalVisibility('metric-help-modal', true, { initialFocusSelector: '#close-metric-help' });
     }
   },
@@ -7052,7 +7117,7 @@ const App = {
     if (!modal || !content) return false;
 
     // Show modal immediately with skeleton for perceived performance
-    content.innerHTML = this.renderDetailSkeleton();
+    setHTML(content, this.renderDetailSkeleton());
     this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
 
     // Try to find anime in preview data first
@@ -7073,13 +7138,13 @@ const App = {
       return true;
     } else {
       // Anime not found - show error in modal
-      content.innerHTML = `
+      setHTML(content, `
         <div class="error-message">
           <h2>Anime Not Found</h2>
           <p>We couldn't find the anime you're looking for. It may have been removed or the ID is incorrect.</p>
           <button class="btn btn-primary detail-close-button" data-action="close-detail">Go Back</button>
         </div>
-      `;
+      `);
       return false;
     }
   },
@@ -7142,7 +7207,10 @@ const App = {
           <div class="card-year">${safeYear} &bull; ${safeStudio}</div>
           ${badges.length > 0 ? `
             <div class="card-badges">
-              ${badges.map(b => `<span class="card-badge ${b.class}">${this.escapeHtml(b.label)}</span>`).join('')}
+              ${badges.map((badge) => {
+      const badgeClass = this.sanitizeClassList('card-badge', badge.class);
+      return `<span class="${badgeClass}">${this.escapeHtml(badge.label)}</span>`;
+    }).join('')}
             </div>
           ` : ''}
           <div class="card-stats">
@@ -7150,9 +7218,10 @@ const App = {
       const safeValue = this.escapeHtml(stat.value);
       const safeSuffix = this.escapeHtml(stat.suffix || '');
       const safeLabel = this.escapeHtml(stat.label);
+      const statValueClass = this.sanitizeClassList('stat-value', stat.class);
       return `
                 <div class="stat">
-                  <span class="stat-value ${stat.class || ''}">${safeValue}${safeSuffix}</span>
+                  <span class="${statValueClass}">${safeValue}${safeSuffix}</span>
                   <span class="stat-label">${safeLabel}</span>
                 </div>
               `;

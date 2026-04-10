@@ -7,6 +7,7 @@ import { SchemaValidator } from './services/schema-validator.js';
 import { CircuitBreaker } from './circuitBreaker.js';
 import { HealthMonitor } from './healthMonitor.js';
 import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
+import { setHTML } from './security/trusted-types.js';
 
 /**
  * Reviews Service - Fetches and categorizes reviews from MyAnimeList (via Jikan)
@@ -306,7 +307,7 @@ const ReviewsService = {
     const exponentialDelay = this.baseRetryDelay * Math.pow(2, attempt);
     // Cap at max delay
     const cappedDelay = Math.min(exponentialDelay, this.maxRetryDelay);
-    // Add random jitter (�25%) to prevent thundering herd
+    // Add random jitter (±25%) to prevent thundering herd
     const jitter = cappedDelay * 0.25 * (Math.random() * 2 - 1);
     return Math.floor(cappedDelay + jitter);
   },
@@ -882,7 +883,7 @@ const ReviewsService = {
           <div class="reviews-container" id="reviews-container">
             ${activeReviews.length > 0
           ? activeReviews.map(r => this.renderReviewCard(r)).join('')
-          : '<p class="no-reviews">No community reviews yet�be the first on MyAnimeList!</p>'
+          : '<p class="no-reviews">No community reviews yet—be the first on MyAnimeList!</p>'
         }
           </div>
         `}
@@ -1018,9 +1019,9 @@ const ReviewsService = {
 
         // Update content
         const reviews = categorizedReviews[sentiment] || [];
-        container.innerHTML = reviews.length > 0
+        setHTML(container, reviews.length > 0
           ? reviews.map(r => this.renderReviewCard(r)).join('')
-          : '<p class="no-reviews">No community reviews yet—be the first on MyAnimeList!</p>';
+          : '<p class="no-reviews">No community reviews yetâ€”be the first on MyAnimeList!</p>');
         scrollTabIntoView(tab);
       });
     });
