@@ -4,6 +4,14 @@ const JSON_CACHE_ALLOWLIST = new Set([
   '/version.json'
 ]);
 
+const APP_SHELL_FALLBACKS = new Map([
+  ['/', '/index.html'],
+  ['/home', '/index.html'],
+  ['/index.html', '/index.html'],
+  ['/watchlist', '/watchlist.html'],
+  ['/watchlist.html', '/watchlist.html']
+]);
+
 const normalizeHostname = (hostname) => String(hostname || '').trim().toLowerCase();
 
 const hostMatchesAllowlist = (hostname, allowlist = []) => {
@@ -46,10 +54,17 @@ const buildNormalizedDataRequest = (request, serviceWorkerOrigin) => {
   return new Request(normalizedUrl.toString(), request);
 };
 
+const getAppShellFallbackPath = (pathname) => {
+  const normalizedPath = normalizePathname(pathname);
+  return APP_SHELL_FALLBACKS.get(normalizedPath) || null;
+};
+
 export {
+  APP_SHELL_FALLBACKS,
   JSON_CACHE_ALLOWLIST,
   normalizePathname,
   hostMatchesAllowlist,
   getNormalizedDataJsonUrl,
-  buildNormalizedDataRequest
+  buildNormalizedDataRequest,
+  getAppShellFallbackPath
 };

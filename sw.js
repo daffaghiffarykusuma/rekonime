@@ -2,7 +2,7 @@
  * Service Worker for Rekonime
  * Provides offline caching and data persistence
  */
-import { buildNormalizedDataRequest, hostMatchesAllowlist } from './js/sw-cache-policy.js';
+import { buildNormalizedDataRequest, getAppShellFallbackPath, hostMatchesAllowlist } from './js/sw-cache-policy.js';
 
 const CACHE_VERSION = '__REKONIME_CACHE_VERSION__';
 const STATIC_CACHE = `rekonime-static-${CACHE_VERSION}`;
@@ -115,6 +115,12 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Navigation documents should prefer the network so app copy and shell updates stay fresh.
+    if (isDocumentRequest(request, url)) {
+        event.respondWith(networkFirstDocument(request, url));
+        return;
+    }
+
     // Images - Stale While Revalidate (only for same-origin images)
     if (isImageRequest(request)) {
         const { response, background } = staleWhileRevalidate(request, IMAGE_CACHE);
@@ -146,13 +152,77 @@ function isImageRequest(request) {
         request.url.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)$/i);
 }
 
+function isDocumentRequest(request, url) {
+    if (!request || !url) {
+        return false;
+    }
+    if (url.origin !== self.location.origin) {
+        return false;
+    }
+    return request.mode === 'navigate' || request.destination === 'document';
+}
+
 // Helper: Check if request is for static assets
 function isStaticAsset(request) {
     const dest = request.destination;
     return dest === 'script' ||
         dest === 'style' ||
-        dest === 'document' ||
         dest === 'font';
+}
+
+async function getCachedDocumentResponse(cache, requestUrl) {
+    const fallbackPath = getAppShellFallbackPath(requestUrl.pathname);
+    const candidateUrls = [];
+
+    if (fallbackPath) {
+        const fallbackUrl = new URL(fallbackPath, self.location.origin);
+        candidateUrls.push(fallbackUrl.toString());
+        candidateUrls.push(fallbackPath);
+        candidateUrls.push(`.${fallbackPath}`);
+        if (fallbackPath === '/index.html') {
+            candidateUrls.push('./');
+            candidateUrls.push(self.location.origin);
+            candidateUrls.push(`${self.location.origin}/`);
+        }
+    }
+
+    candidateUrls.push(requestUrl.toString());
+
+    for (const candidate of candidateUrls) {
+        const cached = await cache.match(candidate);
+        if (cached) {
+            return cached;
+        }
+    }
+
+    return null;
+}
+
+async function networkFirstDocument(request, url) {
+    const cache = await caches.open(STATIC_CACHE);
+    const requestUrl = url instanceof URL ? url : new URL(request.url);
+
+    try {
+        const networkRequest = new Request(request, { cache: 'no-store' });
+        const networkResponse = await fetch(networkRequest);
+        if (networkResponse.ok) {
+            const fallbackPath = getAppShellFallbackPath(requestUrl.pathname);
+            if (fallbackPath) {
+                const fallbackUrl = new URL(fallbackPath, self.location.origin);
+                await cache.put(fallbackUrl.toString(), networkResponse.clone());
+            } else {
+                await cache.put(requestUrl.toString(), networkResponse.clone());
+            }
+        }
+        return networkResponse;
+    } catch (error) {
+        console.log('[SW] Document fetch failed, trying cache:', error);
+        const cached = await getCachedDocumentResponse(cache, requestUrl);
+        if (cached) {
+            return cached;
+        }
+        return new Response('Offline', { status: 503 });
+    }
 }
 
 // Strategy: Cache First

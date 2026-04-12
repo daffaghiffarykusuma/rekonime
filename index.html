@@ -25,15 +25,8 @@
   <meta name="twitter:image" content="/favicon.svg">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
-  <!-- Google Fonts - Sakura Theme (Noto Serif JP, Noto Sans JP) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.myanimelist.net" crossorigin>
   <link rel="dns-prefetch" href="https://api.jikan.moe">
-  <link rel="preload" href="/data/anime.preview.json" as="fetch" crossorigin="anonymous">
-  <link rel="prefetch" href="/watchlist.html">
-  <link rel="preload" href="/css/styles.css" as="style">
-  <link rel="preload" href="/css/themes.css" as="style">
   <style>
     :root {
       --sakura-pink: #FFB7C5;
@@ -77,10 +70,15 @@
       --success-bg: rgba(168, 197, 168, 0.12);
       --warning-bg: rgba(232, 200, 155, 0.12);
       --error-bg: rgba(232, 155, 155, 0.12);
-      --font-display: 'Noto Serif JP', serif;
-      --font-body: 'Noto Sans JP', sans-serif;
+      --font-display: Georgia, "Times New Roman", serif;
+      --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       --font-display-adjust: 0.46;
       --font-body-adjust: 0.52;
+    }
+
+    :root[data-fonts-ready="true"] {
+      --font-display: 'Noto Serif JP', serif;
+      --font-body: 'Noto Sans JP', sans-serif;
     }
 
     [data-theme="light"] {

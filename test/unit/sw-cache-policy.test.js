@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  getAppShellFallbackPath,
   normalizePathname,
   hostMatchesAllowlist,
   getNormalizedDataJsonUrl,
@@ -40,6 +41,15 @@ test('buildNormalizedDataRequest returns null for non-allowlisted requests', () 
     origin
   );
   assert.equal(disallowed, null);
+});
+
+test('getAppShellFallbackPath normalizes entrypoint aliases to canonical documents', () => {
+  assert.equal(getAppShellFallbackPath('/'), '/index.html');
+  assert.equal(getAppShellFallbackPath('/home/'), '/index.html');
+  assert.equal(getAppShellFallbackPath('/index.html'), '/index.html');
+  assert.equal(getAppShellFallbackPath('/watchlist'), '/watchlist.html');
+  assert.equal(getAppShellFallbackPath('/watchlist/'), '/watchlist.html');
+  assert.equal(getAppShellFallbackPath('/unknown'), null);
 });
 
 test('hostMatchesAllowlist performs exact and subdomain matching', () => {

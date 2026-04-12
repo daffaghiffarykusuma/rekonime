@@ -2080,8 +2080,8 @@ h4 {
   --error-bg: rgba(232, 155, 155, 0.12);
 
   /* Typography */
-  --font-display: 'Noto Serif JP', serif;
-  --font-body: 'Noto Sans JP', sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-display-adjust: 0.46;
   --font-body-adjust: 0.52;
 
@@ -3122,6 +3122,11 @@ h4 {
   background: var(--bg-secondary);
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+:root[data-fonts-ready="true"] {
+  --font-display: 'Noto Serif JP', serif;
+  --font-body: 'Noto Sans JP', sans-serif;
 }
 
 .recommendation-stat {

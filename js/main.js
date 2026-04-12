@@ -5,6 +5,21 @@ import './bootstrap/noncritical-styles.js';
 
 let appPromise = null;
 
+const getConnectionInfo = () => {
+  if (typeof navigator === 'undefined') return null;
+  return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+};
+
+const shouldPrioritizeFirstPaint = () => {
+  if (typeof window === 'undefined') return false;
+  const connection = getConnectionInfo();
+  const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+  const constrainedConnection = Boolean(connection?.saveData) || effectiveType.includes('2g') || effectiveType.includes('3g') || effectiveType === 'slow-4g';
+  const mobileViewport = window.matchMedia?.('(max-width: 640px)').matches ?? false;
+  const lowMemory = Number.isFinite(navigator.deviceMemory) && navigator.deviceMemory <= 4;
+  return constrainedConnection || mobileViewport || lowMemory;
+};
+
 const loadApp = () => {
   if (!appPromise) {
     appPromise = import('./app.js').then((module) => module.App || module.default);
@@ -57,15 +72,38 @@ const bootstrap = () => {
     }
   };
 
-  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-    window.requestAnimationFrame(() => {
+  const scheduleAppBoot = () => {
+    if (typeof window === 'undefined') {
       void runApp();
-    });
-  } else {
-    setTimeout(() => {
+      return;
+    }
+
+    if (shouldPrioritizeFirstPaint()) {
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(() => {
+          void runApp();
+        }, { timeout: 1500 });
+      } else {
+        window.setTimeout(() => {
+          void runApp();
+        }, 350);
+      }
+      return;
+    }
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        void runApp();
+      });
+      return;
+    }
+
+    window.setTimeout(() => {
       void runApp();
     }, 0);
-  }
+  };
+
+  scheduleAppBoot();
 
   initNonCriticalServices();
 };
