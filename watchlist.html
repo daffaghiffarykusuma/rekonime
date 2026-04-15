@@ -24,6 +24,7 @@
 
   <link rel="preconnect" href="https://cdn.myanimelist.net" crossorigin>
   <link rel="dns-prefetch" href="https://api.jikan.moe">
+  <link rel="dns-prefetch" href="https://graphql.anilist.co">
   <style>
     :root {
       --sakura-pink: #FFB7C5;
@@ -282,6 +283,22 @@
         </button>
       </div>
     </header>
+
+    <section class="airing-dashboard-section is-hidden" id="airing-dashboard-section" hidden aria-live="polite">
+      <div class="section-header airing-dashboard-header">
+        <div>
+          <h2>Airing from My Watchlist</h2>
+          <p class="section-subtitle" id="airing-dashboard-subtitle">
+            See what is ready now and when the next episode lands. Times shown in your local time.
+          </p>
+        </div>
+      </div>
+      <div class="airing-dashboard-summary" id="airing-dashboard-summary"></div>
+      <div class="airing-dashboard-grid" id="airing-dashboard-grid"></div>
+      <p class="airing-dashboard-empty" id="airing-dashboard-empty" hidden>
+        Nothing from your watchlist is airing right now.
+      </p>
+    </section>
 
     <section class="watchlist-section is-empty" id="watchlist-section">
       <div class="section-header">

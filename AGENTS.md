@@ -59,6 +59,7 @@
 - `js/reviews.js`: Jikan reviews + synopsis utilities.
 - `js/discovery.js`: surprise, seasonal, trending, because-you-watched.
 - `js/filterPresets.js`, `js/keyboardShortcuts.js`, `js/metricGlossary.js`, `js/onboarding.js`, `js/themeManager.js`.
+- `js/airing-dashboard.js`: shared airing schedule fetch/cache, countdown formatting, and dashboard rendering for home + watchlist.
 - `js/security/trailer-url-policy.js`: shared trailer URL allowlist/sanitization policy.
 - `js/image-proxy.js`: shared image proxy URL/status utilities for app and watchlist entry points.
 - `js/watchlist-state.js`: shared watchlist status/progress normalization helpers.
@@ -77,6 +78,7 @@
 - Detail modal: `App.showAnimeDetail()` renders synopsis, franchise hub, trailer, reviews, syncs URL, and manages back/forward.
 - Reviews and synopsis: Jikan API via `ReviewsService`; cached via `CacheManager` with TTL.
 - Watchlist: stored under `rekonime.watchlist` (legacy `rekonime.bookmarks` migrated), rendered in `watchlist.html`.
+- Airing dashboard: watchlist `planned` and `watching` entries query live schedule metadata, cache it locally, and render local-time next-episode countdowns on `/` and `/watchlist`.
 
 ## Data Schema (Essentials)
 - Catalog payload: `{ generatedAt, scoreProfile, anime[] }`.
@@ -92,7 +94,7 @@
 - Breakpoints: primary `max-width: 960px` and `max-width: 640px`; legacy `768px` and `480px` rules exist.
 
 ## External Services & CSP
-- Allowed remote sources: Google Fonts, Jikan API, YouTube / YouTube-nocookie.
+- Allowed remote sources: Google Fonts, Jikan API, AniList GraphQL, YouTube / YouTube-nocookie.
 - If you add new remote assets or APIs, update the CSP in `index.html` and `watchlist.html`.
 
 ## Data Pipeline (Short)

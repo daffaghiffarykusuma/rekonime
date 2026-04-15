@@ -36,6 +36,7 @@ import {
   normalizeWatchStatus as normalizeWatchStatusValue,
   normalizeWatchProgress as normalizeWatchProgressValue
 } from './watchlist-state.js';
+import { createAiringDashboardController } from './airing-dashboard.js';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -175,6 +176,7 @@ const App = {
   imageProxyStatusTtlMs: 6 * 60 * 60 * 1000,
   imageProxyCheckTimeoutMs: 2500,
   imageProxyRuntime: null,
+  airingDashboardController: null,
 
   store: null,
   storeBindingsApplied: false,
@@ -1075,6 +1077,54 @@ const App = {
     return list;
   },
 
+  getAiringDashboardAnimeItems({ statuses } = {}) {
+    const animeLookup = Array.isArray(this.animeData) && this.animeData.length > 0
+      ? new Map(this.animeData.map(anime => [String(anime?.id || '').trim(), anime]))
+      : new Map();
+    const itemMap = new Map();
+
+    this.getWatchlistEntries({ statuses }).forEach((entry) => {
+      const key = String(entry?.id || '').trim();
+      if (!key) return;
+      const anime = animeLookup.get(key);
+      if (anime) {
+        itemMap.set(key, anime);
+        return;
+      }
+      const snapshot = this.normalizeAnimeSnapshot(entry.snapshot);
+      if (snapshot) {
+        itemMap.set(key, snapshot);
+      }
+    });
+
+    return [...itemMap.values()];
+  },
+
+  ensureAiringDashboardController() {
+    if (typeof document === 'undefined') return null;
+    if (this.airingDashboardController) return this.airingDashboardController;
+    this.airingDashboardController = createAiringDashboardController({
+      sectionId: 'airing-dashboard-section',
+      subtitleId: 'airing-dashboard-subtitle',
+      summaryId: 'airing-dashboard-summary',
+      gridId: 'airing-dashboard-grid',
+      emptyId: 'airing-dashboard-empty',
+      hideWhenNoEntries: true
+    });
+    return this.airingDashboardController;
+  },
+
+  async renderAiringDashboard() {
+    const controller = this.ensureAiringDashboardController();
+    if (!controller) return;
+
+    const entries = this.getWatchlistEntries({ statuses: ['planned', 'watching'] });
+    await controller.update({
+      entries,
+      animeItems: this.getAiringDashboardAnimeItems({ statuses: ['planned', 'watching'] })
+    });
+  },
+
   getWatchlistSnapshots({ statuses } = {}) {
     const entries = this.getWatchlistEntries({ statuses });
     return entries
@@ -1189,6 +1239,7 @@ const App = {
       if (removed) {
         this.updateWatchlistControls(key);
         this.emitAppEvent('rekonime:watchlist-updated', { id: key, removed: true });
+        void this.renderAiringDashboard();
       }
       return { removed };
     }
@@ -1237,6 +1288,7 @@ const App = {
       progress: entry.progress,
       removed: false
     });
+    void this.renderAiringDashboard();
     return { entry };
   },
 
@@ -1286,6 +1338,7 @@ const App = {
       progress: entry.progress,
       removed: false
     });
+    void this.renderAiringDashboard();
     return { entry };
   },
 
@@ -2215,6 +2268,7 @@ const App = {
 
       if (!isCatalogPage) {
         this.renderWatchlist();
+        void this.renderAiringDashboard();
         if (requestedAnimeId) {
           this.showAnimeDetail(requestedAnimeId);
         }
@@ -2669,6 +2723,7 @@ const App = {
 
     await this.ensureStats();
     this.refreshWatchlistSnapshotsFromCatalog({ persist: true });
+    void this.renderAiringDashboard();
     this.extractFilterOptions();
     this.deferFilterUiOnce = !this.deferFilterUiUsed && this.shouldEnableLowMotionMode();
 

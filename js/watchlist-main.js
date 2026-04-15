@@ -12,6 +12,7 @@ import {
   normalizeWatchStatus,
   normalizeWatchProgress
 } from './watchlist-state.js';
+import { createAiringDashboardController } from './airing-dashboard.js';
 import { setHTML } from './security/trusted-types.js';
 import './bootstrap/watchlist-cover-preload.js';
 import './bootstrap/noncritical-styles.js';
@@ -39,6 +40,14 @@ const IMAGE_PROXY_CHECK_TIMEOUT_MS = 2500;
 
 let appInitPromise = null;
 let currentWatchlistFilter = 'all';
+const airingDashboardController = createAiringDashboardController({
+  sectionId: 'airing-dashboard-section',
+  subtitleId: 'airing-dashboard-subtitle',
+  summaryId: 'airing-dashboard-summary',
+  gridId: 'airing-dashboard-grid',
+  emptyId: 'airing-dashboard-empty',
+  hideWhenNoEntries: true
+});
 const imageProxyRuntime = createImageProxyRuntime({
   storageKey: IMAGE_PROXY_STATUS_KEY,
   ttlMs: IMAGE_PROXY_STATUS_TTL_MS,
@@ -173,9 +182,17 @@ const normalizeWatchlistSnapshot = (item, fallbackId = '') => {
   return {
     id,
     title,
+    titleEnglish: item.titleEnglish || '',
+    titleJapanese: item.titleJapanese || '',
+    malId: Number.isFinite(Number(item.malId)) ? Number(item.malId) : null,
+    anilistId: Number.isFinite(Number(item.anilistId)) ? Number(item.anilistId) : null,
     year: item.year || null,
+    season: item.season || '',
     studio: item.studio || '',
     cover,
+    type: item.type || '',
+    source: item.source || '',
+    demographic: item.demographic || '',
     stats: item.stats || item.statsSnapshot || null,
     communityScore: Number.isFinite(item.communityScore) ? item.communityScore : null,
     genres: Array.isArray(item.genres) ? [...item.genres] : [],
@@ -673,6 +690,7 @@ const renderWatchlist = () => {
   if (!entries.length) {
     section.classList.add('is-empty');
     grid.replaceChildren();
+    void airingDashboardController.update({ entries: [], animeItems: [] });
     return;
   }
 
@@ -680,6 +698,8 @@ const renderWatchlist = () => {
   ensureWatchlistSnapshots(watchlistMap, version);
   const counts = buildWatchlistCounts(entries);
   renderWatchlistFilters(counts);
+  const dashboardItems = entries.map((entry) => getDisplayItemForEntry(entry));
+  void airingDashboardController.update({ entries, animeItems: dashboardItems });
   const visible = filterWatchlistByStatus(entries);
   const fragment = document.createDocumentFragment();
   visible.forEach((entry, index) => {
@@ -745,7 +765,7 @@ const handleWatchlistClick = (target) => {
 };
 
 const handleCardOpen = async (target) => {
-  const card = target.closest?.('.anime-card');
+  const card = target.closest?.('.anime-card, .airing-card');
   if (!card) return false;
   const animeId = String(card.dataset.animeId || '').trim();
   if (!animeId) return true;
@@ -754,24 +774,25 @@ const handleCardOpen = async (target) => {
   return true;
 };
 
-const setupGridHandlers = () => {
-  const grid = document.getElementById('watchlist-grid');
+const attachCardHandlers = (grid, { includeControls = false } = {}) => {
   if (!grid) return;
 
   grid.addEventListener('click', async (event) => {
-    if (handleWatchlistClick(event.target)) return;
+    if (includeControls && handleWatchlistClick(event.target)) return;
     await handleCardOpen(event.target);
   });
 
-  grid.addEventListener('change', (event) => {
-    if (handleWatchlistChange(event.target)) return;
-  });
+  if (includeControls) {
+    grid.addEventListener('change', (event) => {
+      if (handleWatchlistChange(event.target)) return;
+    });
+  }
 
   grid.addEventListener('keydown', async (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     const isFormControl = event.target?.matches?.('input, select, textarea, button');
     if (isFormControl || event.target?.closest?.('.watchlist-controls')) return;
-    const card = event.target.closest?.('.anime-card');
+    const card = event.target.closest?.('.anime-card, .airing-card');
     if (!card) return;
     event.preventDefault();
     const app = await loadFullApp();
@@ -790,6 +811,11 @@ const setupGridHandlers = () => {
     img.dataset.fallbackApplied = 'true';
     img.src = fallback;
   }, true);
+};
+
+const setupGridHandlers = () => {
+  attachCardHandlers(document.getElementById('watchlist-grid'), { includeControls: true });
+  attachCardHandlers(document.getElementById('airing-dashboard-grid'));
 };
 
 const setupFilterHandlers = () => {
