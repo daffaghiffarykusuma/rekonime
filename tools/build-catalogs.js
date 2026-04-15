@@ -21,6 +21,7 @@ const DEFAULT_FULL_OUTPUT = path.join(__dirname, '..', 'data', 'anime.full.json'
 const DEFAULT_PREVIEW_OUTPUT = path.join(__dirname, '..', 'data', 'anime.preview.json');
 const DEFAULT_REPORT_OUTPUT = path.join(__dirname, '..', 'data', 'build-report.json');
 const DEFAULT_BUILD_STATE = path.join(__dirname, '..', '.build-state.json');
+const DEFAULT_FRANCHISE_MAP = path.join(__dirname, '..', 'data', 'franchise-map.json');
 
 const PREVIEW_LIMIT = 200;
 const PREVIEW_BUCKET = 80;
@@ -114,11 +115,12 @@ const resolveUniqueAnimeIds = (animeList) => {
   return { items, collisions };
 };
 
-const normalizeAnime = (anime) => {
+const normalizeAnime = (anime, resolveFranchise = () => null) => {
   const normalizedGenres = sanitizeTagList(anime?.metadata?.genres || anime?.genres || []);
   const normalizedThemes = sanitizeTagList(anime?.metadata?.themes || anime?.themes || []);
   const normalizedTrailer = anime?.metadata?.trailer || anime?.trailer || null;
   const normalizedSynopsis = anime?.metadata?.synopsis || anime?.synopsis || '';
+  const candidateId = String(anime?.metadata?.id || anime?.id || '').trim();
   const normalizedTitleEnglish =
     anime?.metadata?.title_english ||
     anime?.metadata?.titleEnglish ||
@@ -134,6 +136,7 @@ const normalizeAnime = (anime) => {
   const normalizedType = anime?.metadata?.type || anime?.type || '';
   const rawCommunityScore = anime?.communityScore ?? anime?.metadata?.score ?? anime?.score;
   const communityScore = Number.isFinite(Number(rawCommunityScore)) ? Number(rawCommunityScore) : null;
+  const franchise = candidateId ? resolveFranchise(candidateId) : null;
 
   if (anime?.metadata) {
     const resolvedTitle = anime.metadata.title || anime.title;
@@ -157,7 +160,8 @@ const normalizeAnime = (anime) => {
       synopsis: normalizedSynopsis,
       communityScore: communityScore,
       searchText: anime.searchText || buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
-      episodes: Array.isArray(anime.episodes) ? anime.episodes : []
+      episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
+      ...(franchise ? { franchise } : {})
     };
   }
 
@@ -182,7 +186,8 @@ const normalizeAnime = (anime) => {
     synopsis: normalizedSynopsis,
     communityScore: communityScore,
     searchText: anime.searchText || buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
-    episodes: Array.isArray(anime.episodes) ? anime.episodes : []
+    episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
+    ...(franchise ? { franchise } : {})
   };
 };
 
@@ -192,7 +197,7 @@ const parseArgs = (args) => {
   const flags = new Set();
   const values = {};
   const positional = [];
-  const valueFlags = new Set(['state', 'report-path']);
+  const valueFlags = new Set(['state', 'report-path', 'franchise-map']);
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -254,6 +259,7 @@ const main = () => {
   const previewOutputPath = positional[2] || DEFAULT_PREVIEW_OUTPUT;
   const reportOutputPath = values['report-path'] || DEFAULT_REPORT_OUTPUT;
   const stateFile = values.state || DEFAULT_BUILD_STATE;
+  const franchiseMapPath = values['franchise-map'] || DEFAULT_FRANCHISE_MAP;
 
   const buildState = new BuildState({ stateFile });
   const dependencies = [
@@ -262,7 +268,8 @@ const main = () => {
     path.join(__dirname, '..', 'js', 'stats.js'),
     path.join(__dirname, 'lib', 'schema-validator.js'),
     path.join(__dirname, 'lib', 'integrity-checker.js'),
-    path.join(__dirname, 'lib', 'quality-reporter.js')
+    path.join(__dirname, 'lib', 'quality-reporter.js'),
+    franchiseMapPath
   ];
 
   const outputsMissing = [fullOutputPath, previewOutputPath].some((filePath) => !fs.existsSync(filePath));
@@ -275,6 +282,26 @@ const main = () => {
 
   const raw = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   const animeList = Array.isArray(raw.anime) ? raw.anime : [];
+  const franchisePayload = fs.existsSync(franchiseMapPath)
+    ? JSON.parse(fs.readFileSync(franchiseMapPath, 'utf8'))
+    : {};
+  const franchiseByAnimeId = franchisePayload?.byAnimeId && typeof franchisePayload.byAnimeId === 'object'
+    ? franchisePayload.byAnimeId
+    : {};
+  const franchises = franchisePayload?.franchises && typeof franchisePayload.franchises === 'object'
+    ? franchisePayload.franchises
+    : {};
+  const resolveFranchise = (animeId) => {
+    const direct = franchiseByAnimeId[animeId];
+    if (!direct) return null;
+    if (typeof direct === 'string') {
+      return franchises[direct] || null;
+    }
+    if (typeof direct === 'object') {
+      return direct;
+    }
+    return null;
+  };
 
   const validation = validateCatalog(animeList, { strict, allowDuplicateIds: true });
   logIssues('Validation errors', validation.errors);
@@ -287,7 +314,7 @@ const main = () => {
     });
   }
 
-  const normalized = animeList.map(normalizeAnime);
+  const normalized = animeList.map(anime => normalizeAnime(anime, resolveFranchise));
   const { items: normalizedWithUniqueIds, collisions: idCollisions } = resolveUniqueAnimeIds(normalized);
   logIssues('Resolved duplicate ids', idCollisions.map((entry) => ({
     field: 'id',

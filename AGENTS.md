@@ -63,9 +63,10 @@
 - `js/image-proxy.js`: shared image proxy URL/status utilities for app and watchlist entry points.
 - `js/watchlist-state.js`: shared watchlist status/progress normalization helpers.
 - `js/services/*`: API client, cache, rate limiter, schema validation, analytics, error handling, logging.
-- `data/*.json`: catalog sources (`anime.json`, `anime.full.json`, `anime.preview.json`).
+- `data/*.json`: catalog sources (`anime.json`, `anime.full.json`, `anime.preview.json`, `franchise-map.json`).
 - `js/data.js`: embedded fallback dataset.
 - `sw.js`, `version.json`, `health.html`: PWA + health surface.
+- `tools/generate-franchise-map.js`, `tools/lib/franchise-builder.js`: AniList relation crawl + franchise/watch-order metadata builder.
 - `tools/*`: build pipeline, validation, deployment utilities, security checks, and coverage/report guards.
 - `test/*.test.js`: node:test coverage for stats, recs, build pipeline.
 
@@ -73,17 +74,19 @@
 - Initial load and swap: preview data first, then full catalog refresh.
 - Filters and sorting: `App.activeFilters` + `Recommendations.getSortOptions()`.
 - Search: `anime.searchText` matched by `App.handleHeaderSearch()`.
-- Detail modal: `App.showAnimeDetail()` renders, syncs URL, and manages back/forward.
+- Detail modal: `App.showAnimeDetail()` renders synopsis, franchise hub, trailer, reviews, syncs URL, and manages back/forward.
 - Reviews and synopsis: Jikan API via `ReviewsService`; cached via `CacheManager` with TTL.
 - Watchlist: stored under `rekonime.watchlist` (legacy `rekonime.bookmarks` migrated), rendered in `watchlist.html`.
 
 ## Data Schema (Essentials)
 - Catalog payload: `{ generatedAt, scoreProfile, anime[] }`.
-- Anime object: core identity + metadata, `genres[]`, `themes[]`, `synopsis`, `trailer`, `communityScore`, `searchText`, `episodes[]`, `stats`, `colorIndex`.
+- Anime object: core identity + metadata, `genres[]`, `themes[]`, `synopsis`, `trailer`, `communityScore`, `searchText`, `episodes[]`, `stats`, `colorIndex`, optional `franchise`.
+- Franchise object: `{ id, title, mode, entryAnimeId, entryTitle, totalCount, catalogCount, mainCount, items[] }`.
+- Franchise item: `{ animeId, externalKey, title, year, format, bucket, relationType, isEntry, isInCatalog, anchorAnimeId, anchorTitle, mainOrder, order }`.
 - Stats object: see `js/stats.js` for full fields; includes quality, retention, momentum, consistency, safety, and trend metrics (most scaled with a strictness curve).
 
 ## DOM & UI Contracts
-- Key IDs: `#anime-grid`, `#recommendations-grid`, `#filter-modal`, `#filter-sections`, `#active-filters`, `#header-search`, `#detail-modal`, `#detail-content`, `#community-reviews-section`, `#similar-anime-section`, `#watchlist-section`, `#watchlist-grid`.
+- Key IDs: `#anime-grid`, `#recommendations-grid`, `#filter-modal`, `#filter-sections`, `#active-filters`, `#header-search`, `#detail-modal`, `#detail-content`, `#franchise-hub-section`, `#community-reviews-section`, `#similar-anime-section`, `#watchlist-section`, `#watchlist-grid`.
 - `data-action`: `open-anime`, `toggle-filter`, `watch-status`, `watch-progress`, `load-more`.
 - Image fallbacks: `data-fallback-src` on `img`.
 - Breakpoints: primary `max-width: 960px` and `max-width: 640px`; legacy `768px` and `480px` rules exist.
@@ -96,11 +99,12 @@
 1. `tools/scraper/*` -> `tools/scraper/output/*.json`
 2. `tools/merge-scores.js` -> `data/anime.json`
 3. Metadata enrichers -> `data/anime.json`
-4. `tools/build-catalogs.js` -> `data/anime.full.json` + `data/anime.preview.json` (+ optional report/state)
-5. `tools/regenerate-data.ps1` -> `js/data.js`
-6. `tools/validate-data.js` for schema checks
-7. `tools/check-entrypoint-dedup.js` guards against duplicate home entry templates
-8. `tools/check-repo-hygiene.js`, `tools/check-coverage-thresholds.js`, `tools/check-outdated-budget.js`, and `tools/check-unsafe-patterns.js` gate CI/local quality and security checks
+4. `tools/generate-franchise-map.js` -> `data/franchise-map.json`
+5. `tools/build-catalogs.js` -> `data/anime.full.json` + `data/anime.preview.json` (+ optional report/state)
+6. `tools/regenerate-data.ps1` -> `js/data.js`
+7. `tools/validate-data.js` for schema checks
+8. `tools/check-entrypoint-dedup.js` guards against duplicate home entry templates
+9. `tools/check-repo-hygiene.js`, `tools/check-coverage-thresholds.js`, `tools/check-outdated-budget.js`, and `tools/check-unsafe-patterns.js` gate CI/local quality and security checks
 
 ## Notes
 - `js/charts.js` is optional and not wired by default; wire scripts and canvas IDs if used.

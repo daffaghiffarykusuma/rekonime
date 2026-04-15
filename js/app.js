@@ -3059,7 +3059,8 @@ const App = {
           searchText: searchText,
           episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
           stats: existingStats,
-          colorIndex: existingColorIndex
+          colorIndex: existingColorIndex,
+          franchise: anime.franchise || anime.metadata.franchise || null
         };
       }
       // Already flat structure, ensure all fields exist
@@ -3094,7 +3095,8 @@ const App = {
         searchText: searchText,
         episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
         stats: existingStats,
-        colorIndex: existingColorIndex
+        colorIndex: existingColorIndex,
+        franchise: anime.franchise || null
       };
     });
   },
@@ -6063,6 +6065,132 @@ const App = {
     }, true);
   },
 
+  getFranchiseData(anime) {
+    const franchise = anime?.franchise;
+    if (!franchise || typeof franchise !== 'object') return null;
+    if (!Array.isArray(franchise.items) || franchise.items.length < 2) return null;
+    return franchise;
+  },
+
+  getFranchiseRelationLabel(relationType) {
+    switch (String(relationType || '').toUpperCase()) {
+      case 'ENTRY':
+        return 'Start here';
+      case 'SEQUEL':
+        return 'Sequel';
+      case 'SIDE_STORY':
+        return 'Side story';
+      case 'SPIN_OFF':
+        return 'Spin-off';
+      case 'ALTERNATIVE':
+        return 'Alt cut';
+      case 'SUMMARY':
+        return 'Recap';
+      default:
+        return 'Related';
+    }
+  },
+
+  getFranchiseModeLabel(mode) {
+    switch (String(mode || '').toLowerCase()) {
+      case 'linear':
+        return 'Linear path';
+      case 'branched':
+        return 'Branching franchise';
+      default:
+        return 'Related releases';
+    }
+  },
+
+  renderFranchiseHubSection(anime) {
+    const franchise = this.getFranchiseData(anime);
+    if (!franchise) return '';
+
+    const currentItem = franchise.items.find(item => item?.animeId === anime.id) || null;
+    const mainItems = franchise.items.filter(item => item?.bucket === 'main');
+    const entryItem = franchise.items.find(item => item?.isEntry) || mainItems[0] || franchise.items[0];
+    const currentMainIndex = currentItem?.bucket === 'main'
+      ? mainItems.findIndex(item => item === currentItem) + 1
+      : null;
+    const currentRoleLabel = currentItem ? this.getFranchiseRelationLabel(currentItem.relationType) : 'Related';
+    const modeLabel = this.getFranchiseModeLabel(franchise.mode);
+    const catalogCount = Number.isFinite(franchise.catalogCount) ? franchise.catalogCount : franchise.items.filter(item => item?.isInCatalog).length;
+    const totalCount = Number.isFinite(franchise.totalCount) ? franchise.totalCount : franchise.items.length;
+    const mainCount = Number.isFinite(franchise.mainCount) ? franchise.mainCount : mainItems.length;
+
+    let summary = `Start with ${entryItem?.title || franchise.entryTitle || franchise.title}, then use the order below.`;
+    if (currentItem?.isEntry) {
+      summary = 'This is the cleanest starting point in the current franchise map.';
+    } else if (currentItem?.bucket === 'main' && currentMainIndex > 1 && entryItem?.title) {
+      summary = `Start with ${entryItem.title}. This title is step ${currentMainIndex} of ${mainCount} in the main story.`;
+    } else if (currentItem?.bucket !== 'main' && currentItem?.anchorTitle && entryItem?.title) {
+      summary = `Start with ${entryItem.title}. This ${currentRoleLabel.toLowerCase()} fits best after ${currentItem.anchorTitle}.`;
+    }
+
+    return `
+      <section class="franchise-hub" id="franchise-hub-section">
+        <div class="detail-section-header">
+          <h3>Franchise Hub</h3>
+          <span class="detail-section-note">${this.escapeHtml(modeLabel)}</span>
+        </div>
+        <div class="franchise-summary">
+          <div class="franchise-summary-copy">
+            <span class="franchise-eyebrow">Best place to start</span>
+            <strong class="franchise-entry-title">${this.escapeHtml(entryItem?.title || franchise.entryTitle || franchise.title)}</strong>
+            <p class="franchise-summary-text">${this.escapeHtml(summary)}</p>
+          </div>
+          <div class="franchise-summary-meta" aria-label="Franchise stats">
+            <span class="franchise-summary-pill">${this.escapeHtml(`${mainCount} main story ${mainCount === 1 ? 'entry' : 'entries'}`)}</span>
+            <span class="franchise-summary-pill">${this.escapeHtml(`${catalogCount} in catalog`)}</span>
+            <span class="franchise-summary-pill">${this.escapeHtml(`${totalCount} total related titles`)}</span>
+          </div>
+        </div>
+        <div class="franchise-list" role="list">
+          ${franchise.items.map(item => {
+      const isCurrent = item?.animeId === anime.id;
+      const safeTitle = this.escapeHtml(item?.title || 'Untitled');
+      const safeRelation = this.escapeHtml(this.getFranchiseRelationLabel(item?.relationType));
+      const safeYear = Number.isInteger(item?.year) ? String(item.year) : 'Year unknown';
+      const safeFormat = this.escapeHtml(item?.format || 'ANIME');
+      const safeMeta = this.escapeHtml(item?.isInCatalog ? `${safeFormat} • ${safeYear} • In catalog` : `${safeFormat} • ${safeYear} • Outside current catalog`);
+      const safeContext = item?.bucket === 'main' && item?.mainOrder
+        ? `Main story step ${item.mainOrder}${mainCount > 0 ? ` of ${mainCount}` : ''}`
+        : (item?.anchorTitle ? `Best after ${item.anchorTitle}` : 'Related franchise title');
+      const safeBucket = this.escapeHtml(String(item?.bucket || 'related').replace(/_/g, '-'));
+      const classes = ['franchise-card', `franchise-card--${safeBucket}`];
+      if (isCurrent) classes.push('is-current');
+      if (item?.isEntry) classes.push('is-entry');
+      if (!item?.isInCatalog) classes.push('is-external');
+      const buttonLabel = item?.animeId && !isCurrent
+        ? `<button class="btn btn-outline btn-sm franchise-card-action" data-action="open-anime" data-anime-id="${this.escapeAttr(item.animeId)}" type="button">Open details</button>`
+        : `<span class="franchise-card-status">${isCurrent ? 'Viewing now' : (item?.isInCatalog ? 'In catalog' : 'Not in catalog')}</span>`;
+
+      return `
+              <article class="${classes.join(' ')}" role="listitem">
+                <div class="franchise-card-step" aria-hidden="true">${item?.bucket === 'main' && item?.mainOrder ? item.mainOrder : '•'}</div>
+                <div class="franchise-card-body">
+                  <div class="franchise-card-top">
+                    <div class="franchise-card-copy">
+                      <div class="franchise-card-badges">
+                        ${item?.isEntry ? '<span class="franchise-badge franchise-badge--entry">Start</span>' : ''}
+                        ${isCurrent ? '<span class="franchise-badge franchise-badge--current">You\'re here</span>' : ''}
+                        <span class="franchise-badge franchise-badge--relation">${safeRelation}</span>
+                      </div>
+                      <h4 class="franchise-card-title">${safeTitle}</h4>
+                      <div class="franchise-card-meta">${safeMeta}</div>
+                    </div>
+                    ${buttonLabel}
+                  </div>
+                  <p class="franchise-card-context">${this.escapeHtml(safeContext)}</p>
+                </div>
+              </article>
+            `;
+    }).join('')}
+        </div>
+      </section>
+    `;
+  },
+
   /**
    * Render similar anime section for the detail modal
    * @param {Object} anime - Current anime
@@ -6273,6 +6401,7 @@ const App = {
 
     const synopsisMarkup = this.renderSynopsis(synopsis);
     const synopsisSection = synopsisMarkup || this.renderSynopsisLoading();
+    const franchiseSection = this.renderFranchiseHubSection(anime);
     const trailerSection = this.renderTrailerSection(anime);
     const episodeCount = this.getEpisodeCount(anime);
     const hasEpisodes = episodeCount > 0;
@@ -6422,6 +6551,7 @@ const App = {
       <div id="synopsis-section">
         ${synopsisSection}
       </div>
+      ${franchiseSection}
       ${trailerSection}
       <div id="community-reviews-section">
         ${this.renderReviewsLoading()}
