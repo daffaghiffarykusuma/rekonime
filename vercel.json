@@ -1,19 +1,12 @@
 {
   "redirects": [
-    { "source": "/home/", "destination": "/home", "permanent": true }
-  ],
-  "rewrites": [
-    { "source": "/home", "destination": "/index.html" }
+    { "source": "/home/", "destination": "/", "permanent": true },
+    { "source": "/home", "destination": "/", "permanent": true },
+    { "source": "/index.html", "destination": "/", "permanent": true }
   ],
   "headers": [
     {
       "source": "/",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    },
-    {
-      "source": "/home",
       "headers": [
         { "key": "Cache-Control", "value": "no-store" }
       ]

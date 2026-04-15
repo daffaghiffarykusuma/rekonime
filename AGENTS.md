@@ -40,7 +40,7 @@
 - Update this baseline when a new report is generated.
 
 ## User Journey (Condensed)
-- Entry points: `/` or `index.html` (primary), `/home` (rewrite alias to `/index.html`), `/watchlist` or `watchlist.html`, plus deep links via query params.
+- Entry points: `/` (primary), legacy `/index.html` and `/home` redirect to `/`, `/watchlist` or `watchlist.html`, plus deep links via query params.
 - First load: `App.init()` shows loading state, loads watchlist, fetches `data/anime.preview.json`, then swaps to `data/anime.full.json`.
 - Discover: scroll, search, filters, Surprise Me, seasonal chips, trending, and presets.
 - Evaluate: detail modal shows synopsis, trailer, reviews, and similar anime; URL updates with `?anime=...`.

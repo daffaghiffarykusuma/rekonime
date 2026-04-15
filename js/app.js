@@ -48,7 +48,7 @@ const App = {
   filterPanelRenderHandle: null,
   currentAnimeId: null,
   siteName: 'Rekonime',
-  preferredHomePath: '/home',
+  preferredHomePath: '/',
   basePageUrl: '',
   embeddedDataPromise: null,
   statsModule: null,
