@@ -18,9 +18,12 @@
 - Never expose atom labels, phases, confidence scores, or internal reasoning in output.
 
 ## Lighthouse Performance Targets (Slow 4G + Brave)
+- Use a production-style HTTPS URL as the canonical audit target: the published site or a production-equivalent preview/build, not raw `127.0.0.1` Live Server runs.
+- Evaluate performance with a 3-run median before judging regressions or improvements.
 - Optimize for First Contentful Paint, Largest Contentful Paint, Speed Index, Total Blocking Time, and Cumulative Layout Shift.
 - Prioritize fast initial render, stable layout, and minimal main-thread blocking.
 - Avoid layout shifts by reserving space for images, fonts, and dynamic content.
+- Current standard to defend on the primary entry point `/`: Performance `>= 0.95`, Accessibility `1.00`, Best Practices `1.00`, SEO `1.00`, FCP `<= 1.50s`, LCP `<= 1.50s`, Speed Index `<= 1.65s`, TBT `<= 250ms`, CLS `<= 0.01`.
 
 ## Lighthouse Quality Gates
 - Accessibility: semantic HTML, labels, contrast, focus states, and keyboard navigation.
@@ -28,15 +31,17 @@
 - SEO: correct meta, structured headings, descriptive titles, and crawlable content.
 
 ## Lighthouse Review Checklist
-- Performance: FCP, LCP, Speed Index, TBT, CLS stay within target ranges on Slow 4G.
+- Performance: FCP, LCP, Speed Index, TBT, CLS stay within target ranges on Slow 4G, measured as a 3-run median against a production-style HTTPS URL.
 - Accessibility: labels, alt text, focus order, contrast, ARIA, and keyboard flows verified.
 - Best Practices: HTTPS, no console errors, modern APIs, CSP-safe assets.
 - SEO: title/meta description, headings, canonical, and crawlable links verified.
 
 ## Current Lighthouse Baseline (Slow 4G)
-- Source: `plans/rekonime.vercel.app-20260207T085345.json` (Lighthouse 13.0.1, URL `https://rekonime.vercel.app/home`).
-- Scores (3-run median): Performance 0.86, Accessibility 1.00, Best Practices 1.00, SEO 1.00.
-- Metrics (3-run median): FCP 1.45s, LCP 1.84s, Speed Index 1.56s, TBT 530.5ms, CLS 0.034.
+- Source: `plans/rekonime.vercel.app-20260415T195819.json`, `plans/rekonime.vercel.app-20260415T195900.json`, `plans/rekonime.vercel.app-20260415T195937.json` (Lighthouse 13.0.2, URL `https://rekonime.vercel.app/`).
+- Scores (3-run median): Performance 0.98, Accessibility 1.00, Best Practices 1.00, SEO 1.00.
+- Metrics (3-run median): FCP 1.49s, LCP 1.49s, Speed Index 1.63s, TBT 243.5ms, CLS 0.003.
+- Interpretation: this production measurement is the current quality bar for future homepage changes.
+- Note: raw local Live Server audits such as `127.0.0.1:5500` are useful for debugging, but they are not the canonical acceptance gate because they can introduce environment-specific instability that does not reflect the deployed app.
 - Update this baseline when a new report is generated.
 
 ## User Journey (Condensed)
