@@ -27,18 +27,17 @@ const loadApp = () => {
   return appPromise;
 };
 
-const initNonCriticalServices = () => {
+const initNonCriticalServices = (app) => {
   initDeferredRuntimeServices({
     timeoutMs: 7000,
     loadModules: async () => Promise.all([
-        loadApp(),
         import('./keyboardShortcuts.js'),
         import('./serviceWorker.js'),
         import('./services/analytics-service.js'),
         import('./performanceMonitor.js'),
         import('./recommendations.js')
       ]),
-    onReady: async ([app, keyboardModule, swModule, analyticsModule, perfModule, recsModule]) => {
+    onReady: async ([keyboardModule, swModule, analyticsModule, perfModule, recsModule]) => {
       const { KeyboardShortcuts } = keyboardModule;
       const { ServiceWorkerManager } = swModule;
       const { AnalyticsService } = analyticsModule;
@@ -48,7 +47,9 @@ const initNonCriticalServices = () => {
       AnalyticsService.init();
       PerformanceMonitor.init();
       Recommendations.loadModePreference();
-      KeyboardShortcuts.setApp(app);
+      if (app) {
+        KeyboardShortcuts.setApp(app);
+      }
       KeyboardShortcuts.init();
       ServiceWorkerManager.register();
       ServiceWorkerManager.initConnectivityListeners();
@@ -67,6 +68,7 @@ const bootstrap = () => {
     try {
       const app = await loadApp();
       await app.init();
+      initNonCriticalServices(app);
     } catch (error) {
       Logger?.error?.('Failed to boot app', { error });
     }
@@ -104,8 +106,6 @@ const bootstrap = () => {
   };
 
   scheduleAppBoot();
-
-  initNonCriticalServices();
 };
 
 if (typeof document !== 'undefined') {

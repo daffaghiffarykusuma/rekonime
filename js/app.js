@@ -36,7 +36,6 @@ import {
   normalizeWatchStatus as normalizeWatchStatusValue,
   normalizeWatchProgress as normalizeWatchProgressValue
 } from './watchlist-state.js';
-import { createAiringDashboardController } from './airing-dashboard.js';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -148,6 +147,7 @@ const App = {
   highPriorityImageCount: 2,
   secondaryRenderHandle: null,
   secondaryRenderInFlight: false,
+  secondaryDeferredTimeoutId: null,
   gridVirtualScrollHandle: null,
   deferFilterUiOnce: false,
   deferFilterUiHandle: null,
@@ -176,7 +176,9 @@ const App = {
   imageProxyStatusTtlMs: 6 * 60 * 60 * 1000,
   imageProxyCheckTimeoutMs: 2500,
   imageProxyRuntime: null,
+  airingDashboardModulePromise: null,
   airingDashboardController: null,
+  airingDashboardRenderHandle: null,
 
   store: null,
   storeBindingsApplied: false,
@@ -310,6 +312,14 @@ const App = {
     return saveData || this.isCoarsePointer() || this.prefersReducedMotion();
   },
 
+  shouldDeferHeavyContent() {
+    const connection = this.getConnectionInfo();
+    const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+    const lowBandwidth = effectiveType.includes('2g') || effectiveType.includes('3g') || effectiveType === 'slow-4g';
+    const lowMemory = typeof navigator !== 'undefined' && Number.isFinite(navigator.deviceMemory) && navigator.deviceMemory <= 4;
+    return Boolean(connection?.saveData) || lowBandwidth || lowMemory || this.isMobileViewport() || this.isCoarsePointer();
+  },
+
   applyPerformancePreferences() {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
@@ -325,14 +335,14 @@ const App = {
   updateGridPageSize() {
     const connection = this.getConnectionInfo();
     const effectiveType = String(connection?.effectiveType || '').toLowerCase();
-    const isSlow = Boolean(connection?.saveData) || effectiveType.includes('2g') || effectiveType.includes('3g');
+    const isSlow = Boolean(connection?.saveData) || effectiveType.includes('2g') || effectiveType.includes('3g') || effectiveType === 'slow-4g';
     const isMobile = this.isMobileViewport();
     let nextSize = 24;
     if (isMobile) {
-      nextSize = 16;
+      nextSize = 12;
     }
     if (isSlow) {
-      nextSize = Math.min(nextSize, 12);
+      nextSize = Math.min(nextSize, isMobile ? 10 : 12);
     }
     this.gridPageSize = nextSize;
   },
@@ -1100,9 +1110,21 @@ const App = {
     return [...itemMap.values()];
   },
 
-  ensureAiringDashboardController() {
+  async loadAiringDashboardModule() {
+    if (this.airingDashboardModulePromise) return this.airingDashboardModulePromise;
+    this.airingDashboardModulePromise = import('./airing-dashboard.js')
+      .then((module) => module.createAiringDashboardController)
+      .catch((error) => {
+        this.airingDashboardModulePromise = null;
+        throw error;
+      });
+    return this.airingDashboardModulePromise;
+  },
+
+  async ensureAiringDashboardController() {
     if (typeof document === 'undefined') return null;
     if (this.airingDashboardController) return this.airingDashboardController;
+    const createAiringDashboardController = await this.loadAiringDashboardModule();
     this.airingDashboardController = createAiringDashboardController({
       sectionId: 'airing-dashboard-section',
       subtitleId: 'airing-dashboard-subtitle',
@@ -1115,7 +1137,7 @@ const App = {
   },
 
   async renderAiringDashboard() {
-    const controller = this.ensureAiringDashboardController();
+    const controller = await this.ensureAiringDashboardController();
     if (!controller) return;
 
     const entries = this.getWatchlistEntries({ statuses: ['planned', 'watching'] });
@@ -1123,6 +1145,18 @@ const App = {
       entries,
       animeItems: this.getAiringDashboardAnimeItems({ statuses: ['planned', 'watching'] })
     });
+  },
+
+  scheduleAiringDashboardRender({ timeout = 2500 } = {}) {
+    if (typeof document === 'undefined') return;
+    if (this.airingDashboardRenderHandle) {
+      this.cancelIdleTask(this.airingDashboardRenderHandle);
+      this.airingDashboardRenderHandle = null;
+    }
+    this.airingDashboardRenderHandle = this.queueIdleTask(() => {
+      this.airingDashboardRenderHandle = null;
+      void this.renderAiringDashboard();
+    }, { timeout });
   },
 
   getWatchlistSnapshots({ statuses } = {}) {
@@ -1239,7 +1273,7 @@ const App = {
       if (removed) {
         this.updateWatchlistControls(key);
         this.emitAppEvent('rekonime:watchlist-updated', { id: key, removed: true });
-        void this.renderAiringDashboard();
+        this.scheduleAiringDashboardRender({ timeout: 500 });
       }
       return { removed };
     }
@@ -1288,7 +1322,7 @@ const App = {
       progress: entry.progress,
       removed: false
     });
-    void this.renderAiringDashboard();
+    this.scheduleAiringDashboardRender({ timeout: 500 });
     return { entry };
   },
 
@@ -1338,7 +1372,7 @@ const App = {
       progress: entry.progress,
       removed: false
     });
-    void this.renderAiringDashboard();
+    this.scheduleAiringDashboardRender({ timeout: 500 });
     return { entry };
   },
 
@@ -2268,7 +2302,7 @@ const App = {
 
       if (!isCatalogPage) {
         this.renderWatchlist();
-        void this.renderAiringDashboard();
+        this.scheduleAiringDashboardRender({ timeout: 2000 });
         if (requestedAnimeId) {
           this.showAnimeDetail(requestedAnimeId);
         }
@@ -2723,7 +2757,7 @@ const App = {
 
     await this.ensureStats();
     this.refreshWatchlistSnapshotsFromCatalog({ persist: true });
-    void this.renderAiringDashboard();
+    this.scheduleAiringDashboardRender({ timeout: 3500 });
     this.extractFilterOptions();
     this.deferFilterUiOnce = !this.deferFilterUiUsed && this.shouldEnableLowMotionMode();
 
@@ -4299,11 +4333,10 @@ const App = {
     const genreContainer = document.getElementById('genre-chips');
     const themeContainer = document.getElementById('theme-chips');
     const isMobile = window.matchMedia?.('(max-width: 640px)')?.matches;
-    const genreCount = Array.isArray(this.filterOptions.genres) ? this.filterOptions.genres.length : 0;
-    const themeBase = isMobile ? (genreCount || 12) : Number.POSITIVE_INFINITY;
+    const mobileLimit = 6;
     const limits = {
-      genres: Number.POSITIVE_INFINITY,
-      themes: themeBase
+      genres: isMobile ? mobileLimit : Number.POSITIVE_INFINITY,
+      themes: isMobile ? mobileLimit : Number.POSITIVE_INFINITY
     };
 
     const renderGroup = (type, options, container) => {
@@ -4315,7 +4348,7 @@ const App = {
       }
       const limit = limits[type] || 12;
       const state = this.quickFilterState[type] || { expanded: false };
-      const expanded = type === 'genres' ? true : state.expanded;
+      const expanded = state.expanded;
 
       const chipsMarkup = options.map((option, index) => {
         const optionStr = String(option);
@@ -4336,7 +4369,7 @@ const App = {
         `;
       }).join('');
 
-      const showToggle = type !== 'genres' && options.length > limit && Number.isFinite(limit);
+      const showToggle = options.length > limit && Number.isFinite(limit);
       const hiddenCount = Math.max(options.length - limit, 0);
       const toggleLabel = expanded ? 'Show less' : `Show ${hiddenCount} more`;
       const toggleMarkup = showToggle
@@ -4635,32 +4668,60 @@ const App = {
   },
 
   scheduleSecondaryRenders() {
+    if (this.secondaryDeferredTimeoutId && typeof window !== 'undefined') {
+      window.clearTimeout(this.secondaryDeferredTimeoutId);
+      this.secondaryDeferredTimeoutId = null;
+    }
     if (this.secondaryRenderInFlight) return;
     this.secondaryRenderInFlight = true;
+    const constrained = this.shouldDeferHeavyContent();
+    const immediateTasks = constrained
+      ? [() => this.renderRecommendations()]
+      : [
+          () => this.renderRecommendations(),
+          () => this.renderRankings(),
+          () => this.renderBecauseYouWatched(),
+          () => this.renderTrending()
+        ];
+    const deferredTasks = constrained
+      ? [
+          () => this.renderRankings(),
+          () => this.renderBecauseYouWatched(),
+          () => this.renderTrending()
+        ]
+      : [];
 
-    const tasks = [
-      () => this.renderRankings(),
-      () => this.renderRecommendations(),
-      () => this.renderBecauseYouWatched(),
-      () => this.renderTrending()
-    ];
-
-    const runNext = () => {
-      const task = tasks.shift();
-      if (task) {
-        task();
-      }
-      if (tasks.length > 0) {
-        this.queueIdleTask(runNext, { timeout: 1200 });
-        return;
-      }
-      this.secondaryRenderInFlight = false;
+    const runQueue = (tasks, onComplete) => {
+      const queue = [...tasks];
+      const runNext = () => {
+        const task = queue.shift();
+        if (task) {
+          task();
+        }
+        if (queue.length > 0) {
+          this.queueIdleTask(runNext, { timeout: constrained ? 2000 : 1200 });
+          return;
+        }
+        if (typeof onComplete === 'function') {
+          onComplete();
+        }
+      };
+      runNext();
     };
 
     this.secondaryRenderHandle = this.queueIdleTask(() => {
       this.secondaryRenderHandle = null;
-      runNext();
-    }, { timeout: 1200 });
+      runQueue(immediateTasks, () => {
+        this.secondaryRenderInFlight = false;
+        if (!deferredTasks.length || typeof window === 'undefined') {
+          return;
+        }
+        this.secondaryDeferredTimeoutId = window.setTimeout(() => {
+          this.secondaryDeferredTimeoutId = null;
+          this.queueIdleTask(() => runQueue(deferredTasks), { timeout: 2500 });
+        }, 4500);
+      });
+    }, { timeout: constrained ? 1800 : 1200 });
   },
 
   positionTooltip(trigger) {
@@ -5726,7 +5787,7 @@ const App = {
       this.gridInitialBatchRendered = true;
     }
 
-    if (shouldDeferInitialBatch && endIndex < targetEndIndex) {
+    if (shouldDeferInitialBatch && endIndex < targetEndIndex && !this.shouldDeferHeavyContent()) {
       if (this.gridDeferredRenderHandle) {
         this.cancelIdleTask(this.gridDeferredRenderHandle);
       }

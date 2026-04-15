@@ -4350,6 +4350,7 @@ h4 {
     flex-direction: column;
     gap: 0.35rem;
     padding: 0.5rem 0.6rem;
+    min-height: 17.5rem;
   }
 
   .quick-filters-tabs {
@@ -4363,10 +4364,12 @@ h4 {
     border: 1px solid var(--border-color);
     background: var(--bg-secondary);
     padding: 0.35rem 0.4rem;
+    min-height: 13.5rem;
   }
 
   .quick-filters-track {
     display: none;
+    min-height: 12.5rem;
     flex-wrap: wrap;
     padding: 0.35rem 0.3rem 0.25rem;
     border: none;
@@ -5576,7 +5579,11 @@ summary:focus-visible,
   }
 
   .discovery-tips {
-    grid-template-columns: 1fr;
+    display: none;
+  }
+
+  .petal-scatter {
+    display: none;
   }
 
   .preset-grid {

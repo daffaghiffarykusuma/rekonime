@@ -24,6 +24,8 @@ const isConstrainedConnection = () => {
   return Boolean(connection?.saveData) || lowBandwidth || lowMemory;
 };
 
+const shouldPrioritizeVisualStability = () => isConstrainedViewport() || isConstrainedConnection();
+
 const shouldLoadCustomFonts = () => !isConstrainedViewport() && !isConstrainedConnection();
 
 const markFontsReady = () => {
@@ -81,6 +83,14 @@ const activateNoncriticalStyles = () => {
 
 const scheduleNoncriticalActivation = () => {
   const activate = () => queueIdle(activateNoncriticalStyles, 3000);
+  if (shouldPrioritizeVisualStability()) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', activate, { once: true });
+    } else {
+      activate();
+    }
+    return;
+  }
   if (document.readyState === 'complete') {
     activate();
     return;

@@ -12,7 +12,6 @@ import {
   normalizeWatchStatus,
   normalizeWatchProgress
 } from './watchlist-state.js';
-import { createAiringDashboardController } from './airing-dashboard.js';
 import { setHTML } from './security/trusted-types.js';
 import './bootstrap/watchlist-cover-preload.js';
 import './bootstrap/noncritical-styles.js';
@@ -40,14 +39,9 @@ const IMAGE_PROXY_CHECK_TIMEOUT_MS = 2500;
 
 let appInitPromise = null;
 let currentWatchlistFilter = 'all';
-const airingDashboardController = createAiringDashboardController({
-  sectionId: 'airing-dashboard-section',
-  subtitleId: 'airing-dashboard-subtitle',
-  summaryId: 'airing-dashboard-summary',
-  gridId: 'airing-dashboard-grid',
-  emptyId: 'airing-dashboard-empty',
-  hideWhenNoEntries: true
-});
+let airingDashboardModulePromise = null;
+let airingDashboardControllerPromise = null;
+let airingDashboardUpdateHandle = null;
 const imageProxyRuntime = createImageProxyRuntime({
   storageKey: IMAGE_PROXY_STATUS_KEY,
   ttlMs: IMAGE_PROXY_STATUS_TTL_MS,
@@ -678,6 +672,56 @@ const ensureWatchlistSnapshots = (map, version) => {
   }
 };
 
+const loadAiringDashboardFactory = async () => {
+  if (airingDashboardModulePromise) return airingDashboardModulePromise;
+  airingDashboardModulePromise = import('./airing-dashboard.js')
+    .then((module) => module.createAiringDashboardController)
+    .catch((error) => {
+      airingDashboardModulePromise = null;
+      throw error;
+    });
+  return airingDashboardModulePromise;
+};
+
+const getAiringDashboardController = async () => {
+  if (airingDashboardControllerPromise) return airingDashboardControllerPromise;
+  airingDashboardControllerPromise = loadAiringDashboardFactory()
+    .then((createAiringDashboardController) => createAiringDashboardController({
+      sectionId: 'airing-dashboard-section',
+      subtitleId: 'airing-dashboard-subtitle',
+      summaryId: 'airing-dashboard-summary',
+      gridId: 'airing-dashboard-grid',
+      emptyId: 'airing-dashboard-empty',
+      hideWhenNoEntries: true
+    }))
+    .catch((error) => {
+      airingDashboardControllerPromise = null;
+      throw error;
+    });
+  return airingDashboardControllerPromise;
+};
+
+const scheduleAiringDashboardUpdate = (entries, animeItems, { timeout = 2500 } = {}) => {
+  if (airingDashboardUpdateHandle) {
+    if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && typeof airingDashboardUpdateHandle === 'number') {
+      window.cancelIdleCallback(airingDashboardUpdateHandle);
+    } else {
+      clearTimeout(airingDashboardUpdateHandle);
+    }
+    airingDashboardUpdateHandle = null;
+  }
+
+  airingDashboardUpdateHandle = queueIdleTask(async () => {
+    airingDashboardUpdateHandle = null;
+    try {
+      const controller = await getAiringDashboardController();
+      await controller.update({ entries, animeItems });
+    } catch (error) {
+      Logger?.warn?.('Failed to update airing dashboard', { error });
+    }
+  }, timeout);
+};
+
 const renderWatchlist = () => {
   const section = document.getElementById('watchlist-section');
   const grid = document.getElementById('watchlist-grid');
@@ -690,7 +734,7 @@ const renderWatchlist = () => {
   if (!entries.length) {
     section.classList.add('is-empty');
     grid.replaceChildren();
-    void airingDashboardController.update({ entries: [], animeItems: [] });
+    scheduleAiringDashboardUpdate([], [], { timeout: 1200 });
     return;
   }
 
@@ -699,7 +743,7 @@ const renderWatchlist = () => {
   const counts = buildWatchlistCounts(entries);
   renderWatchlistFilters(counts);
   const dashboardItems = entries.map((entry) => getDisplayItemForEntry(entry));
-  void airingDashboardController.update({ entries, animeItems: dashboardItems });
+  scheduleAiringDashboardUpdate(entries, dashboardItems, { timeout: 1800 });
   const visible = filterWatchlistByStatus(entries);
   const fragment = document.createDocumentFragment();
   visible.forEach((entry, index) => {
