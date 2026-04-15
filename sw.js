@@ -13,16 +13,21 @@ const MAL_CDN_HOSTS = ['cdn.myanimelist.net', 'myanimelist.cdn-dena.com'];
 const API_HOSTS = ['api.jikan.moe'];
 
 const STATIC_ASSETS = [
+    '/index.html',
+    '/watchlist.html',
+    '/css/styles.css',
+    '/css/themes.css',
+    '/css/watchlist.css',
+    '/js/main.js',
+    '/js/watchlist-main.js',
+    '/js/data.js',
+    '/favicon.svg'
+];
+
+const LEGACY_DOCUMENT_CACHE_KEYS = [
     './',
     './index.html',
-    './watchlist.html',
-    './css/styles.css',
-    './css/themes.css',
-    './css/watchlist.css',
-    './js/main.js',
-    './js/watchlist-main.js',
-    './js/data.js',
-    './favicon.svg'
+    './watchlist.html'
 ];
 
 const precacheStaticAssets = async (cache) => {
@@ -41,6 +46,16 @@ const precacheStaticAssets = async (cache) => {
     if (failed.length) {
         throw new Error(`Failed to precache ${failed.length} asset(s)`);
     }
+};
+
+const cleanupLegacyDocumentAliases = async (cache) => {
+    const legacyKeys = [
+        ...LEGACY_DOCUMENT_CACHE_KEYS,
+        self.location.origin,
+        `${self.location.origin}/`
+    ];
+
+    await Promise.all(legacyKeys.map((key) => cache.delete(key)));
 };
 
 // Install: Cache static assets
@@ -84,7 +99,11 @@ self.addEventListener('activate', (event) => {
                         })
                 );
             })
-            .then(() => self.clients.claim())
+            .then(async () => {
+                const cache = await caches.open(STATIC_CACHE);
+                await cleanupLegacyDocumentAliases(cache);
+                await self.clients.claim();
+            })
     );
 });
 
@@ -172,30 +191,22 @@ function isStaticAsset(request) {
 
 async function getCachedDocumentResponse(cache, requestUrl) {
     const fallbackPath = getAppShellFallbackPath(requestUrl.pathname);
-    const candidateUrls = [];
-
     if (fallbackPath) {
         const fallbackUrl = new URL(fallbackPath, self.location.origin);
-        candidateUrls.push(fallbackUrl.toString());
-        candidateUrls.push(fallbackPath);
-        candidateUrls.push(`.${fallbackPath}`);
-        if (fallbackPath === '/index.html') {
-            candidateUrls.push('./');
-            candidateUrls.push(self.location.origin);
-            candidateUrls.push(`${self.location.origin}/`);
+        const candidateUrls = [
+            fallbackUrl.toString(),
+            fallbackPath
+        ];
+        for (const candidate of candidateUrls) {
+            const cached = await cache.match(candidate);
+            if (cached) {
+                return cached;
+            }
         }
+        return null;
     }
 
-    candidateUrls.push(requestUrl.toString());
-
-    for (const candidate of candidateUrls) {
-        const cached = await cache.match(candidate);
-        if (cached) {
-            return cached;
-        }
-    }
-
-    return null;
+    return cache.match(requestUrl.toString());
 }
 
 async function networkFirstDocument(request, url) {
