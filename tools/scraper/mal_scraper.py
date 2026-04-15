@@ -15,7 +15,7 @@ import re
 import time
 from pathlib import Path
 from typing import Optional
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -564,27 +564,41 @@ class MALScraper:
 
     def scrape_episode_scores(self, anime_id: int, slug: str) -> list[dict]:
         """Scrape episode scores from the episode list page."""
-        url = f"{self.BASE_URL}/anime/{anime_id}/{slug}/episode"
-        soup = self._fetch_page(url)
+        next_url = f"{self.BASE_URL}/anime/{anime_id}/{slug}/episode"
+        visited_urls = set()
+        episodes_by_number = {}
 
-        if not soup:
-            return []
+        while next_url and next_url not in visited_urls:
+            visited_urls.add(next_url)
+            soup = self._fetch_page(next_url)
 
+            if not soup:
+                break
+
+            page_episodes = self._parse_episode_scores_from_soup(soup)
+            for episode in page_episodes:
+                episodes_by_number[episode["episode"]] = episode
+
+            next_url = self._extract_next_episode_page_url(soup, next_url)
+
+        return [episodes_by_number[key] for key in sorted(episodes_by_number.keys())]
+
+    def _parse_episode_scores_from_soup(self, soup: BeautifulSoup) -> list[dict]:
+        """Parse episode scores from a single MAL episode list page."""
         episodes = []
 
-        # Find the episode table
         table = soup.select_one('table.ascend, table.mt8')
 
         if not table:
-            for t in soup.select('table'):
-                text = t.get_text()
+            for candidate in soup.select('table'):
+                text = candidate.get_text()
                 if 'Poll' in text or 'average' in text.lower():
-                    table = t
+                    table = candidate
                     break
 
         if not table:
             self._log("Could not find episode table")
-            return []
+            return episodes
 
         rows = table.select('tr')
         self._log(f"Found {len(rows)} rows in episode table")
@@ -614,6 +628,18 @@ class MALScraper:
                 self._log(f"  Episode {episode_num}: No score found")
 
         return episodes
+
+    def _extract_next_episode_page_url(self, soup: BeautifulSoup, current_url: str) -> Optional[str]:
+        """Read MAL episode pagination and return the next page URL if present."""
+        next_link = soup.select_one('link[rel="next"]')
+        if not next_link:
+            return None
+
+        href = (next_link.get("href") or "").strip()
+        if not href or "/episode" not in href:
+            return None
+
+        return urljoin(current_url, href)
 
     def scrape_anime(self, anime_id: int, anime_title: str, fetch_metadata: bool = True) -> dict:
         """

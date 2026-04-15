@@ -113,6 +113,60 @@ const parseEpisodeScores = (html) => {
   return episodes.sort((left, right) => left.episode - right.episode);
 };
 
+const extractNextEpisodePageUrl = (html, currentUrl) => {
+  const nextHref = html.match(/<link rel="next" href="([^"]+)"/i)?.[1];
+  if (!nextHref || !String(nextHref).includes('/episode')) return null;
+
+  try {
+    return new URL(nextHref, currentUrl).toString();
+  } catch {
+    return null;
+  }
+};
+
+const extractCanonicalEpisodePageUrl = (html, currentUrl) => {
+  const canonicalHref = html.match(/<link rel="canonical" href="([^"]+)"/i)?.[1];
+  if (!canonicalHref || !String(canonicalHref).includes('/episode')) return null;
+
+  try {
+    const parsed = new URL(canonicalHref, currentUrl);
+    parsed.search = '';
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
+const buildFallbackEpisodePageUrl = (currentUrl, html, pageEpisodeCount) => {
+  if (pageEpisodeCount < 100) return null;
+
+  try {
+    const parsedCurrent = new URL(currentUrl);
+    const currentOffset = Number(parsedCurrent.searchParams.get('offset') || '0');
+    const nextOffset = currentOffset + 100;
+    const canonicalBaseUrl = extractCanonicalEpisodePageUrl(html, currentUrl) || `${parsedCurrent.origin}${parsedCurrent.pathname}`;
+    const parsedNext = new URL(canonicalBaseUrl);
+    parsedNext.searchParams.set('offset', String(nextOffset));
+    return parsedNext.toString();
+  } catch {
+    return null;
+  }
+};
+
+const mergeEpisodePages = (pages) => {
+  const episodesByNumber = new Map();
+
+  for (const episode of pages.flat()) {
+    const episodeNumber = Number(episode?.episode);
+    const score = Number(episode?.score);
+    if (!Number.isInteger(episodeNumber) || episodeNumber <= 0) continue;
+    if (!Number.isFinite(score) || score < 1 || score > 5) continue;
+    episodesByNumber.set(episodeNumber, { episode: episodeNumber, score });
+  }
+
+  return [...episodesByNumber.values()].sort((left, right) => left.episode - right.episode);
+};
+
 const sanitizeEpisodeList = (episodes) => {
   if (!Array.isArray(episodes)) return [];
 
@@ -165,6 +219,22 @@ const episodesChanged = (existing, incoming) => {
   return false;
 };
 
+const syncEpisodeCountMetadata = (anime, episodes) => {
+  if (!Array.isArray(episodes) || episodes.length === 0) return;
+
+  const highestEpisodeNumber = Math.max(...episodes.map((episode) => Number(episode?.episode) || 0));
+  if (!Number.isInteger(highestEpisodeNumber) || highestEpisodeNumber <= 0) return;
+
+  if (!anime.metadata || typeof anime.metadata !== 'object') {
+    anime.metadata = {};
+  }
+
+  const currentEpisodeCount = Number(anime.metadata.episodes_count);
+  if (!Number.isFinite(currentEpisodeCount) || highestEpisodeNumber > currentEpisodeCount) {
+    anime.metadata.episodes_count = highestEpisodeNumber;
+  }
+};
+
 const fetchWithRetry = async (url, options = {}) => {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     try {
@@ -201,15 +271,32 @@ const fetchCommunityScore = async (malId) => {
   return Number.isFinite(score) ? score : null;
 };
 
-const fetchEpisodeScores = async (malId, slug) => {
-  const url = `https://myanimelist.net/anime/${malId}/${slug}/episode`;
-  const response = await fetchWithRetry(url, {
-    headers: {
-      'User-Agent': 'rekonime-refresh-scores/1.0'
-    }
-  });
-  const html = await response.text();
-  return parseEpisodeScores(html);
+const fetchEpisodeScores = async (malId, slug, scheduler) => {
+  const visitedUrls = new Set();
+  const pageEpisodes = [];
+  let nextUrl = `https://myanimelist.net/anime/${malId}/${slug}/episode`;
+
+  while (nextUrl && !visitedUrls.has(nextUrl)) {
+    visitedUrls.add(nextUrl);
+
+    const response = scheduler
+      ? await scheduler.schedule(() => fetchWithRetry(nextUrl, {
+        headers: {
+          'User-Agent': 'rekonime-refresh-scores/1.0'
+        }
+      }))
+      : await fetchWithRetry(nextUrl, {
+        headers: {
+          'User-Agent': 'rekonime-refresh-scores/1.0'
+        }
+    });
+    const html = await response.text();
+    const episodes = parseEpisodeScores(html);
+    pageEpisodes.push(episodes);
+    nextUrl = extractNextEpisodePageUrl(html, nextUrl) || buildFallbackEpisodePageUrl(nextUrl, html, episodes.length);
+  }
+
+  return mergeEpisodePages(pageEpisodes);
 };
 
 const main = async () => {
@@ -271,7 +358,7 @@ const main = async () => {
 
     const [communityResult, episodesResult] = await Promise.allSettled([
       jikanScheduler.schedule(() => fetchCommunityScore(malId)),
-      malScheduler.schedule(() => fetchEpisodeScores(malId, slug))
+      fetchEpisodeScores(malId, slug, malScheduler)
     ]);
 
     if (communityResult.status === 'fulfilled') {
@@ -293,6 +380,7 @@ const main = async () => {
       const episodes = sanitizeEpisodeList(episodesResult.value);
       const sanitizedExisting = sanitizeEpisodeList(anime.episodes);
       if (episodes.length > 0) {
+        syncEpisodeCountMetadata(anime, episodes);
         const hasChanges = episodesChanged(sanitizedExisting, episodes);
         if (hasChanges) {
           anime.episodes = episodes;

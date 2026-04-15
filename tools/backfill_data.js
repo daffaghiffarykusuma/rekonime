@@ -134,16 +134,98 @@ function parseEpisodeScores(html) {
   return episodes.sort((a, b) => a.episode - b.episode);
 }
 
+function extractNextEpisodePageUrl(html, currentUrl) {
+  const nextHref = html.match(/<link rel="next" href="([^"]+)"/i)?.[1];
+  if (!nextHref || !String(nextHref).includes('/episode')) return null;
+
+  try {
+    return new URL(nextHref, currentUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+function extractCanonicalEpisodePageUrl(html, currentUrl) {
+  const canonicalHref = html.match(/<link rel="canonical" href="([^"]+)"/i)?.[1];
+  if (!canonicalHref || !String(canonicalHref).includes('/episode')) return null;
+
+  try {
+    const parsed = new URL(canonicalHref, currentUrl);
+    parsed.search = '';
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+function buildFallbackEpisodePageUrl(currentUrl, html, pageEpisodeCount) {
+  if (pageEpisodeCount < 100) return null;
+
+  try {
+    const parsedCurrent = new URL(currentUrl);
+    const currentOffset = Number(parsedCurrent.searchParams.get('offset') || '0');
+    const nextOffset = currentOffset + 100;
+    const canonicalBaseUrl = extractCanonicalEpisodePageUrl(html, currentUrl) || `${parsedCurrent.origin}${parsedCurrent.pathname}`;
+    const parsedNext = new URL(canonicalBaseUrl);
+    parsedNext.searchParams.set('offset', String(nextOffset));
+    return parsedNext.toString();
+  } catch {
+    return null;
+  }
+}
+
+function mergeEpisodePages(pages) {
+  const episodesByNumber = new Map();
+
+  for (const episode of pages.flat()) {
+    const episodeNumber = Number(episode?.episode);
+    const score = Number(episode?.score);
+    if (!Number.isInteger(episodeNumber) || episodeNumber <= 0) continue;
+    if (!Number.isFinite(score) || score < 1 || score > 5) continue;
+    episodesByNumber.set(episodeNumber, { episode: episodeNumber, score });
+  }
+
+  return [...episodesByNumber.values()].sort((a, b) => a.episode - b.episode);
+}
+
+function syncEpisodeCountMetadata(anime, episodes) {
+  if (!Array.isArray(episodes) || episodes.length === 0) return;
+
+  const highestEpisodeNumber = Math.max(...episodes.map((episode) => Number(episode?.episode) || 0));
+  if (!Number.isInteger(highestEpisodeNumber) || highestEpisodeNumber <= 0) return;
+
+  if (!anime.metadata || typeof anime.metadata !== 'object') {
+    anime.metadata = {};
+  }
+
+  const currentEpisodeCount = Number(anime.metadata.episodes_count);
+  if (!Number.isFinite(currentEpisodeCount) || highestEpisodeNumber > currentEpisodeCount) {
+    anime.metadata.episodes_count = highestEpisodeNumber;
+  }
+}
+
 async function fetchEpisodeScores(malId, slug) {
-  const url = `https://myanimelist.net/anime/${malId}/${slug}/episode`;
-  const res = await fetchWithRetry(url, {
-    headers: {
-      'User-Agent': 'rekonime-backfill/1.0'
+  const pageEpisodes = [];
+  const visitedUrls = new Set();
+  let nextUrl = `https://myanimelist.net/anime/${malId}/${slug}/episode`;
+
+  while (nextUrl && !visitedUrls.has(nextUrl)) {
+    visitedUrls.add(nextUrl);
+    const res = await fetchWithRetry(nextUrl, {
+      headers: {
+        'User-Agent': 'rekonime-backfill/1.0'
+      }
+    });
+    const html = await res.text();
+    const episodes = parseEpisodeScores(html);
+    pageEpisodes.push(episodes);
+    nextUrl = extractNextEpisodePageUrl(html, nextUrl) || buildFallbackEpisodePageUrl(nextUrl, html, episodes.length);
+    if (nextUrl && !visitedUrls.has(nextUrl)) {
+      await sleep(MAL_DELAY_MS);
     }
-  });
-  const html = await res.text();
-  const episodes = parseEpisodeScores(html);
-  return episodes;
+  }
+
+  return mergeEpisodePages(pageEpisodes);
 }
 
 (async () => {
@@ -228,6 +310,7 @@ async function fetchEpisodeScores(malId, slug) {
       try {
         const episodes = await fetchEpisodeScores(malId, slug);
         if (episodes.length > 0) {
+          syncEpisodeCountMetadata(anime, episodes);
           anime.episodes = episodes;
           // Clear scrape error if previously marked as missing
           if (Array.isArray(anime.scrape_errors)) {
