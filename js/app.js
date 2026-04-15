@@ -23,7 +23,9 @@ import {
 import {
   setHTML,
   insertHTML,
-  replaceOuterHTML
+  replaceOuterHTML,
+  setScriptText,
+  setScriptSource
 } from './security/trusted-types.js';
 import {
   isProxyImageUrl as isSharedProxyImageUrl,
@@ -2939,7 +2941,7 @@ const App = {
     this.embeddedDataPromise = new Promise((resolve, reject) => {
       const timeoutMs = 10000;
       const script = document.createElement('script');
-      script.src = this.getAssetPath('js/data.js');
+      setScriptSource(script, this.getAssetPath('js/data.js'));
       script.async = true;
       const timeoutId = setTimeout(() => {
         cleanup();
@@ -4011,7 +4013,7 @@ const App = {
       };
     }
 
-    script.textContent = JSON.stringify(data);
+    setScriptText(script, JSON.stringify(data));
   },
 
   /**

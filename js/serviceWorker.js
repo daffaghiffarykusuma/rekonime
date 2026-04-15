@@ -4,7 +4,7 @@
  */
 
 import { Logger } from './services/logger.js';
-import { setHTML } from './security/trusted-types.js';
+import { setHTML, toTrustedScriptURL } from './security/trusted-types.js';
 
 const ServiceWorkerManager = {
     registration: null,
@@ -66,7 +66,7 @@ const ServiceWorkerManager = {
         }
 
         try {
-            const registration = await navigator.serviceWorker.register('/sw.js', { type: 'module' });
+            const registration = await navigator.serviceWorker.register(toTrustedScriptURL('/sw.js'), { type: 'module' });
             this.registration = registration;
 
             Logger?.info ? Logger.info('[SW] Registered successfully', { scope: registration.scope }) : console.log('[SW] Registered successfully:', registration.scope);
