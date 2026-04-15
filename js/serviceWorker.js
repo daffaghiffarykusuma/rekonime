@@ -10,10 +10,38 @@ const ServiceWorkerManager = {
     registration: null,
     updateAvailable: false,
     updatePromptVisible: false,
+    updateReloadKey: 'rekonime.sw.pending-reload',
     isLocalhost() {
         if (typeof window === 'undefined') return false;
         const host = window.location.hostname;
         return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
+    },
+
+    shouldReloadForActivatedUpdate() {
+        if (typeof window === 'undefined') return false;
+        try {
+            return window.sessionStorage.getItem(this.updateReloadKey) === '1';
+        } catch (error) {
+            return false;
+        }
+    },
+
+    markPendingReload() {
+        if (typeof window === 'undefined') return;
+        try {
+            window.sessionStorage.setItem(this.updateReloadKey, '1');
+        } catch (error) {
+            // Ignore storage failures and fall back to the current in-memory shell.
+        }
+    },
+
+    clearPendingReload() {
+        if (typeof window === 'undefined') return;
+        try {
+            window.sessionStorage.removeItem(this.updateReloadKey);
+        } catch (error) {
+            // Ignore storage failures.
+        }
     },
 
     /**
@@ -42,6 +70,7 @@ const ServiceWorkerManager = {
             this.registration = registration;
 
             Logger?.info ? Logger.info('[SW] Registered successfully', { scope: registration.scope }) : console.log('[SW] Registered successfully:', registration.scope);
+            registration.update?.().catch(() => {});
 
             // Handle updates
             this.handleUpdates(registration);
@@ -55,6 +84,11 @@ const ServiceWorkerManager = {
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 Logger?.info ? Logger.info('[SW] New controller activated') : console.log('[SW] New controller activated');
                 this.updateAvailable = true;
+                if (this.shouldReloadForActivatedUpdate()) {
+                    this.clearPendingReload();
+                    window.location.reload();
+                    return;
+                }
                 this.showUpdatePrompt();
             });
 
@@ -148,6 +182,7 @@ const ServiceWorkerManager = {
         }
 
         // Tell the waiting SW to skip waiting
+        this.markPendingReload();
         this.registration.waiting.postMessage('skipWaiting');
         this.dismissUpdatePrompt();
     },
