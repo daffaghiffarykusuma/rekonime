@@ -775,6 +775,203 @@
         font-size: 0.78rem;
       }
     }
+
+    .header-controls {
+      flex: 1 1 42rem;
+      justify-content: flex-end;
+    }
+
+    .header-search-wrapper {
+      flex: 1 1 20rem;
+      max-width: 34rem;
+    }
+
+    .search-form,
+    .header-search-input {
+      width: 100%;
+    }
+
+    .header-more {
+      position: relative;
+    }
+
+    .header-more summary {
+      list-style: none;
+    }
+
+    .header-more summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .header-actions {
+      position: absolute;
+      top: calc(100% + 0.5rem);
+      right: 0;
+      z-index: 100;
+      width: min(18rem, calc(100vw - 2rem));
+      display: grid;
+      gap: 0.45rem;
+      padding: 0.65rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background: var(--card-bg);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .discovery-garden {
+      text-align: left;
+      padding: clamp(1.2rem, 3vw, 2.2rem);
+      min-height: min(24rem, 54vh);
+      display: grid;
+      align-items: end;
+      background:
+        linear-gradient(135deg, rgba(255, 183, 197, 0.14), rgba(155, 124, 182, 0.08)),
+        radial-gradient(circle at 85% 12%, rgba(232, 200, 155, 0.16), transparent 34%),
+        var(--bg-secondary);
+    }
+
+    .discovery-eyebrow,
+    .mood-filter-kicker {
+      margin-bottom: 0.45rem;
+      color: var(--accent-primary);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .discovery-title {
+      max-width: 13ch;
+      margin-bottom: 0.7rem;
+      font-size: clamp(2.15rem, 7vw, 4.75rem);
+      line-height: 0.98;
+    }
+
+    .discovery-subtitle {
+      max-width: 42rem;
+      margin: 0;
+      font-size: clamp(0.98rem, 2vw, 1.18rem);
+    }
+
+    .discovery-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-top: 1.2rem;
+    }
+
+    .mood-filter-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: end;
+    }
+
+    .mood-filter-clusters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+      gap: 0.65rem;
+    }
+
+    .mood-cluster {
+      min-height: 7.2rem;
+      padding: 0.85rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      text-align: left;
+    }
+
+    @media (max-width: 640px) {
+      .header-more {
+        grid-column: 2 / 3;
+        order: 4;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: start;
+        gap: 0.75rem;
+      }
+
+      .header-controls {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 0.55rem;
+        width: 100%;
+      }
+
+      .header-search-wrapper {
+        grid-column: 1 / -1;
+        order: 1;
+        min-width: 0;
+      }
+
+      .header-sort {
+        grid-column: 1 / 2;
+        order: 2;
+        min-width: 0;
+      }
+
+      .sort-select {
+        width: 100%;
+      }
+
+      .surprise-btn {
+        grid-column: 2 / 3;
+        order: 2;
+      }
+
+      .filter-btn {
+        grid-column: 1 / 2;
+        order: 3;
+      }
+
+      .header-more-toggle,
+      .header-actions {
+        width: 100%;
+      }
+
+      .header-actions {
+        position: static;
+        margin-top: 0.35rem;
+      }
+
+      .discovery-garden {
+        min-height: 0;
+        align-items: start;
+      }
+
+      .discovery-title {
+        max-width: 12ch;
+        font-size: 2.25rem;
+      }
+
+      .discovery-actions,
+      .mood-filter-clusters {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .mood-filter-header {
+        display: block;
+      }
+
+      .mood-filter-title {
+        max-width: none;
+        margin-bottom: 0.4rem;
+        font-size: 1.05rem;
+        line-height: 1.25;
+      }
+
+      .mood-filter-note {
+        max-width: none;
+        font-size: 0.82rem;
+      }
+    }
   </style>
   <!-- Styles -->
   <link rel="stylesheet" href="/css/styles.css" media="print" data-noncritical="true">
@@ -815,30 +1012,35 @@
         </div>
         <button class="btn btn-sm btn-primary surprise-btn" id="surprise-toggle" type="button"
           aria-label="Show me a surprise anime pick" title="Pick for Me">
-          <span class="surprise-icon" aria-hidden="true">🎲</span>
+          <span class="surprise-icon" aria-hidden="true">Pick</span>
           <span class="surprise-label">Pick for Me</span>
         </button>
+        <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Refine</button>
         <div class="header-sort">
           <label class="sort-label" for="sort-select">Sort</label>
           <div class="select-wrapper sort-select-wrapper">
             <select id="sort-select" class="sort-select" aria-label="Sort anime"></select>
           </div>
         </div>
-        <div class="header-actions">
+        <details class="header-more">
+          <summary class="btn btn-sm btn-outline header-more-toggle" aria-label="Open secondary navigation">More</summary>
+          <div class="header-actions">
+          <a class="btn btn-sm btn-outline catalog-jump-link" href="#catalog-section"
+            aria-label="Jump to the anime catalog">Browse Catalog</a>
+          <a class="btn btn-sm btn-outline watchlist-link" href="/watchlist.html" aria-label="Open my watchlist">My Watchlist
+            <span aria-hidden="true">&#9733;</span></a>
           <button class="btn btn-sm btn-outline help-btn" id="help-toggle" type="button" aria-label="Open the quick tour and help"
             title="Quick Tour">
             <span class="help-icon" aria-hidden="true">?</span>
             <span class="help-label">Quick Tour</span>
           </button>
-          <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Refine Results</button>
-          <a class="btn btn-sm btn-outline watchlist-link" href="/watchlist.html" aria-label="Open my watchlist">My Watchlist
-            <span aria-hidden="true">&#9733;</span></a>
           <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button"
             aria-label="Open viewing preferences" title="Viewing Preferences">
             <span class="settings-icon" aria-hidden="true">&#9881;</span>
             <span class="settings-label">Preferences</span>
           </button>
-        </div>
+          </div>
+        </details>
       </div>
     </header>
 
@@ -853,30 +1055,28 @@
     </div>
 
     <div class="discovery-garden" id="discovery-garden">
-      <div class="petal-scatter" aria-hidden="true">
-        <span class="floating-petal petal-1">🌸</span>
-        <span class="floating-petal petal-2">🌸</span>
-        <span class="floating-petal petal-3">🌸</span>
-        <span class="floating-petal petal-4">🌸</span>
-        <span class="floating-petal petal-5">🌸</span>
-      </div>
       <div class="discovery-garden-content">
-        <h3 class="discovery-title">Find Your Next Favorite Faster</h3>
+        <p class="discovery-eyebrow">Anime discovery built around follow-through</p>
+        <h1 class="discovery-title">Find something you will actually finish</h1>
         <p class="discovery-subtitle">
-          Skip the endless scrolling. Rekonime highlights anime with strong momentum, satisfying payoffs,
-          and the kind of quality that keeps you watching.
+          Rekonime ranks titles by finish confidence, community satisfaction, and the genres or themes you already trust.
         </p>
+        <div class="discovery-actions" aria-label="Primary discovery actions">
+          <button class="btn btn-primary" type="button" data-action="surprise-me">Pick for Me</button>
+          <button class="btn btn-outline" type="button" data-action="scroll-to-filters">Choose genres</button>
+          <a class="btn btn-outline" href="/watchlist.html">Open Watchlist</a>
+        </div>
         <div class="discovery-tips">
           <div class="tip-card">
-            <span class="tip-icon">📊</span>
+            <span class="tip-icon" aria-hidden="true">%</span>
             <h4>Choose with confidence</h4>
             <p>Finish Rate shows staying power. Satisfaction shows how much viewers loved it.</p>
             <button class="tip-cta" data-action="learn-scores">See how scoring works</button>
           </div>
           <div class="tip-card">
-            <span class="tip-icon">🎭</span>
+            <span class="tip-icon" aria-hidden="true">#</span>
             <h4>Match your mood</h4>
-            <p>Use genre and theme shortcuts to narrow the catalog in seconds.</p>
+            <p>Use guided shortcuts, or stay precise with only your favorite genres and themes.</p>
             <button class="tip-cta" data-action="scroll-to-filters">Browse by mood</button>
           </div>
         </div>
@@ -884,6 +1084,18 @@
     </div>
 
     <div class="quick-filters" id="quick-filters">
+      <div class="mood-filter-header">
+        <div>
+          <p class="mood-filter-kicker">Start with intent</p>
+          <h2 class="mood-filter-title">Mood shortcuts</h2>
+        </div>
+        <p class="mood-filter-note">Shortcuts add filters. You can still pick a single favorite genre or theme below.</p>
+      </div>
+      <div class="mood-filter-clusters" id="mood-filter-clusters" aria-label="Guided mood shortcuts">
+        <button class="mood-cluster" type="button" disabled aria-hidden="true">Loading shortcuts</button>
+        <button class="mood-cluster" type="button" disabled aria-hidden="true">Loading shortcuts</button>
+        <button class="mood-cluster" type="button" disabled aria-hidden="true">Loading shortcuts</button>
+      </div>
       <div class="quick-filters-tabs" role="tablist" aria-label="Quick filters">
         <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" role="tab"
           id="quick-tab-genres" aria-selected="true" aria-controls="genre-chips" tabindex="0">Genres</button>
@@ -981,7 +1193,7 @@
     <section class="trending-section" id="trending-section">
       <div class="trending-header">
         <div class="trending-title-group">
-          <h2>🔥 Trending Right Now</h2>
+          <h2>Trending Right Now</h2>
           <span class="trending-live-indicator">
             <span class="live-dot"></span>
             Live
@@ -1188,7 +1400,7 @@
 
   <!-- Update Notification -->
   <div class="update-notification" id="update-notification" role="alert" aria-live="polite" hidden>
-    <span class="update-icon" aria-hidden="true">✨</span>
+    <span class="update-icon" aria-hidden="true">New</span>
     <span class="update-text">A newer version of Rekonime is ready.</span>
     <button class="update-btn" id="update-btn" type="button">Refresh now</button>
     <button class="update-dismiss" id="update-dismiss" type="button"

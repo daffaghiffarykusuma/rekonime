@@ -119,11 +119,49 @@ const App = {
     genres: { expanded: false },
     themes: { expanded: false }
   },
+  moodFilterClusterDefinitions: [
+    {
+      key: 'comfort',
+      label: 'Comfort watch',
+      description: 'Gentler picks for familiar, low-friction viewing.',
+      genres: ['Slice of Life', 'Comedy'],
+      themes: ['Iyashikei', 'CGDCT', 'School']
+    },
+    {
+      key: 'high-energy',
+      label: 'High energy',
+      description: 'Fast starts, action, and momentum-heavy series.',
+      genres: ['Action', 'Adventure', 'Sports'],
+      themes: ['Combat Sports', 'Super Power', 'Team Sports']
+    },
+    {
+      key: 'emotional',
+      label: 'Emotional payoff',
+      description: 'Drama-forward stories where the ending matters.',
+      genres: ['Drama', 'Romance'],
+      themes: ['Love Polygon', 'Psychological', 'Performing Arts']
+    },
+    {
+      key: 'escape',
+      label: 'Escapist worlds',
+      description: 'Fantasy, adventure, and alternate-world hooks.',
+      genres: ['Fantasy', 'Adventure'],
+      themes: ['Isekai', 'Reincarnation', 'Mythology']
+    },
+    {
+      key: 'suspense',
+      label: 'Tense and clever',
+      description: 'Mystery, strategy, and sharper-edged viewing.',
+      genres: ['Mystery', 'Suspense'],
+      themes: ['Psychological', 'Detective', 'Strategy Game']
+    }
+  ],
   headerSearchState: {
     query: '',
     results: [],
     activeIndex: -1
   },
+  lastAppliedSearchQuery: '',
   searchMaxResults: 8,
   modalFocusState: {
     activeId: null,
@@ -3346,6 +3384,63 @@ const App = {
     return results.slice(0, this.searchMaxResults).map(item => item.anime);
   },
 
+  getCatalogSearchQuery() {
+    return String(this.getSearchQueryFromUrl() || '').slice(0, 120).trim();
+  },
+
+  matchesCatalogSearch(anime, queryInfo) {
+    if (!anime || !queryInfo) return false;
+    const index = this.getSearchIndex(anime);
+    if (this.scoreSearchMatch(index, queryInfo) > 0) return true;
+
+    const searchableText = [
+      anime.searchText,
+      anime.title,
+      anime.titleEnglish,
+      anime.titleJapanese,
+      anime.studio,
+      anime.source,
+      anime.demographic,
+      ...(Array.isArray(anime.genres) ? anime.genres : []),
+      ...(Array.isArray(anime.themes) ? anime.themes : [])
+    ]
+      .map(value => String(value || '').trim())
+      .filter(Boolean)
+      .join(' ');
+
+    const looseText = this.normalizeSearchQuery(searchableText, { stripPunctuation: true });
+    const compactText = this.normalizeSearchQuery(searchableText, { stripPunctuation: true, compact: true });
+    if (!looseText && !compactText) return false;
+    if (queryInfo.loose && looseText.includes(queryInfo.loose)) return true;
+    if (queryInfo.compact && compactText.includes(queryInfo.compact)) return true;
+    return queryInfo.tokens.length > 0 && queryInfo.tokens.every(token => looseText.includes(token));
+  },
+
+  filterDataBySearch(animeList, query) {
+    const trimmed = String(query || '').trim();
+    if (trimmed.length < 2) return animeList;
+    const queryInfo = this.prepareSearchQuery(trimmed);
+    return animeList.filter(anime => this.matchesCatalogSearch(anime, queryInfo));
+  },
+
+  applyHeaderSearchQuery(query, { scroll = true } = {}) {
+    const trimmed = String(query || '').trim();
+    this.updateUrlForSearch(trimmed.length >= 2 ? trimmed : '', { replace: true });
+    this.applyFilters({ syncUrl: false, updateMeta: true });
+    if (scroll && trimmed.length >= 2) {
+      this.scrollToResultsSection();
+    }
+  },
+
+  clearHeaderSearchQuery({ scroll = false } = {}) {
+    this.updateUrlForSearch('', { replace: true });
+    this.resetHeaderSearch({ clearInput: true });
+    this.applyFilters({ syncUrl: false, updateMeta: true });
+    if (scroll) {
+      this.scrollToResultsSection();
+    }
+  },
+
   updateHeaderSearchDropdownVisibility(dropdown, isVisible) {
     if (!dropdown) return;
     dropdown.classList.toggle('visible', isVisible);
@@ -3661,7 +3756,9 @@ const App = {
 
     this.addTrackedListener(window, 'popstate', () => {
       const filtersChanged = this.setActiveFiltersFromUrl({ updateUi: true });
-      if (filtersChanged) {
+      const searchQuery = this.getCatalogSearchQuery();
+      const searchChanged = searchQuery !== this.lastAppliedSearchQuery;
+      if (filtersChanged || searchChanged) {
         this.applyFilters({ syncUrl: false, updateMeta: false });
       }
       this.syncSearchWithUrl({ openDropdown: false });
@@ -3751,11 +3848,10 @@ const App = {
         event.preventDefault();
         const query = String(headerSearch.value || '').trim();
         if (query.length >= 2) {
-          this.updateUrlForSearch(query, { replace: true });
           this.handleHeaderSearch(query);
+          this.applyHeaderSearchQuery(query);
         } else {
-          this.updateUrlForSearch('', { replace: true });
-          this.resetHeaderSearch({ clearInput: false });
+          this.clearHeaderSearchQuery();
         }
       });
     }
@@ -4209,7 +4305,15 @@ const App = {
     }
 
     if (event.key === 'Enter') {
-      if (!hasResults) return;
+      if (!hasResults) {
+        const query = String(input.value || '').trim();
+        if (query.length >= 2) {
+          event.preventDefault();
+          this.applyHeaderSearchQuery(query);
+          this.closeHeaderSearchDropdown();
+        }
+        return;
+      }
       const index = this.headerSearchState.activeIndex >= 0 ? this.headerSearchState.activeIndex : 0;
       const selected = results[index];
       if (selected) {
@@ -4386,6 +4490,88 @@ const App = {
 
     renderGroup('genres', this.filterOptions.genres, genreContainer);
     renderGroup('themes', this.filterOptions.themes, themeContainer);
+    this.renderMoodFilterClusters();
+  },
+
+  getAvailableMoodFilterClusters() {
+    const pickAvailable = (type, candidates = []) => {
+      const available = new Set((this.filterOptions[type] || []).map(option => String(option)));
+      return candidates.find(candidate => available.has(String(candidate))) || '';
+    };
+
+    return this.moodFilterClusterDefinitions
+      .map(cluster => {
+        const genre = pickAvailable('genres', cluster.genres);
+        const theme = pickAvailable('themes', cluster.themes);
+        const filters = [];
+        if (genre) filters.push({ type: 'genres', value: genre });
+        if (theme) filters.push({ type: 'themes', value: theme });
+        return { ...cluster, filters };
+      })
+      .filter(cluster => cluster.filters.length > 0);
+  },
+
+  renderMoodFilterClusters() {
+    const container = document.getElementById('mood-filter-clusters');
+    if (!container) return;
+
+    const clusters = this.getAvailableMoodFilterClusters();
+    if (clusters.length === 0) {
+      container.replaceChildren();
+      container.removeAttribute('aria-busy');
+      return;
+    }
+
+    setHTML(container, clusters.map(cluster => {
+      const isActive = cluster.filters.every(filter =>
+        Array.isArray(this.activeFilters[filter.type]) &&
+        this.activeFilters[filter.type].includes(filter.value)
+      );
+      const tokens = cluster.filters
+        .map(filter => this.escapeHtml(filter.value))
+        .join(' + ');
+      return `
+        <button class="mood-cluster ${isActive ? 'active' : ''}"
+                type="button"
+                data-action="apply-mood-cluster"
+                data-cluster-key="${this.escapeAttr(cluster.key)}"
+                aria-pressed="${isActive ? 'true' : 'false'}">
+          <span class="mood-cluster-label">${this.escapeHtml(cluster.label)}</span>
+          <span class="mood-cluster-desc">${this.escapeHtml(cluster.description)}</span>
+          <span class="mood-cluster-tags">${tokens}</span>
+        </button>
+      `;
+    }).join(''));
+    container.removeAttribute('aria-busy');
+  },
+
+  applyMoodFilterCluster(clusterKey) {
+    const cluster = this.getAvailableMoodFilterClusters()
+      .find(item => item.key === clusterKey);
+    if (!cluster) return;
+
+    const isActive = cluster.filters.every(filter =>
+      Array.isArray(this.activeFilters[filter.type]) &&
+      this.activeFilters[filter.type].includes(filter.value)
+    );
+
+    const nextFilters = Object.fromEntries(
+      Object.entries(this.activeFilters).map(([type, values]) => [
+        type,
+        Array.isArray(values) ? [...values] : []
+      ])
+    );
+    cluster.filters.forEach(filter => {
+      const current = Array.isArray(nextFilters[filter.type]) ? nextFilters[filter.type] : [];
+      nextFilters[filter.type] = isActive
+        ? current.filter(value => value !== filter.value)
+        : Array.from(new Set([...current, filter.value]));
+    });
+
+    this.activeFilters = nextFilters;
+    this.renderQuickFilters();
+    this.applyFilters();
+    this.scrollToResultsSection();
   },
 
   /**
@@ -4442,8 +4628,8 @@ const App = {
     const shouldScroll = window.matchMedia?.('(max-width: 640px)')?.matches;
     if (!shouldScroll) return;
     const target =
-      document.getElementById('recommendations-section') ||
-      document.getElementById('catalog-section');
+      document.getElementById('catalog-section') ||
+      document.getElementById('recommendations-section');
     if (!target) return;
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     target.scrollIntoView({
@@ -4574,10 +4760,11 @@ const App = {
       Array.isArray(values) && values.length > 0
     );
 
+    let nextData;
     if (!hasActiveFilters) {
-      this.filteredData = this.animeData;
+      nextData = this.animeData;
     } else {
-      this.filteredData = this.animeData.filter(anime => {
+      nextData = this.animeData.filter(anime => {
         // Check season-year filter
         if (this.activeFilters.seasonYear.length > 0) {
           const animeSeasonYear = `${anime.season} ${anime.year}`;
@@ -4638,6 +4825,10 @@ const App = {
         return true;
       });
     }
+    const searchQuery = this.getCatalogSearchQuery();
+    nextData = this.filterDataBySearch(nextData, searchQuery);
+    this.lastAppliedSearchQuery = searchQuery.length >= 2 ? searchQuery : '';
+    this.filteredData = nextData;
 
     // Reset pagination when filters change
     this.resetGridPagination();
@@ -4788,12 +4979,15 @@ const App = {
       const isActive = this.activeFilters.seasonYear.includes(filter.value);
       const highlightClass = filter.highlight ? 'is-highlight' : '';
       const activeClass = isActive ? 'active' : '';
+      const filterLabel = filter.value
+        ? `${filter.label}: ${filter.value}`
+        : filter.label;
       return `
         <button class="seasonal-chip ${highlightClass} ${activeClass}"
                 data-action="apply-seasonal"
                 data-season-year="${this.escapeAttr(filter.value)}"
                 type="button">
-          ${this.escapeHtml(filter.label)}
+          ${this.escapeHtml(filterLabel)}
         </button>
       `;
     }).join(''));
@@ -5080,6 +5274,13 @@ const App = {
             <h3 class="card-title"></h3>
           </div>
           <div class="card-year"></div>
+          <div class="card-primary-signal">
+            <div class="card-primary-score">
+              <span class="card-primary-value"></span>
+              <span class="card-primary-label"></span>
+            </div>
+            <span class="card-primary-note"></span>
+          </div>
           <div class="card-badges"></div>
           <div class="card-stats"></div>
           <div class="retention-meter">
@@ -5186,6 +5387,24 @@ const App = {
     const yearEl = card.querySelector('.card-year');
     if (yearEl) {
       setHTML(yearEl, `${safeYear} &bull; ${safeStudio}`);
+    }
+
+    const decision = this.getCardDecisionData(anime);
+    const primarySignal = card.querySelector('.card-primary-signal');
+    const primaryValue = card.querySelector('.card-primary-value');
+    const primaryLabel = card.querySelector('.card-primary-label');
+    const primaryNote = card.querySelector('.card-primary-note');
+    if (primarySignal) {
+      primarySignal.className = this.sanitizeClassList('card-primary-signal', decision.className);
+    }
+    if (primaryValue) {
+      primaryValue.textContent = decision.value;
+    }
+    if (primaryLabel) {
+      primaryLabel.textContent = decision.label;
+    }
+    if (primaryNote) {
+      primaryNote.textContent = decision.note;
     }
 
     const badgesContainer = card.querySelector('.card-badges');
@@ -5300,6 +5519,8 @@ const App = {
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
+      const decision = this.getCardDecisionData(anime);
+      const decisionClass = this.sanitizeClassList('card-primary-signal', decision.className);
 
       // Build responsive image attributes
       const { src, srcset, sizes, fallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'card' });
@@ -5328,6 +5549,13 @@ const App = {
               <h3 class="card-title">${safeTitle}</h3>
             </div>
             <div class="card-year">${safeYear} &bull; ${safeStudio}</div>
+            <div class="${decisionClass}">
+              <div class="card-primary-score">
+                <span class="card-primary-value">${this.escapeHtml(decision.value)}</span>
+                <span class="card-primary-label">${this.escapeHtml(decision.label)}</span>
+              </div>
+              <span class="card-primary-note">${this.escapeHtml(decision.note)}</span>
+            </div>
             ${badges.length > 0 ? `
               <div class="card-badges">
                 ${badges.map((badge) => {
@@ -5482,6 +5710,14 @@ const App = {
         });
       });
     });
+    const searchQuery = this.getCatalogSearchQuery();
+    if (searchQuery.length >= 2) {
+      active.unshift({
+        type: 'search',
+        value: searchQuery,
+        label: 'Search'
+      });
+    }
 
     if (active.length === 0) {
       list.replaceChildren();
@@ -5502,6 +5738,17 @@ const App = {
       const safeValueAttr = this.escapeAttr(displayValue);
       const safeTypeAttr = this.escapeAttr(item.type);
       const safeLabel = this.escapeHtml(item.label);
+      if (item.type === 'search') {
+        return `
+        <button class="active-filter-pill"
+                type="button"
+                data-action="clear-search">
+          <span class="active-filter-pill-label">${safeLabel}</span>
+          ${safeValueText}
+          <span class="active-filter-pill-remove" aria-hidden="true">&times;</span>
+        </button>
+      `;
+      }
       return `
         <button class="active-filter-pill"
                 type="button"
@@ -5516,6 +5763,57 @@ const App = {
     }).join(''));
   },
 
+  getRecommendationDisplayLimit() {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)')?.matches) {
+      return 3;
+    }
+    return 6;
+  },
+
+  getCardDecisionData(anime) {
+    const episodeCount = this.getEpisodeCount(anime);
+    const hasEpisodes = episodeCount > 0;
+    const retention = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
+      ? Math.round(anime.stats.retentionScore)
+      : null;
+    const satisfaction = Number.isFinite(anime?.communityScore)
+      ? anime.communityScore
+      : null;
+
+    if (retention !== null) {
+      let note = 'Steady finish confidence';
+      if (retention >= 88) {
+        note = 'Very likely to keep you watching';
+      } else if (retention >= 76) {
+        note = 'Reliable through the middle';
+      } else if (retention < 60) {
+        note = 'More selective pick';
+      }
+      return {
+        value: `${retention}%`,
+        label: 'Finish confidence',
+        note,
+        className: Recommendations.getRetentionClass(retention)
+      };
+    }
+
+    if (satisfaction !== null) {
+      return {
+        value: satisfaction.toFixed(1),
+        label: 'Community score',
+        note: 'Use genre fit to decide',
+        className: Recommendations.getMalSatisfactionClass(satisfaction)
+      };
+    }
+
+    return {
+      value: 'N/A',
+      label: 'Decision signal',
+      note: 'Open details for more context',
+      className: 'score-low'
+    };
+  },
+
   /**
    * Render recommendations section
    */
@@ -5528,8 +5826,9 @@ const App = {
     const recDimAttrs = recDims ? `width="${recDims.width}" height="${recDims.height}"` : '';
 
     // Get recommendations with current mode
+    const recommendationLimit = this.getRecommendationDisplayLimit();
     const recommendations =
-      Recommendations.getRecommendationsWithMode(this.filteredData, Recommendations.currentMode, 6);
+      Recommendations.getRecommendationsWithMode(this.filteredData, Recommendations.currentMode, recommendationLimit);
 
 
     if (recommendations.length === 0) {
@@ -5551,6 +5850,10 @@ const App = {
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
       const safeReason = this.escapeHtml(anime.reason || '');
+      const safeYear = this.escapeHtml(anime.year || 'Unknown');
+      const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
+      const decision = this.getCardDecisionData(anime);
+      const decisionClass = this.sanitizeClassList('recommendation-signal', decision.className);
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
@@ -5568,10 +5871,19 @@ const App = {
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
           <div class="recommendation-media">
+            <span class="recommendation-rank">#${index + 1}</span>
             <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" ${recDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${recFallbackAttrs}>
           </div>
           <div class="recommendation-info">
             <div class="recommendation-title">${safeTitle}</div>
+            <div class="recommendation-submeta">${safeYear} &bull; ${safeStudio}</div>
+            <div class="${decisionClass}">
+              <span class="recommendation-signal-value">${this.escapeHtml(decision.value)}</span>
+              <span class="recommendation-signal-copy">
+                <span class="recommendation-signal-label">${this.escapeHtml(decision.label)}</span>
+                <span class="recommendation-signal-note">${this.escapeHtml(decision.note)}</span>
+              </span>
+            </div>
             <div class="recommendation-meta">
               <span class="recommendation-stat has-tooltip" tabindex="0">
                 Finish Rate ${safeRetention}
@@ -6001,6 +6313,11 @@ const App = {
         return;
       }
 
+      if (action === 'clear-search') {
+        this.clearHeaderSearchQuery({ scroll: true });
+        return;
+      }
+
       if (action === 'quick-tab') {
         const tabKey = actionEl.dataset.tab;
         const tabs = document.querySelectorAll('.quick-tab');
@@ -6025,6 +6342,14 @@ const App = {
         if (!type || !this.quickFilterState[type]) return;
         this.quickFilterState[type].expanded = !this.quickFilterState[type].expanded;
         this.renderQuickFilters();
+        return;
+      }
+
+      if (action === 'apply-mood-cluster') {
+        const clusterKey = actionEl.dataset.clusterKey;
+        if (clusterKey) {
+          this.applyMoodFilterCluster(clusterKey);
+        }
         return;
       }
 
@@ -6271,11 +6596,13 @@ const App = {
       const safeYear = Number.isInteger(item?.year) ? String(item.year) : 'Year unknown';
       const safeFormat = this.escapeHtml(item?.format || 'ANIME');
       const safeMeta = this.escapeHtml(item?.isInCatalog ? `${safeFormat} • ${safeYear} • In catalog` : `${safeFormat} • ${safeYear} • Outside current catalog`);
-      const safeContext = item?.bucket === 'main' && item?.mainOrder
-        ? `Main story step ${item.mainOrder}${mainCount > 0 ? ` of ${mainCount}` : ''}`
+      const rawMainOrder = Number(item?.mainOrder);
+      const mainOrderValue = Number.isInteger(rawMainOrder) && rawMainOrder > 0 ? rawMainOrder : null;
+      const safeContext = item?.bucket === 'main' && mainOrderValue
+        ? `Main story step ${mainOrderValue}${mainCount > 0 ? ` of ${mainCount}` : ''}`
         : (item?.anchorTitle ? `Best after ${item.anchorTitle}` : 'Related franchise title');
-      const safeBucket = this.escapeHtml(String(item?.bucket || 'related').replace(/_/g, '-'));
-      const classes = ['franchise-card', `franchise-card--${safeBucket}`];
+      const bucketToken = this.sanitizeClassToken(String(item?.bucket || 'related').replace(/_/g, '-')) || 'related';
+      const classes = ['franchise-card', `franchise-card--${bucketToken}`];
       if (isCurrent) classes.push('is-current');
       if (item?.isEntry) classes.push('is-entry');
       if (!item?.isInCatalog) classes.push('is-external');
@@ -6285,7 +6612,7 @@ const App = {
 
       return `
               <article class="${classes.join(' ')}" role="listitem">
-                <div class="franchise-card-step" aria-hidden="true">${item?.bucket === 'main' && item?.mainOrder ? item.mainOrder : '•'}</div>
+                <div class="franchise-card-step" aria-hidden="true">${this.escapeHtml(item?.bucket === 'main' && mainOrderValue ? String(mainOrderValue) : '•')}</div>
                 <div class="franchise-card-body">
                   <div class="franchise-card-top">
                     <div class="franchise-card-copy">
@@ -6578,6 +6905,8 @@ const App = {
       : '';
     const similarSection = this.renderSimilarAnimeSection(anime);
     const watchlistControls = this.renderWatchlistControls(anime);
+    const decision = this.getCardDecisionData(anime);
+    const detailDecisionClass = this.sanitizeClassList('detail-verdict', decision.className);
 
     setHTML(content, `
       <div class="detail-header">
@@ -6593,29 +6922,36 @@ const App = {
           <div class="detail-tags">
             ${genreTags}${themeTags}
           </div>
-          <div class="detail-stats">
-            <div class="detail-stat has-tooltip" tabindex="0">
-              <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
-              <span class="detail-stat-label">Finish Rate</span>
-              <div class="tooltip" role="tooltip">
-                <div class="tooltip-title">Finish Rate</div>
-                <div class="tooltip-text">How reliably viewers keep watching through the series. Factors in strong starts, low drop-off, and steady pacing.</div>
+          <div class="detail-decision-panel">
+            <div class="${detailDecisionClass}">
+              <span class="detail-verdict-label">Decision signal</span>
+              <strong class="detail-verdict-value">${this.escapeHtml(decision.value)}</strong>
+              <span class="detail-verdict-copy">${this.escapeHtml(decision.note)}</span>
+            </div>
+            <div class="detail-stats">
+              <div class="detail-stat has-tooltip" tabindex="0">
+                <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
+                <span class="detail-stat-label">Finish Rate</span>
+                <div class="tooltip" role="tooltip">
+                  <div class="tooltip-title">Finish Rate</div>
+                  <div class="tooltip-text">How reliably viewers keep watching through the series. Factors in strong starts, low drop-off, and steady pacing.</div>
+                </div>
+              </div>
+              <div class="detail-stat has-tooltip" tabindex="0">
+                <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
+                <span class="detail-stat-label">Satisfaction (MAL)</span>
+                <div class="tooltip" role="tooltip">
+                  <div class="tooltip-title">Satisfaction Score</div>
+                  <div class="tooltip-text">Community rating from MyAnimeList.</div>
+                </div>
+              </div>
+              <div class="detail-stat">
+                <span class="detail-stat-value">${episodeCount || 'N/A'}</span>
+                <span class="detail-stat-label">Episodes</span>
               </div>
             </div>
-            <div class="detail-stat has-tooltip" tabindex="0">
-              <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
-              <span class="detail-stat-label">Satisfaction (MAL)</span>
-              <div class="tooltip" role="tooltip">
-                <div class="tooltip-title">Satisfaction Score</div>
-                <div class="tooltip-text">Community rating from MyAnimeList.</div>
-              </div>
-            </div>
-            <div class="detail-stat">
-              <span class="detail-stat-value">${episodeCount || 'N/A'}</span>
-              <span class="detail-stat-label">Episodes</span>
-            </div>
+            ${watchlistControls}
           </div>
-          ${watchlistControls}
         </div>
       </div>
       ${hasEpisodes ? `

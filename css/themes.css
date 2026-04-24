@@ -161,6 +161,12 @@
     border-color: var(--accent-primary);
 }
 
+[data-theme="light"] .seasonal-chip.is-highlight {
+    background: linear-gradient(135deg, var(--sakura-pink) 0%, var(--sakura-deep) 100%);
+    border-color: transparent;
+    color: #fff;
+}
+
 /* Modal overlay backdrop */
 [data-theme="light"] .modal-overlay {
     background: rgba(42, 31, 35, 0.75);
