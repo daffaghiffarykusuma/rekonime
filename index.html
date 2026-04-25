@@ -885,49 +885,8 @@
 
     @media (max-width: 640px) {
       .header-more {
-        grid-column: 2 / 3;
+        flex: 1 1 100%;
         order: 4;
-      }
-
-      .header {
-        display: grid;
-        grid-template-columns: 1fr;
-        align-items: start;
-        gap: 0.75rem;
-      }
-
-      .header-controls {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: end;
-        gap: 0.55rem;
-        width: 100%;
-      }
-
-      .header-search-wrapper {
-        grid-column: 1 / -1;
-        order: 1;
-        min-width: 0;
-      }
-
-      .header-sort {
-        grid-column: 1 / 2;
-        order: 2;
-        min-width: 0;
-      }
-
-      .sort-select {
-        width: 100%;
-      }
-
-      .surprise-btn {
-        grid-column: 2 / 3;
-        order: 2;
-      }
-
-      .filter-btn {
-        grid-column: 1 / 2;
-        order: 3;
       }
 
       .header-more-toggle,
@@ -951,25 +910,165 @@
       }
 
       .discovery-actions,
+      .mood-filter-header,
       .mood-filter-clusters {
         display: grid;
         grid-template-columns: 1fr;
       }
+    }
 
-      .mood-filter-header {
-        display: block;
+    .discovery-garden {
+      display: block;
+      min-height: 0;
+      margin: 0.75rem 0 1rem;
+      padding: 1rem 1.1rem;
+      text-align: left;
+      border-radius: var(--radius-md);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    .discovery-garden::before {
+      display: none;
+    }
+
+    .discovery-garden-content {
+      max-width: none;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.75rem 1rem;
+      align-items: center;
+    }
+
+    .discovery-eyebrow {
+      grid-column: 1 / -1;
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .discovery-title {
+      max-width: none;
+      margin: 0;
+      font-size: 1.35rem;
+      line-height: 1.2;
+    }
+
+    .discovery-subtitle {
+      grid-column: 1 / 2;
+      max-width: 46rem;
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .discovery-actions {
+      grid-column: 2 / 3;
+      grid-row: 2 / 4;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin: 0;
+    }
+
+    .mood-filter-title {
+      width: auto;
+      height: auto;
+      margin: 0;
+      background: transparent;
+      border-radius: 0;
+      font-size: 1.05rem;
+      line-height: 1.25;
+    }
+
+    @media (max-width: 640px) {
+      .header {
+        gap: 0.75rem;
       }
 
-      .mood-filter-title {
-        max-width: none;
-        margin-bottom: 0.4rem;
-        font-size: 1.05rem;
-        line-height: 1.25;
+      .discovery-garden {
+        margin-top: 0.65rem;
+        padding: 0.9rem;
       }
 
-      .mood-filter-note {
-        max-width: none;
-        font-size: 0.82rem;
+      .discovery-garden-content {
+        grid-template-columns: 1fr;
+        gap: 0.55rem;
+      }
+
+      .discovery-subtitle,
+      .discovery-actions {
+        grid-column: auto;
+        grid-row: auto;
+      }
+
+      .discovery-title {
+        font-size: 1.2rem;
+      }
+
+      .discovery-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .header {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        align-items: start;
+      }
+
+      .header-controls {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.55rem;
+        width: 100%;
+        flex: 1 1 auto;
+      }
+
+      .header-search-wrapper {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        order: 1 !important;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .header-sort {
+        grid-column: 1 / 2;
+        grid-row: 2;
+        order: 2 !important;
+        min-width: 0;
+      }
+
+      .sort-select {
+        width: 100%;
+      }
+
+      .surprise-btn {
+        grid-column: 2 / 3;
+        grid-row: 2;
+        order: 2 !important;
+      }
+
+      .filter-btn {
+        grid-column: 1 / 2;
+        grid-row: 3;
+        order: 3 !important;
+      }
+
+      .header-more {
+        grid-column: 2 / 3;
+        grid-row: 3;
+        order: 3 !important;
+        flex: 0 0 auto;
       }
     }
   </style>
@@ -1012,7 +1111,7 @@
         </div>
         <button class="btn btn-sm btn-primary surprise-btn" id="surprise-toggle" type="button"
           aria-label="Show me a surprise anime pick" title="Pick for Me">
-          <span class="surprise-icon" aria-hidden="true">Pick</span>
+          <span class="surprise-icon" aria-hidden="true">&#127922;</span>
           <span class="surprise-label">Pick for Me</span>
         </button>
         <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Refine</button>
@@ -1054,42 +1153,28 @@
       </button>
     </div>
 
-    <div class="discovery-garden" id="discovery-garden">
+    <section class="discovery-garden" id="discovery-garden" aria-labelledby="discovery-title">
       <div class="discovery-garden-content">
-        <p class="discovery-eyebrow">Anime discovery built around follow-through</p>
-        <h1 class="discovery-title">Find something you will actually finish</h1>
+        <p class="discovery-eyebrow">Start here</p>
+        <h1 class="discovery-title" id="discovery-title">Discover by genre, theme, or finish confidence</h1>
         <p class="discovery-subtitle">
-          Rekonime ranks titles by finish confidence, community satisfaction, and the genres or themes you already trust.
+          Pick the categories you already like, then use Rekonime's finish and satisfaction signals to narrow the list.
         </p>
         <div class="discovery-actions" aria-label="Primary discovery actions">
-          <button class="btn btn-primary" type="button" data-action="surprise-me">Pick for Me</button>
-          <button class="btn btn-outline" type="button" data-action="scroll-to-filters">Choose genres</button>
-          <a class="btn btn-outline" href="/watchlist.html">Open Watchlist</a>
-        </div>
-        <div class="discovery-tips">
-          <div class="tip-card">
-            <span class="tip-icon" aria-hidden="true">%</span>
-            <h4>Choose with confidence</h4>
-            <p>Finish Rate shows staying power. Satisfaction shows how much viewers loved it.</p>
-            <button class="tip-cta" data-action="learn-scores">See how scoring works</button>
-          </div>
-          <div class="tip-card">
-            <span class="tip-icon" aria-hidden="true">#</span>
-            <h4>Match your mood</h4>
-            <p>Use guided shortcuts, or stay precise with only your favorite genres and themes.</p>
-            <button class="tip-cta" data-action="scroll-to-filters">Browse by mood</button>
-          </div>
+          <button class="btn btn-primary" type="button" data-action="scroll-to-filters">Choose genres</button>
+          <button class="btn btn-outline" type="button" data-action="surprise-me">Pick for Me</button>
+          <button class="btn btn-outline" type="button" data-action="learn-scores">How scoring works</button>
         </div>
       </div>
-    </div>
+    </section>
 
     <div class="quick-filters" id="quick-filters">
       <div class="mood-filter-header">
         <div>
-          <p class="mood-filter-kicker">Start with intent</p>
+          <p class="mood-filter-kicker">Optional shortcuts</p>
           <h2 class="mood-filter-title">Mood shortcuts</h2>
         </div>
-        <p class="mood-filter-note">Shortcuts add filters. You can still pick a single favorite genre or theme below.</p>
+        <p class="mood-filter-note">Use these as quick combinations, or pick exact genres and themes below.</p>
       </div>
       <div class="mood-filter-clusters" id="mood-filter-clusters" aria-label="Guided mood shortcuts">
         <button class="mood-cluster" type="button" disabled aria-hidden="true">Loading shortcuts</button>

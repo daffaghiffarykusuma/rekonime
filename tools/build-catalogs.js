@@ -56,6 +56,26 @@ const sanitizeTagList = (tags) => {
   return cleaned;
 };
 
+const normalizeEpisodeCount = (anime) => {
+  const candidates = [
+    anime?.episodeCount,
+    anime?.episodesCount,
+    anime?.episodes_count,
+    anime?.metadata?.episodeCount,
+    anime?.metadata?.episodesCount,
+    anime?.metadata?.episodes_count
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = Number(candidate);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.floor(parsed);
+    }
+  }
+
+  return null;
+};
+
 const writeJsonAtomic = (filePath, payload) => {
   const directory = path.dirname(filePath);
   const tempPath = path.join(directory, `.${path.basename(filePath)}.${process.pid}.tmp`);
@@ -136,6 +156,7 @@ const normalizeAnime = (anime, resolveFranchise = () => null) => {
   const normalizedType = anime?.metadata?.type || anime?.type || '';
   const rawCommunityScore = anime?.communityScore ?? anime?.metadata?.score ?? anime?.score;
   const communityScore = Number.isFinite(Number(rawCommunityScore)) ? Number(rawCommunityScore) : null;
+  const episodeCount = normalizeEpisodeCount(anime);
   const franchise = candidateId ? resolveFranchise(candidateId) : null;
 
   if (anime?.metadata) {
@@ -159,6 +180,7 @@ const normalizeAnime = (anime, resolveFranchise = () => null) => {
       trailer: normalizedTrailer,
       synopsis: normalizedSynopsis,
       communityScore: communityScore,
+      ...(episodeCount ? { episodeCount } : {}),
       searchText: anime.searchText || buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
       episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
       ...(franchise ? { franchise } : {})
@@ -185,6 +207,7 @@ const normalizeAnime = (anime, resolveFranchise = () => null) => {
     trailer: normalizedTrailer,
     synopsis: normalizedSynopsis,
     communityScore: communityScore,
+    ...(episodeCount ? { episodeCount } : {}),
     searchText: anime.searchText || buildSearchText(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese),
     episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
     ...(franchise ? { franchise } : {})

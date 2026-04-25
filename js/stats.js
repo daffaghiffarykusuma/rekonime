@@ -971,6 +971,24 @@ const Stats = {
     const finaleStrength = this.calculateFinaleStrength(episodes);
     const slowBurnSignal = this.getSlowBurnSignal({ momentumScore, finaleStrength });
     const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
+    const directEpisodeCount = [
+      anime?.episodeCount,
+      anime?.episodesCount,
+      anime?.episodes_count,
+      anime?.metadata?.episodeCount,
+      anime?.metadata?.episodesCount,
+      anime?.metadata?.episodes_count
+    ].reduce((max, candidate) => {
+      const parsed = Number(candidate);
+      return Number.isFinite(parsed) && parsed > 0 ? Math.max(max, Math.floor(parsed)) : max;
+    }, 0);
+    const observedEpisodeCount = episodes.reduce((max, episode, index) => {
+      const parsed = Number(episode?.episode);
+      const fallback = index + 1;
+      const count = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+      return Math.max(max, Math.floor(count));
+    }, 0);
+    const episodeCount = Math.max(directEpisodeCount, observedEpisodeCount);
 
     return {
       // Core metrics
@@ -979,7 +997,7 @@ const Stats = {
       auc: auc,
       consistency: consistency,
       scoreClass: scoreClass,
-      episodeCount: episodes.length,
+      episodeCount,
       highestScore: episodes.length > 0 ? Math.max(...episodes.map(e => e.score)) : 0,
       lowestScore: episodes.length > 0 ? Math.min(...episodes.map(e => e.score)) : 0,
       retentionScore: retentionScore,

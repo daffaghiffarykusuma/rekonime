@@ -145,9 +145,27 @@ const Recommendations = {
   },
 
   getEpisodeCount(anime) {
-    const listCount = Array.isArray(anime?.episodes) ? anime.episodes.length : 0;
+    const directCount = [
+      anime?.episodeCount,
+      anime?.episodesCount,
+      anime?.episodes_count,
+      anime?.metadata?.episodeCount,
+      anime?.metadata?.episodesCount,
+      anime?.metadata?.episodes_count
+    ].reduce((max, candidate) => {
+      const parsed = Number(candidate);
+      return Number.isFinite(parsed) && parsed > 0 ? Math.max(max, Math.floor(parsed)) : max;
+    }, 0);
+    const listCount = Array.isArray(anime?.episodes)
+      ? anime.episodes.reduce((max, episode, index) => {
+        const parsed = Number(episode?.episode);
+        const fallback = index + 1;
+        const count = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+        return Math.max(max, Math.floor(count));
+      }, 0)
+      : 0;
     const statsCount = Number.isFinite(anime?.stats?.episodeCount) ? anime.stats.episodeCount : 0;
-    return Math.max(listCount, statsCount);
+    return Math.max(directCount, listCount, statsCount);
   },
 
   /**

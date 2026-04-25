@@ -42,6 +42,15 @@ test('getRecommendationReason handles missing episodes with high community score
   assert.equal(Recommendations.getRecommendationReason(anime), 'A clear community favorite');
 });
 
+test('getEpisodeCount uses highest scraped episode number', () => {
+  const anime = baseAnime({
+    episodes: [{ episode: 12, score: 5 }],
+    stats: { episodeCount: 1 }
+  });
+  assert.equal(Recommendations.getEpisodeCount(anime), 12);
+  assert.equal(Recommendations.getCardStats(anime)[2].value, 12);
+});
+
 test('getBadges returns at most two badges', () => {
   const badges = Recommendations.getBadges(baseAnime());
   assert.equal(badges.length, 2);

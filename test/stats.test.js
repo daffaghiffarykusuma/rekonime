@@ -36,6 +36,13 @@ test('calculateFlowState returns 100 for stable scores', () => {
   assert.equal(Stats.calculateFlowState(episodes), 100);
 });
 
+test('calculateAllStats reports sparse highest episode number as count', () => {
+  const stats = Stats.calculateAllStats({
+    episodes: [{ episode: 12, score: 5 }]
+  });
+  assert.equal(stats.episodeCount, 12);
+});
+
 test('calculateChurnRisk returns Unknown for empty episodes', () => {
   const result = Stats.calculateChurnRisk([]);
   assert.equal(result.label, 'Unknown');
