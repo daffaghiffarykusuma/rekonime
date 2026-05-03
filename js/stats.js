@@ -13,6 +13,7 @@ class StatsCalculationError extends Error {
 const Stats = {
   strictnessExponent: 1.35,
   defaultScoreProfile: { p35: 3.2, p50: 3.6, p65: 4.0 },
+  maxEpisodeEntries: 10000,
 
   /**
    * Build a score profile from a list of anime (per-user catalog baseline)
@@ -219,6 +220,33 @@ const Stats = {
   },
 
   /**
+   * Get the minimum and maximum score without spreading large arrays.
+   * @param {Array} episodes - Array of episode objects with score property
+   * @returns {Object} Score range with min and max
+   */
+  getEpisodeScoreRange(episodes) {
+    if (!Array.isArray(episodes) || episodes.length === 0) return { min: 0, max: 0 };
+
+    let min = 0;
+    let max = 0;
+    let hasScore = false;
+    for (const episode of episodes) {
+      const score = Number(episode?.score);
+      if (!Number.isFinite(score)) continue;
+      if (!hasScore) {
+        min = score;
+        max = score;
+        hasScore = true;
+        continue;
+      }
+      min = Math.min(min, score);
+      max = Math.max(max, score);
+    }
+
+    return hasScore ? { min, max } : { min: 0, max: 0 };
+  },
+
+  /**
    * Normalize and validate episode data before calculations
    * @param {Array} episodes - Raw episode data
    * @param {Object} options - Validation options
@@ -226,6 +254,11 @@ const Stats = {
    */
   normalizeEpisodes(episodes, options = {}) {
     const strict = Boolean(options.strict);
+    const configuredMax = Number(options.maxEpisodeEntries ?? this.maxEpisodeEntries);
+    const maxEpisodeEntries = Number.isFinite(configuredMax) && configuredMax > 0
+      ? Math.floor(configuredMax)
+      : this.maxEpisodeEntries;
+
     if (!Array.isArray(episodes)) {
       if (strict) {
         throw new StatsCalculationError('Episodes must be an array', { episodesType: typeof episodes });
@@ -233,8 +266,11 @@ const Stats = {
       return [];
     }
 
+    const sourceEpisodes = episodes.length > maxEpisodeEntries
+      ? episodes.slice(0, maxEpisodeEntries)
+      : episodes;
     const cleaned = [];
-    episodes.forEach((episode, index) => {
+    sourceEpisodes.forEach((episode, index) => {
       if (!episode || typeof episode !== 'object') {
         if (strict) {
           throw new StatsCalculationError('Episode entry is invalid', { index, episode });
@@ -261,8 +297,15 @@ const Stats = {
       });
     });
 
-    if (strict && episodes.length > 0 && cleaned.length === 0) {
-      throw new StatsCalculationError('No valid episodes available', { total: episodes.length });
+    if (strict && episodes.length > maxEpisodeEntries) {
+      throw new StatsCalculationError('Episode count exceeds supported limit', {
+        total: episodes.length,
+        maxEpisodeEntries
+      });
+    }
+
+    if (strict && sourceEpisodes.length > 0 && cleaned.length === 0) {
+      throw new StatsCalculationError('No valid episodes available', { total: sourceEpisodes.length });
     }
 
     return cleaned;
@@ -444,7 +487,7 @@ const Stats = {
    */
   calculatePeakScore(episodes) {
     if (!episodes || episodes.length === 0) return 0;
-    return Math.max(...episodes.map(e => e.score));
+    return this.getEpisodeScoreRange(episodes).max;
   },
 
   /**
@@ -771,14 +814,12 @@ const Stats = {
   calculateControversyPotential(episodes) {
     if (!episodes || episodes.length < 3) return 0;
 
-    const scores = episodes.map(e => e.score);
-    const min = Math.min(...scores);
-    const max = Math.max(...scores);
+    const { min, max } = this.getEpisodeScoreRange(episodes);
     const range = max - min;
 
     // Check for extreme scores (1s and 5s)
-    const hasVeryLow = scores.some(s => s <= 1.5);
-    const hasVeryHigh = scores.some(s => s >= 4.5);
+    const hasVeryLow = episodes.some(episode => Number(episode?.score) <= 1.5);
+    const hasVeryHigh = episodes.some(episode => Number(episode?.score) >= 4.5);
 
     let controversy = 0;
 
@@ -989,6 +1030,7 @@ const Stats = {
       return Math.max(max, Math.floor(count));
     }, 0);
     const episodeCount = Math.max(directEpisodeCount, observedEpisodeCount);
+    const scoreRange = this.getEpisodeScoreRange(episodes);
 
     return {
       // Core metrics
@@ -998,8 +1040,8 @@ const Stats = {
       consistency: consistency,
       scoreClass: scoreClass,
       episodeCount,
-      highestScore: episodes.length > 0 ? Math.max(...episodes.map(e => e.score)) : 0,
-      lowestScore: episodes.length > 0 ? Math.min(...episodes.map(e => e.score)) : 0,
+      highestScore: scoreRange.max,
+      lowestScore: scoreRange.min,
       retentionScore: retentionScore,
       malSatisfactionScore: malSatisfactionScore,
 

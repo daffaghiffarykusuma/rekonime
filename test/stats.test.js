@@ -43,6 +43,28 @@ test('calculateAllStats reports sparse highest episode number as count', () => {
   assert.equal(stats.episodeCount, 12);
 });
 
+test('calculateAllStats handles oversized episode arrays without spreading', () => {
+  const episodes = Array.from({ length: Stats.maxEpisodeEntries + 100 }, (_, index) => ({
+    episode: index + 1,
+    score: index % 2 === 0 ? 1 : 5
+  }));
+
+  const stats = Stats.calculateAllStats({ episodes });
+
+  assert.equal(stats.episodeCount, Stats.maxEpisodeEntries);
+  assert.equal(stats.highestScore, 5);
+  assert.equal(stats.lowestScore, 1);
+});
+
+test('large-array score helpers do not throw RangeError', () => {
+  const episodes = Array.from({ length: Stats.maxEpisodeEntries + 100 }, (_, index) => ({
+    score: index % 2 === 0 ? 1 : 5
+  }));
+
+  assert.equal(Stats.calculatePeakScore(episodes), 5);
+  assert.ok(Stats.calculateControversyPotential(episodes) > 0);
+});
+
 test('calculateChurnRisk returns Unknown for empty episodes', () => {
   const result = Stats.calculateChurnRisk([]);
   assert.equal(result.label, 'Unknown');

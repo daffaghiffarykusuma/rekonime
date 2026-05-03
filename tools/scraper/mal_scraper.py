@@ -25,6 +25,8 @@ class MALScraper:
     """Scraper for MyAnimeList episode scores and metadata."""
 
     BASE_URL = "https://myanimelist.net"
+    TRUSTED_MAL_HOSTS = {"myanimelist.net", "www.myanimelist.net"}
+    MAL_EPISODE_PATH_PATTERN = re.compile(r"^/anime/\d+/[^/]+/episode/?$")
     JIKAN_API = "https://api.jikan.moe/v4"
     ANILIST_API = "https://graphql.anilist.co"
     YOUTUBE_SEARCH_URL = "https://www.youtube.com/results"
@@ -636,10 +638,18 @@ class MALScraper:
             return None
 
         href = (next_link.get("href") or "").strip()
-        if not href or "/episode" not in href:
+        if not href:
             return None
 
-        return urljoin(current_url, href)
+        next_url = urljoin(current_url, href)
+        parsed = urlparse(next_url)
+        host = parsed.netloc.lower()
+        if parsed.scheme != "https" or host not in self.TRUSTED_MAL_HOSTS:
+            return None
+        if not self.MAL_EPISODE_PATH_PATTERN.match(parsed.path):
+            return None
+
+        return next_url
 
     def scrape_anime(self, anime_id: int, anime_title: str, fetch_metadata: bool = True) -> dict:
         """

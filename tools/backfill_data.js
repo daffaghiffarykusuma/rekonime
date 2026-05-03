@@ -1,6 +1,7 @@
 ﻿import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseTrustedMalEpisodePageUrl } from './lib/mal-pagination-url.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -136,37 +137,29 @@ function parseEpisodeScores(html) {
 
 function extractNextEpisodePageUrl(html, currentUrl) {
   const nextHref = html.match(/<link rel="next" href="([^"]+)"/i)?.[1];
-  if (!nextHref || !String(nextHref).includes('/episode')) return null;
-
-  try {
-    return new URL(nextHref, currentUrl).toString();
-  } catch {
-    return null;
-  }
+  const parsed = nextHref ? parseTrustedMalEpisodePageUrl(nextHref, currentUrl) : null;
+  return parsed ? parsed.toString() : null;
 }
 
 function extractCanonicalEpisodePageUrl(html, currentUrl) {
   const canonicalHref = html.match(/<link rel="canonical" href="([^"]+)"/i)?.[1];
-  if (!canonicalHref || !String(canonicalHref).includes('/episode')) return null;
-
-  try {
-    const parsed = new URL(canonicalHref, currentUrl);
-    parsed.search = '';
-    return parsed.toString();
-  } catch {
-    return null;
-  }
+  const parsed = canonicalHref ? parseTrustedMalEpisodePageUrl(canonicalHref, currentUrl) : null;
+  if (!parsed) return null;
+  parsed.search = '';
+  return parsed.toString();
 }
 
 function buildFallbackEpisodePageUrl(currentUrl, html, pageEpisodeCount) {
   if (pageEpisodeCount < 100) return null;
 
   try {
-    const parsedCurrent = new URL(currentUrl);
+    const parsedCurrent = parseTrustedMalEpisodePageUrl(currentUrl);
+    if (!parsedCurrent) return null;
     const currentOffset = Number(parsedCurrent.searchParams.get('offset') || '0');
     const nextOffset = currentOffset + 100;
     const canonicalBaseUrl = extractCanonicalEpisodePageUrl(html, currentUrl) || `${parsedCurrent.origin}${parsedCurrent.pathname}`;
-    const parsedNext = new URL(canonicalBaseUrl);
+    const parsedNext = parseTrustedMalEpisodePageUrl(canonicalBaseUrl);
+    if (!parsedNext) return null;
     parsedNext.searchParams.set('offset', String(nextOffset));
     return parsedNext.toString();
   } catch {

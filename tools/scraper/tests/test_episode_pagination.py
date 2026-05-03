@@ -37,6 +37,40 @@ class EpisodePaginationTests(unittest.TestCase):
             "https://myanimelist.net/anime/21/One_Piece/episode?offset=100",
         )
 
+    def test_extract_next_episode_page_url_rejects_attacker_hosts(self):
+        scraper = mal_scraper.MALScraper()
+        soup = BeautifulSoup(
+            '<html><head><link rel="next" href="https://127.0.0.1/admin/episode" /></head></html>',
+            "lxml",
+        )
+
+        next_url = scraper._extract_next_episode_page_url(
+            soup,
+            "https://myanimelist.net/anime/21/One_Piece/episode",
+        )
+
+        self.assertIsNone(next_url)
+
+    def test_extract_next_episode_page_url_rejects_non_https_and_non_episode_paths(self):
+        scraper = mal_scraper.MALScraper()
+
+        for href in (
+            "http://myanimelist.net/anime/21/One_Piece/episode?offset=100",
+            "https://myanimelist.net/search/episode",
+        ):
+            with self.subTest(href=href):
+                soup = BeautifulSoup(
+                    f'<html><head><link rel="next" href="{href}" /></head></html>',
+                    "lxml",
+                )
+
+                next_url = scraper._extract_next_episode_page_url(
+                    soup,
+                    "https://myanimelist.net/anime/21/One_Piece/episode",
+                )
+
+                self.assertIsNone(next_url)
+
     def test_scrape_episode_scores_follows_paginated_episode_pages(self):
         scraper = mal_scraper.MALScraper()
         pages = {
