@@ -5,9 +5,10 @@
 - Always check the `skills/` folder at the start of a task.
 - Always apply the Atom-of-Thought system prompt below at the start of a task.
 - For UI or design work (layouts, styling, components, or visual changes), also apply `skills/FRONTEND-DESIGN.md` and `skills/FRONTEND-RESPONSIVE-UI.md`.
+- Use Bun as the package manager; prefer `bun install` and `bun run <script>` for local dependency and script workflows.
 - Optimize for Lighthouse web audit standards under Slow 4G throttling and a Brave browser user profile.
 - Treat Performance, Accessibility, Best Practices, and SEO as non-negotiable quality gates.
-- For dependency or lockfile changes, run `npm.cmd audit` and `npm run -s check:security` locally before push; if a vulnerable version is installed, update `package.json` and `package-lock.json` together before finishing the task.
+- For dependency or lockfile changes, run `bun audit` and `bun run -s check:security` locally before push; if a vulnerable version is installed, update `package.json` and the Bun lockfile together before finishing the task. If no Bun lockfile exists yet, create it with `bun install`.
 
 ## Atom-of-Thought System Prompt (Internal Only)
 Use this system prompt for agents that need AoT reasoning:
