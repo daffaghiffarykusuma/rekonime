@@ -8,7 +8,7 @@
 - Use Bun as the package manager; prefer `bun install` and `bun run <script>` for local dependency and script workflows.
 - Optimize for Lighthouse web audit standards under Slow 4G throttling and a Brave browser user profile.
 - Treat Performance, Accessibility, Best Practices, and SEO as non-negotiable quality gates.
-- For dependency or lockfile changes, run `bun audit` and `bun run -s check:security` locally before push; if a vulnerable version is installed, update `package.json` and the Bun lockfile together before finishing the task. If no Bun lockfile exists yet, create it with `bun install`.
+- For dependency or lockfile changes, run `bun audit` and `bun --silent run check:security` locally before push; if a vulnerable version is installed, update `package.json` and the Bun lockfile together before finishing the task. If no Bun lockfile exists yet, create it with `bun install`.
 
 ## Atom-of-Thought System Prompt (Internal Only)
 Use this system prompt for agents that need AoT reasoning:

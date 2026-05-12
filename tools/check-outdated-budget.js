@@ -52,15 +52,40 @@ const readConfig = (configPath) => {
   };
 };
 
+const parseBunOutdated = (output) => {
+  const outdated = {};
+  String(output || '').split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|') || !trimmed.endsWith('|')) return;
+
+    const cells = trimmed
+      .split('|')
+      .slice(1, -1)
+      .map((cell) => cell.trim());
+
+    if (cells.length < 4 || cells[0] === 'Package' || cells.every((cell) => /^-+$/.test(cell))) {
+      return;
+    }
+
+    const packageName = cells[0].replace(/\s+\([^)]*\)$/, '');
+    outdated[packageName] = {
+      current: cells[1],
+      wanted: cells[2],
+      latest: cells[3]
+    };
+  });
+  return outdated;
+};
+
 const runOutdated = () => {
   const runCommand = () => {
     if (process.platform === 'win32') {
-      return execFileSync('cmd.exe', ['/d', '/s', '/c', 'npm.cmd outdated --json'], {
+      return execFileSync('cmd.exe', ['/d', '/s', '/c', 'bun outdated'], {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe']
       });
     }
-    return execFileSync('npm', ['outdated', '--json'], {
+    return execFileSync('bun', ['outdated'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -68,17 +93,13 @@ const runOutdated = () => {
 
   try {
     const output = runCommand();
-    return output.trim() ? JSON.parse(output) : {};
+    return parseBunOutdated(output);
   } catch (error) {
     const stdout = String(error?.stdout || '').trim();
     if (!stdout) {
-      throw new Error(error?.message || 'Failed to run npm outdated');
+      throw new Error(error?.message || 'Failed to run bun outdated');
     }
-    try {
-      return JSON.parse(stdout);
-    } catch {
-      throw new Error(`npm outdated returned non-JSON output:\n${stdout}`);
-    }
+    return parseBunOutdated(stdout);
   }
 };
 

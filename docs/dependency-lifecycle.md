@@ -7,10 +7,10 @@
 - Evaluate major updates with explicit migration notes and risk review.
 
 ## Required Checks Before Merge
-- `npm run test:unit`
-- `npm run test:integration`
-- `npm run data:validate`
-- `npm run check:security`
+- `bun run test:unit`
+- `bun run test:integration`
+- `bun run data:validate`
+- `bun run check:security`
 
 ## Outdated Budget and Exceptions
 - `tools/check-outdated-budget.js` enforces budget thresholds.

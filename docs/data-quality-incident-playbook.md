@@ -1,7 +1,7 @@
 # Data Quality Incident Playbook
 
 ## Trigger Conditions
-- `npm run data:validate` fails on default branch.
+- `bun run data:validate` fails on default branch.
 - `tools/build-catalogs.js` strict mode fails quality gates unexpectedly.
 - Production shows broken anime detail cards or malformed score data.
 
@@ -19,16 +19,16 @@
 
 ## Immediate Mitigation
 1. Revert to last known-good data snapshot using:
-   - `npm run data:rollback`
+   - `bun run data:rollback`
 2. Redeploy data bundle.
-3. Confirm `npm run data:validate` passes on rollback snapshot.
+3. Confirm `bun run data:validate` passes on rollback snapshot.
 
 ## Root Cause Isolation
 1. Compare changed inputs and pipeline scripts in the failing PR.
 2. Re-run targeted tooling tests:
-   - `npm run test:tools`
+   - `bun run test:tools`
 3. Re-run strict validation:
-   - `npm run data:validate:strict`
+   - `bun run data:validate:strict`
 
 ## Recovery and Closure
 1. Patch source data or pipeline transformation.

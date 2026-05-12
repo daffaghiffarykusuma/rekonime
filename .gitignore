@@ -3,10 +3,10 @@ dist/
 coverage/
 test-results/
 .build-state.json
+package-lock.json
 
 tools/scraper/__pycache__/
 *.pyc
 
 data/*.bak-*
 plans/*.tmp
-

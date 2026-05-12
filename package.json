@@ -5,14 +5,14 @@
   "scripts": {
     "dev": "vite",
     "build": "node node_modules/vite/bin/vite.js build && node tools/generate-version.js && node tools/copy-static.js",
-    "build:verify": "npm run build && npm run check:build-clean && npm run check:entrypoints",
+    "build:verify": "bun run build && bun run check:build-clean && bun run check:entrypoints",
     "check:repo-hygiene": "node tools/check-repo-hygiene.js",
     "check:coverage-thresholds": "node tools/check-coverage-thresholds.js",
     "check:outdated-budget": "node tools/check-outdated-budget.js",
     "check:unsafe-patterns": "node tools/check-unsafe-patterns.js",
     "check:security-headers": "node tools/check-security-headers.js",
-    "check:security": "npm audit && npm run check:outdated-budget && npm run check:unsafe-patterns && npm run check:security-headers",
-    "check:quick": "npm run test:unit && npm run test:integration && npm run data:validate",
+    "check:security": "bun audit && bun run check:outdated-budget && bun run check:unsafe-patterns && bun run check:security-headers",
+    "check:quick": "bun run test:unit && bun run test:integration && bun run data:validate",
     "hooks:install": "node tools/install-hooks.js",
     "lh:compare": "node tools/compare-lighthouse.js",
     "preview": "vite preview",
@@ -44,6 +44,10 @@
     "@playwright/test": "^1.50.1",
     "c8": "^11.0.0",
     "jsdom": "^25.0.1",
-    "vite": "^7.3.2"
+    "vite": "^7.3.2",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
   }
 }

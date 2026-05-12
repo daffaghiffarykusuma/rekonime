@@ -16,8 +16,8 @@ const ensureCoverageSummary = () => {
   }
 
   const command = process.platform === 'win32'
-    ? { file: 'cmd.exe', args: ['/d', '/s', '/c', 'npm.cmd run test:coverage'] }
-    : { file: 'npm', args: ['run', 'test:coverage'] };
+    ? { file: 'cmd.exe', args: ['/d', '/s', '/c', 'bun run test:coverage'] }
+    : { file: 'bun', args: ['run', 'test:coverage'] };
 
   const result = spawnSync(command.file, command.args, {
     cwd: process.cwd(),

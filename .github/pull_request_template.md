@@ -9,12 +9,12 @@
 - [ ] User-visible runtime behavior changed
 
 ## Validation Evidence
-- [ ] `npm run test:unit`
-- [ ] `npm run test:integration`
-- [ ] `npm run data:validate`
-- [ ] `npm run test:coverage`
-- [ ] `npm run check:coverage-thresholds`
-- [ ] `npm run check:security`
+- [ ] `bun run test:unit`
+- [ ] `bun run test:integration`
+- [ ] `bun run data:validate`
+- [ ] `bun run test:coverage`
+- [ ] `bun run check:coverage-thresholds`
+- [ ] `bun run check:security`
 
 ## Rollout Notes
 - Any migration or cleanup required?

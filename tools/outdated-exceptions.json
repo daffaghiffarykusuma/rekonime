@@ -14,6 +14,11 @@
       "maxLevel": "major",
       "until": "2026-06-30",
       "reason": "Deferred Vite v8 upgrade until build and preview flows are validated against its breaking changes."
+    },
+    "typescript": {
+      "maxLevel": "major",
+      "until": "2026-06-30",
+      "reason": "Bun reports the TypeScript peer range against TypeScript v6; keep the v5 peer until Bun type support and tooling compatibility are validated."
     }
   }
 }

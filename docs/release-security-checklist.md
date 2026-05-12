@@ -13,14 +13,14 @@
 - Confirm no wildcard `postMessage` target origins exist.
 
 ## Supply Chain and Tooling
-- Run `npm run check:security` and confirm success.
-- Run `npm run check:security-headers` after any `vercel.json` header changes.
+- Run `bun run check:security` and confirm success.
+- Run `bun run check:security-headers` after any `vercel.json` header changes.
 - Review `tools/outdated-exceptions.json` for expired or stale entries.
-- Confirm no generated artifacts are tracked with `npm run check:repo-hygiene`.
+- Confirm no generated artifacts are tracked with `bun run check:repo-hygiene`.
 
 ## Data and Validation
-- Run `npm run data:validate` and confirm no baseline regressions.
-- Run `npm run data:validate:strict` before major catalog/pipeline releases.
+- Run `bun run data:validate` and confirm no baseline regressions.
+- Run `bun run data:validate:strict` before major catalog/pipeline releases.
 
 ## Sign-off
 - Security reviewer sign-off recorded in PR.

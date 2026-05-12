@@ -62,7 +62,7 @@ const main = () => {
   console.error('Suggested fix:');
   console.error('1) Remove from tracking: git rm -r --cached node_modules dist coverage test-results tools/scraper/__pycache__');
   console.error('2) Remove tracked one-off artifacts: git rm --cached .build-state.json');
-  console.error('3) Re-run: npm run -s check:repo-hygiene');
+  console.error('3) Re-run: bun --silent run check:repo-hygiene');
   process.exitCode = 1;
 };
 

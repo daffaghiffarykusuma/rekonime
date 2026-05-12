@@ -17,31 +17,35 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Repo hygiene
-        run: npm run -s check:repo-hygiene
+        run: bun --silent run check:repo-hygiene
 
       - name: Unit tests
-        run: npm run -s test:unit
+        run: bun --silent run test:unit
 
       - name: Integration tests
-        run: npm run -s test:integration
+        run: bun --silent run test:integration
 
       - name: Data validation
-        run: npm run -s data:validate
+        run: bun --silent run data:validate
 
       - name: Coverage
-        run: npm run -s test:coverage
+        run: bun --silent run test:coverage
 
       - name: Coverage thresholds
-        run: npm run -s check:coverage-thresholds
+        run: bun --silent run check:coverage-thresholds
 
       - name: Entrypoint dedup
-        run: npm run -s check:entrypoints
+        run: bun --silent run check:entrypoints
 
       - name: Security checks
-        run: npm run -s check:security
+        run: bun --silent run check:security

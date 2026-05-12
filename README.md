@@ -3,10 +3,10 @@
 Rekonime is a static, browser-based anime dashboard that highlights how likely a show is to keep viewers watching, paired with community satisfaction. Each title has a detailed modal with scores, synopsis, trailers, and reviews.
 
 ## Quick start
-1. Install dependencies: `npm ci`
-2. Run local dev server: `npm run dev`
+1. Install dependencies: `bun install`
+2. Run local dev server: `bun run dev`
 3. Optional: install git hooks for pre-commit/pre-push checks:
-   - `npm run hooks:install`
+   - `bun run hooks:install`
 
 ## What you can do
 - Browse and filter a large anime catalog.
@@ -38,27 +38,27 @@ If you want to refresh data:
 
 ## Validation workflow
 Run these before opening a PR:
-1. `npm run test:unit`
-2. `npm run test:integration`
-3. `npm run data:validate`
-4. `npm run test:coverage`
-5. `npm run check:coverage-thresholds`
-6. `npm run check:security`
+1. `bun run test:unit`
+2. `bun run test:integration`
+3. `bun run data:validate`
+4. `bun run test:coverage`
+5. `bun run check:coverage-thresholds`
+6. `bun run check:security`
 
 Useful grouped commands:
-- `npm run check:quick` (unit + integration + data validation)
-- `npm run data:validate:strict` (raw validator with no baseline allowances)
-- `npm run test:runtime` (runtime-focused tests)
-- `npm run test:services` (service-layer tests)
-- `npm run test:scraper` (Python scraper host-policy regressions)
-- `npm run test:tools` (pipeline/tooling tests)
-- `npm run test:unit:watch` (watch-mode unit tests)
-- `npm run check:repo-hygiene` (detect tracked generated artifacts)
-- `npm run check:outdated-budget` (dependency update budget + exceptions)
-- `npm run check:unsafe-patterns` (static unsafe API pattern scan)
-- `npm run check:security-headers` (verifies required security headers in `vercel.json`)
+- `bun run check:quick` (unit + integration + data validation)
+- `bun run data:validate:strict` (raw validator with no baseline allowances)
+- `bun run test:runtime` (runtime-focused tests)
+- `bun run test:services` (service-layer tests)
+- `bun run test:scraper` (Python scraper host-policy regressions)
+- `bun run test:tools` (pipeline/tooling tests)
+- `bun run test:unit:watch` (watch-mode unit tests)
+- `bun run check:repo-hygiene` (detect tracked generated artifacts)
+- `bun run check:outdated-budget` (dependency update budget + exceptions)
+- `bun run check:unsafe-patterns` (static unsafe API pattern scan)
+- `bun run check:security-headers` (verifies required security headers in `vercel.json`)
 
-`npm run check:coverage-thresholds` now generates coverage first if `coverage/coverage-summary.json` is missing.
+`bun run check:coverage-thresholds` now generates coverage first if `coverage/coverage-summary.json` is missing.
 
 Reference docs:
 - CI/local command matrix: `docs/ci-local-matrix.md`
