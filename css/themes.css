@@ -17,65 +17,65 @@
    ========================================== */
 
 [data-theme="light"] {
-    /* Core Sakura Palette - adapted for light backgrounds */
-    --sakura-pink: #E89AAB;
-    --sakura-deep: #D4849C;
-    --sakura-pale: #FFE4E9;
-    --sakura-shadow: #C47A8C;
+    /* Core Pastel Dreamland Palette - adapted for light backgrounds */
+    --sakura-pink: #D96D9E;
+    --sakura-deep: #B85284;
+    --sakura-pale: #E4C1F9;
+    --sakura-shadow: #A24675;
 
     /* Twilight Accent Colors */
-    --twilight-purple: #8B6B9E;
-    --twilight-lavender: #B8A8D8;
-    --twilight-deep: #6B4E7C;
+    --twilight-purple: #9E73BE;
+    --twilight-lavender: #7D718A;
+    --twilight-deep: #3D354D;
 
     /* Natural Complements */
-    --moss-green: #7A9A7A;
-    --warm-gold: #D4A83C;
-    --paper-cream: #FDF8F5;
+    --moss-green: #5B9870;
+    --warm-gold: #B79A29;
+    --paper-cream: #F6F1FA;
 
     /* Light Mode Base - Paper/Parchment Theme */
-    --bg-primary: #FDF8F5;
+    --bg-primary: #F6F1FA;
     --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F5EDEA;
+    --bg-tertiary: #F0E7F6;
     --card-bg: #FFFFFF;
-    --bg-elevated: #FAF5F2;
+    --bg-elevated: #FAF6FC;
 
     /* Text Colors with Warm Undertones (reversed for light) */
-    --text-primary: #2A1F23;
-    --text-secondary: #4A3F42;
-    --text-muted: #6E5F62;
-    --text-tertiary: #85777A;
+    --text-primary: #211B2C;
+    --text-secondary: #4E445D;
+    --text-muted: #70667C;
+    --text-tertiary: #887D95;
 
     /* Accent Application (similar, slightly adjusted for contrast) */
     --accent-primary: var(--sakura-deep);
     --accent-secondary: var(--sakura-pink);
     --accent-hover: var(--sakura-deep);
     --accent-brand: var(--sakura-deep);
-    --accent-glow: rgba(228, 154, 171, 0.2);
+    --accent-glow: rgba(217, 109, 158, 0.2);
 
     /* Semantic Colors - Warmer Palette for light */
-    --success: #5A8A5A;
-    --warning: #C9A05C;
-    --error: #C85A5A;
-    --info: #5A7AC8;
+    --success: #4E8A65;
+    --warning: #A88A1F;
+    --error: #B85284;
+    --info: #3D7DA2;
 
     /* Semantic Background Colors */
-    --success-bg: rgba(90, 138, 90, 0.12);
-    --warning-bg: rgba(201, 160, 92, 0.12);
-    --error-bg: rgba(200, 90, 90, 0.12);
+    --success-bg: rgba(78, 138, 101, 0.12);
+    --warning-bg: rgba(168, 138, 31, 0.12);
+    --error-bg: rgba(184, 82, 132, 0.12);
 
     /* Border Colors */
-    --border-color: #E8D5D0;
-    --border-hover: #D8C5C0;
+    --border-color: #E7D7F0;
+    --border-hover: #D4BDE2;
 
     /* Shadows (softer for light theme) */
     --shadow: 0 2px 8px rgba(42, 31, 35, 0.08);
     --shadow-lg: 0 4px 16px rgba(42, 31, 35, 0.12);
-    --shadow-sakura: 0 4px 20px rgba(228, 154, 171, 0.15);
+    --shadow-sakura: 0 4px 20px rgba(217, 109, 158, 0.15);
 
     /* Focus Rings */
-    --focus-ring-strong: rgba(228, 154, 171, 0.9);
-    --focus-ring-soft: rgba(228, 154, 171, 0.2);
+    --focus-ring-strong: rgba(217, 109, 158, 0.9);
+    --focus-ring-soft: rgba(217, 109, 158, 0.2);
 }
 
 /* ==========================================

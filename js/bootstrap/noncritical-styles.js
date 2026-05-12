@@ -1,5 +1,5 @@
 const NONCRITICAL_LINK_SELECTOR = 'link[data-noncritical]';
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=optional';
+const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito+Sans:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=optional';
 
 const queueIdle = (callback, timeout = 2500) => {
   if (typeof callback !== 'function') return null;
@@ -45,8 +45,9 @@ const loadFontStyles = () => {
       return;
     }
     Promise.allSettled([
-      document.fonts.load('400 1em "Noto Sans JP"'),
-      document.fonts.load('600 1em "Noto Serif JP"')
+      document.fonts.load('400 1em "Nunito Sans"'),
+      document.fonts.load('600 1em "Fraunces"'),
+      document.fonts.load('400 1em "Noto Sans JP"')
     ]).finally(() => {
       markFontsReady();
     });
