@@ -563,12 +563,43 @@
       border: 1px solid var(--border-color);
     }
 
-    .skeleton-recommendation {
-      min-height: 220px;
+    .skeleton-card::after,
+    .skeleton-line::after,
+    .skeleton-pill::after,
+    .skeleton-meter::after,
+    .is-loading-chip::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0.08) 60%, transparent 100%);
+      transform: translateX(-100%);
+      animation: shimmer 1.4s infinite;
     }
 
-    .skeleton-grid {
-      min-height: 360px;
+    .is-loading-chip {
+      position: relative;
+      overflow: hidden;
+      color: transparent;
+    }
+
+    .skeleton-line,
+    .skeleton-pill,
+    .skeleton-meter {
+      position: relative;
+      overflow: hidden;
+      display: block;
+      background: var(--bg-secondary);
+      border-radius: 999px;
+    }
+
+    .skeleton-grid .card-media {
+      aspect-ratio: 2 / 3;
+      background: var(--bg-secondary);
+    }
+
+    .skeleton-recommendation .recommendation-media {
+      height: 190px;
+      background: var(--bg-secondary);
     }
 
     @media (max-width: 640px) {
@@ -1177,9 +1208,9 @@
         <p class="mood-filter-note">Use these as quick combinations, or pick exact genres and themes below.</p>
       </div>
       <div class="mood-filter-clusters" id="mood-filter-clusters" aria-label="Guided mood shortcuts">
-        <button class="mood-cluster" type="button" disabled aria-hidden="true">Loading shortcuts</button>
-        <button class="mood-cluster" type="button" disabled aria-hidden="true">Loading shortcuts</button>
-        <button class="mood-cluster" type="button" disabled aria-hidden="true">Loading shortcuts</button>
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Critically steady</button>
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Low stress</button>
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Strong start</button>
       </div>
       <div class="quick-filters-tabs" role="tablist" aria-label="Quick filters">
         <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" role="tab"
@@ -1190,19 +1221,19 @@
       <div class="quick-filters-panel">
         <div class="quick-filters-track is-active" id="genre-chips" data-filter-group="genres" data-label="Genre"
           role="tabpanel" aria-labelledby="quick-tab-genres">
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Show more</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Action</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Drama</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Fantasy</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Comedy</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Romance</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Mystery</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Show more</button>
         </div>
         <div class="quick-filters-track" id="theme-chips" data-filter-group="themes" data-label="Theme" role="tabpanel"
           aria-labelledby="quick-tab-themes" hidden>
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Loading themes</button>
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Loading themes</button>
-          <button class="quick-chip" type="button" disabled aria-hidden="true">Loading themes</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">School</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Isekai</button>
+          <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Music</button>
         </div>
       </div>
     </div>
@@ -1210,7 +1241,7 @@
     <div class="seasonal-filters" id="seasonal-filters">
       <div class="seasonal-filters-label">Seasonal picks:</div>
       <div class="seasonal-chips" id="seasonal-chips">
-        <button class="seasonal-chip" type="button" disabled aria-hidden="true">Loading seasonal picks</button>
+        <button class="seasonal-chip is-loading-chip" type="button" disabled aria-hidden="true">Spring 2026</button>
       </div>
     </div>
 
@@ -1248,18 +1279,18 @@
       <div class="recommendation-modes" id="recommendation-modes">
         <span class="modes-label">Tune recommendations:</span>
         <div class="mode-chips" id="mode-chips">
-          <button class="mode-chip" type="button" disabled aria-hidden="true">Loading options</button>
-          <button class="mode-chip" type="button" disabled aria-hidden="true">Loading options</button>
-          <button class="mode-chip" type="button" disabled aria-hidden="true">Loading options</button>
+          <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Personalized</button>
+          <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Safe picks</button>
+          <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Hidden gems</button>
         </div>
       </div>
       <div class="recommendations-grid" id="recommendations-grid">
-        <div class="skeleton-card skeleton-recommendation"></div>
-        <div class="skeleton-card skeleton-recommendation"></div>
-        <div class="skeleton-card skeleton-recommendation"></div>
-        <div class="skeleton-card skeleton-recommendation"></div>
-        <div class="skeleton-card skeleton-recommendation"></div>
-        <div class="skeleton-card skeleton-recommendation"></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
       </div>
     </section>
 
@@ -1396,18 +1427,12 @@
             </div>
           </div>
         </noscript>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
-        <div class="skeleton-card skeleton-grid"></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
       </div>
     </section>
   </div>

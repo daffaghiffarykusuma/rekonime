@@ -2838,6 +2838,43 @@ const App = {
     this.applyFilters({ syncUrl: false, updateMeta: false });
   },
 
+  renderCardSkeleton(type = 'catalog') {
+    if (type === 'recommendation') {
+      return `
+        <div class="recommendation-card skeleton-card skeleton-recommendation">
+          <div class="recommendation-media"></div>
+          <div class="recommendation-info">
+            <span class="skeleton-line skeleton-title"></span>
+            <span class="skeleton-line skeleton-meta"></span>
+            <span class="skeleton-line skeleton-copy"></span>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="anime-card skeleton-card skeleton-grid">
+        <div class="card-media"></div>
+        <div class="card-body">
+          <span class="skeleton-line skeleton-title"></span>
+          <span class="skeleton-line skeleton-meta"></span>
+          <span class="skeleton-line skeleton-signal"></span>
+          <div class="card-badges">
+            <span class="skeleton-pill"></span>
+            <span class="skeleton-pill"></span>
+          </div>
+          <div class="card-stats">
+            <span class="skeleton-line"></span>
+            <span class="skeleton-line"></span>
+            <span class="skeleton-line"></span>
+          </div>
+          <span class="skeleton-meter"></span>
+          <span class="skeleton-line skeleton-copy"></span>
+        </div>
+      </div>
+    `;
+  },
+
   renderLoadingState() {
     const recommendations = document.getElementById('recommendations-grid');
     const rankings1 = document.getElementById('best-ranking-1');
@@ -2847,11 +2884,13 @@ const App = {
     if (recommendations) {
       recommendations.classList.add('is-loading');
       recommendations.setAttribute('aria-busy', 'true');
+      setHTML(recommendations, Array.from({ length: 6 }, () => this.renderCardSkeleton('recommendation')).join(''));
     }
 
     if (grid) {
       grid.classList.add('is-loading');
       grid.setAttribute('aria-busy', 'true');
+      setHTML(grid, Array.from({ length: 6 }, () => this.renderCardSkeleton('catalog')).join(''));
     }
 
     if (rankings1) {
@@ -2874,34 +2913,34 @@ const App = {
     if (genreContainer) {
       genreContainer.setAttribute('aria-busy', 'true');
       setHTML(genreContainer, `
-        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
-        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
-        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading genres</button>
+        <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Action</button>
+        <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Drama</button>
+        <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Fantasy</button>
       `);
     }
 
     if (themeContainer) {
       themeContainer.setAttribute('aria-busy', 'true');
       setHTML(themeContainer, `
-        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading themes</button>
-        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading themes</button>
-        <button class="quick-chip" type="button" disabled aria-hidden="true">Loading themes</button>
+        <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">School</button>
+        <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Isekai</button>
+        <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Music</button>
       `);
     }
 
     if (seasonalContainer) {
       seasonalContainer.setAttribute('aria-busy', 'true');
       setHTML(seasonalContainer, `
-        <button class="seasonal-chip" type="button" disabled aria-hidden="true">Loading seasonal picks</button>
+        <button class="seasonal-chip is-loading-chip" type="button" disabled aria-hidden="true">Spring 2026</button>
       `);
     }
 
     if (modeContainer) {
       modeContainer.setAttribute('aria-busy', 'true');
       setHTML(modeContainer, `
-        <button class="mode-chip" type="button" disabled aria-hidden="true">Loading options</button>
-        <button class="mode-chip" type="button" disabled aria-hidden="true">Loading options</button>
-        <button class="mode-chip" type="button" disabled aria-hidden="true">Loading options</button>
+        <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Personalized</button>
+        <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Safe picks</button>
+        <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Hidden gems</button>
       `);
     }
   },
