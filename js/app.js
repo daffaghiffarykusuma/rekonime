@@ -388,7 +388,7 @@ const App = {
   getInitialGridBatchSize() {
     const isMobile = this.isMobileViewport();
     const baseSize = isMobile ? this.initialGridBatchSizeMobile : this.initialGridBatchSize;
-    const clamped = Math.max(6, Math.min(baseSize, this.gridPageSize));
+    const clamped = Math.max(1, Math.min(baseSize, this.gridPageSize));
     return clamped;
   },
 
@@ -4886,20 +4886,17 @@ const App = {
     if (this.secondaryRenderInFlight) return;
     this.secondaryRenderInFlight = true;
     const constrained = this.shouldDeferHeavyContent();
+    const allTasks = [
+      () => this.renderRecommendations(),
+      () => this.renderRankings(),
+      () => this.renderBecauseYouWatched(),
+      () => this.renderTrending()
+    ];
     const immediateTasks = constrained
-      ? [() => this.renderRecommendations()]
-      : [
-          () => this.renderRecommendations(),
-          () => this.renderRankings(),
-          () => this.renderBecauseYouWatched(),
-          () => this.renderTrending()
-        ];
+      ? []
+      : allTasks;
     const deferredTasks = constrained
-      ? [
-          () => this.renderRankings(),
-          () => this.renderBecauseYouWatched(),
-          () => this.renderTrending()
-        ]
+      ? allTasks
       : [];
 
     const runQueue = (tasks, onComplete) => {
@@ -4920,19 +4917,25 @@ const App = {
       runNext();
     };
 
+    if (constrained && typeof window !== 'undefined') {
+      this.secondaryDeferredTimeoutId = window.setTimeout(() => {
+        this.secondaryDeferredTimeoutId = null;
+        this.secondaryRenderHandle = this.queueIdleTask(() => {
+          this.secondaryRenderHandle = null;
+          runQueue(deferredTasks, () => {
+            this.secondaryRenderInFlight = false;
+          });
+        }, { timeout: 5000 });
+      }, 5200);
+      return;
+    }
+
     this.secondaryRenderHandle = this.queueIdleTask(() => {
       this.secondaryRenderHandle = null;
       runQueue(immediateTasks, () => {
         this.secondaryRenderInFlight = false;
-        if (!deferredTasks.length || typeof window === 'undefined') {
-          return;
-        }
-        this.secondaryDeferredTimeoutId = window.setTimeout(() => {
-          this.secondaryDeferredTimeoutId = null;
-          this.queueIdleTask(() => runQueue(deferredTasks), { timeout: 2500 });
-        }, 4500);
       });
-    }, { timeout: constrained ? 1800 : 1200 });
+    }, { timeout: 1200 });
   },
 
   positionTooltip(trigger) {

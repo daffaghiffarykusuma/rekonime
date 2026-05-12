@@ -84,11 +84,19 @@ const activateNoncriticalStyles = () => {
 const scheduleNoncriticalActivation = () => {
   const activate = () => queueIdle(activateNoncriticalStyles, 3000);
   if (shouldPrioritizeVisualStability()) {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', activate, { once: true });
-    } else {
-      activate();
+    const activateAfterInitialWork = () => {
+      window.setTimeout(activate, 6500);
+      window.setTimeout(() => {
+        window.addEventListener('pointerdown', activate, { once: true, passive: true });
+        window.addEventListener('keydown', activate, { once: true });
+        window.addEventListener('scroll', activate, { once: true, passive: true });
+      }, 2500);
+    };
+    if (document.readyState === 'complete') {
+      activateAfterInitialWork();
+      return;
     }
+    window.addEventListener('load', activateAfterInitialWork, { once: true });
     return;
   }
   if (document.readyState === 'complete') {

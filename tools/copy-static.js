@@ -35,9 +35,25 @@ const copyServiceWorker = () => {
   fs.writeFileSync(outputPath, stamped, 'utf8');
 };
 
+const stripInjectedStylesheetLinks = () => {
+  const htmlFiles = ['index.html', 'watchlist.html'];
+  const injectedStylesheetPattern = /\s*<link\s+rel="stylesheet"\s+crossorigin\s+href="\/css\/(?:main|watchlist2|noncritical-styles)\.css">\r?\n?/g;
+
+  htmlFiles.forEach((fileName) => {
+    const filePath = path.join(dist, fileName);
+    if (!fs.existsSync(filePath)) return;
+    const source = fs.readFileSync(filePath, 'utf8');
+    const next = source.replace(injectedStylesheetPattern, '\n');
+    if (next !== source) {
+      fs.writeFileSync(filePath, next, 'utf8');
+    }
+  });
+};
+
 copyRecursive(path.join(root, 'data'), path.join(dist, 'data'));
 copyRecursive(path.join(root, 'js', 'data.js'), path.join(dist, 'js', 'data.js'));
 copyRecursive(path.join(root, 'js', 'sw-cache-policy.js'), path.join(dist, 'js', 'sw-cache-policy.js'));
 copyRecursive(path.join(root, 'js', 'bootstrap'), path.join(dist, 'js', 'bootstrap'));
 copyRecursive(path.join(root, 'health.html'), path.join(dist, 'health.html'));
 copyServiceWorker();
+stripInjectedStylesheetLinks();
