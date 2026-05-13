@@ -7,6 +7,7 @@ const JSON_CACHE_ALLOWLIST = new Set([
 const APP_SHELL_FALLBACKS = new Map([
   ['/', '/index.html'],
   ['/home', '/index.html'],
+  ['/home/', '/index.html'],
   ['/index.html', '/index.html'],
   ['/watchlist', '/watchlist.html'],
   ['/watchlist.html', '/watchlist.html']

@@ -57,3 +57,11 @@ test('App buildFilterStateUrl includes active filters', () => {
   assert.ok(url.includes('genre=Action'));
   assert.ok(url.includes('year=2024'));
 });
+
+test('App normalizes legacy home route to canonical root', () => {
+  setupDom('<!doctype html><div id="catalog-section"></div>', { url: 'https://rekonime.vercel.app/home' });
+
+  App.syncHomePath();
+
+  assert.equal(window.location.pathname, '/');
+});

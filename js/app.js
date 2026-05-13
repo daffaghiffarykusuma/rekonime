@@ -1494,6 +1494,12 @@ const App = {
     if (!this.shouldUseHomeAlias() || !url || !this.isCatalogPage()) return;
     const homePath = this.preferredHomePath.startsWith('/') ? this.preferredHomePath : `/${this.preferredHomePath}`;
     const path = url.pathname || '/';
+    const normalizedPath = path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
+
+    if (normalizedPath === '/home') {
+      url.pathname = homePath;
+      return;
+    }
 
     if (path.endsWith('/index.html')) {
       url.pathname = path.replace(/\/index\.html$/, homePath);

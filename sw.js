@@ -24,10 +24,16 @@ const STATIC_ASSETS = [
     '/favicon.svg'
 ];
 
+const LEGACY_HOME_PATHS = new Set(['/home', '/home/']);
+
 const LEGACY_DOCUMENT_CACHE_KEYS = [
     './',
     './index.html',
-    './watchlist.html'
+    './watchlist.html',
+    '/home',
+    '/home/',
+    `${self.location.origin}/home`,
+    `${self.location.origin}/home/`
 ];
 
 const precacheStaticAssets = async (cache) => {
@@ -212,10 +218,12 @@ async function getCachedDocumentResponse(cache, requestUrl) {
 async function networkFirstDocument(request, url) {
     const cache = await caches.open(STATIC_CACHE);
     const requestUrl = url instanceof URL ? url : new URL(request.url);
+    const normalizedRequest = LEGACY_HOME_PATHS.has(requestUrl.pathname)
+        ? new Request(new URL('/', self.location.origin).toString(), { cache: 'no-store' })
+        : new Request(request, { cache: 'no-store' });
 
     try {
-        const networkRequest = new Request(request, { cache: 'no-store' });
-        const networkResponse = await fetch(networkRequest);
+        const networkResponse = await fetch(normalizedRequest);
         if (networkResponse.ok) {
             const fallbackPath = getAppShellFallbackPath(requestUrl.pathname);
             if (fallbackPath) {
