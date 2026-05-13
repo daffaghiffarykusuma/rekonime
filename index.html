@@ -208,6 +208,48 @@
       border: 1px solid var(--border-color);
       background: var(--bg-secondary);
       color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      line-height: 1.25;
+    }
+
+    .select-wrapper {
+      position: relative;
+    }
+
+    .select-wrapper select,
+    .sort-select {
+      -webkit-appearance: none;
+      appearance: none;
+      color-scheme: dark;
+      min-height: 44px;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 0.875rem;
+      line-height: 1.25;
+      padding: 0.55rem 2.6rem 0.55rem 1rem;
+      box-shadow: none;
+    }
+
+    .select-wrapper select option,
+    .sort-select option {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .select-wrapper::after {
+      content: '';
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--text-secondary);
+      pointer-events: none;
     }
 
     .header-search-dropdown {
@@ -225,10 +267,13 @@
     }
 
     .btn {
+      min-height: 44px;
       padding: 0.625rem 1.25rem;
       border-radius: var(--radius-sm);
+      font-family: var(--font-body);
       font-size: 0.875rem;
       font-weight: 500;
+      line-height: 1.2;
       cursor: pointer;
       border: 1px solid transparent;
       background: var(--bg-tertiary);
@@ -685,13 +730,13 @@
       .header-actions .btn {
         width: auto;
         flex: 1 1 0;
-        min-height: 2.4rem;
+        min-height: 2.75rem;
         padding: 0.45rem 0.5rem;
         font-size: 0.75rem;
       }
 
       .btn {
-        min-height: 2.5rem;
+        min-height: 2.75rem;
         padding: 0.5rem 0.75rem;
         font-size: 0.8rem;
       }

@@ -187,15 +187,25 @@ h4 {
 }
 
 .select-wrapper select {
+  -webkit-appearance: none;
   appearance: none;
+  color-scheme: dark;
   background: var(--bg-secondary);
+  background-color: var(--bg-secondary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   padding: 0.625rem 2.5rem 0.625rem 1rem;
   border-radius: var(--radius-sm);
+  font: inherit;
   font-size: 0.875rem;
+  line-height: 1.25;
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.select-wrapper select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .select-wrapper select:hover,
@@ -217,10 +227,13 @@ h4 {
 }
 
 .btn {
+  min-height: 44px;
   padding: 0.625rem 1.25rem;
   border-radius: var(--radius-sm);
+  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 500;
+  line-height: 1.2;
   cursor: pointer;
   transition: all 0.3s ease;
   border: none;
@@ -2621,6 +2634,9 @@ h4 {
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
   color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  line-height: 1.25;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -2919,14 +2935,28 @@ h4 {
 }
 
 .sort-select {
+  -webkit-appearance: none;
+  appearance: none;
+  color-scheme: dark;
   min-width: 140px;
   max-width: 180px;
+  min-height: 44px;
   padding: 0.55rem 2.2rem 0.55rem 1rem;
   border-radius: 999px;
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
+  background-color: var(--bg-secondary);
   color: var(--text-primary);
-  transition: border-color 0.2s ease;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  box-shadow: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sort-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .sort-select-wrapper .sort-select {
@@ -2937,6 +2967,7 @@ h4 {
 .sort-select:focus {
   border-color: var(--accent-primary);
   outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring-soft);
 }
 
 .sort-select-wrapper::after {
@@ -2976,9 +3007,9 @@ h4 {
 }
 
 .btn-outline {
-  background: transparent;
+  background: var(--bg-tertiary);
   border-color: var(--border-color);
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .btn-outline:hover {
@@ -4394,13 +4425,13 @@ h4 {
   .header-actions .btn {
     width: auto;
     flex: 1 1 0;
-    min-height: 2.4rem;
+    min-height: 2.75rem;
     padding: 0.45rem 0.5rem;
     font-size: 0.75rem;
   }
 
   .btn {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
   }
