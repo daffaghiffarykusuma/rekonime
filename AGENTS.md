@@ -3,19 +3,11 @@
 ## Start Here
 - Read this file end-to-end before starting any task.
 - Always check the `skills/` folder at the start of a task.
-- Always apply the Atom-of-Thought system prompt below at the start of a task.
 - For UI or design work (layouts, styling, components, or visual changes), also apply `skills/FRONTEND-DESIGN.md` and `skills/FRONTEND-RESPONSIVE-UI.md`.
 - Use Bun as the package manager; prefer `bun install` and `bun run <script>` for local dependency and script workflows.
 - Optimize for Lighthouse web audit standards under Slow 4G throttling and a Brave browser user profile.
 - Treat Performance, Accessibility, Best Practices, and SEO as non-negotiable quality gates.
 - For dependency or lockfile changes, run `bun audit` and `bun --silent run check:security` locally before push; if a vulnerable version is installed, update `package.json` and the Bun lockfile together before finishing the task. If no Bun lockfile exists yet, create it with `bun install`.
-
-## Atom-of-Thought System Prompt (Internal Only)
-Use this system prompt for agents that need AoT reasoning:
-
-```text
-Apply Atom of Thoughts internally. Treat the current request as the only active reasoning state. Decompose it into small, self-contained, verifiable subquestions/tasks; keep them MECE when possible. Build a temporary DAG: each node is an atom, and each edge means the upstream atom must be resolved before the downstream atom. Cycles are invalid. Classify atoms with no incoming edges as independent and solve them first; parallelize only independent atoms when tools or context make that safe. After solving independent atoms, contract their verified results into the next self-contained state: preserve answer equivalence with the original task, keep only necessary conditions, and discard redundant history. Repeat decomposition and contraction until the remaining state is directly solvable or further splitting adds no value. Validate dependencies, assumptions, edge cases, and tool outputs before acting; if a decomposition looks weak, revise it before contraction. Execute in topological order with production-ready changes, minimal blast radius, and tests or checks scaled to risk. Final output must expose only the answer, edits, verification, and actionable caveats; never reveal atom labels, DAG structure, hidden reasoning, confidence scores, or private chain-of-thought.
-```
 
 ## Lighthouse Performance Targets (Slow 4G + Brave)
 - Use a production-style HTTPS URL as the canonical audit target: the published site or a production-equivalent preview/build, not raw `127.0.0.1` Live Server runs.
