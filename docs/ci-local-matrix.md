@@ -17,4 +17,5 @@
 - Runtime-only checks: `bun run test:runtime`
 - Services-only checks: `bun run test:services`
 - Tools-only checks: `bun run test:tools`
+- Production build smoke: `bun run test:e2e:prod`
 - Fast pre-PR sweep: `bun run check:quick`

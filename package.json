@@ -28,6 +28,7 @@
     "test:tools": "node --test --import ./test/setup.js \"test/unit/pipeline-schema-validator.test.js\" \"test/unit/integrity-checker.test.js\" \"test/unit/embedded-data.test.js\" \"test/unit/quality-reporter.test.js\" \"test/integration/build-catalogs.test.js\" \"test/integration/validate-data.test.js\"",
     "test:coverage": "c8 --reporter=html --reporter=text --reporter=json-summary node --test --import ./test/setup.js \"test/**/*.test.js\"",
     "test:e2e": "playwright test",
+    "test:e2e:prod": "bun run build && playwright test --config playwright.prod.config.js",
     "check:build-clean": "node tools/check-build-clean.js",
     "data:regenerate": "node tools/regenerate-data.js",
     "data:refresh-scores": "node tools/refresh-scores.js",

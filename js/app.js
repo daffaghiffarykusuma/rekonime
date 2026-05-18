@@ -6,6 +6,7 @@ import { Onboarding } from './onboarding.js';
 import { ThemeManager } from './themeManager.js';
 import { CacheManager } from './services/cache-manager.js';
 import { CatalogCache } from './services/catalog-cache.js';
+import { CatalogLoader } from './services/catalog-loader.js';
 import { AnalyticsService } from './services/analytics-service.js';
 import { ApiClient } from './services/api-client.js';
 import { DataValidator } from './services/data-validator.js';
@@ -500,6 +501,17 @@ const App = {
   emitAppEvent(name, detail = {}) {
     if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
     window.dispatchEvent(new CustomEvent(name, { detail }));
+  },
+
+  emitCatalogEvent(type, detail = {}) {
+    const payload = {
+      type,
+      ...detail,
+      at: new Date().toISOString()
+    };
+    this.emitAppEvent('rekonime:catalog-cache', payload);
+    const logger = this.getLogger();
+    logger?.info?.('[catalog]', payload);
   },
 
   dispatchStore(action) {
@@ -2506,184 +2518,41 @@ const App = {
    * Load preview data first for a faster first paint.
    */
   async loadInitialData() {
-    if (this.features.parallelLoading) {
-      this.addPreloadHints();
-    }
-    const source = window.location.protocol === 'file:' ? 'embedded' : 'preview';
-    const loadStart = this.getPerformanceNow();
-    this.emitAppEvent('rekonime:data-load-start', { source });
-    if (window.location.protocol === 'file:') {
-      const loaded = await this.loadEmbeddedData();
-      if (!loaded) {
-        this.emitAppEvent('rekonime:data-load-end', {
-          source,
-          durationMs: this.getPerformanceNow() - loadStart,
-          status: 'failed'
-        });
-        return false;
-      }
-      await this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: false });
-      this.emitAppEvent('rekonime:data-load-end', {
-        source,
-        durationMs: this.getPerformanceNow() - loadStart,
-        status: 'ok'
-      });
-      return true;
-    }
-
-    const previewPayload = await this.fetchCatalog(this.dataSources.preview);
-    if (previewPayload) {
-      await this.applyCatalogPayload(previewPayload, { isFull: false, preserveFilters: false });
-      this.emitAppEvent('rekonime:data-load-end', {
-        source,
-        durationMs: this.getPerformanceNow() - loadStart,
-        status: 'ok'
-      });
-      return true;
-    }
-
-    this.emitAppEvent('rekonime:data-load-end', {
-      source,
-      durationMs: this.getPerformanceNow() - loadStart,
-      status: 'failed'
-    });
-    return this.loadFullCatalog();
+    return CatalogLoader.loadInitialData(this);
   },
 
   async loadFullCatalog(options = {}) {
-    if (this.isFullDataLoaded) {
-      return true;
-    }
-
-    if (!this.fullCatalogInteractionCaptured) {
-      this.fullCatalogInteractionCaptured = true;
-    }
-    this.teardownFullCatalogInteractionTriggers();
-
-    if (this.fullCatalogScheduleHandle) {
-      this.cancelIdleTask(this.fullCatalogScheduleHandle);
-      this.fullCatalogScheduleHandle = null;
-    }
-
-    if (this.fullCatalogPromise) {
-      return this.fullCatalogPromise;
-    }
-
-    const loadStart = this.getPerformanceNow();
-    this.emitAppEvent('rekonime:data-load-start', { source: 'full' });
-
-    const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : this.fullCatalogTimeoutMs;
-    const controller = new AbortController();
-    const timeoutId = Number.isFinite(timeoutMs)
-      ? setTimeout(() => controller.abort(), timeoutMs)
-      : null;
-
-    this.loadingFullCatalog = true;
-    this.fullCatalogPromise = (async () => {
-      try {
-        if (window.location.protocol === 'file:') {
-          const loaded = await this.loadEmbeddedData();
-          if (!loaded) {
-            return false;
-          }
-          await this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
-          return true;
-        }
-
-        let fullPayload = null;
-        if (this.features.parallelLoading) {
-          const [fullResult] = await Promise.allSettled([
-            this.fetchCatalog(this.dataSources.full, { signal: controller.signal })
-          ]);
-          if (controller.signal.aborted) {
-            return this.isFullDataLoaded;
-          }
-          if (fullResult.status === 'fulfilled' && fullResult.value) {
-            fullPayload = fullResult.value;
-          }
-        } else {
-          fullPayload = await this.fetchCatalog(this.dataSources.full, { signal: controller.signal });
-        }
-
-        if (controller.signal.aborted) {
-          return this.isFullDataLoaded;
-        }
-
-        if (!fullPayload) {
-          const cachedPayload = await this.loadCachedFullCatalog();
-          if (cachedPayload && !controller.signal.aborted) {
-            await this.applyCatalogPayload(cachedPayload, { isFull: true, preserveFilters: true });
-            return true;
-          }
-
-          const loaded = await this.loadEmbeddedData();
-          if (!loaded || controller.signal.aborted) {
-            return this.isFullDataLoaded;
-          }
-          await this.applyCatalogPayload({ anime: this.animeData }, { isFull: true, preserveFilters: true });
-          return true;
-        }
-
-        await this.applyCatalogPayload(fullPayload, { isFull: true, preserveFilters: true });
-        await this.cacheFullCatalog(fullPayload);
-        return true;
-      } catch (error) {
-        if (error?.name === 'AbortError' || controller.signal.aborted) {
-          console.warn('[loadFullCatalog] Timed out');
-          return this.isFullDataLoaded;
-        }
-        throw error;
-      } finally {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-      }
-    })();
-
-    let result = false;
-    try {
-      result = await this.fullCatalogPromise;
-    } catch (error) {
-      const logger = this.getLogger();
-      if (logger?.error) {
-        logger.error('[loadFullCatalog] Unexpected error', { error });
-      } else {
-        console.error('[loadFullCatalog] Unexpected error:', error);
-      }
-      result = false;
-    } finally {
-      this.loadingFullCatalog = false;
-      this.fullCatalogPromise = null;
-      this.emitAppEvent('rekonime:data-load-end', {
-        source: 'full',
-        durationMs: this.getPerformanceNow() - loadStart,
-        status: result ? 'ok' : 'failed'
-      });
-    }
-
-    this.isFullDataLoaded = Boolean(result) || this.isFullDataLoaded;
-    return result;
+    return CatalogLoader.loadFullCatalog(this, options);
   },
 
   async cacheFullCatalog(payload) {
     try {
-      await CatalogCache.putFullCatalog(payload);
+      const stored = await CatalogCache.putFullCatalog(payload);
+      this.emitCatalogEvent(stored ? 'cache-write-ok' : 'cache-write-failed', { source: 'network-full' });
+      return stored;
     } catch (error) {
       const logger = this.getLogger();
       logger?.warn?.('[cacheFullCatalog] Unable to cache full catalog', { error });
+      this.emitCatalogEvent('cache-write-failed', { source: 'network-full', reason: 'exception' });
+      return false;
     }
   },
 
   async loadCachedFullCatalog() {
     try {
       const payload = await CatalogCache.getFullCatalog({ maxAgeMs: this.catalogCacheMaxAgeMs });
-      if (!payload) return null;
+      if (!payload) {
+        this.emitCatalogEvent('indexeddb-full-miss');
+        return null;
+      }
       const logger = this.getLogger();
       logger?.info?.('[loadCachedFullCatalog] Loaded full catalog from IndexedDB cache');
+      this.emitCatalogEvent('indexeddb-full-hit');
       return payload;
     } catch (error) {
       const logger = this.getLogger();
       logger?.warn?.('[loadCachedFullCatalog] Unable to read cached full catalog', { error });
+      this.emitCatalogEvent('indexeddb-full-read-failed', { reason: 'exception' });
       return null;
     }
   },

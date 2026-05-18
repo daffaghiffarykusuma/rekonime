@@ -60,10 +60,12 @@ test('App loadFullCatalog caches a successful network full catalog', async () =>
 
   let cachedPayload = null;
   let appliedPayload = null;
+  const catalogEvents = [];
 
   await withPatchedApp({
     features: { ...App.features, parallelLoading: false },
     emitAppEvent: () => {},
+    emitCatalogEvent: (type, detail = {}) => catalogEvents.push({ type, ...detail }),
     getPerformanceNow: () => 0,
     teardownFullCatalogInteractionTriggers: () => {},
     fetchCatalog: async (path) => (path === App.dataSources.full ? fullPayload : null),
@@ -85,6 +87,7 @@ test('App loadFullCatalog caches a successful network full catalog', async () =>
     assert.deepEqual(appliedPayload.payload, fullPayload);
     assert.equal(appliedPayload.options.isFull, true);
     assert.deepEqual(cachedPayload, fullPayload);
+    assert.deepEqual(catalogEvents.map((event) => event.type), ['network-full-loaded']);
   });
 });
 
@@ -93,10 +96,12 @@ test('App loadFullCatalog uses cached full catalog before embedded fallback', as
 
   let embeddedCalled = false;
   let appliedPayload = null;
+  const catalogEvents = [];
 
   await withPatchedApp({
     features: { ...App.features, parallelLoading: false },
     emitAppEvent: () => {},
+    emitCatalogEvent: (type, detail = {}) => catalogEvents.push({ type, ...detail }),
     getPerformanceNow: () => 0,
     teardownFullCatalogInteractionTriggers: () => {},
     fetchCatalog: async () => null,
@@ -117,5 +122,6 @@ test('App loadFullCatalog uses cached full catalog before embedded fallback', as
     assert.equal(embeddedCalled, false);
     assert.deepEqual(appliedPayload.payload, fullPayload);
     assert.equal(appliedPayload.options.isFull, true);
+    assert.deepEqual(catalogEvents.map((event) => event.type), ['indexeddb-full-used']);
   });
 });

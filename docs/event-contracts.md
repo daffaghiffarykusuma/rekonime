@@ -13,6 +13,15 @@
   - `count`: number of anime entries
   - `durationMs`: number
 
+## `rekonime:catalog-cache`
+- Emitter: `js/app.js`
+- Payload:
+  - `type`: `preview-network-loaded | network-full-loaded | indexeddb-full-hit | indexeddb-full-miss | indexeddb-full-used | indexeddb-full-read-failed | embedded-fallback-used | cache-write-ok | cache-write-failed | full-load-timeout`
+  - `at`: ISO string
+  - `path`: catalog path when a network catalog is loaded
+  - `phase`: `initial | full` when embedded fallback is used
+  - `reason`: optional diagnostic reason
+
 ## `rekonime:watchlist-updated`
 - Emitters: `js/app.js`, `js/watchlist-main.js`
 - Payload:
