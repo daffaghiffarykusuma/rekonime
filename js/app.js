@@ -5,6 +5,7 @@ import { MetricGlossary } from './metricGlossary.js';
 import { Onboarding } from './onboarding.js';
 import { ThemeManager } from './themeManager.js';
 import { CacheManager } from './services/cache-manager.js';
+import { CatalogCache } from './services/catalog-cache.js';
 import { AnalyticsService } from './services/analytics-service.js';
 import { ApiClient } from './services/api-client.js';
 import { DataValidator } from './services/data-validator.js';
@@ -59,8 +60,7 @@ const App = {
   reviewsServicePromise: null,
   dataSources: {
     preview: 'data/anime.preview.json',
-    full: 'data/anime.full.json',
-    legacy: 'data/anime.json'
+    full: 'data/anime.full.json'
   },
   fetchConfig: {
     maxRetries: 3,
@@ -90,6 +90,7 @@ const App = {
   legacyWatchlistStorageKey: 'rekonime.bookmarks',
   watchlistStorageKey: 'rekonime.watchlist',
   settingsStorageKey: 'rekonime.settings',
+  catalogCacheMaxAgeMs: 30 * 24 * 60 * 60 * 1000,
   watchlistVersion: 1,
   settings: null,
   settingsRendered: false,
@@ -2591,23 +2592,17 @@ const App = {
 
         let fullPayload = null;
         if (this.features.parallelLoading) {
-          const [fullResult, legacyResult] = await Promise.allSettled([
-            this.fetchCatalog(this.dataSources.full, { signal: controller.signal }),
-            this.fetchCatalog(this.dataSources.legacy, { signal: controller.signal })
+          const [fullResult] = await Promise.allSettled([
+            this.fetchCatalog(this.dataSources.full, { signal: controller.signal })
           ]);
           if (controller.signal.aborted) {
             return this.isFullDataLoaded;
           }
           if (fullResult.status === 'fulfilled' && fullResult.value) {
             fullPayload = fullResult.value;
-          } else if (legacyResult.status === 'fulfilled' && legacyResult.value) {
-            fullPayload = legacyResult.value;
           }
         } else {
           fullPayload = await this.fetchCatalog(this.dataSources.full, { signal: controller.signal });
-          if (!controller.signal.aborted && !fullPayload) {
-            fullPayload = await this.fetchCatalog(this.dataSources.legacy, { signal: controller.signal });
-          }
         }
 
         if (controller.signal.aborted) {
@@ -2615,6 +2610,12 @@ const App = {
         }
 
         if (!fullPayload) {
+          const cachedPayload = await this.loadCachedFullCatalog();
+          if (cachedPayload && !controller.signal.aborted) {
+            await this.applyCatalogPayload(cachedPayload, { isFull: true, preserveFilters: true });
+            return true;
+          }
+
           const loaded = await this.loadEmbeddedData();
           if (!loaded || controller.signal.aborted) {
             return this.isFullDataLoaded;
@@ -2624,6 +2625,7 @@ const App = {
         }
 
         await this.applyCatalogPayload(fullPayload, { isFull: true, preserveFilters: true });
+        await this.cacheFullCatalog(fullPayload);
         return true;
       } catch (error) {
         if (error?.name === 'AbortError' || controller.signal.aborted) {
@@ -2661,6 +2663,29 @@ const App = {
 
     this.isFullDataLoaded = Boolean(result) || this.isFullDataLoaded;
     return result;
+  },
+
+  async cacheFullCatalog(payload) {
+    try {
+      await CatalogCache.putFullCatalog(payload);
+    } catch (error) {
+      const logger = this.getLogger();
+      logger?.warn?.('[cacheFullCatalog] Unable to cache full catalog', { error });
+    }
+  },
+
+  async loadCachedFullCatalog() {
+    try {
+      const payload = await CatalogCache.getFullCatalog({ maxAgeMs: this.catalogCacheMaxAgeMs });
+      if (!payload) return null;
+      const logger = this.getLogger();
+      logger?.info?.('[loadCachedFullCatalog] Loaded full catalog from IndexedDB cache');
+      return payload;
+    } catch (error) {
+      const logger = this.getLogger();
+      logger?.warn?.('[loadCachedFullCatalog] Unable to read cached full catalog', { error });
+      return null;
+    }
   },
 
   async fetchCatalog(path, options = {}) {

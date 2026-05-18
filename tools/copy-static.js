@@ -17,7 +17,6 @@ const copyRuntimeData = () => {
   const runtimeDataFiles = [
     'anime.preview.json',
     'anime.full.json',
-    'anime.json',
     'franchise-map.json'
   ];
 

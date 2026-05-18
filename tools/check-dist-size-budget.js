@@ -10,11 +10,10 @@ const dist = path.join(root, 'dist');
 const mib = 1024 * 1024;
 const kib = 1024;
 
-const totalBudgetBytes = 38 * mib;
+const totalBudgetBytes = 27 * mib;
 const fileBudgets = new Map([
   ['js/data.js', 1.5 * mib],
   ['data/anime.full.json', 20 * mib],
-  ['data/anime.json', 12 * mib],
   ['data/franchise-map.json', 2.5 * mib],
   ['data/anime.preview.json', 1.5 * mib],
   ['js/app.js', 225 * kib],
