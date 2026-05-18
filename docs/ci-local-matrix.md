@@ -9,7 +9,9 @@
 | Coverage | `bun run test:coverage` | Yes |
 | Coverage thresholds | `bun run check:coverage-thresholds` | Yes |
 | Entrypoint dedup | `bun run check:entrypoints` | Yes |
+| Build verification | `bun run build:verify` | Yes |
 | Distribution asset allowlist | `bun run check:dist-assets` | Yes |
+| Runtime preview budget | `bun run check:runtime-preview` | Yes |
 | Distribution size budget | `bun run check:dist-size` | Yes |
 | Security audit and policy checks | `bun run check:security` | Yes |
 

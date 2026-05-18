@@ -47,5 +47,8 @@ jobs:
       - name: Entrypoint dedup
         run: bun --silent run check:entrypoints
 
+      - name: Build verification
+        run: bun --silent run build:verify
+
       - name: Security checks
         run: bun --silent run check:security
