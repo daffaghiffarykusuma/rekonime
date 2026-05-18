@@ -10,7 +10,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DEFAULT_INPUT = path.join(__dirname, '..', 'data', 'anime.full.json');
+const DEFAULT_INPUT = path.join(__dirname, '..', 'data', 'anime.preview.json');
 const DEFAULT_OUTPUT = path.join(__dirname, '..', 'js', 'data.js');
 
 const parseArgs = (args) => {

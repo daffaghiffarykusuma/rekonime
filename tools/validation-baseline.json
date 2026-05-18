@@ -13,14 +13,14 @@
   },
   "js/data.js": {
     "errors": {
-      "missingScore": 3506,
-      "missingTrailer": 499,
+      "missingScore": 200,
+      "missingTrailer": 19,
       "duplicateIds": 0
     },
     "warnings": {
-      "missingStudio": 19,
-      "missingAnilistId": 6,
-      "missingEpisodes": 74
+      "missingStudio": 0,
+      "missingAnilistId": 0,
+      "missingEpisodes": 0
     }
   }
 }

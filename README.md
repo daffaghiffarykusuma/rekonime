@@ -25,7 +25,7 @@ Rekonime is a static, browser-based anime dashboard that highlights how likely a
 ## Data and updates (human view)
 - Source data lives in `data/anime.json`.
 - The app loads a fast preview first (`data/anime.preview.json`), then swaps to the full catalog (`data/anime.full.json`).
-- A fallback dataset is embedded in `js/data.js` for `file://` browsing.
+- A compact fallback dataset is embedded in `js/data.js` for `file://` browsing and fetch failures.
 
 If you want to refresh data:
 1) Update or merge source data in `data/anime.json`.
@@ -33,7 +33,7 @@ If you want to refresh data:
    - `node tools/build-catalogs.js`
      - Optional: `--report` writes a quality report. Override its location with `--report-path <path>`.
      - Optional: `--incremental` uses `.build-state.json` to skip unchanged builds. Override its location with `--state <path>`.
-3) Regenerate the embedded fallback:
+3) Regenerate the compact embedded fallback:
    - `powershell -File tools/regenerate-data.ps1`
 
 ## Validation workflow

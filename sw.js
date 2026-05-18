@@ -20,7 +20,6 @@ const STATIC_ASSETS = [
     '/css/watchlist.css',
     '/js/main.js',
     '/js/watchlist-main.js',
-    '/js/data.js',
     '/favicon.svg'
 ];
 
