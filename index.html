@@ -596,8 +596,8 @@
     .recommendations-grid,
     .anime-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.4rem;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 1.5rem;
     }
 
     .skeleton-card {
@@ -645,6 +645,46 @@
     .skeleton-recommendation .recommendation-media {
       height: 190px;
       background: var(--bg-secondary);
+    }
+
+    .anime-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      overflow: visible;
+      position: relative;
+      z-index: 1;
+      cursor: pointer;
+      animation: none;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-media {
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      border-radius: inherit;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      aspect-ratio: 2 / 3;
+    }
+
+    .card-cover {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-body {
+      padding: 1.1rem 1.4rem 1.35rem;
+    }
+
+    .card-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.9rem;
     }
 
     @media (max-width: 640px) {

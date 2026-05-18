@@ -15,8 +15,8 @@ const detailDir = path.join(dist, 'data', 'anime.detail');
 
 const rawBudgetBytes = 700 * 1024;
 const gzipBudgetBytes = 160 * 1024;
-const fullIndexRawBudgetBytes = 8 * 1024 * 1024;
-const detailChunkRawBudgetBytes = 80 * 1024;
+const fullIndexRawBudgetBytes = 4 * 1024 * 1024;
+const detailChunkRawBudgetBytes = 128 * 1024;
 
 const formatBytes = (bytes) => {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} MiB`;
@@ -106,6 +106,13 @@ const main = () => {
       .map((anime) => anime.id || anime.title || 'unknown');
     if (entriesWithFullEpisodes.length) {
       failures.push(`Runtime full index contains populated episode arrays: ${entriesWithFullEpisodes.join(', ')}.`);
+    }
+    const entriesWithRollingAverages = indexAnime
+      .filter((anime) => hasPopulatedArray(anime?.stats?.rollingAverage))
+      .slice(0, 5)
+      .map((anime) => anime.id || anime.title || 'unknown');
+    if (entriesWithRollingAverages.length) {
+      failures.push(`Runtime full index contains detailed rolling averages: ${entriesWithRollingAverages.join(', ')}.`);
     }
     const entriesWithoutDetailPath = indexAnime
       .filter((anime) => typeof anime?.detailPath !== 'string' || !anime.detailPath)

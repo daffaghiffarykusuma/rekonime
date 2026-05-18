@@ -52,6 +52,32 @@ const toRuntimePreviewAnime = (anime) => previewFields.reduce((entry, field) => 
 
 const detailFileName = (animeId) => `${encodeURIComponent(String(animeId))}.json`;
 
+const toRuntimeStatsSummary = (stats = {}) => ({
+  average: stats.average,
+  stdDev: stats.stdDev,
+  scoreClass: stats.scoreClass,
+  episodeCount: stats.episodeCount,
+  retentionScore: stats.retentionScore,
+  threeEpisodeHook: stats.threeEpisodeHook,
+  worthFinishing: stats.worthFinishing,
+  flowState: stats.flowState,
+  comfortScore: stats.comfortScore,
+  controversyPotential: stats.controversyPotential,
+  reliabilityScore: stats.reliabilityScore,
+  sessionSafety: stats.sessionSafety,
+  churnRisk: stats.churnRisk && Number.isFinite(stats.churnRisk.score)
+    ? { score: stats.churnRisk.score, label: stats.churnRisk.label }
+    : stats.churnRisk,
+  slowBurn: stats.slowBurn && Number.isFinite(stats.slowBurn.signal)
+    ? { signal: stats.slowBurn.signal, isActive: Boolean(stats.slowBurn.isActive) }
+    : stats.slowBurn
+});
+
+const compactRuntimeStats = (anime) => ({
+  ...anime,
+  stats: toRuntimeStatsSummary(anime?.stats)
+});
+
 const copyRuntimePreviewData = () => {
   const sourcePath = path.join(root, 'data', 'anime.preview.json');
   const outputPath = path.join(dist, 'data', 'anime.preview.json');
@@ -61,7 +87,7 @@ const copyRuntimePreviewData = () => {
   const runtimePayload = {
     ...payload,
     anime: Array.isArray(payload.anime)
-      ? payload.anime.map(toRuntimePreviewAnime)
+      ? payload.anime.map(compactRuntimeStats).map(toRuntimePreviewAnime)
       : []
   };
 
@@ -88,7 +114,7 @@ const toFullIndexAnime = (anime) => ({
   communityScore: anime.communityScore,
   episodeCount: anime.episodeCount,
   searchText: anime.searchText,
-  stats: anime.stats,
+  stats: toRuntimeStatsSummary(anime.stats),
   colorIndex: anime.colorIndex,
   detailPath: `data/anime.detail/${detailFileName(anime.id)}`
 });
@@ -99,6 +125,7 @@ const toAnimeDetailChunk = (anime) => ({
   trailer: anime.trailer,
   synopsis: anime.synopsis,
   episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
+  stats: anime.stats,
   franchise: anime.franchise || null
 });
 
