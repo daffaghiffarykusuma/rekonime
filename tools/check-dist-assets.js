@@ -10,6 +10,7 @@ const dist = path.join(root, 'dist');
 const blockedDistPaths = [
   path.join('data', 'backups'),
   path.join('data', 'anime.json'),
+  path.join('data', 'anime.full.json'),
   path.join('data', 'build-report.json')
 ];
 

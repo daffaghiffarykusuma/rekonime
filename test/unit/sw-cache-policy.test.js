@@ -16,13 +16,16 @@ test('normalizePathname collapses duplicates and trims trailing slash', () => {
 test('getNormalizedDataJsonUrl only allows explicit same-origin endpoints', () => {
   const origin = 'https://example.com';
 
-  const allowed = getNormalizedDataJsonUrl('https://example.com/data//anime.full.json?cache=1', origin);
-  assert.equal(allowed?.toString(), 'https://example.com/data/anime.full.json');
+  const allowed = getNormalizedDataJsonUrl('https://example.com/data//anime.full.index.json?cache=1', origin);
+  assert.equal(allowed?.toString(), 'https://example.com/data/anime.full.index.json');
+
+  const detailChunk = getNormalizedDataJsonUrl('https://example.com/data/anime.detail/death-note.json?cache=1', origin);
+  assert.equal(detailChunk?.toString(), 'https://example.com/data/anime.detail/death-note.json');
 
   const disallowedPath = getNormalizedDataJsonUrl('https://example.com/data/other.json', origin);
   assert.equal(disallowedPath, null);
 
-  const disallowedOrigin = getNormalizedDataJsonUrl('https://evil.example/data/anime.full.json', origin);
+  const disallowedOrigin = getNormalizedDataJsonUrl('https://evil.example/data/anime.full.index.json', origin);
   assert.equal(disallowedOrigin, null);
 });
 

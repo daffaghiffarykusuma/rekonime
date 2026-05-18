@@ -37,7 +37,7 @@ const checkHealth = async () => {
 
   const dataStatus = document.getElementById('data-status');
   try {
-    const response = await fetch('/data/anime.full.json', { method: 'HEAD', cache: 'no-store' });
+    const response = await fetch('/data/anime.full.index.json', { method: 'HEAD', cache: 'no-store' });
     updateStatus(
       dataStatus,
       response.ok ? 'healthy' : 'degraded',

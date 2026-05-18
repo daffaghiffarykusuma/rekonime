@@ -50,6 +50,8 @@ const toRuntimePreviewAnime = (anime) => previewFields.reduce((entry, field) => 
   return entry;
 }, {});
 
+const detailFileName = (animeId) => `${encodeURIComponent(String(animeId))}.json`;
+
 const copyRuntimePreviewData = () => {
   const sourcePath = path.join(root, 'data', 'anime.preview.json');
   const outputPath = path.join(dist, 'data', 'anime.preview.json');
@@ -67,9 +69,70 @@ const copyRuntimePreviewData = () => {
   fs.writeFileSync(outputPath, JSON.stringify(runtimePayload), 'utf8');
 };
 
+const toFullIndexAnime = (anime) => ({
+  id: anime.id,
+  title: anime.title,
+  titleEnglish: anime.titleEnglish,
+  titleJapanese: anime.titleJapanese,
+  malId: anime.malId,
+  anilistId: anime.anilistId,
+  cover: anime.cover,
+  type: anime.type,
+  year: anime.year,
+  season: anime.season,
+  studio: anime.studio,
+  source: anime.source,
+  genres: Array.isArray(anime.genres) ? anime.genres : [],
+  themes: Array.isArray(anime.themes) ? anime.themes : [],
+  demographic: anime.demographic,
+  communityScore: anime.communityScore,
+  episodeCount: anime.episodeCount,
+  searchText: anime.searchText,
+  stats: anime.stats,
+  colorIndex: anime.colorIndex,
+  detailPath: `data/anime.detail/${detailFileName(anime.id)}`
+});
+
+const toAnimeDetailChunk = (anime) => ({
+  id: anime.id,
+  title: anime.title,
+  trailer: anime.trailer,
+  synopsis: anime.synopsis,
+  episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
+  franchise: anime.franchise || null
+});
+
+const copyChunkedFullData = () => {
+  const sourcePath = path.join(root, 'data', 'anime.full.json');
+  const detailDir = path.join(dist, 'data', 'anime.detail');
+  const indexPath = path.join(dist, 'data', 'anime.full.index.json');
+  if (!fs.existsSync(sourcePath)) return;
+
+  const payload = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+  const animeList = Array.isArray(payload.anime) ? payload.anime : [];
+  fs.rmSync(detailDir, { recursive: true, force: true });
+  fs.mkdirSync(detailDir, { recursive: true });
+
+  animeList.forEach((anime) => {
+    if (!anime?.id) return;
+    const outputPath = path.join(detailDir, detailFileName(anime.id));
+    fs.writeFileSync(outputPath, JSON.stringify({
+      generatedAt: payload.generatedAt,
+      scoreProfile: payload.scoreProfile,
+      anime: [toAnimeDetailChunk(anime)]
+    }), 'utf8');
+  });
+
+  fs.mkdirSync(path.dirname(indexPath), { recursive: true });
+  fs.writeFileSync(indexPath, JSON.stringify({
+    generatedAt: payload.generatedAt,
+    scoreProfile: payload.scoreProfile,
+    anime: animeList.map(toFullIndexAnime)
+  }), 'utf8');
+};
+
 const copyRuntimeData = () => {
   const runtimeDataFiles = [
-    'anime.full.json',
     'franchise-map.json'
   ];
 
@@ -77,6 +140,7 @@ const copyRuntimeData = () => {
     copyRecursive(path.join(root, 'data', fileName), path.join(dist, 'data', fileName));
   });
   copyRuntimePreviewData();
+  copyChunkedFullData();
 };
 
 const readBuildVersion = () => {

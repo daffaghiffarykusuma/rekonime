@@ -61,7 +61,8 @@ const App = {
   reviewsServicePromise: null,
   dataSources: {
     preview: 'data/anime.preview.json',
-    full: 'data/anime.full.json'
+    full: 'data/anime.full.index.json',
+    detailBase: 'data/anime.detail'
   },
   fetchConfig: {
     maxRetries: 3,
@@ -73,6 +74,8 @@ const App = {
   isFullDataLoaded: false,
   loadingFullCatalog: false,
   fullCatalogPromise: null,
+  animeDetailChunkPromises: new Map(),
+  animeDetailChunkLoadedIds: new Set(),
   fullCatalogPreloadPromise: null,
   fullCatalogScheduleHandle: null,
   fullCatalogInteractionCaptured: false,
@@ -2629,6 +2632,80 @@ const App = {
       }
     }
     return null;
+  },
+
+  getAnimeDetailChunkPath(animeId) {
+    const key = String(animeId ?? '').trim();
+    if (!key) return '';
+    const base = String(this.dataSources.detailBase || 'data/anime.detail').replace(/\/+$/, '');
+    return `${base}/${encodeURIComponent(key)}.json`;
+  },
+
+  hasFullAnimeDetail(anime) {
+    if (!anime) return false;
+    return Array.isArray(anime.episodes) && anime.episodes.length > 0;
+  },
+
+  mergeAnimeDetail(detailAnime) {
+    const existingIndex = this.animeData.findIndex((anime) => String(anime.id) === String(detailAnime?.id));
+    const existingAnime = existingIndex >= 0 ? this.animeData[existingIndex] : {};
+    const normalized = this.normalizeAnimeData([{ ...existingAnime, ...detailAnime }])[0];
+    if (!normalized?.id) return null;
+
+    if (existingIndex >= 0) {
+      this.animeData[existingIndex] = {
+        ...this.animeData[existingIndex],
+        ...normalized
+      };
+    } else {
+      this.animeData.push(normalized);
+    }
+
+    this.detailCache.delete(normalized.id);
+    this.gridSortedCache = null;
+    this.gridSortedKey = '';
+    this.gridSortedSource = null;
+    this.refreshWatchlistSnapshotsFromCatalog({ persist: true });
+    return normalized;
+  },
+
+  async loadAnimeDetailChunk(animeId) {
+    const key = String(animeId ?? '').trim();
+    if (!key) return null;
+
+    const existing = this.animeData.find((anime) => String(anime.id) === key);
+    if (this.hasFullAnimeDetail(existing)) return existing;
+    if (this.animeDetailChunkLoadedIds.has(key)) return existing || null;
+
+    if (this.animeDetailChunkPromises.has(key)) {
+      return this.animeDetailChunkPromises.get(key);
+    }
+
+    const promise = (async () => {
+      const payload = await this.fetchCatalog(this.getAnimeDetailChunkPath(key), {
+        maxRetries: 1,
+        timeoutMs: 8000
+      });
+      const detailAnime = Array.isArray(payload?.anime) ? payload.anime[0] : null;
+      if (!detailAnime) return null;
+      const merged = this.mergeAnimeDetail(detailAnime);
+      this.animeDetailChunkLoadedIds.add(key);
+      if (merged) {
+        this.emitCatalogEvent('detail-chunk-loaded', { animeId: key });
+      }
+      return merged;
+    })()
+      .catch((error) => {
+        const logger = this.getLogger();
+        logger?.warn?.('[loadAnimeDetailChunk] Unable to load detail chunk', { animeId: key, error });
+        return null;
+      })
+      .finally(() => {
+        this.animeDetailChunkPromises.delete(key);
+      });
+
+    this.animeDetailChunkPromises.set(key, promise);
+    return promise;
   },
 
   getCatalogRetryDelay(baseDelay, attempt, maxDelay) {
@@ -6781,6 +6858,13 @@ const App = {
 
     if (updateUrl) {
       this.updateUrlForAnime(anime.id);
+    }
+
+    if (!this.hasFullAnimeDetail(anime)) {
+      this.loadAnimeDetailChunk(anime.id).then((detailAnime) => {
+        if (!detailAnime || this.currentAnimeId !== anime.id) return;
+        this.showAnimeDetail(anime.id, { updateUrl: false, skipModalOpen: true });
+      });
     }
 
     const synopsis = this.getSynopsisForAnime(anime);

@@ -25,6 +25,7 @@ Rekonime is a static, browser-based anime dashboard that highlights how likely a
 ## Data and updates (human view)
 - Source data lives in `data/anime.json`.
 - The app loads a fast preview first (`data/anime.preview.json`), then swaps to the full catalog (`data/anime.full.json`).
+- Production builds also emit a runtime full index (`dist/data/anime.full.index.json`) plus per-title detail chunks (`dist/data/anime.detail/*.json`) so the browser does not need the monolithic full catalog for every detail view.
 - A compact fallback dataset is embedded in `js/data.js` for `file://` browsing and fetch failures.
 
 If you want to refresh data:
@@ -84,6 +85,7 @@ Reference docs:
 - `js/serviceWorker.js`: PWA service worker registration.
 - `sw.js`: service worker for offline caching.
 - `data/`: JSON catalogs (source, preview, full).
+- `dist/data/anime.full.index.json`, `dist/data/anime.detail/*.json`: production runtime catalog index and on-demand detail chunks.
 - `tools/`: data pipeline scripts and scrapers.
 
 ## Architecture diagram (short)

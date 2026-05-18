@@ -250,9 +250,9 @@ const ServiceWorkerManager = {
                 if (dataCacheName) {
                     const cache = await caches.open(dataCacheName);
                     const candidates = [
-                        './data/anime.full.json',
-                        'data/anime.full.json',
-                        '/data/anime.full.json',
+                        './data/anime.full.index.json',
+                        'data/anime.full.index.json',
+                        '/data/anime.full.index.json',
                         './data/anime.preview.json',
                         'data/anime.preview.json',
                         '/data/anime.preview.json'

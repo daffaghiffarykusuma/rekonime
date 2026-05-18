@@ -1,6 +1,6 @@
 const JSON_CACHE_ALLOWLIST = new Set([
   '/data/anime.preview.json',
-  '/data/anime.full.json',
+  '/data/anime.full.index.json',
   '/version.json'
 ]);
 
@@ -44,7 +44,7 @@ const getNormalizedDataJsonUrl = (url, serviceWorkerOrigin) => {
   const requestUrl = url instanceof URL ? url : new URL(String(url), serviceWorkerOrigin);
   if (requestUrl.origin !== serviceWorkerOrigin) return null;
   const normalizedPath = normalizePathname(requestUrl.pathname);
-  if (!JSON_CACHE_ALLOWLIST.has(normalizedPath)) return null;
+  if (!JSON_CACHE_ALLOWLIST.has(normalizedPath) && !normalizedPath.startsWith('/data/anime.detail/')) return null;
   return new URL(`${serviceWorkerOrigin}${normalizedPath}`);
 };
 
