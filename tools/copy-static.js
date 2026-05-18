@@ -13,6 +13,19 @@ const copyRecursive = (src, dest) => {
   fs.cpSync(src, dest, { recursive: true });
 };
 
+const copyRuntimeData = () => {
+  const runtimeDataFiles = [
+    'anime.preview.json',
+    'anime.full.json',
+    'anime.json',
+    'franchise-map.json'
+  ];
+
+  runtimeDataFiles.forEach((fileName) => {
+    copyRecursive(path.join(root, 'data', fileName), path.join(dist, 'data', fileName));
+  });
+};
+
 const readBuildVersion = () => {
   const versionPath = path.join(dist, 'version.json');
   if (!fs.existsSync(versionPath)) return 'dev';
@@ -50,7 +63,7 @@ const stripInjectedStylesheetLinks = () => {
   });
 };
 
-copyRecursive(path.join(root, 'data'), path.join(dist, 'data'));
+copyRuntimeData();
 copyRecursive(path.join(root, 'js', 'data.js'), path.join(dist, 'js', 'data.js'));
 copyRecursive(path.join(root, 'js', 'sw-cache-policy.js'), path.join(dist, 'js', 'sw-cache-policy.js'));
 copyRecursive(path.join(root, 'js', 'bootstrap'), path.join(dist, 'js', 'bootstrap'));
