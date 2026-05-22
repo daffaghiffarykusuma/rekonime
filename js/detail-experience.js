@@ -217,6 +217,13 @@ const createDetailExperience = (app) => {
     return false;
   };
 
+  const open = (animeId, options = {}) => {
+    if (typeof app.openAnimeDetailImplementation === 'function') {
+      return app.openAnimeDetailImplementation(animeId, options);
+    }
+    return false;
+  };
+
   return {
     isCached,
     getCached,
@@ -224,6 +231,7 @@ const createDetailExperience = (app) => {
     syncWithUrl,
     refreshTrailerSection,
     loadCommunityReviews,
+    open,
     close,
     handleDeepLink
   };

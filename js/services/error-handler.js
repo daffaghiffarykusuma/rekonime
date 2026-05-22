@@ -1,4 +1,4 @@
-import { DependencyContainer } from '../core/dependency-container.js';
+import { Logger } from './logger.js';
 
 /**
  * Centralized error handling with optional listeners.
@@ -19,7 +19,7 @@ const ErrorHandler = {
       timestamp: new Date().toISOString()
     };
 
-    const logger = DependencyContainer.resolve('logger');
+    const logger = Logger;
     if (logger?.error) {
       logger.error('Error captured', { error, ...context });
     } else if (typeof console !== 'undefined' && console.error) {
@@ -65,8 +65,6 @@ const ErrorHandler = {
     };
   }
 };
-
-DependencyContainer.register('errorHandler', ErrorHandler);
 
 export { ErrorHandler };
 export default ErrorHandler;

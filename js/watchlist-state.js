@@ -1,4 +1,11 @@
 const WATCH_STATUS_VALUES = ['planned', 'watching', 'completed', 'dropped'];
+const WATCH_STATUS_DISPLAY_OPTIONS = [
+  { value: '', label: 'Not saved' },
+  { value: 'planned', label: 'Want to watch' },
+  { value: 'watching', label: 'Watching now' },
+  { value: 'completed', label: 'Finished' },
+  { value: 'dropped', label: 'Stopped' }
+];
 const WATCHLIST_STORAGE_KEY = 'rekonime.watchlist';
 const LEGACY_WATCHLIST_STORAGE_KEY = 'rekonime.bookmarks';
 const WATCHLIST_VERSION = 1;
@@ -220,6 +227,122 @@ const isPlainObject = (value) => Boolean(value && typeof value === 'object' && !
 const createAnimeLookup = (animeItems = []) => Array.isArray(animeItems)
   ? new Map(animeItems.map((anime) => [normalizeWatchId(anime?.id), anime]).filter(([id]) => id))
   : new Map();
+
+const getEpisodeCount = (anime) => {
+  const direct = Number(anime?.stats?.episodeCount ?? anime?.episodeCount ?? anime?.episodesTotal);
+  if (Number.isFinite(direct) && direct > 0) return Math.floor(direct);
+  if (!Array.isArray(anime?.episodes) || anime.episodes.length === 0) return null;
+  const maxEpisode = anime.episodes.reduce((highest, entry, index) => {
+    const candidate = Number(entry?.episode);
+    if (Number.isFinite(candidate) && candidate > 0) return Math.max(highest, Math.floor(candidate));
+    return Math.max(highest, index + 1);
+  }, 0);
+  return maxEpisode > 0 ? maxEpisode : null;
+};
+
+const buildWatchlistControlModel = (entry, { anime, episodeCount } = {}) => {
+  const status = normalizeWatchStatus(entry?.status, { fallback: '' });
+  const progress = normalizeWatchProgress(entry?.progress);
+  const total = Number.isFinite(episodeCount) && episodeCount > 0
+    ? Math.floor(episodeCount)
+    : getEpisodeCount(anime);
+  return {
+    status,
+    progress,
+    showProgress: shouldShowWatchProgress(status),
+    episodeCount: total,
+    inputMax: total ? String(total) : '',
+    totalText: total ? `of ${total}` : '',
+    options: WATCH_STATUS_DISPLAY_OPTIONS.map((option) => ({
+      ...option,
+      selected: option.value === status
+    }))
+  };
+};
+
+const getWatchlistStatus = (entry) => normalizeWatchStatus(entry?.status, { fallback: 'planned' });
+
+const buildWatchlistCounts = (entries = []) => {
+  const counts = {
+    all: Array.isArray(entries) ? entries.length : 0,
+    planned: 0,
+    watching: 0,
+    completed: 0,
+    dropped: 0
+  };
+
+  (Array.isArray(entries) ? entries : []).forEach((entry) => {
+    const status = getWatchlistStatus(entry);
+    if (counts[status] !== undefined) {
+      counts[status] += 1;
+    }
+  });
+
+  return counts;
+};
+
+const filterWatchlistEntries = (entries = [], statusFilter = 'all') => {
+  const normalizedFilter = String(statusFilter || 'all').trim().toLowerCase();
+  if (normalizedFilter === 'all') return Array.isArray(entries) ? [...entries] : [];
+  const status = normalizeWatchStatus(normalizedFilter, { fallback: '' });
+  if (!status) return [];
+  return (Array.isArray(entries) ? entries : []).filter((entry) => getWatchlistStatus(entry) === status);
+};
+
+const getDisplayItemForEntry = (entry, lookup, placeholder = DEFAULT_PLACEHOLDER_COVER) => {
+  const id = normalizeWatchId(entry?.id);
+  const anime = lookup instanceof Map ? lookup.get(id) : null;
+  if (anime) return anime;
+  const snapshot = normalizeWatchlistSnapshot(entry?.snapshot, {
+    fallbackId: id,
+    placeholderCover: placeholder,
+    requireCover: false
+  });
+  if (snapshot) return snapshot;
+  return {
+    id: id || 'unknown',
+    title: entry?.snapshot?.title || 'Unknown title',
+    cover: entry?.snapshot?.cover || placeholder,
+    year: entry?.snapshot?.year || null,
+    studio: entry?.snapshot?.studio || '',
+    communityScore: Number.isFinite(entry?.snapshot?.communityScore) ? entry.snapshot.communityScore : null,
+    stats: entry?.snapshot?.stats || null,
+    genres: Array.isArray(entry?.snapshot?.genres) ? [...entry.snapshot.genres] : [],
+    themes: Array.isArray(entry?.snapshot?.themes) ? [...entry.snapshot.themes] : []
+  };
+};
+
+const buildWatchlistDisplayModel = (entries = [], animeItems = [], {
+  statusFilter = 'all',
+  placeholder = DEFAULT_PLACEHOLDER_COVER
+} = {}) => {
+  const normalizedEntries = Array.isArray(entries) ? entries : [];
+  const lookup = createAnimeLookup(animeItems);
+  const visibleEntries = filterWatchlistEntries(normalizedEntries, statusFilter);
+  return {
+    entries: normalizedEntries,
+    visibleEntries,
+    displayItems: visibleEntries.map((entry) => getDisplayItemForEntry(entry, lookup, placeholder)),
+    allDisplayItems: normalizedEntries.map((entry) => getDisplayItemForEntry(entry, lookup, placeholder)),
+    counts: buildWatchlistCounts(normalizedEntries)
+  };
+};
+
+const buildWatchlistUpdatePayload = (result = {}) => {
+  const entry = result.entry || null;
+  const id = normalizeWatchId(result.id || entry?.id);
+  const payload = {
+    id,
+    removed: Boolean(result.removed)
+  };
+  if (entry) {
+    payload.status = entry.status;
+    payload.progress = entry.progress;
+    payload.entry = entry;
+    if (entry.snapshot) payload.snapshot = entry.snapshot;
+  }
+  return payload;
+};
 
 const createWatchlistLifecycle = ({
   storage = createLocalStorageAdapter(),
@@ -602,6 +725,7 @@ const shouldShowWatchProgress = (status) => {
 
 export {
   WATCH_STATUS_VALUES,
+  WATCH_STATUS_DISPLAY_OPTIONS,
   WATCHLIST_STORAGE_KEY,
   LEGACY_WATCHLIST_STORAGE_KEY,
   WATCHLIST_VERSION,
@@ -613,6 +737,11 @@ export {
   buildAnimeSnapshot,
   normalizeWatchlistSnapshot,
   buildWatchlistEntry,
+  buildWatchlistControlModel,
+  buildWatchlistCounts,
+  filterWatchlistEntries,
+  buildWatchlistDisplayModel,
+  buildWatchlistUpdatePayload,
   areWatchlistSnapshotsEqual,
   shouldShowWatchProgress,
   createLocalStorageAdapter,

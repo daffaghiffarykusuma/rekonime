@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCatalogRuntime } from '../../js/services/catalog-loader.js';
+import { createCatalogRuntime, createCatalogSession } from '../../js/services/catalog-loader.js';
 import { setupDom } from '../helpers/dom.js';
 
 const fullPayload = {
@@ -21,11 +21,7 @@ const createFullCatalogHarness = (overrides = {}) => {
   const catalogEvents = [];
   let cachedPayload = null;
   let appliedPayload = null;
-  let isFullDataLoaded = false;
-  let loadingFullCatalog = false;
-  let fullCatalogPromise = null;
-  let fullCatalogScheduleHandle = null;
-  let fullCatalogInteractionCaptured = false;
+  const session = createCatalogSession();
 
   const runtime = createCatalogRuntime({
     features: { parallelLoading: false },
@@ -33,21 +29,13 @@ const createFullCatalogHarness = (overrides = {}) => {
     getPerformanceNow: () => 0,
     getApiClient: () => ({ getJson: async () => null }),
     getCurrentAnimeData: () => [],
-    isFullDataLoaded: () => isFullDataLoaded,
-    setFullDataLoaded: (value) => { isFullDataLoaded = value; },
-    setLoadingFullCatalog: (value) => { loadingFullCatalog = value; },
-    getFullCatalogPromise: () => fullCatalogPromise,
-    setFullCatalogPromise: (promise) => { fullCatalogPromise = promise; },
-    getFullCatalogScheduleHandle: () => fullCatalogScheduleHandle,
-    setFullCatalogScheduleHandle: (handle) => { fullCatalogScheduleHandle = handle; },
-    getFullCatalogInteractionCaptured: () => fullCatalogInteractionCaptured,
-    setFullCatalogInteractionCaptured: (value) => { fullCatalogInteractionCaptured = value; },
+    session,
     teardownFullCatalogInteractionTriggers: () => {},
     emitAppEvent: () => {},
     emitCatalogEvent: (type, detail = {}) => catalogEvents.push({ type, ...detail }),
     applyCatalogPayload: async (payload, options) => {
       appliedPayload = { payload, options };
-      isFullDataLoaded = Boolean(options.isFull);
+      session.markFullLoaded(Boolean(options.isFull));
     },
     loadEmbeddedData: async () => {
       throw new Error('embedded fallback should not be used');
@@ -66,9 +54,10 @@ const createFullCatalogHarness = (overrides = {}) => {
   return {
     runtime,
     catalogEvents,
+    session,
     get cachedPayload() { return cachedPayload; },
     get appliedPayload() { return appliedPayload; },
-    get loadingFullCatalog() { return loadingFullCatalog; }
+    get loadingFullCatalog() { return session.snapshot().isLoadingFull; }
   };
 };
 

@@ -53,6 +53,18 @@ test('Detail Experience cache evicts least recently used detail markup', () => {
   assert.equal(app.detailCache.has('three'), true);
 });
 
+test('Detail Experience opens titles through the lifecycle interface', () => {
+  const { detail, calls } = createAppHarness({
+    openAnimeDetailImplementation: (...args) => {
+      calls.push(['openAnimeDetailImplementation', ...args]);
+      return true;
+    }
+  });
+
+  assert.equal(detail.open('show-1', { updateUrl: false }), true);
+  assert.deepEqual(calls[0], ['openAnimeDetailImplementation', 'show-1', { updateUrl: false }]);
+});
+
 test('Detail Experience syncs URL anime state to open or close actions', () => {
   const { app, detail, calls } = createAppHarness({
     currentAnimeId: 'current',

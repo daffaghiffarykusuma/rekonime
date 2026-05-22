@@ -49,6 +49,91 @@ const getCatalogRetryDelay = (baseDelay, attempt, maxDelay) => {
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+const createCatalogSession = ({
+  isFullLoaded = false,
+  isLoadingFull = false,
+  activeFullLoadPromise = null,
+  scheduledFullLoadHandle = null,
+  interactionCaptured = false,
+  detailChunkPromises = new Map(),
+  detailChunkLoadedIds = new Set(),
+  onChange = () => {}
+} = {}) => {
+  let fullLoaded = Boolean(isFullLoaded);
+  let loadingFull = Boolean(isLoadingFull);
+  let fullLoadPromise = activeFullLoadPromise || null;
+  let scheduleHandle = scheduledFullLoadHandle || null;
+  let capturedInteraction = Boolean(interactionCaptured);
+  const chunkPromises = detailChunkPromises instanceof Map ? detailChunkPromises : new Map();
+  const loadedChunkIds = detailChunkLoadedIds instanceof Set ? detailChunkLoadedIds : new Set();
+
+  const snapshot = () => ({
+    isFullLoaded: fullLoaded,
+    isLoadingFull: loadingFull,
+    activeFullLoadPromise: fullLoadPromise,
+    scheduledFullLoadHandle: scheduleHandle,
+    interactionCaptured: capturedInteraction,
+    detailChunkPromiseCount: chunkPromises.size,
+    detailChunkLoadedCount: loadedChunkIds.size
+  });
+
+  const notify = () => onChange(snapshot());
+
+  return {
+    snapshot,
+    isFullLoaded: () => fullLoaded,
+    markFullLoaded(value) {
+      fullLoaded = Boolean(value);
+      notify();
+    },
+    setLoading(value) {
+      loadingFull = Boolean(value);
+      notify();
+    },
+    getActiveFullLoad: () => fullLoadPromise,
+    setActiveFullLoad(promise) {
+      fullLoadPromise = promise || null;
+      notify();
+    },
+    getScheduledHandle: () => scheduleHandle,
+    setScheduledHandle(handle) {
+      scheduleHandle = handle || null;
+      notify();
+    },
+    takeScheduledHandle() {
+      const handle = scheduleHandle;
+      scheduleHandle = null;
+      notify();
+      return handle;
+    },
+    hasInteractionCaptured: () => capturedInteraction,
+    captureInteraction() {
+      capturedInteraction = true;
+      notify();
+    },
+    hasDetailLoad: (animeId) => chunkPromises.has(String(animeId ?? '').trim()),
+    getDetailLoad: (animeId) => chunkPromises.get(String(animeId ?? '').trim()) || null,
+    trackDetailLoad(animeId, promise) {
+      const key = String(animeId ?? '').trim();
+      if (!key) return null;
+      chunkPromises.set(key, promise);
+      notify();
+      return promise;
+    },
+    clearDetailLoad(animeId) {
+      chunkPromises.delete(String(animeId ?? '').trim());
+      notify();
+    },
+    hasDetailLoaded: (animeId) => loadedChunkIds.has(String(animeId ?? '').trim()),
+    markDetailLoaded(animeId) {
+      const key = String(animeId ?? '').trim();
+      if (!key) return;
+      loadedChunkIds.add(key);
+      notify();
+    }
+  };
+};
+
 const createCatalogRuntime = ({
   dataSources = DEFAULT_DATA_SOURCES,
   fetchConfig = DEFAULT_FETCH_CONFIG,
@@ -59,15 +144,7 @@ const createCatalogRuntime = ({
   getPerformanceNow = () => Date.now(),
   getLocationProtocol = () => (typeof window !== 'undefined' ? window.location.protocol : 'https:'),
   getCurrentAnimeData = () => [],
-  isFullDataLoaded = () => false,
-  setFullDataLoaded = () => {},
-  setLoadingFullCatalog = () => {},
-  getFullCatalogPromise = () => null,
-  setFullCatalogPromise = () => {},
-  getFullCatalogScheduleHandle = () => null,
-  setFullCatalogScheduleHandle = () => {},
-  getFullCatalogInteractionCaptured = () => false,
-  setFullCatalogInteractionCaptured = () => {},
+  session = createCatalogSession(),
   teardownFullCatalogInteractionTriggers = () => {},
   cancelIdleTask = () => {},
   addPreloadHints = () => {},
@@ -80,8 +157,6 @@ const createCatalogRuntime = ({
   clearDetailCache = () => {},
   catalogCache = CatalogCache,
   catalogCacheMaxAgeMs = 30 * 24 * 60 * 60 * 1000,
-  detailChunkPromises = new Map(),
-  detailChunkLoadedIds = new Set(),
   fullCatalogTimeoutMs = 30000
 } = {}) => {
   const emitDataLoadEnd = ({ source, loadStart, status }) => {
@@ -218,20 +293,19 @@ const createCatalogRuntime = ({
   };
 
   const loadFullCatalog = async (options = {}) => {
-    if (isFullDataLoaded()) return true;
+    if (session.isFullLoaded()) return true;
 
-    if (!getFullCatalogInteractionCaptured()) {
-      setFullCatalogInteractionCaptured(true);
+    if (!session.hasInteractionCaptured()) {
+      session.captureInteraction();
     }
     teardownFullCatalogInteractionTriggers();
 
-    const scheduleHandle = getFullCatalogScheduleHandle();
+    const scheduleHandle = session.takeScheduledHandle();
     if (scheduleHandle) {
       cancelIdleTask(scheduleHandle);
-      setFullCatalogScheduleHandle(null);
     }
 
-    const activePromise = getFullCatalogPromise();
+    const activePromise = session.getActiveFullLoad();
     if (activePromise) return activePromise;
 
     const loadStart = getPerformanceNow();
@@ -243,7 +317,7 @@ const createCatalogRuntime = ({
       ? setTimeout(() => controller.abort(), timeoutMs)
       : null;
 
-    setLoadingFullCatalog(true);
+    session.setLoading(true);
     const promise = (async () => {
       try {
         if (getLocationProtocol() === 'file:') {
@@ -260,7 +334,7 @@ const createCatalogRuntime = ({
           const [fullResult] = await Promise.allSettled([
             fetchCatalog(dataSources.full, { signal: controller.signal })
           ]);
-          if (controller.signal.aborted) return isFullDataLoaded();
+          if (controller.signal.aborted) return session.isFullLoaded();
           if (fullResult.status === 'fulfilled' && fullResult.value) {
             fullPayload = fullResult.value;
           }
@@ -268,7 +342,7 @@ const createCatalogRuntime = ({
           fullPayload = await fetchCatalog(dataSources.full, { signal: controller.signal });
         }
 
-        if (controller.signal.aborted) return isFullDataLoaded();
+        if (controller.signal.aborted) return session.isFullLoaded();
 
         if (!fullPayload) {
           const cachedPayload = await loadCachedFullCatalog();
@@ -279,7 +353,7 @@ const createCatalogRuntime = ({
           }
 
           const loaded = await loadEmbeddedData();
-          if (!loaded || controller.signal.aborted) return isFullDataLoaded();
+          if (!loaded || controller.signal.aborted) return session.isFullLoaded();
 
           emitCatalogEvent('embedded-fallback-used', { phase: 'full', reason: 'network-and-cache-unavailable' });
           await applyCatalogPayload({ anime: getCurrentAnimeData() }, { isFull: true, preserveFilters: true });
@@ -294,7 +368,7 @@ const createCatalogRuntime = ({
         if (error?.name === 'AbortError' || controller.signal.aborted) {
           console.warn('[loadFullCatalog] Timed out');
           emitCatalogEvent('full-load-timeout', { timeoutMs });
-          return isFullDataLoaded();
+          return session.isFullLoaded();
         }
         throw error;
       } finally {
@@ -302,7 +376,7 @@ const createCatalogRuntime = ({
       }
     })();
 
-    setFullCatalogPromise(promise);
+    session.setActiveFullLoad(promise);
     let result = false;
     try {
       result = await promise;
@@ -315,8 +389,8 @@ const createCatalogRuntime = ({
       }
       result = false;
     } finally {
-      setLoadingFullCatalog(false);
-      setFullCatalogPromise(null);
+      session.setLoading(false);
+      session.setActiveFullLoad(null);
       emitAppEvent('rekonime:data-load-end', {
         source: 'full',
         durationMs: getPerformanceNow() - loadStart,
@@ -324,7 +398,7 @@ const createCatalogRuntime = ({
       });
     }
 
-    setFullDataLoaded(Boolean(result) || isFullDataLoaded());
+    session.markFullLoaded(Boolean(result) || session.isFullLoaded());
     return result;
   };
 
@@ -341,10 +415,10 @@ const createCatalogRuntime = ({
 
     const existing = getCurrentAnimeData().find((anime) => String(anime.id) === key);
     if (hasFullAnimeDetail(existing)) return existing;
-    if (detailChunkLoadedIds.has(key)) return existing || null;
+    if (session.hasDetailLoaded(key)) return existing || null;
 
-    if (detailChunkPromises.has(key)) {
-      return detailChunkPromises.get(key);
+    if (session.hasDetailLoad(key)) {
+      return session.getDetailLoad(key);
     }
 
     const promise = (async () => {
@@ -355,7 +429,7 @@ const createCatalogRuntime = ({
       const detailAnime = Array.isArray(payload?.anime) ? payload.anime[0] : null;
       if (!detailAnime) return null;
       const merged = mergeAnimeDetail(detailAnime);
-      detailChunkLoadedIds.add(key);
+      session.markDetailLoaded(key);
       if (merged) {
         clearDetailCache(merged.id);
         emitCatalogEvent('detail-chunk-loaded', { animeId: key });
@@ -368,16 +442,18 @@ const createCatalogRuntime = ({
         return null;
       })
       .finally(() => {
-        detailChunkPromises.delete(key);
+        session.clearDetailLoad(key);
       });
 
-    detailChunkPromises.set(key, promise);
+    session.trackDetailLoad(key, promise);
     return promise;
   };
 
   return {
+    session,
     loadInitialData,
     loadFullCatalog,
+    setScheduledFullLoadHandle: (handle) => session.setScheduledHandle(handle),
     fetchCatalog,
     cacheFullCatalog,
     loadCachedFullCatalog,
@@ -395,15 +471,22 @@ const createAppCatalogRuntime = (app) => createCatalogRuntime({
   getLogger: () => app.getLogger(),
   getPerformanceNow: () => app.getPerformanceNow(),
   getCurrentAnimeData: () => app.animeData,
-  isFullDataLoaded: () => app.isFullDataLoaded,
-  setFullDataLoaded: (value) => { app.isFullDataLoaded = value; },
-  setLoadingFullCatalog: (value) => { app.loadingFullCatalog = value; },
-  getFullCatalogPromise: () => app.fullCatalogPromise,
-  setFullCatalogPromise: (promise) => { app.fullCatalogPromise = promise; },
-  getFullCatalogScheduleHandle: () => app.fullCatalogScheduleHandle,
-  setFullCatalogScheduleHandle: (handle) => { app.fullCatalogScheduleHandle = handle; },
-  getFullCatalogInteractionCaptured: () => app.fullCatalogInteractionCaptured,
-  setFullCatalogInteractionCaptured: (value) => { app.fullCatalogInteractionCaptured = value; },
+  session: createCatalogSession({
+    isFullLoaded: app.isFullDataLoaded,
+    isLoadingFull: app.loadingFullCatalog,
+    activeFullLoadPromise: app.fullCatalogPromise,
+    scheduledFullLoadHandle: app.fullCatalogScheduleHandle,
+    interactionCaptured: app.fullCatalogInteractionCaptured,
+    detailChunkPromises: app.animeDetailChunkPromises,
+    detailChunkLoadedIds: app.animeDetailChunkLoadedIds,
+    onChange: (snapshot) => {
+      app.isFullDataLoaded = snapshot.isFullLoaded;
+      app.loadingFullCatalog = snapshot.isLoadingFull;
+      app.fullCatalogPromise = snapshot.activeFullLoadPromise;
+      app.fullCatalogScheduleHandle = snapshot.scheduledFullLoadHandle;
+      app.fullCatalogInteractionCaptured = snapshot.interactionCaptured;
+    }
+  }),
   teardownFullCatalogInteractionTriggers: () => app.teardownFullCatalogInteractionTriggers(),
   cancelIdleTask: (handle) => app.cancelIdleTask(handle),
   addPreloadHints: () => app.addPreloadHints(),
@@ -417,8 +500,6 @@ const createAppCatalogRuntime = (app) => createCatalogRuntime({
     app.detailCache.delete(animeId);
   },
   catalogCacheMaxAgeMs: app.catalogCacheMaxAgeMs,
-  detailChunkPromises: app.animeDetailChunkPromises,
-  detailChunkLoadedIds: app.animeDetailChunkLoadedIds,
   fullCatalogTimeoutMs: app.fullCatalogTimeoutMs
 });
 
@@ -437,6 +518,7 @@ const CatalogLoader = {
 export {
   CatalogLoader,
   createCatalogRuntime,
+  createCatalogSession,
   isValidCatalogPayload,
   getErrorStatus,
   shouldRetryCatalog,

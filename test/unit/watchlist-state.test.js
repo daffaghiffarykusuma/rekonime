@@ -2,13 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   WATCH_STATUS_VALUES,
+  WATCH_STATUS_DISPLAY_OPTIONS,
   normalizeWatchStatus,
   normalizeWatchProgress,
+  buildWatchlistControlModel,
+  buildWatchlistCounts,
+  filterWatchlistEntries,
+  buildWatchlistDisplayModel,
+  buildWatchlistUpdatePayload,
   createWatchlistLifecycle
 } from '../../js/watchlist-state.js';
 
 test('watchlist status normalization uses allowed values only', () => {
   assert.equal(WATCH_STATUS_VALUES.includes('planned'), true);
+  assert.equal(WATCH_STATUS_DISPLAY_OPTIONS.some(option => option.value === ''), true);
   assert.equal(normalizeWatchStatus('WATCHING'), 'watching');
   assert.equal(normalizeWatchStatus('unknown'), 'planned');
 });
@@ -74,4 +81,47 @@ test('watchlist lifecycle clamps progress and upgrades planned entries to watchi
   assert.equal(result.entry.status, 'watching');
   assert.equal(result.entry.progress, 8);
   assert.equal(result.entry.startedAt, 3000);
+});
+
+test('watchlist lifecycle builds shared counts, filters, and display models', () => {
+  const entries = [
+    { id: 'show-1', status: 'planned', snapshot: { id: 'show-1', title: 'Show 1', cover: 'cover-1.jpg' } },
+    { id: 'show-2', status: 'watching', progress: 2, snapshot: { id: 'show-2', title: 'Show 2', cover: 'cover-2.jpg' } }
+  ];
+
+  assert.deepEqual(buildWatchlistCounts(entries), {
+    all: 2,
+    planned: 1,
+    watching: 1,
+    completed: 0,
+    dropped: 0
+  });
+  assert.deepEqual(filterWatchlistEntries(entries, 'watching').map(entry => entry.id), ['show-2']);
+
+  const model = buildWatchlistDisplayModel(entries, [{ id: 'show-2', title: 'Catalog Show 2', cover: 'catalog.jpg' }], {
+    statusFilter: 'watching'
+  });
+  assert.equal(model.displayItems[0].title, 'Catalog Show 2');
+  assert.equal(model.allDisplayItems[0].title, 'Show 1');
+});
+
+test('watchlist lifecycle builds shared control model and update payload', () => {
+  const entry = { id: 'show-1', status: 'watching', progress: 3 };
+  const model = buildWatchlistControlModel(entry, {
+    anime: { id: 'show-1', stats: { episodeCount: 12 } }
+  });
+
+  assert.equal(model.status, 'watching');
+  assert.equal(model.showProgress, true);
+  assert.equal(model.inputMax, '12');
+  assert.equal(model.totalText, 'of 12');
+  assert.equal(model.options.find(option => option.value === 'watching').selected, true);
+
+  assert.deepEqual(buildWatchlistUpdatePayload({ id: 'show-1', entry, removed: false }), {
+    id: 'show-1',
+    removed: false,
+    status: 'watching',
+    progress: 3,
+    entry
+  });
 });

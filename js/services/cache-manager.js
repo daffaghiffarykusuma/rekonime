@@ -1,4 +1,3 @@
-import { DependencyContainer } from '../core/dependency-container.js';
 import { SchemaValidator } from './schema-validator.js';
 
 /**
@@ -173,8 +172,6 @@ const CacheManager = {
     this.memory.clear();
   }
 };
-
-DependencyContainer.register('cache', CacheManager);
 
 export { CacheManager };
 export default CacheManager;

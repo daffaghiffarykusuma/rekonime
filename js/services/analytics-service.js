@@ -1,4 +1,3 @@
-import { DependencyContainer } from '../core/dependency-container.js';
 import { CacheManager } from './cache-manager.js';
 
 /**
@@ -91,8 +90,6 @@ const AnalyticsService = {
     return Array.isArray(stored) ? stored : [];
   }
 };
-
-DependencyContainer.register('analytics', AnalyticsService);
 
 export { AnalyticsService };
 export default AnalyticsService;

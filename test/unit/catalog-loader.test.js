@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCatalogRuntime } from '../../js/services/catalog-loader.js';
+import { createCatalogRuntime, createCatalogSession } from '../../js/services/catalog-loader.js';
 import { setupDom } from '../helpers/dom.js';
 
 const fullIndexPayload = {
@@ -14,28 +14,16 @@ const createRuntimeHarness = (overrides = {}) => {
   const applied = [];
   const state = {
     animeData: [],
-    isFullDataLoaded: false,
-    fullCatalogInteractionCaptured: false,
-    fullCatalogScheduleHandle: null,
-    fullCatalogPromise: null,
-    loadingFullCatalog: false
   };
+  const session = createCatalogSession();
   const runtime = createCatalogRuntime({
     features: { parallelLoading: false },
     dataSources: {
       full: 'data/anime.full.index.json'
     },
     fullCatalogTimeoutMs: 1000,
+    session,
     getCurrentAnimeData: () => state.animeData,
-    isFullDataLoaded: () => state.isFullDataLoaded,
-    setFullDataLoaded: (value) => { state.isFullDataLoaded = value; },
-    setLoadingFullCatalog: (value) => { state.loadingFullCatalog = value; },
-    getFullCatalogPromise: () => state.fullCatalogPromise,
-    setFullCatalogPromise: (promise) => { state.fullCatalogPromise = promise; },
-    getFullCatalogScheduleHandle: () => state.fullCatalogScheduleHandle,
-    setFullCatalogScheduleHandle: (handle) => { state.fullCatalogScheduleHandle = handle; },
-    getFullCatalogInteractionCaptured: () => state.fullCatalogInteractionCaptured,
-    setFullCatalogInteractionCaptured: (value) => { state.fullCatalogInteractionCaptured = value; },
     emitAppEvent: (name, detail = {}) => events.push({ name, ...detail }),
     emitCatalogEvent: (type, detail = {}) => events.push({ name: 'catalog', type, ...detail }),
     getPerformanceNow: () => 0,
@@ -45,7 +33,7 @@ const createRuntimeHarness = (overrides = {}) => {
     loadEmbeddedData: async () => false,
     applyCatalogPayload: async (payload, options) => {
       applied.push({ payload, options });
-      state.isFullDataLoaded = Boolean(options.isFull);
+      session.markFullLoaded(Boolean(options.isFull));
     },
     catalogCache: {
       getFullCatalog: async () => null,
@@ -55,7 +43,7 @@ const createRuntimeHarness = (overrides = {}) => {
     ...overrides
   });
 
-  return { runtime, state, events, applied };
+  return { runtime, session, state, events, applied };
 };
 
 test('CatalogLoader loadInitialData applies the full index directly', async () => {

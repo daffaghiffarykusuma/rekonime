@@ -10,8 +10,6 @@ import { AnalyticsService } from './services/analytics-service.js';
 import { ApiClient } from './services/api-client.js';
 import { DataValidator } from './services/data-validator.js';
 import { Logger } from './services/logger.js';
-import { Store } from './core/store.js';
-import { DependencyContainer } from './core/dependency-container.js';
 import { HealthMonitor } from './healthMonitor.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
 import { createDetailExperience } from './detail-experience.js';
@@ -44,6 +42,8 @@ import {
   buildWatchlistEntry as buildLifecycleWatchlistEntry,
   areWatchlistSnapshotsEqual as areLifecycleWatchlistSnapshotsEqual,
   shouldShowWatchProgress as shouldShowLifecycleWatchProgress,
+  buildWatchlistControlModel,
+  buildWatchlistUpdatePayload,
   createWatchlistLifecycle
 } from './watchlist-state.js';
 
@@ -229,9 +229,7 @@ const App = {
   airingDashboardModulePromise: null,
   airingDashboardController: null,
   airingDashboardRenderHandle: null,
-
-  store: null,
-  storeBindingsApplied: false,
+  catalogRuntime: null,
 
   getDefaultActiveFilters() {
     return {
@@ -272,7 +270,10 @@ const App = {
   },
 
   getCatalogRuntime() {
-    return CatalogLoader.createRuntime(this);
+    if (!this.catalogRuntime) {
+      this.catalogRuntime = CatalogLoader.createRuntime(this);
+    }
+    return this.catalogRuntime;
   },
 
   getDetailExperience() {
@@ -555,157 +556,6 @@ const App = {
     logger?.info?.('[catalog]', payload);
   },
 
-  dispatchStore(action) {
-    if (this.store && typeof this.store.dispatch === 'function') {
-      this.store.dispatch(action);
-    }
-  },
-
-  bindStoreState() {
-    if (!this.store || this.storeBindingsApplied) return;
-    this.storeBindingsApplied = true;
-
-    const bindings = {
-      animeData: { slice: 'catalog', key: 'items', action: 'catalog/setItems' },
-      filteredData: { slice: 'catalog', key: 'filtered', action: 'catalog/setFiltered' },
-      scoreProfile: { slice: 'catalog', key: 'scoreProfile', action: 'catalog/setScoreProfile' },
-      isFullDataLoaded: { slice: 'catalog', key: 'isFullLoaded', action: 'catalog/setFullLoaded' },
-      loadingFullCatalog: { slice: 'catalog', key: 'isLoadingFull', action: 'catalog/setLoadingFull' },
-      activeFilters: { slice: 'filters', key: 'active', action: 'filters/setActive' },
-      filterOptions: { slice: 'filters', key: 'options', action: 'filters/setOptions' },
-      currentSort: { slice: 'ui', key: 'currentSort', action: 'ui/setSort' },
-      filterPanelOpen: { slice: 'ui', key: 'filterPanelOpen', action: 'ui/setFilterPanelOpen' },
-      currentAnimeId: { slice: 'ui', key: 'currentAnimeId', action: 'ui/setCurrentAnimeId' }
-    };
-
-    Object.entries(bindings).forEach(([prop, config]) => {
-      let localValue = this[prop];
-      Object.defineProperty(this, prop, {
-        configurable: true,
-        enumerable: true,
-        get: () => {
-          if (!this.store) return localValue;
-          const state = this.store.getState();
-          const slice = state?.[config.slice];
-          if (!slice || !(config.key in slice)) return localValue;
-          return slice[config.key];
-        },
-        set: (value) => {
-          localValue = value;
-          if (this.store) {
-            this.dispatchStore({ type: config.action, payload: value });
-          }
-        }
-      });
-    });
-  },
-
-  initializeStore() {
-    if (this.store) return;
-
-    const defaultSettings = this.getDefaultSettings();
-    const defaultActiveFilters = this.getDefaultActiveFilters();
-    const defaultFilterOptions = this.getDefaultFilterOptions();
-
-    const normalizeFilters = (value, fallback) => this.cloneFilterMap(value, fallback);
-
-    const reducers = {
-      settings: (state = defaultSettings, action) => {
-        if (!action) return state;
-        if (action.type === 'settings/loaded') {
-          return { ...state, ...(action.payload || {}) };
-        }
-        if (action.type === 'settings/updated') {
-          return { ...state, ...(action.payload || {}) };
-        }
-        return state;
-      },
-      catalog: (state = {
-        items: Array.isArray(this.animeData) ? this.animeData : [],
-        filtered: Array.isArray(this.filteredData) ? this.filteredData : [],
-        scoreProfile: this.scoreProfile || null,
-        isFullLoaded: Boolean(this.isFullDataLoaded),
-        isLoadingFull: Boolean(this.loadingFullCatalog)
-      }, action) => {
-        if (!action) return state;
-        switch (action.type) {
-          case 'catalog/setItems':
-            return { ...state, items: Array.isArray(action.payload) ? action.payload : [] };
-          case 'catalog/setFiltered':
-            return { ...state, filtered: Array.isArray(action.payload) ? action.payload : [] };
-          case 'catalog/setScoreProfile':
-            return { ...state, scoreProfile: action.payload || null };
-          case 'catalog/setFullLoaded':
-            return { ...state, isFullLoaded: Boolean(action.payload) };
-          case 'catalog/setLoadingFull':
-            return { ...state, isLoadingFull: Boolean(action.payload) };
-          default:
-            return state;
-        }
-      },
-      filters: (state = {
-        active: normalizeFilters(this.activeFilters, defaultActiveFilters),
-        options: normalizeFilters(this.filterOptions, defaultFilterOptions)
-      }, action) => {
-        if (!action) return state;
-        switch (action.type) {
-          case 'filters/setActive':
-            return { ...state, active: normalizeFilters(action.payload, defaultActiveFilters) };
-          case 'filters/setOptions':
-            return { ...state, options: normalizeFilters(action.payload, defaultFilterOptions) };
-          case 'filters/reset':
-            return { ...state, active: normalizeFilters(defaultActiveFilters, defaultActiveFilters) };
-          default:
-            return state;
-        }
-      },
-      ui: (state = {
-        currentSort: this.currentSort,
-        filterPanelOpen: Boolean(this.filterPanelOpen),
-        currentAnimeId: this.currentAnimeId || null
-      }, action) => {
-        if (!action) return state;
-        switch (action.type) {
-          case 'ui/setSort':
-            return { ...state, currentSort: action.payload || state.currentSort };
-          case 'ui/setFilterPanelOpen':
-            return { ...state, filterPanelOpen: Boolean(action.payload) };
-          case 'ui/setCurrentAnimeId':
-            return { ...state, currentAnimeId: action.payload || null };
-          default:
-            return state;
-        }
-      }
-    };
-
-    this.store = Store.createStore({
-      initialState: {
-        settings: defaultSettings,
-        catalog: {
-          items: Array.isArray(this.animeData) ? this.animeData : [],
-          filtered: Array.isArray(this.filteredData) ? this.filteredData : [],
-          scoreProfile: this.scoreProfile || null,
-          isFullLoaded: Boolean(this.isFullDataLoaded),
-          isLoadingFull: Boolean(this.loadingFullCatalog)
-        },
-        filters: {
-          active: normalizeFilters(this.activeFilters, defaultActiveFilters),
-          options: normalizeFilters(this.filterOptions, defaultFilterOptions)
-        },
-        ui: {
-          currentSort: this.currentSort,
-          filterPanelOpen: Boolean(this.filterPanelOpen),
-          currentAnimeId: this.currentAnimeId || null
-        }
-      },
-      reducers
-    });
-
-    this.bindStoreState();
-
-    DependencyContainer.register('appStore', this.store);
-  },
-
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
       switch (char) {
@@ -869,24 +719,15 @@ const App = {
   renderWatchlistControls(anime) {
     if (!anime) return '';
     const entry = this.getWatchlistEntry(anime.id);
-    const status = entry?.status || '';
-    const progress = Number.isFinite(entry?.progress) ? entry.progress : 0;
-    const episodeCount = this.getEpisodeCount(anime);
-    const showProgress = this.shouldShowWatchProgress(status);
+    const model = buildWatchlistControlModel(entry, {
+      anime,
+      episodeCount: this.getEpisodeCount(anime)
+    });
     const safeId = this.escapeAttr(anime.id);
-    const maxAttr = Number.isFinite(episodeCount) && episodeCount > 0 ? `max="${episodeCount}"` : '';
-    const totalText = Number.isFinite(episodeCount) && episodeCount > 0 ? `of ${episodeCount}` : '';
+    const maxAttr = model.inputMax ? `max="${this.escapeAttr(model.inputMax)}"` : '';
 
-    const options = [
-      { value: '', label: 'Not saved' },
-      { value: 'planned', label: 'Want to watch' },
-      { value: 'watching', label: 'Watching now' },
-      { value: 'completed', label: 'Finished' },
-      { value: 'dropped', label: 'Stopped' }
-    ];
-
-    const optionsHtml = options.map((option) => {
-      const selected = option.value === status ? 'selected' : '';
+    const optionsHtml = model.options.map((option) => {
+      const selected = option.selected ? 'selected' : '';
       return `<option value="${this.escapeAttr(option.value)}" ${selected}>${this.escapeHtml(option.label)}</option>`;
     }).join('');
 
@@ -903,15 +744,15 @@ const App = {
               ${optionsHtml}
             </select>
           </label>
-          <div class="watchlist-progress ${showProgress ? '' : 'is-hidden'}" id="watchlist-progress">
+          <div class="watchlist-progress ${model.showProgress ? '' : 'is-hidden'}" id="watchlist-progress">
             <span class="watchlist-progress-label">Episodes watched</span>
             <div class="watchlist-progress-stepper">
               <button class="watchlist-stepper" type="button" data-action="watch-progress-dec" data-anime-id="${safeId}" aria-label="Decrease watched episodes">
                 <span aria-hidden="true">−</span>
               </button>
               <input class="watchlist-progress-input" id="watchlist-progress-input" type="number" min="0" step="1" ${maxAttr}
-                value="${this.escapeAttr(String(progress))}" data-action="watch-progress" data-anime-id="${safeId}" inputmode="numeric" aria-label="Episodes watched">
-              <span class="watchlist-progress-total" id="watchlist-progress-total">${this.escapeHtml(totalText)}</span>
+                value="${this.escapeAttr(String(model.progress))}" data-action="watch-progress" data-anime-id="${safeId}" inputmode="numeric" aria-label="Episodes watched">
+              <span class="watchlist-progress-total" id="watchlist-progress-total">${this.escapeHtml(model.totalText)}</span>
               <button class="watchlist-stepper" type="button" data-action="watch-progress-inc" data-anime-id="${safeId}" aria-label="Increase watched episodes">
                 <span aria-hidden="true">+</span>
               </button>
@@ -1102,16 +943,7 @@ const App = {
     });
     if (!result.changed) return result;
     this.updateWatchlistControls(key);
-    if (result.removed) {
-      this.emitAppEvent('rekonime:watchlist-updated', { id: key, removed: true });
-    } else {
-      this.emitAppEvent('rekonime:watchlist-updated', {
-        id: key,
-        status: result.entry.status,
-        progress: result.entry.progress,
-        removed: false
-      });
-    }
+    this.emitAppEvent('rekonime:watchlist-updated', buildWatchlistUpdatePayload(result));
     this.scheduleAiringDashboardRender({ timeout: 500 });
     return result.removed ? { removed: true } : { entry: result.entry };
   },
@@ -1126,12 +958,7 @@ const App = {
     });
     if (!result.changed) return result;
     this.updateWatchlistControls(key);
-    this.emitAppEvent('rekonime:watchlist-updated', {
-      id: key,
-      status: result.entry.status,
-      progress: result.entry.progress,
-      removed: false
-    });
+    this.emitAppEvent('rekonime:watchlist-updated', buildWatchlistUpdatePayload(result));
     this.scheduleAiringDashboardRender({ timeout: 500 });
     return { entry: result.entry };
   },
@@ -1147,12 +974,7 @@ const App = {
     });
     if (!result.changed) return result;
     this.updateWatchlistControls(key);
-    this.emitAppEvent('rekonime:watchlist-updated', {
-      id: key,
-      status: result.entry.status,
-      progress: result.entry.progress,
-      removed: false
-    });
+    this.emitAppEvent('rekonime:watchlist-updated', buildWatchlistUpdatePayload(result));
     this.scheduleAiringDashboardRender({ timeout: 500 });
     return { entry: result.entry };
   },
@@ -1167,20 +989,20 @@ const App = {
     if (!select || !progressWrap || !progressInput) return;
 
     const entry = this.getWatchlistEntry(animeId);
-    const status = entry?.status || '';
-    select.value = status;
+    const anime = this.animeData.find(item => item?.id === animeId);
+    const model = buildWatchlistControlModel(entry, {
+      anime,
+      episodeCount: this.getEpisodeLimitForAnime(animeId)
+    });
+    select.value = model.status;
 
-    const showProgress = this.shouldShowWatchProgress(status);
-    progressWrap.classList.toggle('is-hidden', !showProgress);
+    progressWrap.classList.toggle('is-hidden', !model.showProgress);
+    progressInput.value = String(model.progress);
 
-    const progressValue = Number.isFinite(entry?.progress) ? entry.progress : 0;
-    progressInput.value = String(progressValue);
-
-    const total = this.getEpisodeLimitForAnime(animeId);
-    if (Number.isFinite(total) && total > 0) {
-      progressInput.setAttribute('max', String(total));
+    if (model.episodeCount) {
+      progressInput.setAttribute('max', model.inputMax);
       if (progressTotal) {
-        progressTotal.textContent = `of ${total}`;
+        progressTotal.textContent = model.totalText;
       }
     } else {
       progressInput.removeAttribute('max');
@@ -1611,7 +1433,6 @@ const App = {
       : defaults.largeText;
 
     this.applyAccessibilityAttributes();
-    this.dispatchStore({ type: 'settings/loaded', payload: { ...this.settings } });
   },
 
   /**
@@ -1674,7 +1495,6 @@ const App = {
     settings[key] = Boolean(value);
     this.saveSettings();
     this.updateSettingsUi();
-    this.dispatchStore({ type: 'settings/updated', payload: { [key]: settings[key] } });
 
     // Apply accessibility attributes if needed
     if (['reducedMotion', 'highContrast', 'largeText', 'dataSaver'].includes(key)) {
@@ -1862,7 +1682,6 @@ const App = {
     try {
       this.syncHomePath();
       this.renderLoadingState();
-      this.initializeStore();
       this.loadWatchlist();
       this.migrateLegacyBookmarksToWatchlist();
       Discovery.setWatchlistProvider({
@@ -2006,10 +1825,12 @@ const App = {
         this.fullCatalogScheduleHandle = null;
         this.loadFullCatalog();
       }, { timeout: 2000 });
+      this.getCatalogRuntime().setScheduledFullLoadHandle(this.fullCatalogScheduleHandle);
     };
 
     if (delayMs > 0) {
       this.fullCatalogScheduleHandle = window.setTimeout(schedule, delayMs);
+      this.getCatalogRuntime().setScheduledFullLoadHandle(this.fullCatalogScheduleHandle);
       return;
     }
     schedule();
@@ -6095,7 +5916,11 @@ const App = {
   /**
    * Show anime detail modal
    */
-  showAnimeDetail(animeId, { updateUrl = true, skipModalOpen = false } = {}) {
+  showAnimeDetail(animeId, options = {}) {
+    return this.getDetailExperience().open(animeId, options);
+  },
+
+  openAnimeDetailImplementation(animeId, { updateUrl = true, skipModalOpen = false } = {}) {
     const renderStart = this.getPerformanceNow();
     this.stopTrailerPlayback();
     this.teardownTrailerObserver();

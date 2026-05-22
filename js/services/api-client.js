@@ -1,4 +1,3 @@
-import { DependencyContainer } from '../core/dependency-container.js';
 import { ErrorHandler } from './error-handler.js';
 
 /**
@@ -269,8 +268,6 @@ const ApiClient = {
     return response.text();
   }
 };
-
-DependencyContainer.register('api', ApiClient);
 
 export { ApiClient };
 export default ApiClient;

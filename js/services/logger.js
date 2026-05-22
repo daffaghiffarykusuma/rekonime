@@ -1,4 +1,3 @@
-import { DependencyContainer } from '../core/dependency-container.js';
 import { CacheManager } from './cache-manager.js';
 
 /**
@@ -236,8 +235,6 @@ const Logger = {
     return navigator.userAgent || '';
   }
 };
-
-DependencyContainer.register('logger', Logger);
 
 export { Logger };
 export default Logger;

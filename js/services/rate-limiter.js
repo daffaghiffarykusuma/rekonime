@@ -1,5 +1,3 @@
-import { DependencyContainer } from '../core/dependency-container.js';
-
 /**
  * Token bucket rate limiter with per-service queues.
  */
@@ -134,8 +132,6 @@ const RateLimiter = {
     };
   }
 };
-
-DependencyContainer.register('rateLimiter', RateLimiter);
 
 export { RateLimiter };
 export default RateLimiter;

@@ -8,9 +8,11 @@ import {
   buildImageProxyUrl
 } from './image-proxy.js';
 import {
-  WATCH_STATUS_VALUES,
+  WATCH_STATUS_DISPLAY_OPTIONS,
   normalizeWatchlistSnapshot as normalizeLifecycleWatchlistSnapshot,
   shouldShowWatchProgress,
+  buildWatchlistControlModel,
+  buildWatchlistDisplayModel,
   createWatchlistLifecycle
 } from './watchlist-state.js';
 import { setHTML } from './security/trusted-types.js';
@@ -25,13 +27,7 @@ const ALLOWED_IMAGE_HOSTS = [
   'via.placeholder.com',
   'images.weserv.nl'
 ];
-const WATCH_STATUS_OPTIONS = [
-  { value: '', label: 'Not saved' },
-  { value: 'planned', label: 'Want to watch' },
-  { value: 'watching', label: 'Watching now' },
-  { value: 'completed', label: 'Finished' },
-  { value: 'dropped', label: 'Stopped' }
-];
+const WATCH_STATUS_OPTIONS = WATCH_STATUS_DISPLAY_OPTIONS;
 const IMAGE_PROXY_STATUS_KEY = 'rekonime.imageProxyStatus';
 const IMAGE_PROXY_STATUS_TTL_MS = 6 * 60 * 60 * 1000;
 const IMAGE_PROXY_CHECK_TIMEOUT_MS = 2500;
@@ -204,6 +200,10 @@ const getEpisodeCountFromCard = (card) => {
 };
 
 const buildWatchlistControls = (item, entry) => {
+  const model = buildWatchlistControlModel(entry, {
+    anime: item,
+    episodeCount: getEpisodeCountFromItem(item)
+  });
   const wrapper = document.createElement('div');
   wrapper.className = 'watchlist-controls';
   wrapper.setAttribute('data-watchlist', 'true');
@@ -218,8 +218,8 @@ const buildWatchlistControls = (item, entry) => {
   select.setAttribute('data-action', 'watch-status');
   select.setAttribute('data-anime-id', item.id);
 
-  const status = entry?.status || '';
-  WATCH_STATUS_OPTIONS.forEach((option) => {
+  const status = model.status;
+  model.options.forEach((option) => {
     const opt = document.createElement('option');
     opt.value = option.value;
     opt.textContent = option.label;
@@ -261,15 +261,14 @@ const buildWatchlistControls = (item, entry) => {
   input.setAttribute('data-anime-id', item.id);
   input.setAttribute('inputmode', 'numeric');
   input.setAttribute('aria-label', 'Episodes watched');
-  input.value = String(Number.isFinite(entry?.progress) ? entry.progress : 0);
+  input.value = String(model.progress);
 
   const total = document.createElement('span');
   total.className = 'watchlist-controls-total';
 
-  const episodeCount = getEpisodeCountFromItem(item);
-  if (episodeCount) {
-    input.max = String(episodeCount);
-    total.textContent = `of ${episodeCount}`;
+  if (model.episodeCount) {
+    input.max = model.inputMax;
+    total.textContent = model.totalText;
   }
 
   const inc = document.createElement('button');
@@ -298,48 +297,23 @@ const updateWatchlistUi = (card, entry) => {
   const total = card.querySelector('.watchlist-controls-total');
   if (!select || !progressWrap || !input || !total) return;
 
-  const status = entry?.status || '';
+  const model = buildWatchlistControlModel(entry, {
+    episodeCount: getEpisodeCountFromCard(card)
+  });
+  const status = model.status;
   select.value = status;
 
-  const showProgress = shouldShowWatchProgress(status);
-  progressWrap.classList.toggle('is-hidden', !showProgress);
+  progressWrap.classList.toggle('is-hidden', !model.showProgress);
 
-  const progressValue = Number.isFinite(entry?.progress) ? entry.progress : 0;
-  input.value = String(progressValue);
+  input.value = String(model.progress);
 
-  const episodeCount = getEpisodeCountFromCard(card);
-  if (episodeCount) {
-    input.max = String(episodeCount);
-    total.textContent = `of ${episodeCount}`;
+  if (model.episodeCount) {
+    input.max = model.inputMax;
+    total.textContent = model.totalText;
   } else {
     input.removeAttribute('max');
     total.textContent = '';
   }
-};
-
-const getWatchlistStatus = (entry) => {
-  const status = String(entry?.status || '').trim().toLowerCase();
-  if (WATCH_STATUS_VALUES.includes(status)) return status;
-  return 'planned';
-};
-
-const buildWatchlistCounts = (entries) => {
-  const counts = {
-    all: entries.length,
-    planned: 0,
-    watching: 0,
-    completed: 0,
-    dropped: 0
-  };
-
-  entries.forEach((entry) => {
-    const status = getWatchlistStatus(entry);
-    if (counts[status] !== undefined) {
-      counts[status] += 1;
-    }
-  });
-
-  return counts;
 };
 
 const renderWatchlistFilters = (counts) => {
@@ -366,23 +340,8 @@ const renderWatchlistFilters = (counts) => {
   }).join(''));
 };
 
-const filterWatchlistByStatus = (entries) => {
-  if (currentWatchlistFilter === 'all') return entries;
-  return entries.filter((entry) => getWatchlistStatus(entry) === currentWatchlistFilter);
-};
-
 const getDisplayItemForEntry = (entry) => {
-  const snapshot = normalizeWatchlistSnapshot(entry?.snapshot, entry?.id);
-  if (snapshot) return snapshot;
-  const fallbackId = String(entry?.id || '').trim();
-  return {
-    id: fallbackId || 'unknown',
-    title: 'Unknown title',
-    year: null,
-    studio: '',
-    cover: PLACEHOLDER_COVER,
-    stats: null
-  };
+  return buildWatchlistDisplayModel([entry], [], { placeholder: PLACEHOLDER_COVER }).displayItems[0];
 };
 
 const buildCard = (item, index, watchEntry) => {
@@ -526,14 +485,16 @@ const renderWatchlist = () => {
 
   section.classList.remove('is-empty');
   ensureWatchlistSnapshots(watchlistMap, version);
-  const counts = buildWatchlistCounts(entries);
-  renderWatchlistFilters(counts);
-  const dashboardItems = entries.map((entry) => getDisplayItemForEntry(entry));
+  const model = buildWatchlistDisplayModel(entries, [], {
+    statusFilter: currentWatchlistFilter,
+    placeholder: PLACEHOLDER_COVER
+  });
+  renderWatchlistFilters(model.counts);
+  const dashboardItems = model.allDisplayItems;
   scheduleAiringDashboardUpdate(entries, dashboardItems, { timeout: 1800 });
-  const visible = filterWatchlistByStatus(entries);
   const fragment = document.createDocumentFragment();
-  visible.forEach((entry, index) => {
-    const item = getDisplayItemForEntry(entry);
+  model.visibleEntries.forEach((entry, index) => {
+    const item = model.displayItems[index];
     fragment.appendChild(buildCard(item, index, entry));
   });
   grid.replaceChildren(fragment);
