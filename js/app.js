@@ -5442,6 +5442,17 @@ const App = {
       }
     }
 
+    if (!shouldAppend && visibleAnime.length > 0) {
+      if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
+        performance.mark('rekonime:catalog-content-rendered');
+      }
+      this.emitAppEvent('rekonime:catalog-content-rendered', {
+        cards: visibleAnime.length,
+        totalCount,
+        status: document.documentElement?.dataset?.catalogStatus || ''
+      });
+    }
+
     this.gridRenderedCount = endIndex;
     if (!shouldAppend) {
       this.gridInitialBatchRendered = true;

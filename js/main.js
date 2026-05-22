@@ -61,6 +61,9 @@ const initNonCriticalServices = (app) => {
 };
 
 const bootstrap = () => {
+  if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
+    performance.mark('rekonime:bootstrap-start');
+  }
   Logger.init({ level: 'info', captureGlobalErrors: true });
   ThemeManager.init();
 
@@ -80,6 +83,10 @@ const bootstrap = () => {
       return;
     }
 
+    if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
+      performance.mark('rekonime:app-boot-scheduled');
+    }
+
     if (shouldPrioritizeFirstPaint()) {
       if ('requestIdleCallback' in window) {
         window.requestIdleCallback(() => {
@@ -93,25 +100,12 @@ const bootstrap = () => {
       return;
     }
 
-    if (typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(() => {
-        void runApp();
-      });
-      return;
-    }
-
-    window.setTimeout(() => {
-      void runApp();
-    }, 0);
+    void runApp();
   };
 
   scheduleAppBoot();
 };
 
 if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootstrap);
-  } else {
-    bootstrap();
-  }
+  bootstrap();
 }

@@ -147,6 +147,25 @@ const stripInjectedStylesheetLinks = () => {
   });
 };
 
+const injectCatalogStartupHints = () => {
+  const filePath = path.join(dist, 'index.html');
+  if (!fs.existsSync(filePath)) return;
+  const source = fs.readFileSync(filePath, 'utf8');
+  if (source.includes('href="/js/app.js"') && source.includes('href="/data/anime.full.index.json"')) return;
+
+  const hints = [
+    source.includes('href="/js/app.js"') ? '' : '  <link rel="modulepreload" href="/js/app.js">\n',
+    source.includes('href="/data/anime.full.index.json"') ? '' : '  <link rel="preload" href="/data/anime.full.index.json" as="fetch" crossorigin>\n'
+  ].join('');
+  const next = source.replace(
+    '  <link rel="dns-prefetch" href="https://graphql.anilist.co">\n',
+    `  <link rel="dns-prefetch" href="https://graphql.anilist.co">\n${hints}`
+  );
+  if (next !== source) {
+    fs.writeFileSync(filePath, next, 'utf8');
+  }
+};
+
 copyRuntimeData();
 copyRecursive(path.join(root, 'js', 'data.js'), path.join(dist, 'js', 'data.js'));
 copyRecursive(path.join(root, 'js', 'sw-cache-policy.js'), path.join(dist, 'js', 'sw-cache-policy.js'));
@@ -154,3 +173,4 @@ copyRecursive(path.join(root, 'js', 'bootstrap'), path.join(dist, 'js', 'bootstr
 copyRecursive(path.join(root, 'health.html'), path.join(dist, 'health.html'));
 copyServiceWorker();
 stripInjectedStylesheetLinks();
+injectCatalogStartupHints();

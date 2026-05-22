@@ -29,11 +29,11 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('production build supports browse, full catalog, search, details, and watchlist', async ({ page }) => {
+test('production build supports browse, full catalog, search, details, and watchlist', async ({ page, context }) => {
   const failures = installFailureCollectors(page);
   const catalogRequests = [];
 
-  await page.route('https://api.jikan.moe/**', (route) => {
+  await context.route('https://api.jikan.moe/**', (route) => {
     const isReviewsRequest = route.request().url().includes('/reviews');
     return route.fulfill({
       status: 200,
@@ -43,7 +43,7 @@ test('production build supports browse, full catalog, search, details, and watch
         : { data: { synopsis: 'Production smoke synopsis.' } })
     });
   });
-  await page.route('https://graphql.anilist.co/**', (route) => route.fulfill({
+  await context.route('https://graphql.anilist.co/**', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({
@@ -64,6 +64,11 @@ test('production build supports browse, full catalog, search, details, and watch
 
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  const usableCatalogTiming = await page.evaluate(() => {
+    const mark = performance.getEntriesByName('rekonime:catalog-content-rendered').at(-1);
+    return mark ? mark.startTime : null;
+  });
+  expect(usableCatalogTiming).not.toBeNull();
   await page.waitForSelector('#anime-grid .anime-card');
   await expect(page.locator('#anime-grid .anime-card').first()).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-catalog-status', 'full');
