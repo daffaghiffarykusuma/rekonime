@@ -9,15 +9,14 @@ import {
 } from './image-proxy.js';
 import {
   WATCH_STATUS_VALUES,
-  normalizeWatchStatus,
-  normalizeWatchProgress
+  normalizeWatchlistSnapshot as normalizeLifecycleWatchlistSnapshot,
+  shouldShowWatchProgress,
+  createWatchlistLifecycle
 } from './watchlist-state.js';
 import { setHTML } from './security/trusted-types.js';
 import './bootstrap/watchlist-cover-preload.js';
 import './bootstrap/noncritical-styles.js';
 
-const LEGACY_WATCHLIST_STORAGE_KEY = 'rekonime.bookmarks';
-const WATCHLIST_STORAGE_KEY = 'rekonime.watchlist';
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/120x170?text=No+Image';
 const CARD_DIMENSIONS = { width: 240, height: 360 };
 const ALLOWED_IMAGE_HOSTS = [
@@ -48,6 +47,10 @@ const imageProxyRuntime = createImageProxyRuntime({
   timeoutMs: IMAGE_PROXY_CHECK_TIMEOUT_MS,
   queueTask: (callback, options = {}) => queueIdleTask(callback, options.timeout ?? 2000),
   waitForLoad: false
+});
+
+const getWatchlistLifecycle = () => createWatchlistLifecycle({
+  placeholderCover: PLACEHOLDER_COVER
 });
 
 const initNonCriticalServices = () => {
@@ -122,285 +125,68 @@ const buildProxyUrl = (coverUrl) => {
   });
 };
 
-const parseLegacyWatchlist = () => {
-  if (typeof window === 'undefined') return { ids: [], items: [] };
-  try {
-    const raw = localStorage.getItem(LEGACY_WATCHLIST_STORAGE_KEY);
-    if (!raw) return { ids: [], items: [] };
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return { ids: parsed.map(String), items: [] };
-    }
-    if (parsed && typeof parsed === 'object') {
-      const ids = Array.isArray(parsed.ids) ? parsed.ids.map(String) : [];
-      const items = Array.isArray(parsed.items) ? parsed.items : [];
-      return { ids, items };
-    }
-  } catch (error) {
-    Logger?.warn?.('Failed to parse legacy watchlist', { error });
-  }
-  return { ids: [], items: [] };
-};
-
-const parseWatchlist = () => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(WATCHLIST_STORAGE_KEY);
-    if (!raw) return null;
-    const trimmed = raw.trim();
-    if (trimmed && !trimmed.startsWith('{') && !trimmed.startsWith('[')) {
-      localStorage.removeItem(WATCHLIST_STORAGE_KEY);
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-    const entries = Array.isArray(parsed.entries) ? parsed.entries : [];
-    const version = Number.isInteger(parsed.version) ? parsed.version : 1;
-    const updatedAt = Number(parsed.updatedAt) || 0;
-    return { version, updatedAt, entries };
-  } catch (error) {
-    return null;
-  }
-};
-
-const shouldShowWatchProgress = (status) => {
-  return status === 'watching' || status === 'completed' || status === 'dropped';
-};
-
 const normalizeWatchlistSnapshot = (item, fallbackId = '') => {
-  if (!item || typeof item !== 'object') return null;
-  const id = String(item.id || fallbackId || '').trim();
-  if (!id) return null;
-  const title = String(item.title || '').trim() || 'Unknown title';
-  const cover = String(item.cover || '').trim() || PLACEHOLDER_COVER;
-  return {
-    id,
-    title,
-    titleEnglish: item.titleEnglish || '',
-    titleJapanese: item.titleJapanese || '',
-    malId: Number.isFinite(Number(item.malId)) ? Number(item.malId) : null,
-    anilistId: Number.isFinite(Number(item.anilistId)) ? Number(item.anilistId) : null,
-    year: item.year || null,
-    season: item.season || '',
-    studio: item.studio || '',
-    cover,
-    type: item.type || '',
-    source: item.source || '',
-    demographic: item.demographic || '',
-    stats: item.stats || item.statsSnapshot || null,
-    communityScore: Number.isFinite(item.communityScore) ? item.communityScore : null,
-    genres: Array.isArray(item.genres) ? [...item.genres] : [],
-    themes: Array.isArray(item.themes) ? [...item.themes] : []
-  };
-};
-
-const buildWatchlistEntry = ({ id, status, progress, updatedAt, startedAt, completedAt, snapshot } = {}) => {
-  const key = String(id || '').trim();
-  if (!key) return null;
-  const now = Date.now();
-  const entry = {
-    id: key,
-    status: normalizeWatchStatus(status),
-    progress: normalizeWatchProgress(progress),
-    updatedAt: Number.isFinite(updatedAt) && updatedAt > 0 ? updatedAt : now
-  };
-
-  if (Number.isFinite(startedAt) && startedAt > 0) {
-    entry.startedAt = Math.floor(startedAt);
-  }
-  if (Number.isFinite(completedAt) && completedAt > 0) {
-    entry.completedAt = Math.floor(completedAt);
-  }
-
-  const normalizedSnapshot = normalizeWatchlistSnapshot(snapshot, key);
-  if (normalizedSnapshot) {
-    entry.snapshot = normalizedSnapshot;
-  }
-
-  return entry;
+  return normalizeLifecycleWatchlistSnapshot(item, {
+    fallbackId,
+    placeholderCover: PLACEHOLDER_COVER,
+    requireCover: false
+  });
 };
 
 const getWatchlistState = () => {
-  const data = parseWatchlist();
-  const map = new Map();
-  const ordered = [];
-  const entries = Array.isArray(data?.entries) ? data.entries : [];
-  entries.forEach((entry) => {
-    const normalized = buildWatchlistEntry(entry);
-    if (!normalized || map.has(normalized.id)) return;
-    map.set(normalized.id, normalized);
-    ordered.push(normalized);
-  });
-  return { map, entries: ordered, version: data?.version || 1 };
+  const lifecycle = getWatchlistLifecycle();
+  const map = lifecycle.load();
+  return { map, entries: [...map.values()], version: 1 };
 };
 
 const saveWatchlistMap = (map, version = 1) => {
-  const entries = [...map.values()];
-  const payload = {
-    version,
-    updatedAt: Date.now(),
-    entries
-  };
-  try {
-    localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(payload));
-  } catch (error) {
-    // Ignore storage errors
-  }
+  const lifecycle = createWatchlistLifecycle({ version, placeholderCover: PLACEHOLDER_COVER, entries: map });
+  lifecycle.save();
 };
 
 const migrateLegacyBookmarksToWatchlist = () => {
-  const legacy = parseLegacyWatchlist();
-  if (!legacy) return;
-  const hasLegacyData = legacy.ids.length > 0 || legacy.items.length > 0;
-  if (!hasLegacyData) return;
-
-  const { map, version } = getWatchlistState();
-  const snapshotMap = new Map();
-  legacy.items.forEach((item) => {
-    const normalized = normalizeWatchlistSnapshot(item);
-    if (!normalized || snapshotMap.has(normalized.id)) return;
-    snapshotMap.set(normalized.id, normalized);
-  });
-
-  let changed = false;
-
-  const legacyIds = legacy.ids.length > 0 ? legacy.ids : [...snapshotMap.keys()];
-  legacyIds.forEach((id) => {
-    const key = String(id || '').trim();
-    if (!key) return;
-    const snapshot = snapshotMap.get(key) || null;
-    if (map.has(key)) {
-      const existing = map.get(key);
-      if (existing && !existing.snapshot && snapshot) {
-        existing.snapshot = snapshot;
-        map.set(key, existing);
-        changed = true;
-      }
-      return;
-    }
-    const entry = buildWatchlistEntry({ id: key, status: 'planned', progress: 0, snapshot });
-    if (!entry) return;
-    map.set(key, entry);
-    changed = true;
-  });
-
-  snapshotMap.forEach((snapshot, id) => {
-    if (!map.has(id)) {
-      const entry = buildWatchlistEntry({ id, status: 'planned', progress: 0, snapshot });
-      if (entry) {
-        map.set(id, entry);
-        changed = true;
-      }
-      return;
-    }
-    const existing = map.get(id);
-    if (existing && !existing.snapshot) {
-      existing.snapshot = snapshot;
-      map.set(id, existing);
-      changed = true;
-    }
-  });
-
-  if (changed) {
-    saveWatchlistMap(map, version);
-  }
-
-  try {
-    localStorage.removeItem(LEGACY_WATCHLIST_STORAGE_KEY);
-  } catch (error) {
-    // Ignore storage errors
-  }
+  const lifecycle = getWatchlistLifecycle();
+  lifecycle.load();
+  lifecycle.migrateLegacy();
 };
 
 const setWatchStatus = (animeId, status, episodeCount) => {
   const key = String(animeId || '').trim();
   if (!key) return null;
-  const { map, version } = getWatchlistState();
-  const now = Date.now();
-  if (!status) {
-    map.delete(key);
-    saveWatchlistMap(map, version);
-    return null;
-  }
-
-  const nextStatus = normalizeWatchStatus(status);
-  const current = map.get(key);
-  const snapshot = current?.snapshot || null;
-  let entry = buildWatchlistEntry({
-    id: key,
-    status: nextStatus,
-    progress: current?.progress || 0,
-    updatedAt: now,
-    startedAt: current?.startedAt,
-    completedAt: current?.completedAt,
-    snapshot
+  const lifecycle = getWatchlistLifecycle();
+  lifecycle.load();
+  const current = lifecycle.getEntry(key);
+  const result = lifecycle.setStatus(key, status, {
+    episodeCount,
+    snapshot: current?.snapshot || null
   });
-
-  if (!entry) return null;
-
-  if (nextStatus === 'planned') {
-    entry.progress = 0;
-    delete entry.startedAt;
-    delete entry.completedAt;
-  } else {
-    if (!entry.startedAt) entry.startedAt = now;
-    if (nextStatus === 'completed') {
-      entry.completedAt = now;
-      if (Number.isFinite(episodeCount) && episodeCount > 0) {
-        entry.progress = Math.max(entry.progress, episodeCount);
-      }
-    } else {
-      delete entry.completedAt;
-    }
-  }
-
-  map.set(key, entry);
-  saveWatchlistMap(map, version);
-  return entry;
+  return result.entry || null;
 };
 
 const setWatchProgress = (animeId, progress, episodeCount) => {
   const key = String(animeId || '').trim();
   if (!key) return null;
-  const { map, version } = getWatchlistState();
-  const now = Date.now();
-  const normalized = normalizeWatchProgress(progress);
-  const maxEpisodes = Number.isFinite(episodeCount) && episodeCount > 0 ? episodeCount : null;
-  const clamped = maxEpisodes ? Math.min(normalized, maxEpisodes) : normalized;
-
-  let entry = map.get(key);
-  if (!entry) {
-    entry = buildWatchlistEntry({
-      id: key,
-      status: 'watching',
-      progress: clamped,
-      updatedAt: now,
-      startedAt: now
-    });
-  } else {
-    entry = { ...entry, progress: clamped, updatedAt: now };
-    if (entry.status === 'planned' && clamped > 0) {
-      entry.status = 'watching';
-      entry.startedAt = entry.startedAt || now;
-    }
-  }
-
-  if (entry.status === 'completed' && maxEpisodes && clamped >= maxEpisodes) {
-    entry.completedAt = entry.completedAt || now;
-  }
-
-  map.set(key, entry);
-  saveWatchlistMap(map, version);
-  return entry;
+  const lifecycle = getWatchlistLifecycle();
+  lifecycle.load();
+  const current = lifecycle.getEntry(key);
+  const result = lifecycle.setProgress(key, progress, {
+    episodeCount,
+    snapshot: current?.snapshot || null
+  });
+  return result.entry || null;
 };
 
 const adjustWatchProgress = (animeId, delta, episodeCount) => {
   const key = String(animeId || '').trim();
   if (!key) return null;
-  const { map } = getWatchlistState();
-  const entry = map.get(key);
-  const current = Number.isFinite(entry?.progress) ? entry.progress : 0;
-  return setWatchProgress(key, current + (Number(delta) || 0), episodeCount);
+  const lifecycle = getWatchlistLifecycle();
+  lifecycle.load();
+  const current = lifecycle.getEntry(key);
+  const result = lifecycle.adjustProgress(key, delta, {
+    episodeCount,
+    snapshot: current?.snapshot || null
+  });
+  return result.entry || null;
 };
 
 const getEpisodeCountFromItem = (item) => {

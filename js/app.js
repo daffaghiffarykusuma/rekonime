@@ -5,7 +5,6 @@ import { MetricGlossary } from './metricGlossary.js';
 import { Onboarding } from './onboarding.js';
 import { ThemeManager } from './themeManager.js';
 import { CacheManager } from './services/cache-manager.js';
-import { CatalogCache } from './services/catalog-cache.js';
 import { CatalogLoader } from './services/catalog-loader.js';
 import { AnalyticsService } from './services/analytics-service.js';
 import { ApiClient } from './services/api-client.js';
@@ -15,6 +14,8 @@ import { Store } from './core/store.js';
 import { DependencyContainer } from './core/dependency-container.js';
 import { HealthMonitor } from './healthMonitor.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
+import { createDetailExperience } from './detail-experience.js';
+import { createRuntimeCapabilities } from './runtime-capabilities.js';
 import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
 import {
   buildTrailerUrls as buildTrustedTrailerUrls,
@@ -25,7 +26,6 @@ import {
 import {
   setHTML,
   insertHTML,
-  replaceOuterHTML,
   setScriptText,
   setScriptSource
 } from './security/trusted-types.js';
@@ -36,7 +36,15 @@ import {
 import {
   WATCH_STATUS_VALUES,
   normalizeWatchStatus as normalizeWatchStatusValue,
-  normalizeWatchProgress as normalizeWatchProgressValue
+  normalizeWatchProgress as normalizeWatchProgressValue,
+  normalizeWatchTimestamp as normalizeWatchTimestampValue,
+  normalizeSnapshotStats as normalizeWatchlistSnapshotStats,
+  buildAnimeSnapshot as buildWatchlistAnimeSnapshot,
+  normalizeWatchlistSnapshot,
+  buildWatchlistEntry as buildLifecycleWatchlistEntry,
+  areWatchlistSnapshotsEqual as areLifecycleWatchlistSnapshotsEqual,
+  shouldShowWatchProgress as shouldShowLifecycleWatchProgress,
+  createWatchlistLifecycle
 } from './watchlist-state.js';
 
 /**
@@ -264,6 +272,50 @@ const App = {
     return CacheManager;
   },
 
+  getCatalogRuntime() {
+    return CatalogLoader.createRuntime(this);
+  },
+
+  getDetailExperience() {
+    return createDetailExperience(this);
+  },
+
+  getRuntimeCapabilities() {
+    return createRuntimeCapabilities({
+      modalFocusState: this.modalFocusState,
+      closeModalById: (modalId) => {
+        if (modalId === 'detail-modal') {
+          this.closeDetailModal();
+          return true;
+        }
+        if (modalId === 'filter-modal') {
+          this.closeFilterModal();
+          return true;
+        }
+        if (modalId === 'settings-modal') {
+          this.closeSettingsModal();
+          return true;
+        }
+        if (modalId === 'metric-help-modal') {
+          this.closeMetricHelpModal();
+          return true;
+        }
+        return false;
+      }
+    });
+  },
+
+  getWatchlistLifecycle() {
+    return createWatchlistLifecycle({
+      storage: this.getCache(),
+      storageKey: this.watchlistStorageKey,
+      legacyStorageKey: this.legacyWatchlistStorageKey,
+      version: this.watchlistVersion,
+      entries: this.watchlistEntries,
+      now: () => Date.now()
+    });
+  },
+
   getAnalytics() {
     return AnalyticsService;
   },
@@ -314,24 +366,11 @@ const App = {
   },
 
   queueIdleTask(callback, { timeout = 1500 } = {}) {
-    if (typeof callback !== 'function') return null;
-    if (typeof window === 'undefined') {
-      callback();
-      return null;
-    }
-    if ('requestIdleCallback' in window) {
-      return window.requestIdleCallback(callback, { timeout });
-    }
-    return window.setTimeout(callback, 0);
+    return this.getRuntimeCapabilities().queueIdleTask(callback, { timeout });
   },
 
   cancelIdleTask(handle) {
-    if (typeof window === 'undefined' || handle === null || typeof handle === 'undefined') return;
-    if ('cancelIdleCallback' in window && typeof window.cancelIdleCallback === 'function') {
-      window.cancelIdleCallback(handle);
-      return;
-    }
-    clearTimeout(handle);
+    return this.getRuntimeCapabilities().cancelIdleTask(handle);
   },
 
   getConnectionInfo() {
@@ -885,73 +924,15 @@ const App = {
   },
 
   normalizeSnapshotStats(stats) {
-    if (!stats || typeof stats !== 'object') return null;
-    return {
-      retentionScore: Number.isFinite(stats.retentionScore) ? stats.retentionScore : null,
-      threeEpisodeHook: Number.isFinite(stats.threeEpisodeHook) ? stats.threeEpisodeHook : null,
-      churnRisk: stats.churnRisk && Number.isFinite(stats.churnRisk.score)
-        ? { score: stats.churnRisk.score }
-        : null,
-      worthFinishing: Number.isFinite(stats.worthFinishing) ? stats.worthFinishing : null,
-      flowState: Number.isFinite(stats.flowState) ? stats.flowState : null,
-      comfortScore: Number.isFinite(stats.comfortScore) ? stats.comfortScore : null,
-      episodeCount: Number.isFinite(stats.episodeCount) ? stats.episodeCount : null
-    };
+    return normalizeWatchlistSnapshotStats(stats);
   },
 
   buildAnimeSnapshot(anime) {
-    if (!anime) return null;
-    const id = this.normalizeBookmarkId(anime.id);
-    if (!id) return null;
-    const cover = String(anime.cover || '').trim();
-    if (!cover) return null;
-    return {
-      id,
-      title: String(anime.title || 'Unknown'),
-      titleEnglish: anime.titleEnglish || '',
-      titleJapanese: anime.titleJapanese || '',
-      malId: Number.isFinite(Number(anime.malId)) ? Number(anime.malId) : null,
-      anilistId: Number.isFinite(Number(anime.anilistId)) ? Number(anime.anilistId) : null,
-      cover,
-      year: anime.year || null,
-      season: anime.season || '',
-      studio: anime.studio || '',
-      type: anime.type || '',
-      source: anime.source || '',
-      demographic: anime.demographic || '',
-      genres: Array.isArray(anime.genres) ? [...anime.genres] : [],
-      themes: Array.isArray(anime.themes) ? [...anime.themes] : [],
-      communityScore: Number.isFinite(anime.communityScore) ? anime.communityScore : null,
-      stats: this.normalizeSnapshotStats(anime.stats)
-    };
+    return buildWatchlistAnimeSnapshot(anime);
   },
 
   normalizeAnimeSnapshot(item) {
-    if (!item) return null;
-    const id = this.normalizeBookmarkId(item.id);
-    if (!id) return null;
-    const title = String(item.title || 'Unknown');
-    const cover = String(item.cover || '');
-    if (!cover) return null;
-    return {
-      id,
-      title,
-      titleEnglish: item.titleEnglish || '',
-      titleJapanese: item.titleJapanese || '',
-      malId: Number.isFinite(Number(item.malId)) ? Number(item.malId) : null,
-      anilistId: Number.isFinite(Number(item.anilistId)) ? Number(item.anilistId) : null,
-      cover,
-      year: item.year || null,
-      season: item.season || '',
-      studio: item.studio || '',
-      type: item.type || '',
-      source: item.source || '',
-      demographic: item.demographic || '',
-      genres: Array.isArray(item.genres) ? [...item.genres] : [],
-      themes: Array.isArray(item.themes) ? [...item.themes] : [],
-      communityScore: Number.isFinite(item.communityScore) ? item.communityScore : null,
-      stats: this.normalizeSnapshotStats(item.stats || item.statsSnapshot || null)
-    };
+    return normalizeWatchlistSnapshot(item);
   },
 
   getWatchlistSnapshot(animeId) {
@@ -971,37 +952,11 @@ const App = {
   },
 
   normalizeWatchTimestamp(value) {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
-    return Math.floor(parsed);
+    return normalizeWatchTimestampValue(value);
   },
 
   buildWatchlistEntry({ id, status, progress, updatedAt, startedAt, completedAt, snapshot } = {}) {
-    const key = this.normalizeBookmarkId(id);
-    if (!key) return null;
-    const entry = {
-      id: key,
-      status: this.normalizeWatchStatus(status),
-      progress: this.normalizeWatchProgress(progress),
-      updatedAt: this.normalizeWatchTimestamp(updatedAt) || Date.now()
-    };
-
-    const started = this.normalizeWatchTimestamp(startedAt);
-    if (started) {
-      entry.startedAt = started;
-    }
-
-    const completed = this.normalizeWatchTimestamp(completedAt);
-    if (completed) {
-      entry.completedAt = completed;
-    }
-
-    const normalizedSnapshot = snapshot ? this.normalizeAnimeSnapshot(snapshot) : null;
-    if (normalizedSnapshot) {
-      entry.snapshot = normalizedSnapshot;
-    }
-
-    return entry;
+    return buildLifecycleWatchlistEntry({ id, status, progress, updatedAt, startedAt, completedAt, snapshot });
   },
 
   normalizeWatchlistEntry(entry) {
@@ -1018,150 +973,42 @@ const App = {
   },
 
   loadWatchlist() {
-    this.watchlistEntries = new Map();
     if (typeof window === 'undefined') return;
-
-    const cache = this.getCache();
-    const parsed = cache.getJSON(this.watchlistStorageKey, { fallback: null, validate: true });
-    if (!parsed) {
-      const raw = cache.getRaw(this.watchlistStorageKey, { fallback: '', allowMemory: false, validate: false });
-      if (raw && typeof raw === 'string' && !raw.trim().startsWith('{') && !raw.trim().startsWith('[')) {
-        cache.removeItem(this.watchlistStorageKey);
-      }
-    }
-    const entries = Array.isArray(parsed?.entries)
-      ? parsed.entries
-      : (Array.isArray(parsed) ? parsed : []);
-
-    entries.forEach((entry) => {
-      const normalized = this.normalizeWatchlistEntry(entry);
-      if (!normalized || !normalized.id) return;
-      if (this.watchlistEntries.has(normalized.id)) return;
-      this.watchlistEntries.set(normalized.id, normalized);
-    });
+    const lifecycle = this.getWatchlistLifecycle();
+    this.watchlistEntries = lifecycle.load();
   },
 
   refreshWatchlistSnapshots() {
-    if (!Array.isArray(this.animeData) || this.animeData.length === 0) return;
-    let changed = false;
-    this.watchlistEntries.forEach((entry, id) => {
-      if (entry?.snapshot) return;
-      const anime = this.animeData.find(item => item?.id === id);
-      if (!anime) return;
-      const snapshot = this.buildAnimeSnapshot(anime);
-      if (!snapshot) return;
-      entry.snapshot = snapshot;
-      changed = true;
-    });
-
-    if (changed) {
-      this.saveWatchlist();
-    }
+    this.getWatchlistLifecycle().refreshSnapshotsFromCatalog(this.animeData, { persist: true, replaceExisting: false });
   },
 
   getWatchlistStoragePayload() {
-    const entries = [];
-    this.watchlistEntries.forEach((entry, id) => {
-      const next = { ...entry };
-      if (next.snapshot) {
-        const normalized = this.normalizeAnimeSnapshot(next.snapshot);
-        if (normalized) {
-          next.snapshot = normalized;
-        } else {
-          delete next.snapshot;
-          if (entry?.snapshot) {
-            delete entry.snapshot;
-            this.watchlistEntries.set(id, entry);
-          }
-        }
-      }
-      entries.push(next);
-    });
-    return {
-      version: this.watchlistVersion,
-      updatedAt: Date.now(),
-      entries
-    };
+    return this.getWatchlistLifecycle().getStoragePayload();
   },
 
   saveWatchlist() {
     if (typeof window === 'undefined') return false;
-    const cache = this.getCache();
-    const payload = this.getWatchlistStoragePayload();
-    const saved = cache.setJSON(this.watchlistStorageKey, payload, { validate: true });
-    if (saved) return true;
-    try {
-      window.localStorage.setItem(this.watchlistStorageKey, JSON.stringify(payload));
-      return true;
-    } catch (error) {
-      return false;
-    }
+    return this.getWatchlistLifecycle().save();
   },
 
   getWatchlistEntry(animeId) {
-    const key = this.normalizeBookmarkId(animeId);
-    if (!key) return null;
-    return this.watchlistEntries.get(key) || null;
+    return this.getWatchlistLifecycle().getEntry(animeId);
   },
 
   getWatchlistIds({ statuses } = {}) {
-    const filter = Array.isArray(statuses) && statuses.length > 0
-      ? new Set(statuses.map(status => this.normalizeWatchStatus(status)))
-      : null;
-    const ids = [];
-    this.watchlistEntries.forEach((entry, id) => {
-      if (!filter || filter.has(entry.status)) {
-        ids.push(id);
-      }
-    });
-    return ids;
+    return this.getWatchlistLifecycle().getIds({ statuses });
   },
 
   getWatchlistEntries({ statuses } = {}) {
-    const filter = Array.isArray(statuses) && statuses.length > 0
-      ? new Set(statuses.map(status => this.normalizeWatchStatus(status)))
-      : null;
-    const entries = [];
-    this.watchlistEntries.forEach((entry) => {
-      if (!filter || filter.has(entry.status)) {
-        entries.push(entry);
-      }
-    });
-    return entries;
+    return this.getWatchlistLifecycle().getEntries({ statuses });
   },
 
   getWatchlistAnime({ statuses } = {}) {
-    const ids = this.getWatchlistIds({ statuses });
-    if (ids.length === 0) return [];
-    const list = [];
-    ids.forEach((id) => {
-      const anime = this.animeData.find(item => item?.id === id);
-      if (anime) list.push(anime);
-    });
-    return list;
+    return this.getWatchlistLifecycle().getAnimeItems(this.animeData, { statuses });
   },
 
   getAiringDashboardAnimeItems({ statuses } = {}) {
-    const animeLookup = Array.isArray(this.animeData) && this.animeData.length > 0
-      ? new Map(this.animeData.map(anime => [String(anime?.id || '').trim(), anime]))
-      : new Map();
-    const itemMap = new Map();
-
-    this.getWatchlistEntries({ statuses }).forEach((entry) => {
-      const key = String(entry?.id || '').trim();
-      if (!key) return;
-      const anime = animeLookup.get(key);
-      if (anime) {
-        itemMap.set(key, anime);
-        return;
-      }
-      const snapshot = this.normalizeAnimeSnapshot(entry.snapshot);
-      if (snapshot) {
-        itemMap.set(key, snapshot);
-      }
-    });
-
-    return [...itemMap.values()];
+    return this.getWatchlistLifecycle().getDisplayItems(this.animeData, { statuses });
   },
 
   async loadAiringDashboardModule() {
@@ -1214,100 +1061,28 @@ const App = {
   },
 
   getWatchlistSnapshots({ statuses } = {}) {
-    const entries = this.getWatchlistEntries({ statuses });
-    return entries
-      .map(entry => this.normalizeAnimeSnapshot(entry.snapshot))
-      .filter(Boolean);
+    return this.getWatchlistLifecycle().getSnapshots({ statuses });
   },
 
   ensureWatchlistEntry(animeId, { status = 'planned', progress = 0 } = {}) {
-    const key = this.normalizeBookmarkId(animeId);
-    if (!key) return false;
-    if (this.watchlistEntries.has(key)) return false;
-    const entry = this.buildWatchlistEntry({ id: key, status, progress });
-    if (!entry) return false;
-    this.watchlistEntries.set(key, entry);
-    this.saveWatchlist();
-    return true;
+    return this.getWatchlistLifecycle().ensureEntry(animeId, { status, progress }).changed;
   },
 
   removeWatchlistEntry(animeId) {
-    const key = this.normalizeBookmarkId(animeId);
-    if (!key) return false;
-    if (!this.watchlistEntries.has(key)) return false;
-    this.watchlistEntries.delete(key);
-    this.saveWatchlist();
-    return true;
+    return this.getWatchlistLifecycle().removeEntry(animeId).removed;
   },
 
   getLegacyBookmarksPayload() {
-    const cache = this.getCache();
-    const parsed = cache.getJSON(this.legacyWatchlistStorageKey, { fallback: null, validate: false });
-    if (!parsed) return null;
-
-    const ids = [];
-    const items = [];
-
-    if (Array.isArray(parsed)) {
-      ids.push(...parsed);
-    } else if (this.isPlainObject(parsed)) {
-      if (Array.isArray(parsed.ids)) ids.push(...parsed.ids);
-      if (Array.isArray(parsed.items)) items.push(...parsed.items);
-    }
-
-    const uniqueIds = [];
-    const seen = new Set();
-    ids.forEach((id) => {
-      const key = this.normalizeBookmarkId(id);
-      if (!key || seen.has(key)) return;
-      seen.add(key);
-      uniqueIds.push(key);
-    });
-
-    const itemMap = new Map();
-    items.forEach((entry) => {
-      const normalized = this.normalizeAnimeSnapshot(entry);
-      if (!normalized || !normalized.id || itemMap.has(normalized.id)) return;
-      itemMap.set(normalized.id, normalized);
-    });
-
-    if (uniqueIds.length === 0 && itemMap.size > 0) {
-      uniqueIds.push(...itemMap.keys());
-    }
-
-    return { ids: uniqueIds, items: itemMap };
+    return this.getWatchlistLifecycle().getLegacyPayload();
   },
 
   migrateLegacyBookmarksToWatchlist() {
     if (typeof window === 'undefined') return;
-    const legacy = this.getLegacyBookmarksPayload();
-    if (!legacy || legacy.ids.length === 0) return;
-
-    let changed = false;
-    legacy.ids.forEach((id) => {
-      if (this.watchlistEntries.has(id)) return;
-      const snapshot = legacy.items.get(id) || null;
-      const entry = this.buildWatchlistEntry({
-        id,
-        status: 'planned',
-        progress: 0,
-        snapshot
-      });
-      if (!entry) return;
-      this.watchlistEntries.set(id, entry);
-      changed = true;
-    });
-
-    if (changed) {
-      this.saveWatchlist();
-    }
-
-    const cache = this.getCache();
-    cache.removeItem(this.legacyWatchlistStorageKey);
+    this.getWatchlistLifecycle().migrateLegacy();
   },
 
   shouldShowWatchProgress(status) {
-    return status === 'watching' || status === 'completed' || status === 'dropped';
+    return shouldShowLifecycleWatchProgress(status);
   },
 
   getEpisodeLimitForAnime(animeId) {
@@ -1321,123 +1096,66 @@ const App = {
   setWatchStatus(animeId, status, { episodeCount } = {}) {
     const key = this.normalizeBookmarkId(animeId);
     if (!key) return null;
-    const normalized = String(status || '').trim().toLowerCase();
-    if (!normalized) {
-      const removed = this.removeWatchlistEntry(key);
-      if (removed) {
-        this.updateWatchlistControls(key);
-        this.emitAppEvent('rekonime:watchlist-updated', { id: key, removed: true });
-        this.scheduleAiringDashboardRender({ timeout: 500 });
-      }
-      return { removed };
-    }
-
-    const nextStatus = this.normalizeWatchStatus(normalized);
-    const now = Date.now();
-    let entry = this.watchlistEntries.get(key);
-
-    if (!entry) {
-      entry = this.buildWatchlistEntry({ id: key, status: nextStatus, progress: 0, updatedAt: now });
-    } else {
-      entry = { ...entry, status: nextStatus, updatedAt: now };
-    }
-
-    if (nextStatus === 'planned') {
-      entry.progress = 0;
-      delete entry.startedAt;
-      delete entry.completedAt;
-    } else {
-      if (!entry.startedAt) entry.startedAt = now;
-      if (nextStatus === 'completed') {
-        entry.completedAt = now;
-        if (Number.isFinite(episodeCount) && episodeCount > 0) {
-          const current = this.normalizeWatchProgress(entry.progress);
-          entry.progress = Math.max(current, episodeCount);
-        }
-      } else {
-        delete entry.completedAt;
-      }
-    }
-
-    if (!entry.snapshot) {
-      const anime = this.animeData.find(item => item?.id === key);
-      const snapshot = this.buildAnimeSnapshot(anime);
-      if (snapshot) {
-        entry.snapshot = snapshot;
-      }
-    }
-
-    this.watchlistEntries.set(key, entry);
-    this.saveWatchlist();
-    this.updateWatchlistControls(key);
-    this.emitAppEvent('rekonime:watchlist-updated', {
-      id: key,
-      status: entry.status,
-      progress: entry.progress,
-      removed: false
+    const anime = this.animeData.find(item => item?.id === key);
+    const result = this.getWatchlistLifecycle().setStatus(key, status, {
+      episodeCount,
+      snapshot: this.buildAnimeSnapshot(anime)
     });
+    if (!result.changed) return result;
+    this.updateWatchlistControls(key);
+    if (result.removed) {
+      this.emitAppEvent('rekonime:watchlist-updated', { id: key, removed: true });
+    } else {
+      this.emitAppEvent('rekonime:watchlist-updated', {
+        id: key,
+        status: result.entry.status,
+        progress: result.entry.progress,
+        removed: false
+      });
+    }
     this.scheduleAiringDashboardRender({ timeout: 500 });
-    return { entry };
+    return result.removed ? { removed: true } : { entry: result.entry };
   },
 
   setWatchProgress(animeId, progress, { episodeCount } = {}) {
     const key = this.normalizeBookmarkId(animeId);
     if (!key) return null;
-    const now = Date.now();
-    const normalized = this.normalizeWatchProgress(progress);
-    const maxEpisodes = Number.isFinite(episodeCount) && episodeCount > 0 ? episodeCount : null;
-    const clamped = maxEpisodes ? Math.min(normalized, maxEpisodes) : normalized;
-
-    let entry = this.watchlistEntries.get(key);
-    if (!entry) {
-      entry = this.buildWatchlistEntry({
-        id: key,
-        status: 'watching',
-        progress: clamped,
-        updatedAt: now,
-        startedAt: now
-      });
-    } else {
-      entry = { ...entry, progress: clamped, updatedAt: now };
-      if (entry.status === 'planned' && clamped > 0) {
-        entry.status = 'watching';
-        if (!entry.startedAt) entry.startedAt = now;
-      }
-    }
-
-    if (entry.status === 'completed' && maxEpisodes && clamped >= maxEpisodes) {
-      entry.completedAt = entry.completedAt || now;
-    }
-
-    if (!entry.snapshot) {
-      const anime = this.animeData.find(item => item?.id === key);
-      const snapshot = this.buildAnimeSnapshot(anime);
-      if (snapshot) {
-        entry.snapshot = snapshot;
-      }
-    }
-
-    this.watchlistEntries.set(key, entry);
-    this.saveWatchlist();
+    const anime = this.animeData.find(item => item?.id === key);
+    const result = this.getWatchlistLifecycle().setProgress(key, progress, {
+      episodeCount,
+      snapshot: this.buildAnimeSnapshot(anime)
+    });
+    if (!result.changed) return result;
     this.updateWatchlistControls(key);
     this.emitAppEvent('rekonime:watchlist-updated', {
       id: key,
-      status: entry.status,
-      progress: entry.progress,
+      status: result.entry.status,
+      progress: result.entry.progress,
       removed: false
     });
     this.scheduleAiringDashboardRender({ timeout: 500 });
-    return { entry };
+    return { entry: result.entry };
   },
 
   adjustWatchProgress(animeId, delta) {
     const key = this.normalizeBookmarkId(animeId);
     if (!key) return null;
-    const entry = this.watchlistEntries.get(key);
-    const current = Number.isFinite(entry?.progress) ? entry.progress : 0;
-    const nextValue = current + (Number(delta) || 0);
     const episodeCount = this.getEpisodeLimitForAnime(key);
-    return this.setWatchProgress(key, nextValue, { episodeCount });
+    const anime = this.animeData.find(item => item?.id === key);
+    const result = this.getWatchlistLifecycle().adjustProgress(key, delta, {
+      episodeCount,
+      snapshot: this.buildAnimeSnapshot(anime)
+    });
+    if (!result.changed) return result;
+    this.updateWatchlistControls(key);
+    this.emitAppEvent('rekonime:watchlist-updated', {
+      id: key,
+      status: result.entry.status,
+      progress: result.entry.progress,
+      removed: false
+    });
+    this.scheduleAiringDashboardRender({ timeout: 500 });
+    return { entry: result.entry };
   },
 
   updateWatchlistControls(animeId) {
@@ -1993,208 +1711,51 @@ const App = {
   },
 
   refreshTrailerSection() {
-    if (!this.currentAnimeId) return;
-    const anime = this.animeData.find(item => item.id === this.currentAnimeId);
-    if (!anime) return;
-
-    this.stopTrailerPlayback();
-    this.teardownTrailerObserver();
-    this.teardownTrailerScrollListener();
-
-    const markup = this.renderTrailerSection(anime);
-    const current = document.getElementById('detail-trailer');
-    const reviewsSection = document.getElementById('community-reviews-section');
-
-    if (!markup) {
-      if (current) current.remove();
-      return;
-    }
-
-    if (current) {
-      replaceOuterHTML(current, markup);
-    } else if (reviewsSection) {
-      insertHTML(reviewsSection, 'beforebegin', markup);
-    }
-
-    const modalContent = document.querySelector('#detail-modal .modal-content');
-    this.setupTrailerAutoplay(modalContent);
+    return this.getDetailExperience().refreshTrailerSection();
   },
 
   getModalElement(modalId) {
-    if (!modalId) return null;
-    return document.getElementById(modalId);
+    return this.getRuntimeCapabilities().getModalElement(modalId);
   },
 
   getModalContent(modal) {
-    if (!modal) return null;
-    return modal.querySelector('.modal-content') || modal;
+    return this.getRuntimeCapabilities().getModalContent(modal);
   },
 
   isModalVisible(modalId) {
-    const modal = this.getModalElement(modalId);
-    return Boolean(modal && modal.classList.contains('visible'));
+    return this.getRuntimeCapabilities().isModalVisible(modalId);
   },
 
   getOpenModalId() {
-    const order = ['settings-modal', 'filter-modal', 'detail-modal'];
-    const openId = order.find(id => this.isModalVisible(id));
-    return openId || '';
+    return this.getRuntimeCapabilities().getOpenModalId();
   },
 
   updateBodyScrollLock() {
-    const hasOpenModal = Boolean(document.querySelector('.modal-overlay.visible'));
-    document.body.classList.toggle('is-scroll-locked', hasOpenModal);
+    return this.getRuntimeCapabilities().updateBodyScrollLock();
   },
 
   isElementVisible(element) {
-    if (!element) return false;
-    return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+    return this.getRuntimeCapabilities().isElementVisible(element);
   },
 
   getFocusableElements(container) {
-    if (!container) return [];
-    const selectors = [
-      'a[href]',
-      'area[href]',
-      'button:not([disabled])',
-      'input:not([disabled]):not([type="hidden"])',
-      'select:not([disabled])',
-      'textarea:not([disabled])',
-      'iframe',
-      'object',
-      'embed',
-      '[contenteditable="true"]',
-      '[tabindex]:not([tabindex="-1"])'
-    ];
-
-    return Array.from(container.querySelectorAll(selectors.join(',')))
-      .filter(element => {
-        if (!this.isElementVisible(element)) return false;
-        if (element.getAttribute('aria-hidden') === 'true') return false;
-        return element.tabIndex >= 0;
-      });
+    return this.getRuntimeCapabilities().getFocusableElements(container);
   },
 
   activateModalFocus(modalId, { initialFocusSelector } = {}) {
-    const modal = this.getModalElement(modalId);
-    if (!modal) return;
-    const content = this.getModalContent(modal);
-    if (!content) return;
-
-    if (this.modalFocusState.activeId && this.modalFocusState.activeId !== modalId) {
-      this.deactivateModalFocus(this.modalFocusState.activeId, { returnFocus: false });
-    }
-
-    this.modalFocusState.activeId = modalId;
-    this.modalFocusState.lastFocused = document.activeElement && typeof document.activeElement.focus === 'function'
-      ? document.activeElement
-      : null;
-
-    if (!content.hasAttribute('tabindex')) {
-      content.setAttribute('tabindex', '-1');
-    }
-
-    const preferred = initialFocusSelector ? content.querySelector(initialFocusSelector) : null;
-    const focusables = this.getFocusableElements(content);
-    const target = preferred || focusables[0] || content;
-
-    requestAnimationFrame(() => {
-      if (target && typeof target.focus === 'function') {
-        target.focus({ preventScroll: true });
-      }
-    });
-
-    const handler = (event) => {
-      if (event.key !== 'Tab') return;
-      const focusable = this.getFocusableElements(content);
-      if (focusable.length === 0) {
-        event.preventDefault();
-        content.focus({ preventScroll: true });
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (!content.contains(active)) {
-        event.preventDefault();
-        first.focus({ preventScroll: true });
-        return;
-      }
-
-      if (event.shiftKey && active === first) {
-        event.preventDefault();
-        last.focus({ preventScroll: true });
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus({ preventScroll: true });
-      }
-    };
-
-    modal.addEventListener('keydown', handler);
-    this.modalFocusState.handler = handler;
+    return this.getRuntimeCapabilities().activateModalFocus(modalId, { initialFocusSelector });
   },
 
   deactivateModalFocus(modalId, { returnFocus = true } = {}) {
-    const targetId = modalId || this.modalFocusState.activeId;
-    if (!targetId) return;
-    const modal = this.getModalElement(targetId);
-
-    if (modal && this.modalFocusState.handler) {
-      modal.removeEventListener('keydown', this.modalFocusState.handler);
-    }
-
-    const lastFocused = this.modalFocusState.lastFocused;
-    if (targetId === this.modalFocusState.activeId) {
-      this.modalFocusState.activeId = null;
-      this.modalFocusState.lastFocused = null;
-    }
-    this.modalFocusState.handler = null;
-
-    if (returnFocus && lastFocused && document.contains(lastFocused) && typeof lastFocused.focus === 'function') {
-      lastFocused.focus({ preventScroll: true });
-    }
+    return this.getRuntimeCapabilities().deactivateModalFocus(modalId, { returnFocus });
   },
 
   setModalVisibility(modalId, isOpen, { initialFocusSelector, returnFocus = true } = {}) {
-    const modal = this.getModalElement(modalId);
-    if (!modal) return;
-
-    modal.classList.toggle('visible', isOpen);
-    modal.toggleAttribute('hidden', !isOpen);
-    modal.toggleAttribute('inert', !isOpen);
-
-    if (isOpen) {
-      this.activateModalFocus(modalId, { initialFocusSelector });
-    } else {
-      this.deactivateModalFocus(modalId, { returnFocus });
-    }
-
-    this.updateBodyScrollLock();
+    return this.getRuntimeCapabilities().setModalVisibility(modalId, isOpen, { initialFocusSelector, returnFocus });
   },
 
   handleGlobalEscape(event) {
-    if (!event || event.key !== 'Escape') return false;
-    const openId = this.getOpenModalId();
-    if (!openId) return false;
-
-    if (openId === 'detail-modal') {
-      this.closeDetailModal();
-      return true;
-    }
-
-    if (openId === 'filter-modal') {
-      this.closeFilterModal();
-      return true;
-    }
-
-    if (openId === 'settings-modal') {
-      this.closeSettingsModal();
-      return true;
-    }
-
-    return false;
+    return this.getRuntimeCapabilities().handleGlobalEscape(event);
   },
 
   toggleSettingsModal() {
@@ -2226,73 +1787,16 @@ const App = {
 
 
   areWatchlistSnapshotsEqual(left, right) {
-    if (!left || !right) return false;
-    return left.id === right.id &&
-      left.title === right.title &&
-      left.cover === right.cover &&
-      left.year === right.year &&
-      left.studio === right.studio &&
-      left.communityScore === right.communityScore &&
-      left.malId === right.malId &&
-      left.anilistId === right.anilistId;
+    return areLifecycleWatchlistSnapshotsEqual(left, right);
   },
 
   refreshWatchlistSnapshotsFromCatalog({ persist = false } = {}) {
-    if (this.watchlistEntries.size === 0) return false;
-    if (!Array.isArray(this.animeData) || this.animeData.length === 0) return false;
-    const lookup = new Map(this.animeData.map(anime => [String(anime.id), anime]));
-    let updated = false;
-
-    this.watchlistEntries.forEach((entry, id) => {
-      const anime = lookup.get(id);
-      if (!anime) return;
-      const snapshot = this.buildAnimeSnapshot(anime);
-      if (!snapshot) return;
-      if (entry.snapshot && this.areWatchlistSnapshotsEqual(entry.snapshot, snapshot)) {
-        return;
-      }
-      entry.snapshot = snapshot;
-      updated = true;
-    });
-
-    if (updated && persist) {
-      this.saveWatchlist();
-    }
-    return updated;
+    return this.getWatchlistLifecycle().refreshSnapshotsFromCatalog(this.animeData, { persist, replaceExisting: true });
   },
 
   getWatchlistDisplayItems() {
     if (this.watchlistEntries.size === 0) return [];
-    const lookup = Array.isArray(this.animeData) && this.animeData.length > 0
-      ? new Map(this.animeData.map(anime => [String(anime.id), anime]))
-      : new Map();
-    const placeholderCover = 'https://via.placeholder.com/120x170?text=No+Image';
-    const items = [];
-    this.watchlistEntries.forEach((entry, id) => {
-      const anime = lookup.get(id);
-      if (anime) {
-        items.push(anime);
-        return;
-      }
-      const snapshot = this.normalizeAnimeSnapshot(entry.snapshot);
-      if (snapshot) {
-        items.push(snapshot);
-        return;
-      }
-
-      items.push({
-        id,
-        title: entry?.snapshot?.title || 'Unknown title',
-        cover: entry?.snapshot?.cover || placeholderCover,
-        year: entry?.snapshot?.year || null,
-        studio: entry?.snapshot?.studio || '',
-        communityScore: Number.isFinite(entry?.snapshot?.communityScore) ? entry.snapshot.communityScore : null,
-        stats: entry?.snapshot?.stats || null,
-        genres: Array.isArray(entry?.snapshot?.genres) ? [...entry.snapshot.genres] : [],
-        themes: Array.isArray(entry?.snapshot?.themes) ? [...entry.snapshot.themes] : []
-      });
-    });
-    return items;
+    return this.getWatchlistLifecycle().getDisplayItems(this.animeData);
   },
 
   renderWatchlist() {
@@ -2521,124 +2025,27 @@ const App = {
    * Load preview data first for a faster first paint.
    */
   async loadInitialData() {
-    return CatalogLoader.loadInitialData(this);
+    return this.getCatalogRuntime().loadInitialData();
   },
 
   async loadFullCatalog(options = {}) {
-    return CatalogLoader.loadFullCatalog(this, options);
+    return this.getCatalogRuntime().loadFullCatalog(options);
   },
 
   async cacheFullCatalog(payload) {
-    try {
-      const stored = await CatalogCache.putFullCatalog(payload);
-      this.emitCatalogEvent(stored ? 'cache-write-ok' : 'cache-write-failed', { source: 'network-full' });
-      return stored;
-    } catch (error) {
-      const logger = this.getLogger();
-      logger?.warn?.('[cacheFullCatalog] Unable to cache full catalog', { error });
-      this.emitCatalogEvent('cache-write-failed', { source: 'network-full', reason: 'exception' });
-      return false;
-    }
+    return this.getCatalogRuntime().cacheFullCatalog(payload);
   },
 
   async loadCachedFullCatalog() {
-    try {
-      const payload = await CatalogCache.getFullCatalog({ maxAgeMs: this.catalogCacheMaxAgeMs });
-      if (!payload) {
-        this.emitCatalogEvent('indexeddb-full-miss');
-        return null;
-      }
-      const logger = this.getLogger();
-      logger?.info?.('[loadCachedFullCatalog] Loaded full catalog from IndexedDB cache');
-      this.emitCatalogEvent('indexeddb-full-hit');
-      return payload;
-    } catch (error) {
-      const logger = this.getLogger();
-      logger?.warn?.('[loadCachedFullCatalog] Unable to read cached full catalog', { error });
-      this.emitCatalogEvent('indexeddb-full-read-failed', { reason: 'exception' });
-      return null;
-    }
+    return this.getCatalogRuntime().loadCachedFullCatalog();
   },
 
   async fetchCatalog(path, options = {}) {
-    if (!path) return null;
-    const url = this.getAssetPath(path);
-    const maxRetries = Number.isFinite(options.maxRetries) ? options.maxRetries : this.fetchConfig.maxRetries;
-    const baseDelay = Number.isFinite(options.baseDelay) ? options.baseDelay : this.fetchConfig.baseDelay;
-    const maxDelay = Number.isFinite(options.maxDelay) ? options.maxDelay : this.fetchConfig.maxDelay;
-    const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : this.fetchConfig.timeoutMs;
-    const externalSignal = options.signal;
-    let lastError = null;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-      if (externalSignal?.aborted) {
-        return null;
-      }
-      const controller = new AbortController();
-      const onExternalAbort = () => controller.abort();
-      if (externalSignal) {
-        externalSignal.addEventListener('abort', onExternalAbort, { once: true });
-      }
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-      try {
-        const fetchOptions = {
-          cache: attempt === 0 ? 'force-cache' : 'no-cache',
-          signal: controller.signal
-        };
-        const apiClient = this.getApiClient();
-        const data = apiClient
-          ? await apiClient.getJson(url, fetchOptions)
-          : await (async () => {
-            const response = await fetch(url, fetchOptions);
-            if (!response.ok) {
-              const error = new Error(`HTTP ${response.status}`);
-              error.status = response.status;
-              error.response = response;
-              throw error;
-            }
-            return response.json();
-          })();
-
-        if (!this.isValidCatalogPayload(data)) {
-          throw new Error('Invalid catalog payload');
-        }
-
-        clearTimeout(timeoutId);
-        if (externalSignal) {
-          externalSignal.removeEventListener('abort', onExternalAbort);
-        }
-        return data;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        if (externalSignal) {
-          externalSignal.removeEventListener('abort', onExternalAbort);
-        }
-        lastError = error;
-        if (!this.shouldRetryCatalog(error, attempt, maxRetries)) {
-          break;
-        }
-        const delay = this.getCatalogRetryDelay(baseDelay, attempt, maxDelay);
-        await this.delay(delay);
-      }
-    }
-
-    if (lastError) {
-      const logger = this.getLogger();
-      if (logger?.error) {
-        logger.error('[fetchCatalog] Failed to load catalog', { error: lastError });
-      } else {
-        console.error('[fetchCatalog] Failed to load catalog:', lastError);
-      }
-    }
-    return null;
+    return this.getCatalogRuntime().fetchCatalog(path, options);
   },
 
   getAnimeDetailChunkPath(animeId) {
-    const key = String(animeId ?? '').trim();
-    if (!key) return '';
-    const base = String(this.dataSources.detailBase || 'data/anime.detail').replace(/\/+$/, '');
-    return `${base}/${encodeURIComponent(key)}.json`;
+    return this.getCatalogRuntime().getAnimeDetailChunkPath(animeId);
   },
 
   hasFullAnimeDetail(anime) {
@@ -2670,86 +2077,7 @@ const App = {
   },
 
   async loadAnimeDetailChunk(animeId) {
-    const key = String(animeId ?? '').trim();
-    if (!key) return null;
-
-    const existing = this.animeData.find((anime) => String(anime.id) === key);
-    if (this.hasFullAnimeDetail(existing)) return existing;
-    if (this.animeDetailChunkLoadedIds.has(key)) return existing || null;
-
-    if (this.animeDetailChunkPromises.has(key)) {
-      return this.animeDetailChunkPromises.get(key);
-    }
-
-    const promise = (async () => {
-      const payload = await this.fetchCatalog(this.getAnimeDetailChunkPath(key), {
-        maxRetries: 1,
-        timeoutMs: 8000
-      });
-      const detailAnime = Array.isArray(payload?.anime) ? payload.anime[0] : null;
-      if (!detailAnime) return null;
-      const merged = this.mergeAnimeDetail(detailAnime);
-      this.animeDetailChunkLoadedIds.add(key);
-      if (merged) {
-        this.emitCatalogEvent('detail-chunk-loaded', { animeId: key });
-      }
-      return merged;
-    })()
-      .catch((error) => {
-        const logger = this.getLogger();
-        logger?.warn?.('[loadAnimeDetailChunk] Unable to load detail chunk', { animeId: key, error });
-        return null;
-      })
-      .finally(() => {
-        this.animeDetailChunkPromises.delete(key);
-      });
-
-    this.animeDetailChunkPromises.set(key, promise);
-    return promise;
-  },
-
-  getCatalogRetryDelay(baseDelay, attempt, maxDelay) {
-    const jitter = Math.random() * 120;
-    return Math.min(baseDelay * (2 ** attempt) + jitter, maxDelay);
-  },
-
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  },
-
-  getErrorStatus(error) {
-    if (!error) return null;
-    const status = Number(error.status || error.response?.status);
-    if (Number.isFinite(status)) return status;
-    const match = String(error.message || '').match(/\b(\d{3})\b/);
-    return match ? Number.parseInt(match[1], 10) : null;
-  },
-
-  shouldRetryCatalog(error, attempt, maxRetries) {
-    if (attempt >= maxRetries) return false;
-    if (error?.name === 'AbortError') return false;
-    if (error instanceof TypeError) return true;
-
-    const status = this.getErrorStatus(error);
-    if (Number.isFinite(status)) {
-      return status >= 500 || status === 429;
-    }
-
-    const message = String(error?.message || '').toLowerCase();
-    if (message.includes('network') || message.includes('fetch')) {
-      return true;
-    }
-
-    return false;
-  },
-
-  isValidCatalogPayload(payload) {
-    if (!payload || typeof payload !== 'object') return false;
-    if (!Array.isArray(payload.anime)) return false;
-    if (payload.anime.length === 0) return true;
-    const firstItem = payload.anime[0];
-    if (!firstItem) return false;
-    return typeof firstItem.id !== 'undefined' && typeof firstItem.title === 'string';
+    return this.getCatalogRuntime().loadAnimeDetailChunk(animeId);
   },
 
   async applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
@@ -3966,17 +3294,7 @@ const App = {
    * Sync modal state to the current URL.
    */
   syncModalWithUrl({ updateUrl = true } = {}) {
-    const animeId = this.getAnimeIdFromUrl();
-    if (animeId) {
-      if (this.currentAnimeId !== animeId) {
-        this.showAnimeDetail(animeId, { updateUrl });
-      }
-      return;
-    }
-
-    if (this.currentAnimeId) {
-      this.closeDetailModal({ updateUrl });
-    }
+    return this.getDetailExperience().syncWithUrl({ updateUrl });
   },
 
   getAnimeIdFromUrl() {
@@ -6761,36 +6079,15 @@ const App = {
   },
 
   isDetailCached(animeId) {
-    const key = String(animeId ?? '').trim();
-    if (!key) return false;
-    return this.detailCache.has(key);
+    return this.getDetailExperience().isCached(animeId);
   },
 
   getCachedDetail(animeId) {
-    const key = String(animeId ?? '').trim();
-    if (!key) return '';
-    const entry = this.detailCache.get(key);
-    if (!entry) return '';
-    this.detailCache.delete(key);
-    this.detailCache.set(key, entry);
-    return entry;
+    return this.getDetailExperience().getCached(animeId);
   },
 
   cacheDetail(animeId, html) {
-    const key = String(animeId ?? '').trim();
-    if (!key || !html) return;
-    if (this.detailCache.has(key)) {
-      this.detailCache.delete(key);
-    }
-    while (this.detailCache.size >= this.detailCacheMaxSize) {
-      const firstKey = this.detailCache.keys().next().value;
-      if (firstKey) {
-        this.detailCache.delete(firstKey);
-      } else {
-        break;
-      }
-    }
-    this.detailCache.set(key, html);
+    return this.getDetailExperience().cache(animeId, html);
   },
 
   /**
@@ -7082,91 +6379,7 @@ const App = {
    * Load community reviews and synopsis from MyAnimeList
    */
   async loadCommunityReviews(anime, fallbackSynopsis = '') {
-    const reviewsSection = document.getElementById('community-reviews-section');
-    const synopsisSection = document.getElementById('synopsis-section');
-    const parsedMalId = Number.parseInt(anime?.malId, 10);
-
-    if (!Number.isFinite(parsedMalId)) {
-      if (synopsisSection) {
-        if (fallbackSynopsis) {
-          setHTML(synopsisSection, this.renderSynopsis(fallbackSynopsis));
-        } else {
-          synopsisSection.replaceChildren();
-        }
-      }
-      if (reviewsSection) {
-        setHTML(reviewsSection, `
-          <div class="community-reviews">
-            <h3>Community Reviews</h3>
-            <p class="no-reviews">Reviews are unavailable for this title.</p>
-          </div>
-        `);
-      }
-      return;
-    }
-
-    try {
-      const reviewsService = await this.loadReviewsService();
-      const data = await reviewsService.fetchReviews(parsedMalId, anime.title);
-
-      if (this.currentAnimeId !== anime.id) {
-        return;
-      }
-
-      // Update synopsis section
-      if (synopsisSection) {
-        if (data.description) {
-          setHTML(synopsisSection, reviewsService.renderSynopsis(data.description));
-        } else if (fallbackSynopsis) {
-          setHTML(synopsisSection, reviewsService.renderSynopsis(fallbackSynopsis));
-        } else {
-          synopsisSection.replaceChildren();
-        }
-      }
-
-      // Update reviews section
-      if (reviewsSection) {
-        setHTML(reviewsSection, reviewsService.renderReviewsSection(data, 'positive'));
-        reviewsService.initTabSwitching(data);
-      }
-
-      if (data.description) {
-        this.updateMetaForAnime(anime, data.description);
-      }
-    } catch (error) {
-      const logger = this.getLogger();
-      if (logger?.error) {
-        logger.error('Failed to load reviews', { error });
-      } else {
-        console.error('Failed to load reviews:', error);
-      }
-
-      // Clear synopsis loading state on error
-      if (synopsisSection) {
-        if (!fallbackSynopsis) {
-          synopsisSection.replaceChildren();
-        }
-      }
-
-      if (reviewsSection) {
-        let errorMarkup = `
-          <div class="community-reviews">
-            <h3>Community Reviews</h3>
-            <p class="no-reviews">Failed to load community reviews.</p>
-          </div>
-        `;
-        try {
-          const reviewsService = await this.loadReviewsService();
-          errorMarkup = reviewsService.renderReviewsSection(
-            { positive: [], neutral: [], negative: [], description: '', error: true },
-            'positive'
-          );
-        } catch (loadError) {
-          // keep generic markup
-        }
-        setHTML(reviewsSection, errorMarkup);
-      }
-    }
+    return this.getDetailExperience().loadCommunityReviews(anime, fallbackSynopsis);
   },
 
   /**
@@ -7477,22 +6690,7 @@ const App = {
    * Close detail modal
    */
   closeDetailModal({ updateUrl = true } = {}) {
-    this.setModalVisibility('detail-modal', false);
-
-    if (this.trailerCleanup) {
-      this.trailerCleanup();
-      this.trailerCleanup = null;
-    } else {
-      this.stopTrailerPlayback();
-      this.teardownTrailerObserver();
-      this.teardownTrailerScrollListener();
-    }
-    this.currentAnimeId = null;
-
-    if (updateUrl) {
-      this.updateUrlForAnime(null);
-    }
-    this.updateMetaForFilters();
+    return this.getDetailExperience().close({ updateUrl });
   },
 
   /**
@@ -7794,42 +6992,7 @@ const App = {
    * Shows modal immediately with skeleton, then loads full data
    */
   async handleDeepLink(animeId) {
-    const modal = document.getElementById('detail-modal');
-    const content = document.getElementById('detail-content');
-
-    if (!modal || !content) return false;
-
-    // Show modal immediately with skeleton for perceived performance
-    setHTML(content, this.renderDetailSkeleton());
-    this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
-
-    // Try to find anime in preview data first
-    let anime = this.animeData.find(a => a.id === animeId);
-
-    // If not found and we don't have full data yet, try to load it
-    if (!anime && !this.isFullDataLoaded) {
-      // Load full catalog in background
-      const fullLoaded = await this.loadFullCatalog();
-      if (fullLoaded) {
-        anime = this.animeData.find(a => a.id === animeId);
-      }
-    }
-
-    if (anime) {
-      // Render full detail with actual data
-      this.showAnimeDetail(animeId, { updateUrl: false, skipModalOpen: true });
-      return true;
-    } else {
-      // Anime not found - show error in modal
-      setHTML(content, `
-        <div class="error-message">
-          <h2>That title is not available</h2>
-          <p>We could not find that anime. The link may be outdated or the catalog may have changed.</p>
-          <button class="btn btn-primary detail-close-button" data-action="close-detail">Back to browsing</button>
-        </div>
-      `);
-      return false;
-    }
+    return this.getDetailExperience().handleDeepLink(animeId);
   },
 
   /**
