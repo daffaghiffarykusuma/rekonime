@@ -8,7 +8,6 @@ const DEFAULT_FETCH_CONFIG = {
 };
 
 const DEFAULT_DATA_SOURCES = {
-  preview: 'data/anime.preview.json',
   full: 'data/anime.full.index.json',
   detailBase: 'data/anime.detail'
 };
@@ -199,11 +198,10 @@ const createCatalogRuntime = ({
       addPreloadHints();
     }
 
-    const source = getLocationProtocol() === 'file:' ? 'embedded' : 'preview';
-    const loadStart = getPerformanceNow();
-    emitAppEvent('rekonime:data-load-start', { source });
-
     if (getLocationProtocol() === 'file:') {
+      const source = 'embedded';
+      const loadStart = getPerformanceNow();
+      emitAppEvent('rekonime:data-load-start', { source });
       const loaded = await loadEmbeddedData();
       if (!loaded) {
         emitDataLoadEnd({ source, loadStart, status: 'failed' });
@@ -216,15 +214,6 @@ const createCatalogRuntime = ({
       return true;
     }
 
-    const previewPayload = await fetchCatalog(dataSources.preview);
-    if (previewPayload) {
-      emitCatalogEvent('preview-network-loaded', { path: dataSources.preview });
-      await applyCatalogPayload(previewPayload, { isFull: false, preserveFilters: false });
-      emitDataLoadEnd({ source, loadStart, status: 'ok' });
-      return true;
-    }
-
-    emitDataLoadEnd({ source, loadStart, status: 'failed' });
     return loadFullCatalog();
   };
 

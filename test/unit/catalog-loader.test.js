@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { createCatalogRuntime } from '../../js/services/catalog-loader.js';
 import { setupDom } from '../helpers/dom.js';
 
-const previewPayload = {
+const fullIndexPayload = {
   anime: [
-    { id: 'preview-entry', title: 'Preview Entry' }
+    { id: 'full-entry', title: 'Full Entry', detailPath: 'data/anime.detail/full-entry.json' }
   ]
 };
 
@@ -23,8 +23,7 @@ const createRuntimeHarness = (overrides = {}) => {
   const runtime = createCatalogRuntime({
     features: { parallelLoading: false },
     dataSources: {
-      preview: 'data/anime.preview.json',
-      full: 'data/anime.full.json'
+      full: 'data/anime.full.index.json'
     },
     fullCatalogTimeoutMs: 1000,
     getCurrentAnimeData: () => state.animeData,
@@ -59,11 +58,11 @@ const createRuntimeHarness = (overrides = {}) => {
   return { runtime, state, events, applied };
 };
 
-test('CatalogLoader loadInitialData applies preview catalog and emits observability', async () => {
+test('CatalogLoader loadInitialData applies the full index directly', async () => {
   setupDom(undefined, { url: 'https://example.com/' });
   const { runtime, events, applied } = createRuntimeHarness({
     getApiClient: () => ({
-      getJson: async (path) => (path === 'data/anime.preview.json' ? previewPayload : null)
+      getJson: async (path) => (path === 'data/anime.full.index.json' ? fullIndexPayload : null)
     })
   });
 
@@ -71,20 +70,20 @@ test('CatalogLoader loadInitialData applies preview catalog and emits observabil
 
   assert.equal(loaded, true);
   assert.equal(applied.length, 1);
-  assert.equal(applied[0].options.isFull, false);
-  assert.equal(events.some((event) => event.type === 'preview-network-loaded'), true);
+  assert.equal(applied[0].options.isFull, true);
+  assert.equal(events.some((event) => event.type === 'network-full-loaded'), true);
   assert.equal(events.some((event) => event.name === 'rekonime:data-load-end' && event.status === 'ok'), true);
 });
 
-test('CatalogLoader loadInitialData falls through to full load when preview fails', async () => {
+test('CatalogLoader loadInitialData falls back to cached full index when network fails', async () => {
   setupDom(undefined, { url: 'https://example.com/' });
-  let fullLoadCalled = false;
+  let cacheRead = false;
   const { runtime } = createRuntimeHarness({
     getApiClient: () => ({ getJson: async () => null }),
     catalogCache: {
       getFullCatalog: async () => {
-        fullLoadCalled = true;
-        return previewPayload;
+        cacheRead = true;
+        return fullIndexPayload;
       },
       putFullCatalog: async () => false
     }
@@ -93,7 +92,7 @@ test('CatalogLoader loadInitialData falls through to full load when preview fail
   const loaded = await runtime.loadInitialData();
 
   assert.equal(loaded, true);
-  assert.equal(fullLoadCalled, true);
+  assert.equal(cacheRead, true);
 });
 
 test('CatalogLoader loadFullCatalog uses embedded fallback after network and cache miss', async () => {

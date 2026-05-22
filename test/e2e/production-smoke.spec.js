@@ -21,22 +21,6 @@ const installFailureCollectors = (page) => {
   return failures;
 };
 
-const getVisibleCatalogSnapshot = async (page) => page.locator('#anime-grid .anime-card').evaluateAll((cards) => {
-  return cards.slice(0, 12).map((card) => {
-    const rect = card.getBoundingClientRect();
-    return {
-      id: card.dataset.animeId || '',
-      title: card.querySelector('.anime-title')?.textContent?.trim() || '',
-      meta: card.querySelector('.anime-meta')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      stats: [...card.querySelectorAll('.stat-value, .card-stat-value')]
-        .map((node) => node.textContent?.trim() || '')
-        .join('|'),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height)
-    };
-  });
-});
-
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('rekonime.onboarding', 'completed');
@@ -82,16 +66,9 @@ test('production build supports browse, full catalog, search, details, and watch
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
   await page.waitForSelector('#anime-grid .anime-card');
   await expect(page.locator('#anime-grid .anime-card').first()).toBeVisible();
-  await expect(page.locator('html')).toHaveAttribute('data-catalog-status', 'preview');
-  const previewSnapshot = await getVisibleCatalogSnapshot(page);
-  expect(previewSnapshot.length).toBeGreaterThan(0);
-
-  await page.dispatchEvent('body', 'pointerdown');
-  await page.waitForFunction(() => document.documentElement.dataset.catalogStatus === 'full', null, { timeout: 45000 });
-  const fullSnapshot = await getVisibleCatalogSnapshot(page);
-  expect(fullSnapshot).toEqual(previewSnapshot);
-  expect(catalogRequests).toContain('/data/anime.preview.json');
+  await expect(page.locator('html')).toHaveAttribute('data-catalog-status', 'full');
   expect(catalogRequests).toContain('/data/anime.full.index.json');
+  expect(catalogRequests).not.toContain('/data/anime.preview.json');
   expect(catalogRequests).not.toContain('/data/anime.full.json');
 
   const searchInput = page.locator('#header-search');

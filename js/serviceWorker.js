@@ -240,7 +240,7 @@ const ServiceWorkerManager = {
     async getOfflineCapabilities() {
         const root = document.documentElement;
         const catalogStatus = root?.dataset?.catalogStatus;
-        const hasLoadedData = catalogStatus === 'preview' || catalogStatus === 'full';
+        const hasLoadedData = catalogStatus === 'embedded' || catalogStatus === 'full';
         let hasCachedData = false;
 
         if ('caches' in window) {
@@ -252,10 +252,7 @@ const ServiceWorkerManager = {
                     const candidates = [
                         './data/anime.full.index.json',
                         'data/anime.full.index.json',
-                        '/data/anime.full.index.json',
-                        './data/anime.preview.json',
-                        'data/anime.preview.json',
-                        '/data/anime.preview.json'
+                        '/data/anime.full.index.json'
                     ];
                     for (const candidate of candidates) {
                         const match = await cache.match(candidate);

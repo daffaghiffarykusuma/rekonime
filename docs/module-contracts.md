@@ -5,9 +5,9 @@
 ### Catalog Loading
 - Runtime module: `js/services/catalog-loader.js`
 - App handoff: `js/app.js` (`applyCatalogPayload`, render/filter/meta refresh)
-- Inputs: catalog JSON payloads (`preview`, `full`, detail chunks)
+- Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
-- Interface: load initial preview, load full catalog, fetch catalog payloads, read/write full catalog cache, and merge detail chunks
+- Interface: load the full catalog index, fetch catalog payloads, read/write full catalog cache, use embedded fallback, and merge detail chunks
 - Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); callers still own DOM updates and page-specific rendering
 
 ### Watchlist State

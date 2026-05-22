@@ -1,5 +1,4 @@
 const JSON_CACHE_ALLOWLIST = new Set([
-  '/data/anime.preview.json',
   '/data/anime.full.index.json',
   '/version.json'
 ]);

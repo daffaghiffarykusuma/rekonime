@@ -68,7 +68,6 @@ const App = {
   reviewsService: null,
   reviewsServicePromise: null,
   dataSources: {
-    preview: 'data/anime.preview.json',
     full: 'data/anime.full.index.json',
     detailBase: 'data/anime.detail'
   },
@@ -1888,18 +1887,13 @@ const App = {
         if (requestedAnimeId) {
           this.showAnimeDetail(requestedAnimeId);
         }
-      } else if (requestedAnimeId) {
-        // Deep link optimization: load preview first for fast skeleton display
-        const previewLoaded = await this.loadInitialData();
-        if (!previewLoaded) {
-          throw new Error('Failed to load catalog');
-        }
-        // Handle deep link with skeleton-first rendering
-        await this.handleDeepLink(requestedAnimeId);
       } else {
         const loaded = await this.loadInitialData();
         if (!loaded) {
           throw new Error('Failed to load catalog');
+        }
+        if (requestedAnimeId) {
+          await this.handleDeepLink(requestedAnimeId);
         }
       }
 
@@ -1965,11 +1959,11 @@ const App = {
 
   addPreloadHints() {
     if (this.preloadHintsAdded || typeof document === 'undefined') return;
-    const previewPath = this.getAssetPath(this.dataSources.preview);
+    const fullIndexPath = this.getAssetPath(this.dataSources.full);
     const hints = [
       { rel: 'preconnect', href: 'https://cdn.myanimelist.net', crossorigin: 'anonymous' },
       { rel: 'dns-prefetch', href: 'https://api.jikan.moe' },
-      { rel: 'preload', href: previewPath, as: 'fetch', crossorigin: 'anonymous' }
+      { rel: 'preload', href: fullIndexPath, as: 'fetch', crossorigin: 'anonymous' }
     ];
 
     hints.forEach((hint) => {
@@ -2021,9 +2015,6 @@ const App = {
     schedule();
   },
 
-  /**
-   * Load preview data first for a faster first paint.
-   */
   async loadInitialData() {
     return this.getCatalogRuntime().loadInitialData();
   },
@@ -2085,12 +2076,12 @@ const App = {
     this.scoreProfile = this.isValidScoreProfile(payload?.scoreProfile) ? payload.scoreProfile : null;
     this.animeData = this.normalizeAnimeData(catalog);
     if (DataValidator?.validateCatalog) {
-      DataValidator.validateCatalog(this.animeData, { source: isFull ? 'full' : 'preview' });
+      DataValidator.validateCatalog(this.animeData, { source: isFull ? 'full' : 'embedded' });
     }
     this.isFullDataLoaded = isFull;
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
-      root.dataset.catalogStatus = isFull ? 'full' : 'preview';
+      root.dataset.catalogStatus = isFull ? 'full' : 'embedded';
       root.dataset.catalogReady = 'true';
     }
     this.gridSortedCache = null;
@@ -6988,8 +6979,7 @@ const App = {
   },
 
   /**
-   * Handle deep link navigation with preview-first loading
-   * Shows modal immediately with skeleton, then loads full data
+   * Handle deep link navigation after the catalog is ready.
    */
   async handleDeepLink(animeId) {
     return this.getDetailExperience().handleDeepLink(animeId);

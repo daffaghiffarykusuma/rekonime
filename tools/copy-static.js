@@ -13,43 +13,6 @@ const copyRecursive = (src, dest) => {
   fs.cpSync(src, dest, { recursive: true });
 };
 
-const previewFields = [
-  'id',
-  'title',
-  'titleEnglish',
-  'titleJapanese',
-  'malId',
-  'anilistId',
-  'cover',
-  'type',
-  'year',
-  'season',
-  'studio',
-  'source',
-  'genres',
-  'themes',
-  'demographic',
-  'trailer',
-  'synopsis',
-  'communityScore',
-  'episodeCount',
-  'searchText',
-  'episodes',
-  'stats',
-  'colorIndex'
-];
-
-const toRuntimePreviewAnime = (anime) => previewFields.reduce((entry, field) => {
-  if (field === 'episodes') {
-    entry.episodes = [];
-    return entry;
-  }
-  if (anime[field] !== undefined) {
-    entry[field] = anime[field];
-  }
-  return entry;
-}, {});
-
 const detailFileName = (animeId) => `${encodeURIComponent(String(animeId))}.json`;
 
 const toRuntimeStatsSummary = (stats = {}) => ({
@@ -72,28 +35,6 @@ const toRuntimeStatsSummary = (stats = {}) => ({
     ? { signal: stats.slowBurn.signal, isActive: Boolean(stats.slowBurn.isActive) }
     : stats.slowBurn
 });
-
-const compactRuntimeStats = (anime) => ({
-  ...anime,
-  stats: toRuntimeStatsSummary(anime?.stats)
-});
-
-const copyRuntimePreviewData = () => {
-  const sourcePath = path.join(root, 'data', 'anime.preview.json');
-  const outputPath = path.join(dist, 'data', 'anime.preview.json');
-  if (!fs.existsSync(sourcePath)) return;
-
-  const payload = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
-  const runtimePayload = {
-    ...payload,
-    anime: Array.isArray(payload.anime)
-      ? payload.anime.map(compactRuntimeStats).map(toRuntimePreviewAnime)
-      : []
-  };
-
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, JSON.stringify(runtimePayload), 'utf8');
-};
 
 const toFullIndexAnime = (anime) => ({
   id: anime.id,
@@ -166,7 +107,6 @@ const copyRuntimeData = () => {
   runtimeDataFiles.forEach((fileName) => {
     copyRecursive(path.join(root, 'data', fileName), path.join(dist, 'data', fileName));
   });
-  copyRuntimePreviewData();
   copyChunkedFullData();
 };
 

@@ -38,7 +38,7 @@
 
 ## User Journey (Condensed)
 - Entry points: `/` (primary), legacy `/index.html` and `/home` redirect to `/`, `/watchlist` or `watchlist.html`, plus deep links via query params.
-- First load: `App.init()` shows loading state, loads watchlist, fetches `data/anime.preview.json`, then swaps to `data/anime.full.json`.
+- First load: `App.init()` shows loading state, loads watchlist, fetches `data/anime.full.index.json`, and uses detail chunks on demand.
 - Discover: scroll, search, filters, Surprise Me, seasonal chips, trending, and presets.
 - Evaluate: detail modal shows synopsis, trailer, reviews, and similar anime; URL updates with `?anime=...`.
 - Decide: update watch status or return to browsing; recommendations personalize based on watchlist.
@@ -69,7 +69,7 @@
 - `test/*.test.js`: node:test coverage for stats, recs, build pipeline.
 
 ## Runtime Flows (Key)
-- Initial load and swap: preview data first, then full catalog refresh.
+- Initial load: full catalog index first, then detail chunks on demand.
 - Filters and sorting: `App.activeFilters` + `Recommendations.getSortOptions()`.
 - Search: `anime.searchText` matched by `App.handleHeaderSearch()`.
 - Detail modal: `App.showAnimeDetail()` renders synopsis, franchise hub, trailer, reviews, syncs URL, and manages back/forward.
