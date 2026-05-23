@@ -16,6 +16,19 @@ test('ReviewsService decodeHtmlEntities decodes basic entities', () => {
   assert.equal(decoded, "Fish & Chips 'Test'");
 });
 
+test('ReviewsService review links stay on MyAnimeList hosts', () => {
+  assert.equal(
+    ReviewsService.sanitizeUrl('https://myanimelist.net/reviews.php?id=123'),
+    'https://myanimelist.net/reviews.php?id=123'
+  );
+  assert.equal(
+    ReviewsService.sanitizeUrl('https://www.myanimelist.net/reviews.php?id=123'),
+    'https://www.myanimelist.net/reviews.php?id=123'
+  );
+  assert.equal(ReviewsService.sanitizeUrl('https://evil.example/reviews.php?id=123'), '');
+  assert.equal(ReviewsService.sanitizeUrl('https://reviews.myanimelist.net/reviews.php?id=123'), '');
+});
+
 test('ReviewsService buildReviewSummary trims long text', () => {
   const raw = 'Sentence one. ' + 'word '.repeat(80);
   const summary = ReviewsService.buildReviewSummary(raw);

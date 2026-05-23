@@ -106,7 +106,9 @@ const ReviewsService = {
   sanitizeUrl(rawUrl) {
     return sanitizeSafeUrl(rawUrl, {
       allowRelative: false,
-      allowedProtocols: ['https:']
+      allowedProtocols: ['https:'],
+      allowedHosts: ['myanimelist.net', 'www.myanimelist.net'],
+      allowSubdomains: false
     });
   },
 

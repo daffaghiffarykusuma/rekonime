@@ -246,16 +246,24 @@ const Charts = {
     if (!tooltipEl) {
       tooltipEl = document.createElement('div');
       tooltipEl.className = 'chart-tooltip';
-      tooltipEl.innerHTML = `
-        <div class="chart-tooltip-card">
-          <img class="chart-tooltip-cover" alt="" />
-          <div class="chart-tooltip-content">
-            <div class="chart-tooltip-title"></div>
-            <div class="chart-tooltip-metric"></div>
-            <div class="chart-tooltip-sub"></div>
-          </div>
-        </div>
-      `;
+      const card = document.createElement('div');
+      card.className = 'chart-tooltip-card';
+
+      const cover = document.createElement('img');
+      cover.className = 'chart-tooltip-cover';
+      cover.alt = '';
+
+      const content = document.createElement('div');
+      content.className = 'chart-tooltip-content';
+
+      ['title', 'metric', 'sub'].forEach((name) => {
+        const item = document.createElement('div');
+        item.className = `chart-tooltip-${name}`;
+        content.appendChild(item);
+      });
+
+      card.append(cover, content);
+      tooltipEl.appendChild(card);
       parent.appendChild(tooltipEl);
 
       const coverEl = tooltipEl.querySelector('.chart-tooltip-cover');

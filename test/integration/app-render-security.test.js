@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { App } from '../../js/app.js';
+import { Discovery } from '../../js/discovery.js';
 import { Recommendations } from '../../js/recommendations.js';
 import { setupDom } from '../helpers/dom.js';
 
@@ -69,4 +70,29 @@ test('App renderRankingCard escapes poisoned metric values and score classes', (
   assert.equal(html.includes('data-owned='), false);
   assert.match(html, /class="ranking-score"/);
   assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+});
+
+test('App renderTrending escapes catalog year values', () => {
+  setupDom('<!doctype html><div id="trending-grid"></div>', { url: 'https://example.com/' });
+
+  const originalGetTrending = Discovery.getTrending;
+  Discovery.getTrending = () => [
+    createAnime({
+      year: '<img src=x onerror="window.__xss=1">',
+      stats: { retentionScore: 88, episodeCount: 1 },
+      episodes: [{ episode: 1, score: 4.5 }]
+    })
+  ];
+
+  try {
+    App.animeData = [createAnime()];
+    App.renderTrending();
+    const grid = document.getElementById('trending-grid');
+
+    assert.equal(grid.querySelector('.trending-meta img'), null);
+    assert.match(grid.textContent, /<img src=x onerror="window\.__xss=1">/);
+    assert.equal(grid.innerHTML.includes('&lt;img src=x onerror="window.__xss=1"&gt;'), true);
+  } finally {
+    Discovery.getTrending = originalGetTrending;
+  }
 });

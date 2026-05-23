@@ -20,6 +20,7 @@ test('trailer policy sanitizes url and embed url with strict hosts/protocols', (
 
   assert.equal(sanitizeTrailerUrl('http://www.youtube.com/watch?v=abc123'), '');
   assert.equal(sanitizeTrailerEmbedUrl('https://youtube.com.evil.example/embed/abc123'), '');
+  assert.equal(sanitizeTrailerEmbedUrl('https://player.youtube.com/embed/abc123'), '');
 });
 
 test('buildTrailerUrls fills missing trailer links from id and sanitizes output', () => {

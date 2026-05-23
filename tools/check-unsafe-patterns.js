@@ -34,6 +34,16 @@ const PATTERNS = [
     id: 'no-hostname-includes',
     regex: /\bhostname\s*\.\s*includes\s*\(/,
     message: 'Disallow hostname.includes() checks for trust decisions'
+  },
+  {
+    id: 'no-direct-html-assignment',
+    regex: /\.\s*(?:innerHTML|outerHTML)\s*=/,
+    message: 'Disallow direct HTML assignment outside the Trusted Types helper'
+  },
+  {
+    id: 'no-direct-insert-adjacent-html',
+    regex: /\.\s*insertAdjacentHTML\s*\(/,
+    message: 'Disallow direct insertAdjacentHTML outside the Trusted Types helper'
   }
 ];
 

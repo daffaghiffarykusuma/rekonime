@@ -18,6 +18,24 @@ const REQUIRED_CSP_TOKENS = [
   "require-trusted-types-for 'script'"
 ];
 
+const findCatchAllRule = (headers) => headers.find((rule) => {
+  const source = String(rule?.source || '').trim();
+  return source === '/(.*)';
+});
+
+const buildHeaderIndex = (rule) => {
+  const index = new Map();
+  const entries = Array.isArray(rule?.headers) ? rule.headers : [];
+  entries
+    .filter((entry) => entry && typeof entry === 'object')
+    .forEach((entry) => {
+      const key = String(entry.key || '').trim().toLowerCase();
+      if (!key) return;
+      index.set(key, String(entry.value || ''));
+    });
+  return index;
+};
+
 const main = () => {
   if (!fs.existsSync(VERCEL_CONFIG_PATH)) {
     console.error(`Missing vercel config: ${VERCEL_CONFIG_PATH}`);
@@ -35,22 +53,18 @@ const main = () => {
   }
 
   const headers = Array.isArray(config?.headers) ? config.headers : [];
-  const allHeaderEntries = headers
-    .flatMap((rule) => Array.isArray(rule?.headers) ? rule.headers : [])
-    .filter((entry) => entry && typeof entry === 'object');
-
-  const index = new Map();
-  allHeaderEntries.forEach((entry) => {
-    const key = String(entry.key || '').trim().toLowerCase();
-    if (!key) return;
-    index.set(key, String(entry.value || ''));
-  });
-
-  const missing = REQUIRED_HEADERS.filter((key) => !index.has(key));
   const failures = [];
+  const catchAllRule = findCatchAllRule(headers);
+
+  if (!catchAllRule) {
+    failures.push('Missing catch-all security header rule for source "/(.*)".');
+  }
+
+  const index = buildHeaderIndex(catchAllRule);
+  const missing = REQUIRED_HEADERS.filter((key) => !index.has(key));
 
   if (missing.length) {
-    failures.push(`Missing required headers: ${missing.join(', ')}`);
+    failures.push(`Catch-all rule is missing required headers: ${missing.join(', ')}`);
   }
 
   const csp = index.get('content-security-policy') || '';

@@ -25,7 +25,8 @@ const sanitizeUrl = (
     allowRelative = false,
     baseUrl = typeof window !== 'undefined' ? window.location.href : 'https://localhost/',
     allowedProtocols = ['https:', 'http:'],
-    allowedHosts = null
+    allowedHosts = null,
+    allowSubdomains = true
   } = {}
 ) => {
   if (!rawUrl) return '';
@@ -44,7 +45,11 @@ const sanitizeUrl = (
     const protocols = new Set(allowedProtocols);
     if (!protocols.has(parsed.protocol)) return '';
     const normalizedHosts = normalizeAllowedHosts(allowedHosts || []);
-    if (!isAllowedHost(parsed.hostname.toLowerCase(), normalizedHosts)) return '';
+    const hostname = parsed.hostname.toLowerCase();
+    const hostAllowed = allowSubdomains
+      ? isAllowedHost(hostname, normalizedHosts)
+      : (normalizedHosts.size === 0 || normalizedHosts.has(hostname));
+    if (!hostAllowed) return '';
     return parsed.toString();
   } catch {
     return '';
@@ -56,14 +61,16 @@ const sanitizeImageUrl = (
   {
     allowRelative = false,
     baseUrl = typeof window !== 'undefined' ? window.location.href : 'https://localhost/',
-    allowedHosts = []
+    allowedHosts = [],
+    allowSubdomains = true
   } = {}
 ) => {
   return sanitizeUrl(rawUrl, {
     allowRelative,
     baseUrl,
     allowedProtocols: ['https:'],
-    allowedHosts
+    allowedHosts,
+    allowSubdomains
   });
 };
 

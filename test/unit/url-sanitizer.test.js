@@ -24,3 +24,19 @@ test('sanitizeImageUrl enforces allowlist hosts', () => {
   });
   assert.equal(blocked, '');
 });
+
+test('sanitizeUrl can require exact allowlist hosts', () => {
+  const exact = sanitizeUrl('https://www.youtube.com/watch?v=abc123', {
+    allowedProtocols: ['https:'],
+    allowedHosts: ['www.youtube.com'],
+    allowSubdomains: false
+  });
+  const subdomain = sanitizeUrl('https://player.www.youtube.com/watch?v=abc123', {
+    allowedProtocols: ['https:'],
+    allowedHosts: ['www.youtube.com'],
+    allowSubdomains: false
+  });
+
+  assert.equal(exact, 'https://www.youtube.com/watch?v=abc123');
+  assert.equal(subdomain, '');
+});

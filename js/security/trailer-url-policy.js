@@ -15,7 +15,8 @@ const sanitizeTrailerUrl = (rawUrl) => {
   return sanitizeUrl(rawUrl, {
     allowRelative: false,
     allowedProtocols: ['https:'],
-    allowedHosts: TRAILER_URL_HOSTS
+    allowedHosts: TRAILER_URL_HOSTS,
+    allowSubdomains: false
   });
 };
 
@@ -23,7 +24,8 @@ const sanitizeTrailerEmbedUrl = (rawUrl) => {
   const safeUrl = sanitizeUrl(rawUrl, {
     allowRelative: false,
     allowedProtocols: ['https:'],
-    allowedHosts: TRAILER_EMBED_HOSTS
+    allowedHosts: TRAILER_EMBED_HOSTS,
+    allowSubdomains: false
   });
   if (!safeUrl) return '';
 

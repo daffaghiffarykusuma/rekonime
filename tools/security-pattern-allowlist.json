@@ -17,6 +17,14 @@
     ],
     "no-hostname-includes": [
       "tools/check-unsafe-patterns.js"
+    ],
+    "no-direct-html-assignment": [
+      "js/security/trusted-types.js",
+      "tools/check-unsafe-patterns.js"
+    ],
+    "no-direct-insert-adjacent-html": [
+      "js/security/trusted-types.js",
+      "tools/check-unsafe-patterns.js"
     ]
   }
 }

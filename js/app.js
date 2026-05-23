@@ -4328,6 +4328,7 @@ const App = {
       const episodeCount = this.getEpisodeCount(anime);
       const hasEpisodes = episodeCount > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
+      const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
@@ -4349,7 +4350,7 @@ const App = {
           <div class="trending-info">
             <div class="trending-title">${this.escapeHtml(anime.title)}</div>
             <div class="trending-meta">
-              ${anime.year || 'Unknown'} · Finish Rate ${retention}
+              ${safeYear} · Finish Rate ${retention}
             </div>
           </div>
         </div>
