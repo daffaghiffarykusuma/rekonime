@@ -65,3 +65,81 @@ test('App normalizes legacy home route to canonical root', () => {
 
   assert.equal(window.location.pathname, '/');
 });
+
+test('App refreshes recommendations immediately when filters change during secondary render', () => {
+  setupDom('<!doctype html><div id="recommendations-grid"></div><div id="anime-grid"></div>', {
+    url: 'http://localhost/'
+  });
+
+  const originals = {
+    animeData: App.animeData,
+    filteredData: App.filteredData,
+    activeFilters: App.activeFilters,
+    secondaryRenderHandle: App.secondaryRenderHandle,
+    secondaryRenderInFlight: App.secondaryRenderInFlight,
+    renderActiveFilters: App.renderActiveFilters,
+    renderWatchlist: App.renderWatchlist,
+    renderSeasonalFilters: App.renderSeasonalFilters,
+    renderRecommendationModes: App.renderRecommendationModes,
+    renderAnimeGrid: App.renderAnimeGrid,
+    updatePrefetchObserving: App.updatePrefetchObserving,
+    renderRecommendations: App.renderRecommendations,
+    renderRankings: App.renderRankings,
+    renderBecauseYouWatched: App.renderBecauseYouWatched,
+    renderTrending: App.renderTrending,
+    resetGridPagination: App.resetGridPagination,
+    updateUrlForFilters: App.updateUrlForFilters,
+    updateMetaForFilters: App.updateMetaForFilters,
+    queueIdleTask: App.queueIdleTask,
+    cancelIdleTask: App.cancelIdleTask,
+    shouldDeferHeavyContent: App.shouldDeferHeavyContent
+  };
+
+  try {
+    App.animeData = [
+      { id: 'a', title: 'Action pick', genres: ['Action'], themes: [], year: 2024 },
+      { id: 'b', title: 'Drama pick', genres: ['Drama'], themes: [], year: 2024 }
+    ];
+    App.filteredData = App.animeData;
+    App.activeFilters = {
+      seasonYear: [],
+      year: [],
+      studio: [],
+      source: [],
+      genres: ['Action'],
+      themes: [],
+      demographic: []
+    };
+    App.secondaryRenderHandle = null;
+    App.secondaryRenderInFlight = true;
+
+    let recommendationRenderCount = 0;
+    let recommendationDataLength = 0;
+    App.renderActiveFilters = () => {};
+    App.renderWatchlist = () => {};
+    App.renderSeasonalFilters = () => {};
+    App.renderRecommendationModes = () => {};
+    App.renderAnimeGrid = () => {};
+    App.updatePrefetchObserving = () => {};
+    App.renderRankings = () => {};
+    App.renderBecauseYouWatched = () => {};
+    App.renderTrending = () => {};
+    App.resetGridPagination = () => {};
+    App.updateUrlForFilters = () => {};
+    App.updateMetaForFilters = () => {};
+    App.shouldDeferHeavyContent = () => false;
+    App.cancelIdleTask = () => {};
+    App.queueIdleTask = () => 99;
+    App.renderRecommendations = () => {
+      recommendationRenderCount += 1;
+      recommendationDataLength = App.filteredData.length;
+    };
+
+    App.applyFilters();
+
+    assert.equal(recommendationRenderCount, 1);
+    assert.equal(recommendationDataLength, 1);
+  } finally {
+    Object.assign(App, originals);
+  }
+});

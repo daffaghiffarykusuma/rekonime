@@ -4001,7 +4001,7 @@ const App = {
     if (syncUrl) {
       this.updateUrlForFilters({ replace: replaceUrl });
     }
-    this.render();
+    this.render({ refreshRecommendations: true });
     if (updateMeta) {
       this.updateMetaForFilters();
     }
@@ -4010,7 +4010,7 @@ const App = {
   /**
    * Render the entire dashboard
    */
-  render() {
+  render({ refreshRecommendations = false } = {}) {
     this.renderActiveFilters();
     this.renderWatchlist();
     if (this.deferFilterUiOnce) {
@@ -4021,19 +4021,29 @@ const App = {
     }
     this.renderAnimeGrid();
     this.updatePrefetchObserving();
-    this.scheduleSecondaryRenders();
+    if (refreshRecommendations) {
+      this.renderRecommendations();
+    }
+    this.scheduleSecondaryRenders({ force: refreshRecommendations, skipRecommendations: refreshRecommendations });
   },
 
-  scheduleSecondaryRenders() {
+  scheduleSecondaryRenders({ force = false, skipRecommendations = false } = {}) {
     if (this.secondaryDeferredTimeoutId && typeof window !== 'undefined') {
       window.clearTimeout(this.secondaryDeferredTimeoutId);
       this.secondaryDeferredTimeoutId = null;
+    }
+    if (force && this.secondaryRenderHandle) {
+      this.cancelIdleTask(this.secondaryRenderHandle);
+      this.secondaryRenderHandle = null;
+    }
+    if (force) {
+      this.secondaryRenderInFlight = false;
     }
     if (this.secondaryRenderInFlight) return;
     this.secondaryRenderInFlight = true;
     const constrained = this.shouldDeferHeavyContent();
     const allTasks = [
-      () => this.renderRecommendations(),
+      ...(skipRecommendations ? [] : [() => this.renderRecommendations()]),
       () => this.renderRankings(),
       () => this.renderBecauseYouWatched(),
       () => this.renderTrending()
