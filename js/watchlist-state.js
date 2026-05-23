@@ -344,6 +344,64 @@ const buildWatchlistUpdatePayload = (result = {}) => {
   return payload;
 };
 
+const buildWatchlistTransitionEnvelope = (result = {}, {
+  eventName = 'rekonime:watchlist-updated',
+  renderMode,
+  dashboardTimeout = null
+} = {}) => {
+  const changed = Boolean(result.changed);
+  const entry = result.entry || null;
+  const id = normalizeWatchId(result.id || entry?.id);
+  const removed = Boolean(result.removed);
+  const operation = result.operation || (removed ? 'remove' : 'unknown');
+  const previousEntry = result.previousEntry || null;
+  const statusChanged = Boolean(
+    result.statusChanged ||
+    (previousEntry && entry && previousEntry.status !== entry.status) ||
+    (removed && previousEntry)
+  );
+  const progressChanged = Boolean(
+    result.progressChanged ||
+    (previousEntry && entry && previousEntry.progress !== entry.progress)
+  );
+  const resolvedRenderMode = renderMode || (operation === 'status' || removed ? 'watchlist' : 'controls');
+
+  return {
+    changed,
+    id,
+    entry,
+    removed,
+    operation,
+    previousEntry,
+    statusChanged,
+    progressChanged,
+    event: changed ? {
+      name: eventName,
+      payload: buildWatchlistUpdatePayload(result)
+    } : null,
+    render: {
+      controls: {
+        shouldUpdate: changed && Boolean(id),
+        id,
+        entry
+      },
+      watchlist: {
+        shouldRender: changed && resolvedRenderMode === 'watchlist',
+        entries: result.entries || null,
+        visibleEntries: result.visibleEntries || null,
+        displayItems: result.displayItems || null,
+        allDisplayItems: result.allDisplayItems || null,
+        counts: result.counts || null
+      }
+    },
+    dashboard: {
+      shouldSchedule: changed && Number.isFinite(dashboardTimeout),
+      timeout: Number.isFinite(dashboardTimeout) ? dashboardTimeout : null
+    },
+    compatibilityResult: removed ? { removed: true } : (entry ? { entry } : result)
+  };
+};
+
 const createWatchlistLifecycle = ({
   storage = createLocalStorageAdapter(),
   storageKey = WATCHLIST_STORAGE_KEY,
@@ -516,36 +574,55 @@ const createWatchlistLifecycle = ({
 
   const ensureEntry = (animeId, { status = 'planned', progress = 0, snapshot = null } = {}) => {
     const key = normalizeWatchId(animeId);
-    if (!key || watchlistEntries.has(key)) return { changed: false, entry: getEntry(key) };
+    if (!key || watchlistEntries.has(key)) return { changed: false, entry: getEntry(key), id: key, operation: 'ensure' };
     const entry = buildWatchlistEntry({ id: key, status, progress, snapshot }, options());
-    if (!entry) return { changed: false, entry: null };
+    if (!entry) return { changed: false, entry: null, id: key, operation: 'ensure' };
     watchlistEntries.set(key, entry);
     save();
-    return { changed: true, entry };
+    return {
+      changed: true,
+      entry,
+      id: key,
+      removed: false,
+      operation: 'ensure',
+      previousEntry: null,
+      statusChanged: true,
+      progressChanged: normalizeWatchProgress(progress) > 0
+    };
   };
 
   const removeEntry = (animeId) => {
     const key = normalizeWatchId(animeId);
-    if (!key || !watchlistEntries.has(key)) return { changed: false, removed: false, id: key };
+    if (!key || !watchlistEntries.has(key)) return { changed: false, removed: false, id: key, operation: 'remove' };
+    const previousEntry = watchlistEntries.get(key) || null;
     watchlistEntries.delete(key);
     save();
-    return { changed: true, removed: true, id: key };
+    return {
+      changed: true,
+      removed: true,
+      id: key,
+      operation: 'remove',
+      previousEntry,
+      statusChanged: Boolean(previousEntry),
+      progressChanged: false
+    };
   };
 
   const setStatus = (animeId, status, { episodeCount, snapshot } = {}) => {
     const key = normalizeWatchId(animeId);
-    if (!key) return { changed: false, entry: null, id: key };
+    if (!key) return { changed: false, entry: null, id: key, operation: 'status' };
     const rawStatus = String(status || '').trim().toLowerCase();
     if (!rawStatus) return removeEntry(key);
 
     const nextStatus = normalizeWatchStatus(rawStatus);
     const timestamp = now();
     const current = watchlistEntries.get(key);
+    const previousEntry = current ? { ...current } : null;
     let entry = current
       ? { ...current, status: nextStatus, updatedAt: timestamp }
       : buildWatchlistEntry({ id: key, status: nextStatus, progress: 0, updatedAt: timestamp, snapshot }, options());
 
-    if (!entry) return { changed: false, entry: null, id: key };
+    if (!entry) return { changed: false, entry: null, id: key, operation: 'status' };
 
     if (nextStatus === 'planned') {
       entry.progress = 0;
@@ -574,18 +651,28 @@ const createWatchlistLifecycle = ({
 
     watchlistEntries.set(key, entry);
     save();
-    return { changed: true, entry, removed: false, id: key };
+    return {
+      changed: true,
+      entry,
+      removed: false,
+      id: key,
+      operation: 'status',
+      previousEntry,
+      statusChanged: previousEntry ? previousEntry.status !== entry.status : true,
+      progressChanged: previousEntry ? previousEntry.progress !== entry.progress : normalizeWatchProgress(entry.progress) > 0
+    };
   };
 
   const setProgress = (animeId, progress, { episodeCount, snapshot } = {}) => {
     const key = normalizeWatchId(animeId);
-    if (!key) return { changed: false, entry: null, id: key };
+    if (!key) return { changed: false, entry: null, id: key, operation: 'progress' };
     const timestamp = now();
     const normalized = normalizeWatchProgress(progress);
     const maxEpisodes = Number.isFinite(episodeCount) && episodeCount > 0 ? episodeCount : null;
     const clamped = maxEpisodes ? Math.min(normalized, maxEpisodes) : normalized;
 
     let entry = watchlistEntries.get(key);
+    const previousEntry = entry ? { ...entry } : null;
     if (!entry) {
       entry = buildWatchlistEntry({
         id: key,
@@ -611,19 +698,28 @@ const createWatchlistLifecycle = ({
       }
     }
 
-    if (!entry) return { changed: false, entry: null, id: key };
+    if (!entry) return { changed: false, entry: null, id: key, operation: 'progress' };
     if (entry.status === 'completed' && maxEpisodes && clamped >= maxEpisodes) {
       entry.completedAt = entry.completedAt || timestamp;
     }
 
     watchlistEntries.set(key, entry);
     save();
-    return { changed: true, entry, removed: false, id: key };
+    return {
+      changed: true,
+      entry,
+      removed: false,
+      id: key,
+      operation: 'progress',
+      previousEntry,
+      statusChanged: previousEntry ? previousEntry.status !== entry.status : true,
+      progressChanged: previousEntry ? previousEntry.progress !== entry.progress : normalizeWatchProgress(entry.progress) > 0
+    };
   };
 
   const adjustProgress = (animeId, delta, { episodeCount, snapshot } = {}) => {
     const key = normalizeWatchId(animeId);
-    if (!key) return { changed: false, entry: null, id: key };
+    if (!key) return { changed: false, entry: null, id: key, operation: 'progress' };
     const entry = watchlistEntries.get(key);
     const current = Number.isFinite(entry?.progress) ? entry.progress : 0;
     return setProgress(key, current + (Number(delta) || 0), { episodeCount, snapshot });
@@ -742,6 +838,7 @@ export {
   filterWatchlistEntries,
   buildWatchlistDisplayModel,
   buildWatchlistUpdatePayload,
+  buildWatchlistTransitionEnvelope,
   areWatchlistSnapshotsEqual,
   shouldShowWatchProgress,
   createLocalStorageAdapter,

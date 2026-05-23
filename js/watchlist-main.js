@@ -13,6 +13,7 @@ import {
   shouldShowWatchProgress,
   buildWatchlistControlModel,
   buildWatchlistDisplayModel,
+  buildWatchlistTransitionEnvelope,
   createWatchlistLifecycle
 } from './watchlist-state.js';
 import { setHTML } from './security/trusted-types.js';
@@ -156,7 +157,7 @@ const setWatchStatus = (animeId, status, episodeCount) => {
     episodeCount,
     snapshot: current?.snapshot || null
   });
-  return result.entry || null;
+  return buildWatchlistTransitionEnvelope(result);
 };
 
 const setWatchProgress = (animeId, progress, episodeCount) => {
@@ -169,7 +170,7 @@ const setWatchProgress = (animeId, progress, episodeCount) => {
     episodeCount,
     snapshot: current?.snapshot || null
   });
-  return result.entry || null;
+  return buildWatchlistTransitionEnvelope(result, { renderMode: 'controls' });
 };
 
 const adjustWatchProgress = (animeId, delta, episodeCount) => {
@@ -182,7 +183,7 @@ const adjustWatchProgress = (animeId, delta, episodeCount) => {
     episodeCount,
     snapshot: current?.snapshot || null
   });
-  return result.entry || null;
+  return buildWatchlistTransitionEnvelope(result, { renderMode: 'controls' });
 };
 
 const getEpisodeCountFromItem = (item) => {
@@ -313,6 +314,16 @@ const updateWatchlistUi = (card, entry) => {
   } else {
     input.removeAttribute('max');
     total.textContent = '';
+  }
+};
+
+const applyWatchlistTransition = (card, transition) => {
+  if (!transition?.changed) return;
+  if (transition.render?.controls?.shouldUpdate) {
+    updateWatchlistUi(card, transition.render.controls.entry);
+  }
+  if (transition.render?.watchlist?.shouldRender) {
+    renderWatchlist();
   }
 };
 
@@ -511,15 +522,14 @@ const handleWatchlistChange = (target) => {
   const episodeCount = getEpisodeCountFromCard(card);
 
   if (action === 'watch-status') {
-    const entry = setWatchStatus(animeId, target.value, episodeCount);
-    updateWatchlistUi(card, entry);
-    renderWatchlist();
+    const transition = setWatchStatus(animeId, target.value, episodeCount);
+    applyWatchlistTransition(card, transition);
     return true;
   }
 
   if (action === 'watch-progress') {
-    const entry = setWatchProgress(animeId, target.value, episodeCount);
-    updateWatchlistUi(card, entry);
+    const transition = setWatchProgress(animeId, target.value, episodeCount);
+    applyWatchlistTransition(card, transition);
     return true;
   }
 
@@ -541,14 +551,14 @@ const handleWatchlistClick = (target) => {
   const episodeCount = getEpisodeCountFromCard(card);
 
   if (action === 'watch-progress-inc') {
-    const entry = adjustWatchProgress(animeId, 1, episodeCount);
-    updateWatchlistUi(card, entry);
+    const transition = adjustWatchProgress(animeId, 1, episodeCount);
+    applyWatchlistTransition(card, transition);
     return true;
   }
 
   if (action === 'watch-progress-dec') {
-    const entry = adjustWatchProgress(animeId, -1, episodeCount);
-    updateWatchlistUi(card, entry);
+    const transition = adjustWatchProgress(animeId, -1, episodeCount);
+    applyWatchlistTransition(card, transition);
     return true;
   }
 

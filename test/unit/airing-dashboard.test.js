@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildAiringDashboardModel,
+  createAiringScheduleRuntime,
   fetchAiringSchedules,
   formatCountdownLabel
-} from '../../js/airing-dashboard.js';
+} from '../../js/airing-schedule.js';
 import { CacheManager } from '../../js/services/cache-manager.js';
 
 const resetCache = () => {
@@ -132,4 +133,46 @@ test('fetchAiringSchedules caches fresh AniList responses by MAL id', async () =
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('createAiringScheduleRuntime owns countdown refresh ticks', async () => {
+  let now = Date.UTC(2026, 3, 15, 12, 0, 0);
+  let tick = null;
+  const models = [];
+  const targetAiringAt = Math.floor((now + 90 * 60 * 1000) / 1000);
+
+  const runtime = createAiringScheduleRuntime({
+    now: () => now,
+    onModel: (model) => models.push(model),
+    fetchSchedules: async () => new Map([
+      [444, {
+        malId: 444,
+        status: 'RELEASING',
+        episodeCount: 12,
+        nextAiringEpisode: {
+          episode: 3,
+          airingAt: targetAiringAt
+        }
+      }]
+    ]),
+    setIntervalFn: (callback) => {
+      tick = callback;
+      return 10;
+    },
+    clearIntervalFn: () => {}
+  });
+
+  await runtime.update({
+    entries: [{ id: 'show-c', status: 'watching', progress: 1 }],
+    animeItems: [{ id: 'show-c', title: 'Show C', cover: 'https://cdn.myanimelist.net/images/anime/4/4.jpg', malId: 444 }]
+  });
+
+  assert.equal(models[0].items[0].countdownLabel, 'in 1h 30m');
+  assert.equal(typeof tick, 'function');
+
+  now += 60 * 60 * 1000;
+  tick();
+
+  assert.equal(models[1].items[0].countdownLabel, 'in 30m');
+  runtime.destroy();
 });

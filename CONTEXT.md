@@ -24,6 +24,10 @@ _Avoid_: data helper, fetch wrapper, loader utility
 A validated anime data package loaded from preview, full, cached, embedded, or detail-chunk sources before page rendering decisions are applied.
 _Avoid_: JSON blob, response data, raw catalog
 
+**Airing Schedule**:
+Live episode release metadata for watchlist entries, including AniList fetch/cache behavior, stale fallback, countdown labels, and local-time formatting.
+_Avoid_: airing widget helper, countdown utility, schedule glue
+
 **Detail Experience**:
 The lifecycle of opening, refreshing, deep-linking, enriching, and closing an anime detail view, including review refresh and trailer section replacement.
 _Avoid_: modal helper, details popup, anime page glue
@@ -48,3 +52,6 @@ Domain expert: "It belongs to the Detail Experience. Filters describe the browse
 
 Dev: "Should each page flow decide how modals lock scrolling?"
 Domain expert: "No. That belongs to Runtime Capabilities. Page flows only ask for a modal to open or close."
+
+Dev: "Should the dashboard renderer decide when AniList schedule cache is stale?"
+Domain expert: "No. That belongs to the Airing Schedule. The dashboard consumes a model."

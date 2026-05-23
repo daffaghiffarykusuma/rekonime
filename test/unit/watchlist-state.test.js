@@ -10,6 +10,7 @@ import {
   filterWatchlistEntries,
   buildWatchlistDisplayModel,
   buildWatchlistUpdatePayload,
+  buildWatchlistTransitionEnvelope,
   createWatchlistLifecycle
 } from '../../js/watchlist-state.js';
 
@@ -67,6 +68,8 @@ test('watchlist lifecycle owns status timestamps and completion progress', () =>
   assert.equal(result.entry.progress, 12);
   assert.equal(result.entry.startedAt, 2000);
   assert.equal(result.entry.completedAt, 2000);
+  assert.equal(result.operation, 'status');
+  assert.equal(result.statusChanged, true);
 });
 
 test('watchlist lifecycle clamps progress and upgrades planned entries to watching', () => {
@@ -81,6 +84,9 @@ test('watchlist lifecycle clamps progress and upgrades planned entries to watchi
   assert.equal(result.entry.status, 'watching');
   assert.equal(result.entry.progress, 8);
   assert.equal(result.entry.startedAt, 3000);
+  assert.equal(result.operation, 'progress');
+  assert.equal(result.statusChanged, true);
+  assert.equal(result.progressChanged, true);
 });
 
 test('watchlist lifecycle builds shared counts, filters, and display models', () => {
@@ -124,4 +130,32 @@ test('watchlist lifecycle builds shared control model and update payload', () =>
     progress: 3,
     entry
   });
+});
+
+test('watchlist lifecycle builds transition envelopes for adapters', () => {
+  const entry = { id: 'show-1', status: 'watching', progress: 4 };
+  const previousEntry = { id: 'show-1', status: 'planned', progress: 0 };
+  const transition = buildWatchlistTransitionEnvelope({
+    changed: true,
+    id: 'show-1',
+    entry,
+    previousEntry,
+    operation: 'status',
+    statusChanged: true,
+    progressChanged: true
+  }, { dashboardTimeout: 500 });
+
+  assert.equal(transition.event.name, 'rekonime:watchlist-updated');
+  assert.deepEqual(transition.event.payload, {
+    id: 'show-1',
+    removed: false,
+    status: 'watching',
+    progress: 4,
+    entry
+  });
+  assert.equal(transition.render.controls.shouldUpdate, true);
+  assert.equal(transition.render.watchlist.shouldRender, true);
+  assert.equal(transition.dashboard.shouldSchedule, true);
+  assert.equal(transition.dashboard.timeout, 500);
+  assert.deepEqual(transition.compatibilityResult, { entry });
 });

@@ -12,6 +12,8 @@ const createAppHarness = (overrides = {}) => {
     animeData: [],
     isFullDataLoaded: false,
     trailerCleanup: null,
+    getPerformanceNow: () => 100,
+    emitAppEvent: (...args) => calls.push(['emitAppEvent', ...args]),
     getAnimeIdFromUrl: () => '',
     showAnimeDetail: (...args) => calls.push(['showAnimeDetail', ...args]),
     closeDetailModal: (...args) => calls.push(['closeDetailModal', ...args]),
@@ -32,7 +34,34 @@ const createAppHarness = (overrides = {}) => {
     getLogger: () => null,
     setModalVisibility: (...args) => calls.push(['setModalVisibility', ...args]),
     updateUrlForAnime: (...args) => calls.push(['updateUrlForAnime', ...args]),
+    resetMetaToDefault: () => calls.push(['resetMetaToDefault']),
     renderDetailSkeleton: () => '<div class="skeleton"></div>',
+    normalizeBookmarkId: (value) => String(value ?? '').trim(),
+    getWatchlistSnapshot: () => null,
+    hasFullAnimeDetail: () => true,
+    loadAnimeDetailChunk: async () => null,
+    getSynopsisForAnime: (anime) => anime.synopsis || '',
+    renderSynopsisLoading: () => '<p>Loading synopsis</p>',
+    renderFranchiseHubSection: () => '',
+    renderReviewsLoading: () => '<p>Loading reviews</p>',
+    getEpisodeCount: (anime) => anime.episodes?.length || anime.episodeCount || 0,
+    getCardDecisionData: () => ({ value: 'Try it', note: 'Strong signal', className: 'detail-verdict--good' }),
+    sanitizeClassList: (...classes) => classes.filter(Boolean).join(' '),
+    buildImageSrcset: (cover) => ({ src: cover || '', srcset: '', sizes: '', fallback: '' }),
+    sanitizeImageUrl: (value) => value || '',
+    escapeAttr: (value) => String(value ?? '').replaceAll('"', '&quot;'),
+    escapeHtml: (value) => String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;'),
+    getImageDimensions: () => ({ width: 150, height: 210 }),
+    getImageFallbackAttrs: () => '',
+    renderSimilarAnimeSection: () => '<div class="similar-empty"></div>',
+    renderWatchlistControls: () => '<div class="watchlist-controls"></div>',
+    updateWatchlistControls: (...args) => calls.push(['updateWatchlistControls', ...args]),
+    updatePrefetchObserving: () => calls.push(['updatePrefetchObserving']),
     loadFullCatalog: async () => false,
     ...overrides
   };
@@ -53,16 +82,39 @@ test('Detail Experience cache evicts least recently used detail markup', () => {
   assert.equal(app.detailCache.has('three'), true);
 });
 
-test('Detail Experience opens titles through the lifecycle interface', () => {
-  const { detail, calls } = createAppHarness({
-    openAnimeDetailImplementation: (...args) => {
-      calls.push(['openAnimeDetailImplementation', ...args]);
-      return true;
-    }
+test('Detail Experience opens and renders a title lifecycle', () => {
+  setupDom(`
+    <div id="detail-modal"><div class="modal-content"></div></div>
+    <div id="detail-content"></div>
+  `);
+  const { app, detail, calls } = createAppHarness({
+    animeData: [{
+      id: 'show-1',
+      title: 'Show One',
+      cover: 'https://example.test/show.jpg',
+      genres: ['Drama'],
+      themes: ['School'],
+      type: 'TV',
+      year: 2024,
+      synopsis: 'Local synopsis',
+      episodes: [{ score: 80 }],
+      stats: { retentionScore: 82, threeEpisodeHook: 77, churnRisk: { score: 18 }, worthFinishing: 91 },
+      communityScore: 8.2
+    }]
   });
 
-  assert.equal(detail.open('show-1', { updateUrl: false }), true);
-  assert.deepEqual(calls[0], ['openAnimeDetailImplementation', 'show-1', { updateUrl: false }]);
+  detail.open('show-1', { updateUrl: false });
+
+  assert.equal(app.currentAnimeId, 'show-1');
+  assert.match(document.getElementById('detail-content').innerHTML, /Show One/);
+  assert.equal(app.detailCache.has('show-1'), true);
+  assert.equal(calls.some(([name]) => name === 'updateWatchlistControls'), true);
+  assert.deepEqual(calls.at(-1), ['emitAppEvent', 'rekonime:modal-opened', {
+    animeId: 'show-1',
+    durationMs: 0,
+    cached: false,
+    status: 'ok'
+  }]);
 });
 
 test('Detail Experience syncs URL anime state to open or close actions', () => {

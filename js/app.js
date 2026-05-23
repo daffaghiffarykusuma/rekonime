@@ -6,9 +6,9 @@ import { Onboarding } from './onboarding.js';
 import { ThemeManager } from './themeManager.js';
 import { CacheManager } from './services/cache-manager.js';
 import { CatalogLoader } from './services/catalog-loader.js';
+import { CatalogPayload } from './services/catalog-payload.js';
 import { AnalyticsService } from './services/analytics-service.js';
 import { ApiClient } from './services/api-client.js';
-import { DataValidator } from './services/data-validator.js';
 import { Logger } from './services/logger.js';
 import { HealthMonitor } from './healthMonitor.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
@@ -43,7 +43,7 @@ import {
   areWatchlistSnapshotsEqual as areLifecycleWatchlistSnapshotsEqual,
   shouldShowWatchProgress as shouldShowLifecycleWatchProgress,
   buildWatchlistControlModel,
-  buildWatchlistUpdatePayload,
+  buildWatchlistTransitionEnvelope,
   createWatchlistLifecycle
 } from './watchlist-state.js';
 
@@ -942,10 +942,9 @@ const App = {
       snapshot: this.buildAnimeSnapshot(anime)
     });
     if (!result.changed) return result;
-    this.updateWatchlistControls(key);
-    this.emitAppEvent('rekonime:watchlist-updated', buildWatchlistUpdatePayload(result));
-    this.scheduleAiringDashboardRender({ timeout: 500 });
-    return result.removed ? { removed: true } : { entry: result.entry };
+    const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
+    this.applyWatchlistTransition(transition);
+    return transition.compatibilityResult;
   },
 
   setWatchProgress(animeId, progress, { episodeCount } = {}) {
@@ -957,10 +956,9 @@ const App = {
       snapshot: this.buildAnimeSnapshot(anime)
     });
     if (!result.changed) return result;
-    this.updateWatchlistControls(key);
-    this.emitAppEvent('rekonime:watchlist-updated', buildWatchlistUpdatePayload(result));
-    this.scheduleAiringDashboardRender({ timeout: 500 });
-    return { entry: result.entry };
+    const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
+    this.applyWatchlistTransition(transition);
+    return transition.compatibilityResult;
   },
 
   adjustWatchProgress(animeId, delta) {
@@ -973,10 +971,22 @@ const App = {
       snapshot: this.buildAnimeSnapshot(anime)
     });
     if (!result.changed) return result;
-    this.updateWatchlistControls(key);
-    this.emitAppEvent('rekonime:watchlist-updated', buildWatchlistUpdatePayload(result));
-    this.scheduleAiringDashboardRender({ timeout: 500 });
-    return { entry: result.entry };
+    const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
+    this.applyWatchlistTransition(transition);
+    return transition.compatibilityResult;
+  },
+
+  applyWatchlistTransition(transition) {
+    if (!transition?.changed) return;
+    if (transition.render?.controls?.shouldUpdate) {
+      this.updateWatchlistControls(transition.render.controls.id);
+    }
+    if (transition.event) {
+      this.emitAppEvent(transition.event.name, transition.event.payload);
+    }
+    if (transition.dashboard?.shouldSchedule) {
+      this.scheduleAiringDashboardRender({ timeout: transition.dashboard.timeout });
+    }
   },
 
   updateWatchlistControls(animeId) {
@@ -1354,28 +1364,7 @@ const App = {
   },
 
   getEpisodeCount(anime) {
-    if (!anime) return 0;
-    const directCount = [
-      anime.episodeCount,
-      anime.episodesCount,
-      anime.episodes_count,
-      anime.metadata?.episodeCount,
-      anime.metadata?.episodesCount,
-      anime.metadata?.episodes_count
-    ].reduce((max, candidate) => {
-      const parsed = Number(candidate);
-      return Number.isFinite(parsed) && parsed > 0 ? Math.max(max, Math.floor(parsed)) : max;
-    }, 0);
-    const listCount = Array.isArray(anime.episodes)
-      ? anime.episodes.reduce((max, episode, index) => {
-        const parsed = Number(episode?.episode);
-        const fallback = index + 1;
-        const count = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-        return Math.max(max, Math.floor(count));
-      }, 0)
-      : 0;
-    const statsCount = Number.isFinite(anime?.stats?.episodeCount) ? anime.stats.episodeCount : 0;
-    return Math.max(directCount, listCount, statsCount);
+    return CatalogPayload.getEpisodeCount(anime);
   },
 
   isMobileViewport() {
@@ -1893,22 +1882,23 @@ const App = {
   },
 
   async applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
-    const catalog = payload?.anime || [];
-    this.scoreProfile = this.isValidScoreProfile(payload?.scoreProfile) ? payload.scoreProfile : null;
-    this.animeData = this.normalizeAnimeData(catalog);
-    if (DataValidator?.validateCatalog) {
-      DataValidator.validateCatalog(this.animeData, { source: isFull ? 'full' : 'embedded' });
-    }
-    this.isFullDataLoaded = isFull;
+    const catalogState = CatalogPayload.prepareState(payload, {
+      isFull,
+      preserveFilters,
+      defaultActiveFilters: this.getDefaultActiveFilters()
+    });
+    this.scoreProfile = catalogState.scoreProfile;
+    this.animeData = catalogState.animeData;
+    this.isFullDataLoaded = catalogState.isFullDataLoaded;
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
-      root.dataset.catalogStatus = isFull ? 'full' : 'embedded';
-      root.dataset.catalogReady = 'true';
+      root.dataset.catalogStatus = catalogState.catalogStatus;
+      root.dataset.catalogReady = String(catalogState.catalogReady);
     }
-    this.gridSortedCache = null;
-    this.gridSortedKey = '';
-    this.gridSortedSource = null;
-    this.gridSortedIsPartial = false;
+    this.gridSortedCache = catalogState.gridState.sortedCache;
+    this.gridSortedKey = catalogState.gridState.sortedKey;
+    this.gridSortedSource = catalogState.gridState.sortedSource;
+    this.gridSortedIsPartial = catalogState.gridState.sortedIsPartial;
     if (this.gridSortHandle) {
       this.cancelIdleTask(this.gridSortHandle);
       this.gridSortHandle = null;
@@ -1924,8 +1914,8 @@ const App = {
       }
     }
 
-    if (!preserveFilters) {
-      this.activeFilters = this.getDefaultActiveFilters();
+    if (catalogState.activeFilters) {
+      this.activeFilters = catalogState.activeFilters;
     }
 
     await this.ensureStats();
@@ -2181,7 +2171,7 @@ const App = {
   },
 
   isValidScoreProfile(profile) {
-    return Boolean(profile && Number.isFinite(profile.p35) && Number.isFinite(profile.p50) && Number.isFinite(profile.p65));
+    return CatalogPayload.isValidScoreProfile(profile);
   },
 
   /**
@@ -2272,31 +2262,7 @@ const App = {
   },
 
   validateAnimeData(animeList) {
-    const errors = [];
-    if (!Array.isArray(animeList)) {
-      return { isValid: false, errors: ['anime is not an array'] };
-    }
-    if (animeList.length === 0) {
-      return { isValid: true, errors: [], isEmpty: true };
-    }
-
-    const sampleSize = Math.min(animeList.length, 5);
-    for (let i = 0; i < sampleSize; i += 1) {
-      const anime = animeList[i];
-      if (!anime) {
-        errors.push(`Item ${i} is null or undefined`);
-        continue;
-      }
-      if (typeof anime.id === 'undefined') {
-        errors.push(`Item ${i} missing id`);
-      }
-      if (!anime.title || typeof anime.title !== 'string') {
-        errors.push(`Item ${i} missing or invalid title`);
-      }
-    }
-
-    const isValid = errors.length < Math.ceil(sampleSize * 0.2);
-    return { isValid, errors, itemCount: animeList.length };
+    return CatalogPayload.validateAnimeData(animeList);
   },
 
   /**
@@ -2304,106 +2270,7 @@ const App = {
    * This ensures compatibility with both old format and new scraper output
    */
   normalizeAnimeData(animeList) {
-    return animeList.map(anime => {
-      const normalizedGenres = this.sanitizeTagList(anime?.metadata?.genres || anime?.genres || []);
-      const normalizedThemes = this.sanitizeTagList(anime?.metadata?.themes || anime?.themes || []);
-      const normalizedTrailer = anime?.metadata?.trailer || anime?.trailer || null;
-      const normalizedSynopsis = anime?.metadata?.synopsis || anime?.synopsis || '';
-      const existingStats = anime?.stats || anime?.metadata?.stats || null;
-      const existingColorIndex = Number.isFinite(anime?.colorIndex) ? anime.colorIndex : null;
-      const existingSearchText = typeof anime?.searchText === 'string' ? anime.searchText : '';
-      const existingSearchIndex = anime?.searchIndex || null;
-      const normalizedTitleEnglish =
-        anime?.metadata?.title_english ||
-        anime?.metadata?.titleEnglish ||
-        anime?.title_english ||
-        anime?.titleEnglish ||
-        '';
-      const normalizedTitleJapanese =
-        anime?.metadata?.title_japanese ||
-        anime?.metadata?.titleJapanese ||
-        anime?.title_japanese ||
-        anime?.titleJapanese ||
-        '';
-      const normalizedType = anime?.metadata?.type || anime?.type || '';
-      const rawCommunityScore = anime?.communityScore ?? anime?.metadata?.score ?? anime?.score;
-      const communityScore = Number.isFinite(Number(rawCommunityScore)) ? Number(rawCommunityScore) : null;
-
-      // If data has nested metadata structure, flatten it
-      if (anime.metadata) {
-        const resolvedTitle = anime.metadata.title || anime.title;
-        const shouldBuildSearchIndex = !existingSearchIndex && !existingSearchText;
-        const searchIndex = shouldBuildSearchIndex
-          ? this.buildSearchIndex(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese)
-          : existingSearchIndex;
-        const searchText = shouldBuildSearchIndex
-          ? this.mergeSearchText(existingSearchText, searchIndex)
-          : existingSearchText;
-        return {
-          id: anime.metadata.id || anime.id,
-          title: resolvedTitle,
-          titleEnglish: normalizedTitleEnglish,
-          titleJapanese: normalizedTitleJapanese,
-          malId: anime.metadata.malId || anime.mal_id || anime.malId,
-          anilistId: anime.metadata.anilistId || anime.anilistId,
-          cover: anime.metadata.cover || anime.cover,
-          type: normalizedType,
-          year: anime.metadata.year || anime.year,
-          season: anime.metadata.season || anime.season,
-          studio: anime.metadata.studio || anime.studio,
-          source: anime.metadata.source || anime.source,
-          genres: normalizedGenres,
-          themes: normalizedThemes,
-          demographic: anime.metadata.demographic || anime.demographic,
-          trailer: normalizedTrailer,
-          synopsis: normalizedSynopsis,
-          communityScore: communityScore,
-          episodeCount: this.getEpisodeCount(anime),
-          searchIndex: searchIndex,
-          searchText: searchText,
-          episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
-          stats: existingStats,
-          colorIndex: existingColorIndex,
-          franchise: anime.franchise || anime.metadata.franchise || null
-        };
-      }
-      // Already flat structure, ensure all fields exist
-      const resolvedTitle = anime.title;
-      const shouldBuildSearchIndex = !existingSearchIndex && !existingSearchText;
-      const searchIndex = shouldBuildSearchIndex
-        ? this.buildSearchIndex(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese)
-        : existingSearchIndex;
-      const searchText = shouldBuildSearchIndex
-        ? this.mergeSearchText(existingSearchText, searchIndex)
-        : existingSearchText;
-      return {
-        id: anime.id,
-        title: resolvedTitle,
-        titleEnglish: normalizedTitleEnglish,
-        titleJapanese: normalizedTitleJapanese,
-        malId: anime.malId,
-        anilistId: anime.anilistId,
-        cover: anime.cover,
-        type: normalizedType,
-        year: anime.year,
-        season: anime.season,
-        studio: anime.studio,
-        source: anime.source,
-        genres: normalizedGenres,
-        themes: normalizedThemes,
-        demographic: anime.demographic,
-        trailer: normalizedTrailer,
-        synopsis: normalizedSynopsis,
-        communityScore: communityScore,
-        episodeCount: this.getEpisodeCount(anime),
-        searchIndex: searchIndex,
-        searchText: searchText,
-        episodes: Array.isArray(anime.episodes) ? anime.episodes : [],
-        stats: existingStats,
-        colorIndex: existingColorIndex,
-        franchise: anime.franchise || null
-      };
-    });
+    return CatalogPayload.normalizeAnimeData(animeList);
   },
 
   /**
@@ -2412,82 +2279,23 @@ const App = {
    * @returns {Array} Cleaned tag list
    */
   sanitizeTagList(tags) {
-    if (!Array.isArray(tags)) return [];
-    const seen = new Set();
-    const cleaned = [];
-
-    for (const tag of tags) {
-      const label = String(tag ?? '').trim();
-      const normalized = label.toLowerCase();
-      if (!label || normalized === 'undefined' || normalized === 'null') continue;
-      if (seen.has(normalized)) continue;
-      seen.add(normalized);
-      cleaned.push(label);
-    }
-
-    return cleaned;
+    return CatalogPayload.sanitizeTagList(tags);
   },
 
   normalizeSearchQuery(value, { stripPunctuation = false, compact = false } = {}) {
-    let normalized = String(value || '')
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .normalize('NFKC');
-
-    if (stripPunctuation) {
-      normalized = normalized.replace(/[-_/\\:;,.!?'"(){}\[\]<>|~`@#$%^&*=+]/g, ' ');
-    }
-
-    normalized = normalized.replace(/\s+/g, ' ').trim();
-    if (compact) {
-      return normalized.replace(/\s+/g, '');
-    }
-    return normalized;
+    return CatalogPayload.normalizeSearchQuery(value, { stripPunctuation, compact });
   },
 
   buildSearchIndex(title, titleEnglish, titleJapanese) {
-    const rawParts = [title, titleEnglish, titleJapanese]
-      .map(value => String(value || '').trim())
-      .filter(Boolean);
-
-    const variants = new Set();
-    const compactVariants = new Set();
-
-    rawParts.forEach(value => {
-      const normalized = this.normalizeSearchQuery(value);
-      const loose = this.normalizeSearchQuery(value, { stripPunctuation: true });
-      const compact = this.normalizeSearchQuery(value, { stripPunctuation: true, compact: true });
-      if (normalized) variants.add(normalized);
-      if (loose) variants.add(loose);
-      if (compact) compactVariants.add(compact);
-    });
-
-    const tokenSet = new Set();
-    variants.forEach(text => {
-      text.split(' ').forEach(token => {
-        if (token) tokenSet.add(token);
-      });
-    });
-
-    return {
-      variants: Array.from(variants),
-      compactVariants: Array.from(compactVariants),
-      tokenSet
-    };
+    return CatalogPayload.buildSearchIndex(title, titleEnglish, titleJapanese);
   },
 
   mergeSearchText(existingText, searchIndex) {
-    const parts = [];
-    if (existingText) parts.push(existingText);
-    if (searchIndex?.variants) parts.push(...searchIndex.variants);
-    if (searchIndex?.compactVariants) parts.push(...searchIndex.compactVariants);
-    return [...new Set(parts.filter(Boolean))].join(' ');
+    return CatalogPayload.mergeSearchText(existingText, searchIndex);
   },
 
   buildSearchText(title, titleEnglish, titleJapanese) {
-    const searchIndex = this.buildSearchIndex(title, titleEnglish, titleJapanese);
-    return this.mergeSearchText('', searchIndex);
+    return CatalogPayload.buildSearchText(title, titleEnglish, titleJapanese);
   },
 
   prepareSearchQuery(query) {
@@ -5931,286 +5739,8 @@ const App = {
     return this.getDetailExperience().open(animeId, options);
   },
 
-  openAnimeDetailImplementation(animeId, { updateUrl = true, skipModalOpen = false } = {}) {
-    const renderStart = this.getPerformanceNow();
-    this.stopTrailerPlayback();
-    this.teardownTrailerObserver();
-
-    const modal = document.getElementById('detail-modal');
-    const content = document.getElementById('detail-content');
-    const modalContent = modal ? modal.querySelector('.modal-content') : null;
-
-    if (!modal || !content) return;
-
-    const cachedDetail = this.getCachedDetail(animeId);
-    const hasCachedDetail = Boolean(cachedDetail);
-    const reportModalOpened = (detail = {}) => {
-      this.emitAppEvent('rekonime:modal-opened', {
-        animeId,
-        durationMs: Math.round(this.getPerformanceNow() - renderStart),
-        cached: hasCachedDetail,
-        ...detail
-      });
-    };
-
-    if (hasCachedDetail) {
-      setHTML(content, cachedDetail);
-    } else if (!skipModalOpen) {
-      setHTML(content, this.renderDetailSkeleton());
-    }
-    if (!skipModalOpen) {
-      this.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
-    }
-
-    let anime = this.animeData.find(a => a.id === animeId);
-    if (!anime) {
-      const key = this.normalizeBookmarkId(animeId);
-      if (key) {
-        const cached = this.getWatchlistSnapshot(key);
-        if (cached) {
-          anime = cached;
-        }
-      }
-    }
-    if (!anime) {
-      if (updateUrl) {
-        this.updateUrlForAnime(null, { replace: true });
-      }
-      this.resetMetaToDefault();
-      // Show error in modal
-      setHTML(content, `
-        <div class="error-message">
-          <h2>That title is not available</h2>
-          <p>We could not find that anime in the current catalog.</p>
-          <button class="btn btn-primary detail-close-button" data-action="close-detail">Back to browsing</button>
-        </div>
-      `);
-      reportModalOpened({ status: 'not_found' });
-      return;
-    }
-
-    this.currentAnimeId = anime.id;
-
-    if (updateUrl) {
-      this.updateUrlForAnime(anime.id);
-    }
-
-    if (!this.hasFullAnimeDetail(anime)) {
-      this.loadAnimeDetailChunk(anime.id).then((detailAnime) => {
-        if (!detailAnime || this.currentAnimeId !== anime.id) return;
-        this.showAnimeDetail(anime.id, { updateUrl: false, skipModalOpen: true });
-      });
-    }
-
-    const synopsis = this.getSynopsisForAnime(anime);
-    if (hasCachedDetail) {
-      this.updateWatchlistControls(anime.id);
-      if (modalContent) {
-        modalContent.scrollTop = 0;
-      }
-      content.scrollTop = 0;
-      this.updateMetaForAnime(anime, synopsis);
-      this.setupTrailerAutoplay(modalContent);
-      this.loadCommunityReviews(anime, synopsis);
-      this.updatePrefetchObserving();
-      reportModalOpened({ status: 'ok' });
-      return;
-    }
-
-    // Build genres and themes tags
-    const genreTags = anime.genres && anime.genres.length > 0
-      ? anime.genres.map(g => `<span class="detail-tag">${this.escapeHtml(g)}</span>`).join('')
-      : '';
-    const themeTags = anime.themes && anime.themes.length > 0
-      ? anime.themes.map(t => `<span class="detail-tag">${this.escapeHtml(t)}</span>`).join('')
-      : '';
-
-    const synopsisMarkup = this.renderSynopsis(synopsis);
-    const synopsisSection = synopsisMarkup || this.renderSynopsisLoading();
-    const franchiseSection = this.renderFranchiseHubSection(anime);
-    const trailerSection = this.renderTrailerSection(anime);
-    const episodeCount = this.getEpisodeCount(anime);
-    const hasEpisodes = episodeCount > 0;
-    const rawRetention = anime?.stats?.retentionScore;
-    const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
-    const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
-    const retentionClass = Recommendations.getRetentionClass(retentionScore);
-    const malSatisfactionClass = Recommendations.getMalSatisfactionClass(malSatisfactionScore);
-    const rawStart = anime?.stats?.threeEpisodeHook;
-    const rawChurn = anime?.stats?.churnRisk?.score;
-    const rawFinish = anime?.stats?.worthFinishing;
-    const startScore = hasEpisodes && Number.isFinite(rawStart) ? Math.round(rawStart) : null;
-    const stayScore = hasEpisodes && Number.isFinite(rawChurn) ? Math.round(100 - rawChurn) : null;
-    const finishScore = hasEpisodes && Number.isFinite(rawFinish) ? Math.round(rawFinish) : null;
-    const safeStartScore = Number.isFinite(startScore) ? startScore : 0;
-    const safeStayScore = Number.isFinite(stayScore) ? stayScore : 0;
-    const safeFinishScore = Number.isFinite(finishScore) ? finishScore : 0;
-
-    const metaParts = [anime.type, anime.year, anime.studio, anime.source, anime.demographic]
-      .map(value => {
-        const label = String(value ?? '').trim();
-        const normalized = label.toLowerCase();
-        if (!label || normalized === 'undefined' || normalized === 'null') return '';
-        return label;
-      })
-      .filter(Boolean);
-    const metaHtml = metaParts.map(part => `<span>${this.escapeHtml(part)}</span>`).join(' &bull; ');
-    const safeTitle = this.escapeHtml(anime.title);
-    const { src: detailSrc, srcset: detailSrcset, sizes: detailSizes, fallback: detailFallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'detail', preferOptimized: false });
-    const safeCover = this.escapeAttr(detailSrc || this.sanitizeImageUrl(anime.cover));
-    const detailSrcsetAttr = detailSrcset ? `srcset="${this.escapeAttr(detailSrcset)}"` : '';
-    const detailSizesAttr = detailSizes ? `sizes="${this.escapeAttr(detailSizes)}"` : '';
-    const detailDims = this.getImageDimensions('detail');
-    const detailDimAttrs = detailDims ? `width="${detailDims.width}" height="${detailDims.height}"` : '';
-    const detailFallbackAttrs = this.getImageFallbackAttrs({
-      fallbackSrc: detailFallback,
-      placeholder: 'https://via.placeholder.com/150x210?text=No+Image'
-    });
-
-    const altTitles = [];
-    if (anime.titleEnglish && anime.titleEnglish.toLowerCase() !== anime.title.toLowerCase()) {
-      altTitles.push({ label: 'English', value: anime.titleEnglish });
-    }
-    if (anime.titleJapanese && anime.titleJapanese.toLowerCase() !== anime.title.toLowerCase()) {
-      altTitles.push({ label: 'Japanese', value: anime.titleJapanese });
-    }
-    const altTitlesHtml = altTitles.length
-      ? `<div class="detail-alt-titles">
-          ${altTitles.map(item => `
-            <div class="detail-alt-title">
-              <span class="detail-alt-label">${this.escapeHtml(item.label)}</span>
-              <span class="detail-alt-value">${this.escapeHtml(item.value)}</span>
-            </div>
-          `).join('')}
-        </div>`
-      : '';
-    const similarSection = this.renderSimilarAnimeSection(anime);
-    const watchlistControls = this.renderWatchlistControls(anime);
-    const decision = this.getCardDecisionData(anime);
-    const detailDecisionClass = this.sanitizeClassList('detail-verdict', decision.className);
-
-    setHTML(content, `
-      <div class="detail-header">
-        <img src="${safeCover}" ${detailSrcsetAttr} ${detailSizesAttr} alt="${safeTitle}" class="detail-cover" ${detailDimAttrs} ${detailFallbackAttrs}>
-        <div class="detail-info">
-          <div class="detail-title-row">
-            <h2 class="detail-title" id="detail-modal-title">${safeTitle}</h2>
-          </div>
-          ${altTitlesHtml}
-          <div class="detail-meta">
-            ${metaHtml}
-          </div>
-          <div class="detail-tags">
-            ${genreTags}${themeTags}
-          </div>
-          <div class="detail-decision-panel">
-            <div class="${detailDecisionClass}">
-              <span class="detail-verdict-label">Decision signal</span>
-              <strong class="detail-verdict-value">${this.escapeHtml(decision.value)}</strong>
-              <span class="detail-verdict-copy">${this.escapeHtml(decision.note)}</span>
-            </div>
-            <div class="detail-stats">
-              <div class="detail-stat has-tooltip" tabindex="0">
-                <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
-                <span class="detail-stat-label">Finish Rate</span>
-                <div class="tooltip" role="tooltip">
-                  <div class="tooltip-title">Finish Rate</div>
-                  <div class="tooltip-text">How reliably viewers keep watching through the series. Factors in strong starts, low drop-off, and steady pacing.</div>
-                </div>
-              </div>
-              <div class="detail-stat has-tooltip" tabindex="0">
-                <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
-                <span class="detail-stat-label">Satisfaction (MAL)</span>
-                <div class="tooltip" role="tooltip">
-                  <div class="tooltip-title">Satisfaction Score</div>
-                  <div class="tooltip-text">Community rating from MyAnimeList.</div>
-                </div>
-              </div>
-              <div class="detail-stat">
-                <span class="detail-stat-value">${episodeCount || 'N/A'}</span>
-                <span class="detail-stat-label">Episodes</span>
-              </div>
-            </div>
-            ${watchlistControls}
-          </div>
-        </div>
-      </div>
-      ${hasEpisodes ? `
-        <div class="detail-breakdown">
-          <div class="detail-section-header">
-            <h3>Why it sticks</h3>
-            <span class="detail-section-note">Start, stay, finish</span>
-          </div>
-          <div class="breakdown-row">
-            <span class="breakdown-label has-tooltip" tabindex="0">
-              Strong start
-              <div class="tooltip tooltip--bottom" role="tooltip">
-                <div class="tooltip-title">Strong Start</div>
-                <div class="tooltip-text">How compelling the first 3 episodes are. High scores mean the show hooks viewers early.</div>
-              </div>
-            </span>
-            <progress class="breakdown-progress" value="${safeStartScore}" max="100" aria-label="Strong start score"></progress>
-            <span class="breakdown-value">${startScore !== null ? `${startScore}%` : 'N/A'}</span>
-          </div>
-          <div class="breakdown-row">
-            <span class="breakdown-label has-tooltip" tabindex="0">
-              Keeps you watching
-              <div class="tooltip tooltip--bottom" role="tooltip">
-                <div class="tooltip-title">Keeps You Watching</div>
-                <div class="tooltip-text">Low drop-off probability. Measures how likely viewers are to continue without losing interest.</div>
-              </div>
-            </span>
-            <progress class="breakdown-progress" value="${safeStayScore}" max="100" aria-label="Keeps you watching score"></progress>
-            <span class="breakdown-value">${stayScore !== null ? `${stayScore}%` : 'N/A'}</span>
-          </div>
-          <div class="breakdown-row">
-            <span class="breakdown-label has-tooltip" tabindex="0">
-              Finish payoff
-              <div class="tooltip tooltip--bottom" role="tooltip">
-                <div class="tooltip-title">Finish Payoff</div>
-                <div class="tooltip-text">How well the show sticks the landing. Combines finale strength, momentum, and narrative build-up.</div>
-              </div>
-            </span>
-            <progress class="breakdown-progress" value="${safeFinishScore}" max="100" aria-label="Finish payoff score"></progress>
-            <span class="breakdown-value">${finishScore !== null ? `${finishScore}%` : 'N/A'}</span>
-          </div>
-        </div>
-      ` : `
-        <div class="detail-breakdown detail-breakdown-empty">
-          <div class="detail-section-header">
-            <h3>Why it sticks</h3>
-          </div>
-          <p class="detail-empty">No episode scores yet. Finish Rate appears once episode scores are available.</p>
-        </div>
-      `}
-      <div id="synopsis-section">
-        ${synopsisSection}
-      </div>
-      ${franchiseSection}
-      ${trailerSection}
-      <div id="community-reviews-section">
-        ${this.renderReviewsLoading()}
-      </div>
-      <div id="similar-anime-section">
-        ${similarSection}
-      </div>
-    `);
-
-    this.cacheDetail(anime.id, content.innerHTML);
-    this.updateWatchlistControls(anime.id);
-
-    if (modalContent) {
-      modalContent.scrollTop = 0;
-    }
-    content.scrollTop = 0;
-
-    this.updateMetaForAnime(anime, synopsis);
-    this.setupTrailerAutoplay(modalContent);
-
-    // Load community reviews
-    this.loadCommunityReviews(anime, synopsis);
-    this.updatePrefetchObserving();
-    reportModalOpened({ status: 'ok' });
+  openAnimeDetailImplementation(animeId, options = {}) {
+    return this.showAnimeDetail(animeId, options);
   },
 
   /**

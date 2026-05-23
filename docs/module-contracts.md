@@ -4,25 +4,34 @@
 
 ### Catalog Loading
 - Runtime module: `js/services/catalog-loader.js`
+- Payload module: `js/services/catalog-payload.js`
 - App handoff: `js/app.js` (`applyCatalogPayload`, render/filter/meta refresh)
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
 - Interface: load the full catalog index, fetch catalog payloads, read/write full catalog cache, use embedded fallback, and merge detail chunks
-- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); callers still own DOM updates and page-specific rendering
+- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.js` owns normalization, score-profile validation, validation handoff, and render-ready catalog state
 
 ### Watchlist State
 - Entry points: `js/app.js`, `js/watchlist-main.js`
 - Lifecycle module: `js/watchlist-state.js`
 - Storage key: `rekonime.watchlist`
-- Interface: load entries, migrate legacy bookmarks, update status/progress, refresh snapshots, and expose filtered entries/items
-- Side effects: storage writes only; callers still own DOM updates and `rekonime:watchlist-updated` emission
+- Interface: load entries, migrate legacy bookmarks, update status/progress, refresh snapshots, expose filtered entries/items, and build transition envelopes for adapters
+- Side effects: storage writes only; callers apply the returned event, render, and dashboard scheduling intent
 
 ### Detail Experience
 - Experience module: `js/detail-experience.js`
-- App handoff: `js/app.js` (`showAnimeDetail`, detail markup builders, trailer control methods)
+- App handoff: `js/app.js` (`showAnimeDetail`, detail markup builders, image helpers, trailer control methods)
 - Inputs: anime id, cached detail, review payload, detail URL state (`?anime=...`)
 - Outputs: modal visibility, refreshed synopsis/reviews, cached detail HTML, detail URL synchronization
-- Side effects: history state, metadata updates, trailer cleanup/replacement, full-catalog deep-link fallback
+- Side effects: history state, metadata updates, trailer cleanup/replacement, full-catalog deep-link fallback, modal-open telemetry
+
+### Airing Schedule
+- Schedule module: `js/airing-schedule.js`
+- Renderer adapter: `js/airing-dashboard.js`
+- Inputs: planned/watching watchlist entries, catalog or snapshot anime items, AniList schedule responses, local clock
+- Outputs: dashboard model with next episode, readiness, countdown, local time labels, and summary counts
+- Interface: fetch/cache schedule metadata, build dashboard models, and run countdown refresh ticks
+- Side effects: AniList GraphQL calls, local schedule cache writes, and renderer callbacks
 
 ### Shared URL Policies
 - Entry points: `js/security/trailer-url-policy.js`, `js/urlSanitizer.js`
