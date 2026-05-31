@@ -235,7 +235,7 @@ const buildActuals = (workdir) => {
     'validation-failure.txt': normalizeValidationOutput(failure.output, workdir),
     'manifest.json': compactJson({
       version: 1,
-      generatedBy: 'tools/python_golden_harness.py',
+      generatedBy: 'tools/pipeline_parity_contract.py',
       normalizations: [
         'generatedAt fields use <generated-at>',
         'quality report buildId uses <generated-at>',

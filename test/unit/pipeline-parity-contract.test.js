@@ -1,9 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+
+const findPython = () => {
+  const candidates = process.platform === 'win32' ? ['python', 'python3', 'py'] : ['python3', 'python'];
+
+  for (const candidate of candidates) {
+    const result = spawnSync(candidate, ['--version'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    if (!result.error && result.status === 0) {
+      return candidate;
+    }
+  }
+
+  return '';
+};
 
 test('pipeline parity contract owns fixture and trailer vectors', () => {
-  const output = execFileSync('python', [
+  const python = findPython();
+  assert.notEqual(python, '', 'Python is required for the pipeline parity contract test');
+
+  const output = execFileSync(python, [
     '-c',
     [
       'import json, sys',
