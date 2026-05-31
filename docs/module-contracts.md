@@ -5,6 +5,7 @@
 ### App Shell
 - Stable TypeScript entry points: `js/main.ts`, `js/watchlist-main.ts`, `js/app.ts`, `js/serviceWorker.ts`
 - Decision note: `docs/app-shell-migration-decision-2026-05-31.md`
+- Current deepening rule: keep broad render-slice extraction last; first move product behavior behind deeper Detail Experience, Watchlist Entry presentation, and Catalog Payload effect modules so App Shell slices do not become shallow pass-through modules.
 - Inputs: browser document state, catalog runtime services, watchlist lifecycle state, user input, service worker lifecycle
 - Outputs: booted home app, watchlist page render, app orchestration commands, PWA registration/update prompt
 - Side effects: DOM rendering, event listeners, history state, local storage/cache reads and writes, service worker registration
@@ -13,6 +14,7 @@
 - Runtime module: `js/services/catalog-loader.ts`
 - Runtime TypeScript entrypoint: `js/services/catalog-loader.ts`
 - Payload module: `js/services/catalog-payload.ts`
+- Payload effect module: `js/services/catalog-payload-effects.ts`
 - Payload TypeScript entrypoint: `js/services/catalog-payload.ts`
 - Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/api-client.ts`, `js/services/cache-manager.ts`, `js/services/error-handler.ts`, `js/services/logger.ts`
 - Shared TypeScript contracts: `js/contracts/catalog-runtime.ts`
@@ -20,24 +22,27 @@
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
 - Interface: load the full catalog index, fetch catalog payloads, read/write full catalog cache, use embedded fallback, and merge detail chunks
-- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, and render-ready catalog state
+- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, and render-ready catalog state; `js/services/catalog-payload-effects.ts` owns applying that state to App Shell caches, document flags, Snapshot refresh, Airing Schedule intent, and filter render intent
 - Contract surface: `CatalogPayload`, `PreviewCatalogPayload`, `FullCatalogPayload`, `DetailChunkPayload`, `ScoreProfile`, `CatalogValidationIssue`, and `CatalogRuntimeEventMap`
 
 ### Watchlist State
 - Entry points: `js/app.ts`, `js/watchlist-main.ts`
 - Lifecycle module: `js/watchlist-state.js`
+- Presentation module: `js/watchlist-entry-presentation.ts`
 - Shared TypeScript contracts: `js/contracts/watchlist-lifecycle.ts`
 - Storage key: `rekonime.watchlist`
 - Interface: load entries, migrate legacy bookmarks, update status/progress, refresh snapshots, expose filtered entries/items, and build transition envelopes for adapters
-- Side effects: storage writes only; callers apply the returned event, render, and dashboard scheduling intent
+- Side effects: storage writes only; callers apply the returned event, render, and dashboard scheduling intent; Watchlist Entry presentation owns shared control labels, progress visibility, total text, and detail/watchlist page adapters
 - Contract surface: `WatchlistEntry`, `Snapshot`, `WatchlistPersistedPayload`, `WatchlistTransitionResult`, `WatchlistControlModel`, `WatchlistDisplayModel`, and `WatchlistLifecycleEventMap`
 
 ### Detail Experience
 - Stable TypeScript entry point: `js/detail-experience.ts`
+- Port adapter: `js/detail-experience-port.ts`
 - App handoff: `js/app.ts` (`showAnimeDetail`, detail markup builders, image helpers, trailer control methods)
 - Inputs: anime id, cached detail, review payload, detail URL state (`?anime=...`)
 - Outputs: modal visibility, refreshed synopsis/reviews, cached detail HTML, detail URL synchronization
 - Side effects: history state, metadata updates, trailer cleanup/replacement, full-catalog deep-link fallback, modal-open telemetry
+- Interface rule: Detail Experience receives a narrow port adapter rather than the full App Shell object; tests should exercise the port seam instead of rebuilding unrelated App Shell state.
 
 ### Airing Schedule
 - Stable TypeScript entry points: `js/airing-schedule.ts`, `js/airing-dashboard.ts`
@@ -94,6 +99,13 @@
 - Inputs: `data/anime.json`
 - Outputs: `data/anime.full.json`, `data/anime.preview.json`
 - Gates: schema validation, integrity checks, quality gates
+
+### Pipeline Parity Contract
+- Contract module: `tools/pipeline_parity_contract.py`
+- Harness: `tools/python_golden_harness.py`
+- Inputs: representative catalog input, validation payload, trailer policy vectors, fixture manifest
+- Outputs: golden fixture actuals for Python data pipeline adapters
+- Interface: adapters must satisfy the contract fixture set; Bun command surfaces stay stable while Python and JavaScript fallback behavior is compared through the contract
 
 ### Data Validation
 - Stable Bun entry points: `bun run data:validate`, `bun run data:validate:strict`

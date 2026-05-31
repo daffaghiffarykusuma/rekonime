@@ -9,14 +9,17 @@ import {
   buildImageProxyUrl
 } from './image-proxy.js';
 import {
-  WATCH_STATUS_DISPLAY_OPTIONS,
   normalizeWatchlistSnapshot as normalizeLifecycleWatchlistSnapshot,
-  shouldShowWatchProgress,
-  buildWatchlistControlModel,
   buildWatchlistDisplayModel,
   buildWatchlistTransitionEnvelope,
   createWatchlistLifecycle
 } from './watchlist-state.js';
+import {
+  createWatchlistControlsElement,
+  updateWatchlistControlsElement,
+  getEpisodeCountFromItem as getPresentationEpisodeCountFromItem,
+  getEpisodeCountFromCard as getPresentationEpisodeCountFromCard
+} from './watchlist-entry-presentation.ts';
 import { setHTML } from './security/trusted-types.js';
 import './bootstrap/watchlist-cover-preload.js';
 import './bootstrap/noncritical-styles.js';
@@ -29,7 +32,6 @@ const ALLOWED_IMAGE_HOSTS = [
   'via.placeholder.com',
   'images.weserv.nl'
 ];
-const WATCH_STATUS_OPTIONS = WATCH_STATUS_DISPLAY_OPTIONS;
 const IMAGE_PROXY_STATUS_KEY = 'rekonime.imageProxyStatus';
 const IMAGE_PROXY_STATUS_TTL_MS = 6 * 60 * 60 * 1000;
 const IMAGE_PROXY_CHECK_TIMEOUT_MS = 2500;
@@ -187,135 +189,17 @@ const adjustWatchProgress = (animeId, delta, episodeCount) => {
   return buildWatchlistTransitionEnvelope(result, { renderMode: 'controls' });
 };
 
-const getEpisodeCountFromItem = (item) => {
-  const raw = item?.stats?.episodeCount;
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-  return Math.floor(parsed);
-};
+const getEpisodeCountFromItem = (item) => getPresentationEpisodeCountFromItem(item);
 
-const getEpisodeCountFromCard = (card) => {
-  if (!card) return null;
-  const parsed = Number(card.dataset.episodeCount);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-  return Math.floor(parsed);
-};
+const getEpisodeCountFromCard = (card) => getPresentationEpisodeCountFromCard(card);
 
-const buildWatchlistControls = (item, entry) => {
-  const model = buildWatchlistControlModel(entry, {
-    anime: item,
-    episodeCount: getEpisodeCountFromItem(item)
-  });
-  const wrapper = document.createElement('div');
-  wrapper.className = 'watchlist-controls';
-  wrapper.setAttribute('data-watchlist', 'true');
-
-  const label = document.createElement('div');
-  label.className = 'watchlist-controls-label';
-  label.textContent = 'Your watch status';
-  wrapper.appendChild(label);
-
-  const select = document.createElement('select');
-  select.className = 'watchlist-controls-select';
-  select.setAttribute('data-action', 'watch-status');
-  select.setAttribute('data-anime-id', item.id);
-
-  const status = model.status;
-  model.options.forEach((option) => {
-    const opt = document.createElement('option');
-    opt.value = option.value;
-    opt.textContent = option.label;
-    if (option.value === status) {
-      opt.selected = true;
-    }
-    select.appendChild(opt);
-  });
-  wrapper.appendChild(select);
-
-  const progressWrap = document.createElement('div');
-  progressWrap.className = 'watchlist-controls-progress';
-  if (!shouldShowWatchProgress(status)) {
-    progressWrap.classList.add('is-hidden');
-  }
-
-  const progressLabel = document.createElement('span');
-  progressLabel.className = 'watchlist-controls-progress-label';
-  progressLabel.textContent = 'Episodes watched';
-  progressWrap.appendChild(progressLabel);
-
-  const stepper = document.createElement('div');
-  stepper.className = 'watchlist-controls-stepper';
-
-  const dec = document.createElement('button');
-  dec.type = 'button';
-  dec.className = 'watchlist-controls-stepper-btn';
-  dec.setAttribute('data-action', 'watch-progress-dec');
-  dec.setAttribute('data-anime-id', item.id);
-  dec.setAttribute('aria-label', 'Decrease watched episodes');
-  dec.textContent = '−';
-
-  const input = document.createElement('input');
-  input.className = 'watchlist-controls-input';
-  input.type = 'number';
-  input.min = '0';
-  input.step = '1';
-  input.setAttribute('data-action', 'watch-progress');
-  input.setAttribute('data-anime-id', item.id);
-  input.setAttribute('inputmode', 'numeric');
-  input.setAttribute('aria-label', 'Episodes watched');
-  input.value = String(model.progress);
-
-  const total = document.createElement('span');
-  total.className = 'watchlist-controls-total';
-
-  if (model.episodeCount) {
-    input.max = model.inputMax;
-    total.textContent = model.totalText;
-  }
-
-  const inc = document.createElement('button');
-  inc.type = 'button';
-  inc.className = 'watchlist-controls-stepper-btn';
-  inc.setAttribute('data-action', 'watch-progress-inc');
-  inc.setAttribute('data-anime-id', item.id);
-  inc.setAttribute('aria-label', 'Increase watched episodes');
-  inc.textContent = '+';
-
-  stepper.appendChild(dec);
-  stepper.appendChild(input);
-  stepper.appendChild(total);
-  stepper.appendChild(inc);
-  progressWrap.appendChild(stepper);
-  wrapper.appendChild(progressWrap);
-
-  return wrapper;
-};
+const buildWatchlistControls = (item, entry) => createWatchlistControlsElement(item, entry);
 
 const updateWatchlistUi = (card, entry) => {
   if (!card) return;
-  const select = card.querySelector('.watchlist-controls-select');
-  const progressWrap = card.querySelector('.watchlist-controls-progress');
-  const input = card.querySelector('.watchlist-controls-input');
-  const total = card.querySelector('.watchlist-controls-total');
-  if (!select || !progressWrap || !input || !total) return;
-
-  const model = buildWatchlistControlModel(entry, {
+  updateWatchlistControlsElement(card, entry, {
     episodeCount: getEpisodeCountFromCard(card)
   });
-  const status = model.status;
-  select.value = status;
-
-  progressWrap.classList.toggle('is-hidden', !model.showProgress);
-
-  input.value = String(model.progress);
-
-  if (model.episodeCount) {
-    input.max = model.inputMax;
-    total.textContent = model.totalText;
-  } else {
-    input.removeAttribute('max');
-    total.textContent = '';
-  }
 };
 
 const applyWatchlistTransition = (card, transition) => {

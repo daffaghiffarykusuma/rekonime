@@ -8,13 +8,19 @@ import { ThemeManager } from './themeManager.js';
 import { CacheManager } from './services/cache-manager.ts';
 import { CatalogLoader } from './services/catalog-loader.ts';
 import { CatalogPayload } from './services/catalog-payload.ts';
+import { applyCatalogPayloadEffects } from './services/catalog-payload-effects.ts';
 import { AnalyticsService } from './services/analytics-service.js';
 import { ApiClient } from './services/api-client.ts';
 import { Logger } from './services/logger.ts';
 import { HealthMonitor } from './healthMonitor.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
 import { createDetailExperience } from './detail-experience.ts';
+import { createDetailExperiencePort } from './detail-experience-port.ts';
 import { createRuntimeCapabilities } from './runtime-capabilities.ts';
+import {
+  renderWatchlistControlsHtml,
+  updateWatchlistControlsElement
+} from './watchlist-entry-presentation.ts';
 import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.ts';
 import {
   buildTrailerUrls as buildTrustedTrailerUrls,
@@ -43,7 +49,6 @@ import {
   buildWatchlistEntry as buildLifecycleWatchlistEntry,
   areWatchlistSnapshotsEqual as areLifecycleWatchlistSnapshotsEqual,
   shouldShowWatchProgress as shouldShowLifecycleWatchProgress,
-  buildWatchlistControlModel,
   buildWatchlistTransitionEnvelope,
   createWatchlistLifecycle
 } from './watchlist-state.js';
@@ -278,7 +283,7 @@ const App = {
   },
 
   getDetailExperience() {
-    return createDetailExperience(this);
+    return createDetailExperience(createDetailExperiencePort(this));
   },
 
   getRuntimeCapabilities() {
@@ -323,6 +328,15 @@ const App = {
 
   getLogger() {
     return Logger;
+  },
+
+  markCatalogFresh() {
+    if (HealthMonitor?.markDataFresh) {
+      HealthMonitor.markDataFresh('catalog');
+      if (HealthMonitor.performHealthChecks) {
+        HealthMonitor.performHealthChecks();
+      }
+    }
   },
 
   getApiClient() {
@@ -719,49 +733,12 @@ const App = {
 
   renderWatchlistControls(anime) {
     if (!anime) return '';
-    const entry = this.getWatchlistEntry(anime.id);
-    const model = buildWatchlistControlModel(entry, {
+    return renderWatchlistControlsHtml(this.getWatchlistEntry(anime.id), {
       anime,
-      episodeCount: this.getEpisodeCount(anime)
+      episodeCount: this.getEpisodeCount(anime),
+      escapeHtml: (value) => this.escapeHtml(value),
+      escapeAttr: (value) => this.escapeAttr(value)
     });
-    const safeId = this.escapeAttr(anime.id);
-    const maxAttr = model.inputMax ? `max="${this.escapeAttr(model.inputMax)}"` : '';
-
-    const optionsHtml = model.options.map((option) => {
-      const selected = option.selected ? 'selected' : '';
-      return `<option value="${this.escapeAttr(option.value)}" ${selected}>${this.escapeHtml(option.label)}</option>`;
-    }).join('');
-
-    return `
-      <div class="detail-watchlist">
-        <div class="detail-watchlist-label">
-          <span class="detail-watchlist-title">Your watch status</span>
-          <span class="detail-watchlist-subtitle">Save progress and pick up where you left off</span>
-        </div>
-        <div class="detail-watchlist-controls">
-          <label class="watchlist-select-wrapper">
-            <span class="visually-hidden">Choose your watch status</span>
-            <select class="watchlist-select" id="watchlist-select" data-action="watch-status" data-anime-id="${safeId}">
-              ${optionsHtml}
-            </select>
-          </label>
-          <div class="watchlist-progress ${model.showProgress ? '' : 'is-hidden'}" id="watchlist-progress">
-            <span class="watchlist-progress-label">Episodes watched</span>
-            <div class="watchlist-progress-stepper">
-              <button class="watchlist-stepper" type="button" data-action="watch-progress-dec" data-anime-id="${safeId}" aria-label="Decrease watched episodes">
-                <span aria-hidden="true">−</span>
-              </button>
-              <input class="watchlist-progress-input" id="watchlist-progress-input" type="number" min="0" step="1" ${maxAttr}
-                value="${this.escapeAttr(String(model.progress))}" data-action="watch-progress" data-anime-id="${safeId}" inputmode="numeric" aria-label="Episodes watched">
-              <span class="watchlist-progress-total" id="watchlist-progress-total">${this.escapeHtml(model.totalText)}</span>
-              <button class="watchlist-stepper" type="button" data-action="watch-progress-inc" data-anime-id="${safeId}" aria-label="Increase watched episodes">
-                <span aria-hidden="true">+</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
   },
 
   normalizeSnapshotStats(stats) {
@@ -993,34 +970,10 @@ const App = {
   updateWatchlistControls(animeId) {
     if (typeof document === 'undefined') return;
     if (!animeId || this.currentAnimeId !== animeId) return;
-    const select = document.getElementById('watchlist-select');
-    const progressWrap = document.getElementById('watchlist-progress');
-    const progressInput = document.getElementById('watchlist-progress-input');
-    const progressTotal = document.getElementById('watchlist-progress-total');
-    if (!select || !progressWrap || !progressInput) return;
-
-    const entry = this.getWatchlistEntry(animeId);
-    const anime = this.animeData.find(item => item?.id === animeId);
-    const model = buildWatchlistControlModel(entry, {
-      anime,
+    updateWatchlistControlsElement(document, this.getWatchlistEntry(animeId), {
+      anime: this.animeData.find(item => item?.id === animeId),
       episodeCount: this.getEpisodeLimitForAnime(animeId)
     });
-    select.value = model.status;
-
-    progressWrap.classList.toggle('is-hidden', !model.showProgress);
-    progressInput.value = String(model.progress);
-
-    if (model.episodeCount) {
-      progressInput.setAttribute('max', model.inputMax);
-      if (progressTotal) {
-        progressTotal.textContent = model.totalText;
-      }
-    } else {
-      progressInput.removeAttribute('max');
-      if (progressTotal) {
-        progressTotal.textContent = '';
-      }
-    }
   },
 
   sanitizeUrl(rawUrl, { allowRelative = false } = {}) {
@@ -1883,67 +1836,7 @@ const App = {
   },
 
   async applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
-    const catalogState = CatalogPayload.prepareState(payload, {
-      isFull,
-      preserveFilters,
-      defaultActiveFilters: this.getDefaultActiveFilters()
-    });
-    this.scoreProfile = catalogState.scoreProfile;
-    this.animeData = catalogState.animeData;
-    this.isFullDataLoaded = catalogState.isFullDataLoaded;
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement;
-      root.dataset.catalogStatus = catalogState.catalogStatus;
-      root.dataset.catalogReady = String(catalogState.catalogReady);
-    }
-    this.gridSortedCache = catalogState.gridState.sortedCache;
-    this.gridSortedKey = catalogState.gridState.sortedKey;
-    this.gridSortedSource = catalogState.gridState.sortedSource;
-    this.gridSortedIsPartial = catalogState.gridState.sortedIsPartial;
-    if (this.gridSortHandle) {
-      this.cancelIdleTask(this.gridSortHandle);
-      this.gridSortHandle = null;
-    }
-    this.gridDomCache.clear();
-    this.detailCache.clear();
-    this.visibleCardIds.clear();
-
-    if (HealthMonitor?.markDataFresh) {
-      HealthMonitor.markDataFresh('catalog');
-      if (HealthMonitor.performHealthChecks) {
-        HealthMonitor.performHealthChecks();
-      }
-    }
-
-    if (catalogState.activeFilters) {
-      this.activeFilters = catalogState.activeFilters;
-    }
-
-    await this.ensureStats();
-    this.refreshWatchlistSnapshotsFromCatalog({ persist: true });
-    this.scheduleAiringDashboardRender({ timeout: 3500 });
-    this.extractFilterOptions();
-    this.deferFilterUiOnce = !this.deferFilterUiUsed && this.shouldEnableLowMotionMode();
-
-    if (!this.urlFiltersApplied && this.isCatalogPage()) {
-      const hasFilterParams = this.hasFilterParamsInUrl();
-      this.setActiveFiltersFromUrl();
-      this.urlFiltersApplied = true;
-      if (hasFilterParams) {
-        this.updateUrlForFilters({ replace: true });
-      }
-    }
-
-    if (!this.deferFilterUiOnce) {
-      this.updateSortOptions();
-      if (this.filterPanelRendered || this.filterPanelOpen) {
-        this.renderFilterPanel({ force: true });
-      } else {
-        this.scheduleFilterPanelRender();
-      }
-      this.renderQuickFilters();
-    }
-    this.applyFilters({ syncUrl: false, updateMeta: false });
+    return applyCatalogPayloadEffects(this, payload, { isFull, preserveFilters });
   },
 
   renderCardSkeleton(type = 'catalog') {
