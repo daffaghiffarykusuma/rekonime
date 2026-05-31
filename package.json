@@ -36,6 +36,7 @@
     "data:build": "bun tools/run-build-catalogs.js",
     "data:regenerate": "bun tools/run-regenerate-data.js",
     "data:refresh-scores": "node tools/refresh-scores.js",
+    "data:refresh-season-scores": "bun tools/refresh-season-scores.js",
     "data:validate": "bun tools/run-validate-data.js --enforce-baseline --baseline tools/validation-baseline.json",
     "data:validate:strict": "bun tools/run-validate-data.js",
     "check:entrypoints": "node tools/check-entrypoint-dedup.js",
