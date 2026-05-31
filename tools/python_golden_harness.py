@@ -157,6 +157,8 @@ def normalize_validation_output(output: str, workdir: Path) -> str:
     text = text.replace(str(workdir), "<fixture-workdir>")
     text = text.replace(str(workdir).replace("\\", "/"), "<fixture-workdir>")
     text = text.replace("\\", "/")
+    text = __import__("re").sub(r"(?:\.\./)+\.\./tmp/rekonime-golden-[^/\s)]+", "<fixture-workdir>", text)
+    text = __import__("re").sub(r"(?:\.\./)+tmp/rekonime-golden-[^/\s)]+", "<fixture-workdir>", text)
     text = __import__("re").sub(r"(?:\.\./)+AppData/Local/Temp/rekonime-golden-[^/\s)]+", "<fixture-workdir>", text)
     text = __import__("re").sub(r"[A-Za-z]:/[^)\n]*?rekonime-golden-[^/\s)]+", "<fixture-workdir>", text)
     text = __import__("re").sub(r"/tmp/rekonime-golden-[^/\s)]+", "<fixture-workdir>", text)
