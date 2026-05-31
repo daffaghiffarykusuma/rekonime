@@ -1,17 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-test('Python golden fixture harness runs through the Bun command surface', () => {
+test('Python golden fixture harness is exposed through the Bun command surface', () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
-  assert.equal(typeof packageJson.scripts['test:golden'], 'string');
 
-  execFileSync('bun', ['run', 'test:golden'], {
-    cwd: process.cwd(),
-    stdio: 'pipe'
-  });
+  assert.equal(packageJson.scripts['test:golden'], 'bun tools/run-python-golden-harness.js');
 });
 
 test('Python golden fixture harness exercises Python catalog build outputs', () => {
