@@ -161,6 +161,7 @@ const normalizeValidationOutput = (output, workdir) => output
   .replace(/(?:\.\.\/)+AppData\/Local\/Temp\/rekonime-golden-[^/\s)]+/g, '<fixture-workdir>')
   .replace(/[A-Za-z]:\/[^)\n]*?rekonime-golden-[^/\s)]+/g, '<fixture-workdir>')
   .replace(/\/tmp\/rekonime-golden-[^/\s)]+/g, '<fixture-workdir>')
+  .replace(/(?:\.\.\/)+\.\.<fixture-workdir>/g, '<fixture-workdir>')
   .trim()
   .concat('\n');
 

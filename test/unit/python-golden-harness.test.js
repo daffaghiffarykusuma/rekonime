@@ -21,5 +21,7 @@ test('Python golden fixture harness normalizes CI relative temp paths', () => {
   const fallback = fs.readFileSync(path.join(process.cwd(), 'tools', 'run-python-golden-harness.js'), 'utf8');
 
   assert.match(harness, /\(\?:\\\.\\\.\/\)\+\\\.\\\.\/tmp\/rekonime-golden/);
+  assert.match(harness, /\(\?:\\\.\\\.\/\)\+\\\.\\\.<fixture-workdir>/);
   assert.match(fallback, /\(\?:\\\.\\\.\\\/\)\+\\\.\\\.\\\/tmp\\\/rekonime-golden/);
+  assert.match(fallback, /\(\?:\\\.\\\.\\\/\)\+\\\.\\\.<fixture-workdir>/);
 });

@@ -162,6 +162,7 @@ def normalize_validation_output(output: str, workdir: Path) -> str:
     text = __import__("re").sub(r"(?:\.\./)+AppData/Local/Temp/rekonime-golden-[^/\s)]+", "<fixture-workdir>", text)
     text = __import__("re").sub(r"[A-Za-z]:/[^)\n]*?rekonime-golden-[^/\s)]+", "<fixture-workdir>", text)
     text = __import__("re").sub(r"/tmp/rekonime-golden-[^/\s)]+", "<fixture-workdir>", text)
+    text = __import__("re").sub(r"(?:\.\./)+\.\.<fixture-workdir>", "<fixture-workdir>", text)
     return text.strip() + "\n"
 
 
