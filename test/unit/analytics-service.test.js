@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AnalyticsService } from '../../js/services/analytics-service.js';
-import { CacheManager } from '../../js/services/cache-manager.js';
+import { CacheManager } from '../../js/services/cache-manager.ts';
 
 const resetAnalytics = () => {
   AnalyticsService.setEnabled(true);

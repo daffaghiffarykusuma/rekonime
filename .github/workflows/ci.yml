@@ -18,6 +18,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
@@ -29,11 +34,17 @@ jobs:
       - name: Repo hygiene
         run: bun --silent run check:repo-hygiene
 
+      - name: TypeScript typecheck
+        run: bun --silent run typecheck
+
       - name: Unit tests
         run: bun --silent run test:unit
 
       - name: Integration tests
         run: bun --silent run test:integration
+
+      - name: Python migration golden fixtures
+        run: bun --silent run test:golden
 
       - name: Data validation
         run: bun --silent run data:validate

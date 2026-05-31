@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCatalogRuntime, createCatalogSession } from '../../js/services/catalog-loader.js';
+import { createCatalogRuntime, createCatalogSession } from '../../js/services/catalog-loader.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const fullPayload = {

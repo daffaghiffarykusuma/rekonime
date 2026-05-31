@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Stats, StatsCalculationError as StatsCoreError } from '../js/stats.js';
+import { Stats, StatsCalculationError as StatsCoreError } from '../js/stats.ts';
 import { validateCatalog } from './lib/schema-validator.js';
 import { checkReferentialIntegrity } from './lib/integrity-checker.js';
 import { BuildState } from './lib/build-state.js';

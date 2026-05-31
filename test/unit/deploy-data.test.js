@@ -27,7 +27,9 @@ test('deploy-data path containment rejects traversal candidates', () => {
 });
 
 test('deploy-data resolveBackupPath rejects traversal and resolves valid backup dirs', () => {
-  fs.mkdirSync(backupRoot, { recursive: true });
+  if (!fs.existsSync(backupRoot)) {
+    fs.mkdirSync(backupRoot, { recursive: true });
+  }
   const backupId = `test-backup-${Date.now()}`;
   const backupPath = path.join(backupRoot, backupId);
   fs.mkdirSync(backupPath, { recursive: true });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CacheManager } from '../../js/services/cache-manager.js';
+import { CacheManager } from '../../js/services/cache-manager.ts';
 
 const clearStorage = () => {
   if (globalThis.localStorage) {

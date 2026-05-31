@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ApiClient } from '../../js/services/api-client.js';
-import { ErrorHandler } from '../../js/services/error-handler.js';
+import { ApiClient } from '../../js/services/api-client.ts';
+import { ErrorHandler } from '../../js/services/error-handler.ts';
 import { createResponse } from '../helpers/mocks.js';
 
 test('ApiClient getServiceUrl builds params', () => {

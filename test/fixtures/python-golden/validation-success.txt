@@ -1,0 +1,17 @@
+Validation results (<fixture-workdir>/validation.full.json)
+Errors:
+  none
+Warnings:
+  none
+
+Validation results (<fixture-workdir>/validation-data.js)
+Errors:
+  none
+Warnings:
+  none
+
+Index reference check (<fixture-workdir>/index.html)
+Errors:
+  none
+Warnings:
+  none

@@ -42,7 +42,7 @@ test('validate-data succeeds with valid js/data.js payload', () => {
 
   fs.writeFileSync(dataPath, JSON.stringify(payload));
   fs.writeFileSync(embeddedPath, serializeEmbeddedData(payload));
-  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.js"></script></body></html>');
+  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.ts"></script></body></html>');
 
   const scriptPath = path.join(process.cwd(), 'tools', 'validate-data.js');
   execFileSync(process.execPath, [
@@ -65,7 +65,7 @@ test('validate-data fails when js/data.js payload is malformed', () => {
 
   fs.writeFileSync(dataPath, JSON.stringify(payload));
   fs.writeFileSync(embeddedPath, 'const ANIME_DATA={"anime":[{"id":"bad","title":"Bad","genres":"Action","themes":[],"episodes":"[]","trailer":"bad","stats":"bad"}]};');
-  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.js"></script></body></html>');
+  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.ts"></script></body></html>');
 
   const scriptPath = path.join(process.cwd(), 'tools', 'validate-data.js');
   let failed = false;
@@ -98,7 +98,7 @@ test('validate-data fails on trailer URLs outside trusted hosts', () => {
 
   fs.writeFileSync(dataPath, JSON.stringify(payload));
   fs.writeFileSync(embeddedPath, serializeEmbeddedData(payload));
-  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.js"></script></body></html>');
+  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.ts"></script></body></html>');
 
   const scriptPath = path.join(process.cwd(), 'tools', 'validate-data.js');
   let failed = false;
@@ -138,7 +138,7 @@ test('validate-data rejects duplicate ids even when baseline allows them', () =>
 
   fs.writeFileSync(dataPath, JSON.stringify(payload));
   fs.writeFileSync(embeddedPath, serializeEmbeddedData(payload));
-  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.js"></script></body></html>');
+  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.ts"></script></body></html>');
   fs.writeFileSync(baselinePath, JSON.stringify({
     [dataLabel]: {
       errors: { duplicateIds: 2 },

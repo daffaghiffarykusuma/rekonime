@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { extractEmbeddedData, validateEmbeddedAnimeShape } from './lib/embedded-data.js';
-import { buildTrailerUrls } from '../js/security/trailer-url-policy.js';
+import { buildTrailerUrls } from '../js/security/trailer-url-policy.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -165,8 +165,8 @@ const validateIndexReferences = (indexPath) => {
   if (/const\s+ANIME_DATA\s*=/.test(html)) {
     errors.push('index.html still contains inline ANIME_DATA payload');
   }
-  if (!/src=["']\/js\/main\.js["']/.test(html)) {
-    warnings.push('index.html does not reference /js/main.js');
+  if (!/src=["']\/js\/main\.ts["']/.test(html)) {
+    warnings.push('index.html does not reference /js/main.ts');
   }
 
   return { hasErrors: errors.length > 0, errors, warnings };

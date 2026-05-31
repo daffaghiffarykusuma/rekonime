@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { App } from '../../js/app.js';
-import { CacheManager } from '../../js/services/cache-manager.js';
+import { App } from '../../js/app.ts';
+import { CacheManager } from '../../js/services/cache-manager.ts';
 import { setupDom } from '../helpers/dom.js';
 import { createAnime } from '../helpers/factories.js';
 

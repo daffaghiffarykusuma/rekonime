@@ -151,10 +151,10 @@ const injectCatalogStartupHints = () => {
   const filePath = path.join(dist, 'index.html');
   if (!fs.existsSync(filePath)) return;
   const source = fs.readFileSync(filePath, 'utf8');
-  if (source.includes('href="/js/app.js"') && source.includes('href="/data/anime.full.index.json"')) return;
+  if (source.includes('href="/js/app.ts"') && source.includes('href="/data/anime.full.index.json"')) return;
 
   const hints = [
-    source.includes('href="/js/app.js"') ? '' : '  <link rel="modulepreload" href="/js/app.js">\n',
+    source.includes('href="/js/app.ts"') ? '' : '  <link rel="modulepreload" href="/js/app.ts">\n',
     source.includes('href="/data/anime.full.index.json"') ? '' : '  <link rel="preload" href="/data/anime.full.index.json" as="fetch" crossorigin>\n'
   ].join('');
   const next = source.replace(

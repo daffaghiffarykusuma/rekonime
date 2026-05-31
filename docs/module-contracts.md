@@ -2,39 +2,52 @@
 
 ## Runtime App Domains
 
+### App Shell
+- Stable TypeScript entry points: `js/main.ts`, `js/watchlist-main.ts`, `js/app.ts`, `js/serviceWorker.ts`
+- Decision note: `docs/app-shell-migration-decision-2026-05-31.md`
+- Inputs: browser document state, catalog runtime services, watchlist lifecycle state, user input, service worker lifecycle
+- Outputs: booted home app, watchlist page render, app orchestration commands, PWA registration/update prompt
+- Side effects: DOM rendering, event listeners, history state, local storage/cache reads and writes, service worker registration
+
 ### Catalog Loading
-- Runtime module: `js/services/catalog-loader.js`
-- Payload module: `js/services/catalog-payload.js`
-- App handoff: `js/app.js` (`applyCatalogPayload`, render/filter/meta refresh)
+- Runtime module: `js/services/catalog-loader.ts`
+- Runtime TypeScript entrypoint: `js/services/catalog-loader.ts`
+- Payload module: `js/services/catalog-payload.ts`
+- Payload TypeScript entrypoint: `js/services/catalog-payload.ts`
+- Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/api-client.ts`, `js/services/cache-manager.ts`, `js/services/error-handler.ts`, `js/services/logger.ts`
+- Shared TypeScript contracts: `js/contracts/catalog-runtime.ts`
+- App handoff: `js/app.ts` (`applyCatalogPayload`, render/filter/meta refresh)
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
 - Interface: load the full catalog index, fetch catalog payloads, read/write full catalog cache, use embedded fallback, and merge detail chunks
-- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.js` owns normalization, score-profile validation, validation handoff, and render-ready catalog state
+- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, and render-ready catalog state
+- Contract surface: `CatalogPayload`, `PreviewCatalogPayload`, `FullCatalogPayload`, `DetailChunkPayload`, `ScoreProfile`, `CatalogValidationIssue`, and `CatalogRuntimeEventMap`
 
 ### Watchlist State
-- Entry points: `js/app.js`, `js/watchlist-main.js`
+- Entry points: `js/app.ts`, `js/watchlist-main.ts`
 - Lifecycle module: `js/watchlist-state.js`
+- Shared TypeScript contracts: `js/contracts/watchlist-lifecycle.ts`
 - Storage key: `rekonime.watchlist`
 - Interface: load entries, migrate legacy bookmarks, update status/progress, refresh snapshots, expose filtered entries/items, and build transition envelopes for adapters
 - Side effects: storage writes only; callers apply the returned event, render, and dashboard scheduling intent
+- Contract surface: `WatchlistEntry`, `Snapshot`, `WatchlistPersistedPayload`, `WatchlistTransitionResult`, `WatchlistControlModel`, `WatchlistDisplayModel`, and `WatchlistLifecycleEventMap`
 
 ### Detail Experience
-- Experience module: `js/detail-experience.js`
-- App handoff: `js/app.js` (`showAnimeDetail`, detail markup builders, image helpers, trailer control methods)
+- Stable TypeScript entry point: `js/detail-experience.ts`
+- App handoff: `js/app.ts` (`showAnimeDetail`, detail markup builders, image helpers, trailer control methods)
 - Inputs: anime id, cached detail, review payload, detail URL state (`?anime=...`)
 - Outputs: modal visibility, refreshed synopsis/reviews, cached detail HTML, detail URL synchronization
 - Side effects: history state, metadata updates, trailer cleanup/replacement, full-catalog deep-link fallback, modal-open telemetry
 
 ### Airing Schedule
-- Schedule module: `js/airing-schedule.js`
-- Renderer adapter: `js/airing-dashboard.js`
+- Stable TypeScript entry points: `js/airing-schedule.ts`, `js/airing-dashboard.ts`
 - Inputs: planned/watching watchlist entries, catalog or snapshot anime items, AniList schedule responses, local clock
 - Outputs: dashboard model with next episode, readiness, countdown, local time labels, and summary counts
 - Interface: fetch/cache schedule metadata, build dashboard models, and run countdown refresh ticks
 - Side effects: AniList GraphQL calls, local schedule cache writes, and renderer callbacks
 
 ### Shared URL Policies
-- Entry points: `js/security/trailer-url-policy.js`, `js/urlSanitizer.js`
+- Stable TypeScript entry points: `js/security/trailer-url-policy.ts`, `js/urlSanitizer.ts`
 - Inputs: trailer URL candidates and embed URL candidates
 - Outputs: sanitized URL strings (`''` when invalid)
 - Side effects: none (pure sanitization helpers)
@@ -45,12 +58,25 @@
 - Outputs: proxy URL, status state, availability checks
 - Side effects: localStorage reads/writes for proxy health status
 
+### Runtime Calculations
+- Stable TypeScript entry points: `js/stats.ts`, `js/recommendations.ts`, `js/filterPresets.ts`
+- Shared TypeScript contracts: `js/contracts/calculations.ts`
+- Inputs: episode score lists, Catalog Payload anime records, score profiles, active recommendation mode, and filter preset keys
+- Outputs: calculated stats, ranking/recommendation models, card stat models, badges, similar-title matches, and filter preset view models
+- Side effects: recommendations mode preference may use `CacheManager`; scoring and filter predicates are pure
+
 ### Runtime Capabilities
-- Runtime module: `js/runtime-capabilities.js`
-- App handoff: `js/app.js` (product-specific close handlers)
+- Stable TypeScript entry point: `js/runtime-capabilities.ts`
+- App handoff: `js/app.ts` (product-specific close handlers)
 - Inputs: idle callbacks, modal ids, focus targets, Escape key events
 - Outputs: idle task handles, modal open state, focus trap state, scroll lock state
 - Side effects: modal attributes/classes, focus movement, body scroll lock, scheduled callbacks
+
+### Keyboard Shortcuts
+- Stable TypeScript entry point: `js/keyboardShortcuts.ts`
+- Inputs: browser keyboard events, active route/modal state, app command handlers
+- Outputs: command dispatch, shortcut help markup, shortcut acknowledgement state
+- Side effects: focus movement, navigation, local preference cache, and modal/help rendering
 
 ### Reviews
 - Entry point: `js/reviews.js`
@@ -61,19 +87,33 @@
 ## Pipeline Domains
 
 ### Catalog Build
-- Entry point: `tools/build-catalogs.js`
+- Stable Bun entry point: `bun run data:build`
+- JavaScript compatibility entry point: `tools/build-catalogs.js`
+- Python migration adapter: `tools/build_catalogs.py`, `tools/run-build-catalogs.js`
+- Python migration boundary: `tools/build_catalogs.py` owns normalization, score-profile derivation, build stats, preview selection, and quality-report handoff for the Python path; TypeScript `Stats` remains the browser/runtime scoring contract.
 - Inputs: `data/anime.json`
 - Outputs: `data/anime.full.json`, `data/anime.preview.json`
 - Gates: schema validation, integrity checks, quality gates
 
 ### Data Validation
-- Entry points: `tools/validate-data.js`, `tools/lib/schema-validator.js`
+- Stable Bun entry points: `bun run data:validate`, `bun run data:validate:strict`
+- JavaScript compatibility entry point: `tools/validate-data.js`
+- Python parity entry points: `tools/validate_data.py`, `tools/quality_reporter.py`, `tools/python_golden_harness.py`, `tools/run-validate-data.js`
 - Inputs: generated catalog + embedded payload
 - Outputs: error/warning report and process status
+
+### Data Operations
+- Stable Bun commands: `bun run data:regenerate`, `bun run data:backup`, `bun run data:rollback`, `bun run test:scraper`
+- Python entry points: `tools/regenerate_data.py`, `tools/deploy_data.py`, existing `tools/scraper/*.py`
+- JavaScript fallback launchers: `tools/run-regenerate-data.js`, `tools/run-deploy-data.js`, `tools/run-scraper-tests.js`
+- Inputs: preview catalog, source/full/preview data files, backup ids, scraper fixtures
+- Outputs: embedded `js/data.js`, data backups, restored data files, scraper test status
+- Safety gates: embedded payload shape validation, backup id allowlist, backup directory containment, scraper host-policy tests
 
 ## Security-Sensitive Files
 - `vercel.json`
 - `sw.js`
-- `js/urlSanitizer.js`
+- `js/urlSanitizer.ts`
 - `tools/validate-data.js`
+- `tools/validate_data.py`
 - `tools/lib/schema-validator.js`

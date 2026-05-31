@@ -1,12 +1,12 @@
-import { ApiClient } from './services/api-client.js';
-import { CacheManager } from './services/cache-manager.js';
-import { ErrorHandler } from './services/error-handler.js';
-import { Logger } from './services/logger.js';
+import { ApiClient } from './services/api-client.ts';
+import { CacheManager } from './services/cache-manager.ts';
+import { ErrorHandler } from './services/error-handler.ts';
+import { Logger } from './services/logger.ts';
 import { RateLimiter } from './services/rate-limiter.js';
 import { SchemaValidator } from './services/schema-validator.js';
 import { CircuitBreaker } from './circuitBreaker.js';
 import { HealthMonitor } from './healthMonitor.js';
-import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.js';
+import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.ts';
 import { setHTML } from './security/trusted-types.js';
 
 /**

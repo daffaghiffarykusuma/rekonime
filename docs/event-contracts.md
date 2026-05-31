@@ -1,20 +1,24 @@
 # Event Contracts
 
 ## `rekonime:data-load-start`
-- Emitter: `js/app.js`
+- Emitter: `js/app.ts`
+- TypeScript contract: `CatalogRuntimeEventMap['rekonime:data-load-start']` in `js/contracts/catalog-runtime.ts`
 - Payload:
-  - `source`: `full | embedded`
-  - `timestamp`: ISO string
+  - `source`: `preview | full | embedded`
+  - `timestamp`: ISO string, optional
 
-## `rekonime:data-load-complete`
-- Emitter: `js/app.js`
+## `rekonime:data-load-end`
+- Emitter: `js/services/catalog-loader.ts` through `js/app.ts`
+- TypeScript contract: `CatalogRuntimeEventMap['rekonime:data-load-end']` in `js/contracts/catalog-runtime.ts`
 - Payload:
-  - `source`: `full | embedded`
-  - `count`: number of anime entries
-  - `durationMs`: number
+  - `source`: `preview | full | embedded`
+  - `count`: number of anime entries, optional
+  - `durationMs`: number, optional
+  - `status`: `ok | error | fallback`, optional
 
 ## `rekonime:catalog-cache`
-- Emitter: `js/app.js`
+- Emitter: `js/app.ts`
+- TypeScript contract: `CatalogRuntimeEventMap['rekonime:catalog-cache']` in `js/contracts/catalog-runtime.ts`
 - Payload:
   - `type`: `network-full-loaded | indexeddb-full-hit | indexeddb-full-miss | indexeddb-full-used | indexeddb-full-read-failed | embedded-fallback-used | cache-write-ok | cache-write-failed | full-load-timeout | detail-chunk-loaded`
   - `at`: ISO string
@@ -23,7 +27,8 @@
   - `reason`: optional diagnostic reason
 
 ## `rekonime:watchlist-updated`
-- Emitters: `js/app.js`, `js/watchlist-main.js`
+- Emitters: `js/app.ts`, `js/watchlist-main.ts`
+- TypeScript contract: `WatchlistLifecycleEventMap['rekonime:watchlist-updated']` in `js/contracts/watchlist-lifecycle.ts`
 - Payload:
   - `id`: anime id
   - `status`: `planned | watching | completed | dropped` (optional when removed)

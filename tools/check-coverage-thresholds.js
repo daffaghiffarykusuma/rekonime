@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 const SUMMARY_PATH = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
 
 const THRESHOLDS = {
-  'js/app.js': { lines: 20, branches: 30 },
+  'js/app.ts': { lines: 20, branches: 30 },
   'js/reviews.js': { lines: 45, branches: 35 },
   'tools/lib/schema-validator.js': { lines: 55, branches: 50 }
 };

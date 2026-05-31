@@ -18,8 +18,8 @@ const STATIC_ASSETS = [
     '/css/styles.css',
     '/css/themes.css',
     '/css/watchlist.css',
-    '/js/main.js',
-    '/js/watchlist-main.js',
+    '/js/main.ts',
+    '/js/watchlist-main.ts',
     '/favicon.svg'
 ];
 

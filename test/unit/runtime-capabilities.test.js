@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRuntimeCapabilities } from '../../js/runtime-capabilities.js';
+import { createRuntimeCapabilities } from '../../js/runtime-capabilities.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('Runtime Capabilities uses requestIdleCallback and cancellation when available', () => {

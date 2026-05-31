@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { KeyboardShortcuts } from '../../js/keyboardShortcuts.js';
+import { KeyboardShortcuts } from '../../js/keyboardShortcuts.ts';
 import { resetDomBody } from '../helpers/dom.js';
 import { createAnime } from '../helpers/factories.js';
 

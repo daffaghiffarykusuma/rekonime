@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { App } from '../../js/app.js';
+import { App } from '../../js/app.ts';
 import { setupDom } from '../helpers/dom.js';
 import { createAnime, createStats } from '../helpers/factories.js';
 

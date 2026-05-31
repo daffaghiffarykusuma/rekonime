@@ -1,4 +1,4 @@
-import { CacheManager } from './cache-manager.js';
+import { CacheManager } from './cache-manager.ts';
 
 /**
  * Analytics abstraction layer.

@@ -15,7 +15,7 @@ const fileBudgets = new Map([
   ['js/data.js', 1.5 * mib],
   ['data/anime.full.index.json', 4 * mib],
   ['data/franchise-map.json', 2.5 * mib],
-  ['js/app.js', 225 * kib],
+  ['js/app.ts', 225 * kib],
   ['css/styles.css', 170 * kib],
   ['css/main.css', 125 * kib],
   ['css/watchlist.css', 100 * kib]

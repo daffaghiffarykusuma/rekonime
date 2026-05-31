@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FilterPresets } from '../../js/filterPresets.js';
+import { FilterPresets } from '../../js/filterPresets.ts';
 import { createAnime, createStats } from '../helpers/factories.js';
 
 test('FilterPresets applyPreset filters data', () => {

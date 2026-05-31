@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ErrorHandler } from '../../js/services/error-handler.js';
+import { ErrorHandler } from '../../js/services/error-handler.ts';
 
 test('ErrorHandler report notifies listeners', () => {
   const events = [];

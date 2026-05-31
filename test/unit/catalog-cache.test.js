@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CatalogCache } from '../../js/services/catalog-cache.js';
+import { CatalogCache } from '../../js/services/catalog-cache.ts';
 
 const createRequest = (executor) => {
   const request = {

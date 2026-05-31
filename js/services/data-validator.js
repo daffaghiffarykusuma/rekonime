@@ -1,5 +1,5 @@
 import { AnalyticsService } from './analytics-service.js';
-import { Logger } from './logger.js';
+import { Logger } from './logger.ts';
 import { SchemaValidator } from './schema-validator.js';
 
 /**

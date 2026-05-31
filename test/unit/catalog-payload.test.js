@@ -4,7 +4,7 @@ import {
   CatalogPayload,
   normalizeAnimeData,
   prepareCatalogPayloadState
-} from '../../js/services/catalog-payload.js';
+} from '../../js/services/catalog-payload.ts';
 
 test('CatalogPayload normalizes nested metadata into render-ready anime data', () => {
   const [anime] = normalizeAnimeData([

@@ -5,7 +5,7 @@ import {
   sanitizeTrailerUrl,
   sanitizeTrailerEmbedUrl,
   resolveTrustedTrailerMessageOrigin
-} from '../../js/security/trailer-url-policy.js';
+} from '../../js/security/trailer-url-policy.ts';
 import { validateCatalog } from '../../tools/lib/schema-validator.js';
 
 test('trailer policy sanitizes url and embed url with strict hosts/protocols', () => {

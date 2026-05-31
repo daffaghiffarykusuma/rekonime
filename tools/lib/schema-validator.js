@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   sanitizeTrailerUrl,
   sanitizeTrailerEmbedUrl
-} from '../../js/security/trailer-url-policy.js';
+} from '../../js/security/trailer-url-policy.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

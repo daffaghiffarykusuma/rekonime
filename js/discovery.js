@@ -1,4 +1,4 @@
-import { CacheManager } from './services/cache-manager.js';
+import { CacheManager } from './services/cache-manager.ts';
 import { AnalyticsService } from './services/analytics-service.js';
 
 /**

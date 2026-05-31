@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Recommendations } from '../js/recommendations.js';
+import { Recommendations } from '../js/recommendations.ts';
 
 const baseAnime = (overrides = {}) => ({
   id: 'base',

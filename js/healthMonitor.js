@@ -1,5 +1,5 @@
 import { CircuitBreaker } from './circuitBreaker.js';
-import { Logger } from './services/logger.js';
+import { Logger } from './services/logger.ts';
 
 /**
  * Health Monitor - tracks connectivity and data freshness.

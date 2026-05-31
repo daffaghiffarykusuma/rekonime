@@ -1,0 +1,17 @@
+Validation results (<fixture-workdir>/validation-failure.full.json)
+Errors:
+  missingTrailer: 1
+Warnings:
+  none
+
+Validation results (<fixture-workdir>/validation-failure-data.js)
+Errors:
+  missingTrailer: 1
+Warnings:
+  none
+
+Index reference check (<fixture-workdir>/index.html)
+Errors:
+  none
+Warnings:
+  none

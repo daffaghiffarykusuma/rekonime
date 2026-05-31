@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Logger } from '../../js/services/logger.js';
+import { Logger } from '../../js/services/logger.ts';
 
 const resetLogger = () => {
   Logger.initialized = false;
