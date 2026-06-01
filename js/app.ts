@@ -16,6 +16,7 @@ import { HealthMonitor } from './healthMonitor.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
 import { createDetailExperience } from './detail-experience.ts';
 import { createDetailExperiencePort } from './detail-experience-port.ts';
+import { buildDetailDecisionData } from './detail-presentation.ts';
 import { createRuntimeCapabilities } from './runtime-capabilities.ts';
 import {
   renderWatchlistControlsHtml,
@@ -4653,47 +4654,7 @@ const App = {
   },
 
   getCardDecisionData(anime) {
-    const episodeCount = this.getEpisodeCount(anime);
-    const hasEpisodes = episodeCount > 0;
-    const retention = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
-      ? Math.round(anime.stats.retentionScore)
-      : null;
-    const satisfaction = Number.isFinite(anime?.communityScore)
-      ? anime.communityScore
-      : null;
-
-    if (retention !== null) {
-      let note = 'Steady finish confidence';
-      if (retention >= 88) {
-        note = 'Very likely to keep you watching';
-      } else if (retention >= 76) {
-        note = 'Reliable through the middle';
-      } else if (retention < 60) {
-        note = 'More selective pick';
-      }
-      return {
-        value: `${retention}%`,
-        label: 'Finish confidence',
-        note,
-        className: Recommendations.getRetentionClass(retention)
-      };
-    }
-
-    if (satisfaction !== null) {
-      return {
-        value: satisfaction.toFixed(1),
-        label: 'Community score',
-        note: 'Use genre fit to decide',
-        className: Recommendations.getMalSatisfactionClass(satisfaction)
-      };
-    }
-
-    return {
-      value: 'N/A',
-      label: 'Decision signal',
-      note: 'Open details for more context',
-      className: 'score-low'
-    };
+    return buildDetailDecisionData(anime, { episodeCount: this.getEpisodeCount(anime) });
   },
 
   /**

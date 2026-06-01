@@ -118,6 +118,10 @@ def contract_manifest() -> Dict[str, Any]:
     return {
         "version": 1,
         "generatedBy": "tools/pipeline_parity_contract.py",
+        "adapters": [
+            "tools/pipeline_parity_contract.py",
+            "tools/pipeline-parity-contract.js",
+        ],
         "normalizations": [
             "generatedAt fields use <generated-at>",
             "quality report buildId uses <generated-at>",

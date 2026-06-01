@@ -17,18 +17,12 @@ const createAppHarness = (overrides = {}) => {
     getAnimeIdFromUrl: () => '',
     showAnimeDetail: (...args) => calls.push(['showAnimeDetail', ...args]),
     closeDetailModal: (...args) => calls.push(['closeDetailModal', ...args]),
-    stopTrailerPlayback: () => calls.push(['stopTrailerPlayback']),
-    teardownTrailerObserver: () => calls.push(['teardownTrailerObserver']),
-    teardownTrailerScrollListener: () => calls.push(['teardownTrailerScrollListener']),
-    renderTrailerSection: () => '',
-    setupTrailerAutoplay: () => calls.push(['setupTrailerAutoplay']),
+    cleanupDetailMedia: () => calls.push(['cleanupDetailMedia']),
+    refreshDetailMedia: (...args) => calls.push(['refreshDetailMedia', ...args]),
+    setupDetailMedia: () => calls.push(['setupDetailMedia']),
+    stopDetailMedia: () => calls.push(['stopDetailMedia']),
     renderSynopsis: (value) => `<p>${value}</p>`,
-    loadReviewsService: async () => ({
-      fetchReviews: async () => ({ description: 'remote synopsis', positive: [], neutral: [], negative: [] }),
-      renderSynopsis: (value) => `<p>${value}</p>`,
-      renderReviewsSection: () => '<section class="reviews">Reviews</section>',
-      initTabSwitching: () => calls.push(['initTabSwitching'])
-    }),
+    loadDetailReviews: (...args) => calls.push(['loadDetailReviews', ...args]),
     updateMetaForAnime: (...args) => calls.push(['updateMetaForAnime', ...args]),
     updateMetaForFilters: () => calls.push(['updateMetaForFilters']),
     getLogger: () => null,
@@ -36,6 +30,7 @@ const createAppHarness = (overrides = {}) => {
     updateUrlForAnime: (...args) => calls.push(['updateUrlForAnime', ...args]),
     resetMetaToDefault: () => calls.push(['resetMetaToDefault']),
     renderDetailSkeleton: () => '<div class="skeleton"></div>',
+    renderDetailErrorState: ({ reason }) => `<div class="error-message">${reason}</div>`,
     normalizeBookmarkId: (value) => String(value ?? '').trim(),
     getWatchlistSnapshot: () => null,
     hasFullAnimeDetail: () => true,
@@ -45,7 +40,6 @@ const createAppHarness = (overrides = {}) => {
     renderFranchiseHubSection: () => '',
     renderReviewsLoading: () => '<p>Loading reviews</p>',
     getEpisodeCount: (anime) => anime.episodes?.length || anime.episodeCount || 0,
-    getCardDecisionData: () => ({ value: 'Try it', note: 'Strong signal', className: 'detail-verdict--good' }),
     sanitizeClassList: (...classes) => classes.filter(Boolean).join(' '),
     buildImageSrcset: (cover) => ({ src: cover || '', srcset: '', sizes: '', fallback: '' }),
     sanitizeImageUrl: (value) => value || '',
@@ -60,6 +54,11 @@ const createAppHarness = (overrides = {}) => {
     getImageFallbackAttrs: () => '',
     renderSimilarAnimeSection: () => '<div class="similar-empty"></div>',
     renderWatchlistControls: () => '<div class="watchlist-controls"></div>',
+    renderDetailContent: (anime, { synopsis = '' } = {}) => `
+      <h2>${app.escapeHtml(anime.title)}</h2>
+      <div id="synopsis-section">${app.renderSynopsis(synopsis)}</div>
+      <div id="community-reviews-section">${app.renderReviewsLoading()}</div>
+    `,
     updateWatchlistControls: (...args) => calls.push(['updateWatchlistControls', ...args]),
     updatePrefetchObserving: () => calls.push(['updatePrefetchObserving']),
     loadFullCatalog: async () => false,
@@ -133,19 +132,45 @@ test('Detail Experience syncs URL anime state to open or close actions', () => {
   assert.deepEqual(calls[0], ['closeDetailModal', { updateUrl: true }]);
 });
 
-test('Detail Experience ignores stale review responses after the active anime changes', async () => {
-  setupDom(`
-    <div id="synopsis-section"></div>
-    <div id="community-reviews-section"></div>
-  `);
+test('Detail Experience delegates trailer refresh to Detail Media', () => {
+  const animeData = [{ id: 'show-1', title: 'Show One' }];
   const { detail, calls } = createAppHarness({
-    currentAnimeId: 'other'
+    currentAnimeId: 'show-1',
+    animeData
   });
 
-  await detail.loadCommunityReviews({ id: 'anime-a', malId: 1, title: 'Anime A' }, 'fallback');
+  detail.refreshTrailerSection();
 
-  assert.equal(document.getElementById('community-reviews-section').innerHTML, '');
-  assert.equal(calls.some(([name]) => name === 'initTabSwitching'), false);
+  assert.deepEqual(calls[0], ['refreshDetailMedia', {
+    currentAnimeId: 'show-1',
+    animeData
+  }]);
+});
+
+test('Detail Experience delegates community review loading to Detail Reviews', async () => {
+  const anime = { id: 'anime-a', malId: 1, title: 'Anime A' };
+  const { detail, calls } = createAppHarness();
+
+  await detail.loadCommunityReviews(anime, 'fallback');
+
+  assert.deepEqual(calls[0], ['loadDetailReviews', anime, 'fallback']);
+});
+
+test('Detail Experience delegates missing catalog title markup to Detail Error State', () => {
+  setupDom(`
+    <div id="detail-modal"><div class="modal-content"></div></div>
+    <div id="detail-content"></div>
+  `);
+  const { detail, calls } = createAppHarness();
+
+  detail.open('missing-title', { updateUrl: true });
+
+  assert.match(document.getElementById('detail-content').innerHTML, /catalog/);
+  assert.deepEqual(calls.find(([name]) => name === 'updateUrlForAnime'), [
+    'updateUrlForAnime',
+    null,
+    { replace: true }
+  ]);
 });
 
 test('Detail Experience deep link loads full catalog before showing a title', async () => {

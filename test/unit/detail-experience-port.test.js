@@ -16,7 +16,6 @@ test('Detail Experience port exposes a narrow adapter surface over App Shell', (
     escapeAttr: (value) => String(value),
     escapeHtml: (value) => String(value),
     getAnimeIdFromUrl: () => '',
-    getCardDecisionData: () => ({}),
     getEpisodeCount: () => 0,
     getImageDimensions: () => ({}),
     getImageFallbackAttrs: () => '',
@@ -60,5 +59,9 @@ test('Detail Experience port exposes a narrow adapter surface over App Shell', (
 
   assert.equal(app.currentAnimeId, 'show-1');
   assert.equal(port.detailCache, app.detailCache);
+  assert.equal(typeof port.renderDetailContent, 'function');
+  assert.equal(typeof port.renderDetailErrorState, 'function');
+  assert.equal(typeof port.refreshDetailMedia, 'function');
+  assert.equal(typeof port.loadDetailReviews, 'function');
   assert.deepEqual(calls, [['emitAppEvent', 'event', { id: 'show-1' }]]);
 });

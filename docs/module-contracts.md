@@ -14,6 +14,7 @@
 - Runtime module: `js/services/catalog-loader.ts`
 - Runtime TypeScript entrypoint: `js/services/catalog-loader.ts`
 - Payload module: `js/services/catalog-payload.ts`
+- Payload effect plan module: `js/services/catalog-payload-effect-plan.ts`
 - Payload effect module: `js/services/catalog-payload-effects.ts`
 - Payload TypeScript entrypoint: `js/services/catalog-payload.ts`
 - Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/api-client.ts`, `js/services/cache-manager.ts`, `js/services/error-handler.ts`, `js/services/logger.ts`
@@ -22,27 +23,35 @@
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
 - Interface: load the full catalog index, fetch catalog payloads, read/write full catalog cache, use embedded fallback, and merge detail chunks
-- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, and render-ready catalog state; `js/services/catalog-payload-effects.ts` owns applying that state to App Shell caches, document flags, Snapshot refresh, Airing Schedule intent, and filter render intent
+- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, and render-ready catalog state; `js/services/catalog-payload-effect-plan.ts` owns the explicit post-payload effect plan; `js/services/catalog-payload-effects.ts` owns the App Shell adapter that applies that plan to caches, document flags, Snapshot refresh, Airing Schedule intent, and filter render intent
 - Contract surface: `CatalogPayload`, `PreviewCatalogPayload`, `FullCatalogPayload`, `DetailChunkPayload`, `ScoreProfile`, `CatalogValidationIssue`, and `CatalogRuntimeEventMap`
 
 ### Watchlist State
 - Entry points: `js/app.ts`, `js/watchlist-main.ts`
+- Airing dashboard adapter: `js/watchlist-airing-dashboard-adapter.ts`
 - Lifecycle module: `js/watchlist-state.js`
+- Page interactions module: `js/watchlist-page-interactions.ts`
+- Page renderer module: `js/watchlist-page-renderer.ts`
+- Page runtime module: `js/watchlist-page-runtime.ts`
 - Presentation module: `js/watchlist-entry-presentation.ts`
 - Shared TypeScript contracts: `js/contracts/watchlist-lifecycle.ts`
 - Storage key: `rekonime.watchlist`
 - Interface: load entries, migrate legacy bookmarks, update status/progress, refresh snapshots, expose filtered entries/items, and build transition envelopes for adapters
-- Side effects: storage writes only; callers apply the returned event, render, and dashboard scheduling intent; Watchlist Entry presentation owns shared control labels, progress visibility, total text, and detail/watchlist page adapters
+- Side effects: storage writes only; callers apply the returned event, render, and dashboard scheduling intent; Watchlist Airing Dashboard Adapter owns lazy dashboard loading, controller caching, idle scheduling, cancellation, and update failure logging; Watchlist Page Renderer owns filter-chip markup, card DOM assembly, empty-state class updates, snapshot backfill, and dashboard render scheduling; Watchlist Page Interactions owns page-level DOM event listeners, filter changes, card opening, image fallback, settings, and sync events; Watchlist Page Runtime owns watchlist-page status/progress transition handling; Watchlist Entry presentation owns shared control labels, progress visibility, total text, and detail/watchlist page adapters
 - Contract surface: `WatchlistEntry`, `Snapshot`, `WatchlistPersistedPayload`, `WatchlistTransitionResult`, `WatchlistControlModel`, `WatchlistDisplayModel`, and `WatchlistLifecycleEventMap`
 
 ### Detail Experience
 - Stable TypeScript entry point: `js/detail-experience.ts`
 - Port adapter: `js/detail-experience-port.ts`
+- Error state module: `js/detail-error-state.ts`
+- Media adapter: `js/detail-media.ts`
+- Reviews adapter: `js/detail-reviews.ts`
+- Presentation module: `js/detail-presentation.ts`
 - App handoff: `js/app.ts` (`showAnimeDetail`, detail markup builders, image helpers, trailer control methods)
 - Inputs: anime id, cached detail, review payload, detail URL state (`?anime=...`)
 - Outputs: modal visibility, refreshed synopsis/reviews, cached detail HTML, detail URL synchronization
 - Side effects: history state, metadata updates, trailer cleanup/replacement, full-catalog deep-link fallback, modal-open telemetry
-- Interface rule: Detail Experience receives a narrow port adapter rather than the full App Shell object; tests should exercise the port seam instead of rebuilding unrelated App Shell state.
+- Interface rule: Detail Experience receives a narrow port adapter rather than the full App Shell object; `js/detail-presentation.ts` owns modal body markup and decision-signal presentation, `js/detail-media.ts` owns trailer DOM refresh, autoplay setup, and playback cleanup, `js/detail-reviews.ts` owns review loading, stale response checks, synopsis replacement, and review error markup, and `js/detail-error-state.ts` owns unavailable-title messaging.
 
 ### Airing Schedule
 - Stable TypeScript entry points: `js/airing-schedule.ts`, `js/airing-dashboard.ts`
@@ -101,11 +110,11 @@
 - Gates: schema validation, integrity checks, quality gates
 
 ### Pipeline Parity Contract
-- Contract module: `tools/pipeline_parity_contract.py`
+- Contract modules: `tools/pipeline_parity_contract.py`, `tools/pipeline-parity-contract.js`
 - Harness: `tools/python_golden_harness.py`
 - Inputs: representative catalog input, validation payload, trailer policy vectors, fixture manifest
 - Outputs: golden fixture actuals for Python data pipeline adapters
-- Interface: adapters must satisfy the contract fixture set; Bun command surfaces stay stable while Python and JavaScript fallback behavior is compared through the contract
+- Interface: adapters must satisfy the same contract fixture set; Bun command surfaces stay stable while Python and JavaScript fallback behavior is compared through the contract
 
 ### Data Validation
 - Stable Bun entry points: `bun run data:validate`, `bun run data:validate:strict`

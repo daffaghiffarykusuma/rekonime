@@ -8,7 +8,7 @@ Run:
 bun run test:golden
 ```
 
-The Bun command delegates to `tools/python_golden_harness.py` when a Python interpreter is available. In environments without Python on `PATH`, it runs a Bun fallback against the same fixture set so local parity checks still work; Python availability remains required before replacing JavaScript tools with Python implementations.
+The Bun command delegates to `tools/python_golden_harness.py` when a Python interpreter is available. In environments without Python on `PATH`, it runs a Bun fallback against the same fixture set through `tools/pipeline-parity-contract.js` so local parity checks still work; Python availability remains required before replacing JavaScript tools with Python implementations.
 
 The harness covers:
 - Representative catalog input, full catalog output, and preview catalog output.

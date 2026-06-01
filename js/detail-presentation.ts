@@ -1,0 +1,246 @@
+// @ts-nocheck
+import { Recommendations } from './recommendations.ts';
+
+const buildDetailDecisionData = (anime, { episodeCount = 0 } = {}) => {
+  const hasEpisodes = episodeCount > 0;
+  const retention = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
+    ? Math.round(anime.stats.retentionScore)
+    : null;
+  const satisfaction = Number.isFinite(anime?.communityScore)
+    ? anime.communityScore
+    : null;
+
+  if (retention !== null) {
+    let note = 'Steady finish confidence';
+    if (retention >= 88) {
+      note = 'Very likely to keep you watching';
+    } else if (retention >= 76) {
+      note = 'Reliable through the middle';
+    } else if (retention < 60) {
+      note = 'More selective pick';
+    }
+    return {
+      value: `${retention}%`,
+      label: 'Finish confidence',
+      note,
+      className: Recommendations.getRetentionClass(retention)
+    };
+  }
+
+  if (satisfaction !== null) {
+    return {
+      value: satisfaction.toFixed(1),
+      label: 'Community score',
+      note: 'Use genre fit to decide',
+      className: Recommendations.getMalSatisfactionClass(satisfaction)
+    };
+  }
+
+  return {
+    value: 'N/A',
+    label: 'Decision signal',
+    note: 'Open details for more context',
+    className: 'score-low'
+  };
+};
+
+const renderTagList = (values, { escapeHtml }) => Array.isArray(values) && values.length > 0
+  ? values.map(value => `<span class="detail-tag">${escapeHtml(value)}</span>`).join('')
+  : '';
+
+const renderMeta = (anime, { escapeHtml }) => {
+  const metaParts = [anime.type, anime.year, anime.studio, anime.source, anime.demographic]
+    .map(value => {
+      const label = String(value ?? '').trim();
+      const normalized = label.toLowerCase();
+      if (!label || normalized === 'undefined' || normalized === 'null') return '';
+      return label;
+    })
+    .filter(Boolean);
+  return metaParts.map(part => `<span>${escapeHtml(part)}</span>`).join(' &bull; ');
+};
+
+const renderAltTitles = (anime, { escapeHtml }) => {
+  const altTitles = [];
+  if (anime.titleEnglish && anime.titleEnglish.toLowerCase() !== anime.title.toLowerCase()) {
+    altTitles.push({ label: 'English', value: anime.titleEnglish });
+  }
+  if (anime.titleJapanese && anime.titleJapanese.toLowerCase() !== anime.title.toLowerCase()) {
+    altTitles.push({ label: 'Japanese', value: anime.titleJapanese });
+  }
+  return altTitles.length
+    ? `<div class="detail-alt-titles">
+        ${altTitles.map(item => `
+          <div class="detail-alt-title">
+            <span class="detail-alt-label">${escapeHtml(item.label)}</span>
+            <span class="detail-alt-value">${escapeHtml(item.value)}</span>
+          </div>
+        `).join('')}
+      </div>`
+    : '';
+};
+
+const renderBreakdown = ({
+  hasEpisodes,
+  startScore,
+  stayScore,
+  finishScore,
+  safeStartScore,
+  safeStayScore,
+  safeFinishScore
+}) => hasEpisodes ? `
+  <div class="detail-breakdown">
+    <div class="detail-section-header">
+      <h3>Why it sticks</h3>
+      <span class="detail-section-note">Start, stay, finish</span>
+    </div>
+    <div class="breakdown-row">
+      <span class="breakdown-label has-tooltip" tabindex="0">
+        Strong start
+        <div class="tooltip tooltip--bottom" role="tooltip">
+          <div class="tooltip-title">Strong Start</div>
+          <div class="tooltip-text">How compelling the first 3 episodes are. High scores mean the show hooks viewers early.</div>
+        </div>
+      </span>
+      <progress class="breakdown-progress" value="${safeStartScore}" max="100" aria-label="Strong start score"></progress>
+      <span class="breakdown-value">${startScore !== null ? `${startScore}%` : 'N/A'}</span>
+    </div>
+    <div class="breakdown-row">
+      <span class="breakdown-label has-tooltip" tabindex="0">
+        Keeps you watching
+        <div class="tooltip tooltip--bottom" role="tooltip">
+          <div class="tooltip-title">Keeps You Watching</div>
+          <div class="tooltip-text">Low drop-off probability. Measures how likely viewers are to continue without losing interest.</div>
+        </div>
+      </span>
+      <progress class="breakdown-progress" value="${safeStayScore}" max="100" aria-label="Keeps you watching score"></progress>
+      <span class="breakdown-value">${stayScore !== null ? `${stayScore}%` : 'N/A'}</span>
+    </div>
+    <div class="breakdown-row">
+      <span class="breakdown-label has-tooltip" tabindex="0">
+        Finish payoff
+        <div class="tooltip tooltip--bottom" role="tooltip">
+          <div class="tooltip-title">Finish Payoff</div>
+          <div class="tooltip-text">How well the show sticks the landing. Combines finale strength, momentum, and narrative build-up.</div>
+        </div>
+      </span>
+      <progress class="breakdown-progress" value="${safeFinishScore}" max="100" aria-label="Finish payoff score"></progress>
+      <span class="breakdown-value">${finishScore !== null ? `${finishScore}%` : 'N/A'}</span>
+    </div>
+  </div>
+` : `
+  <div class="detail-breakdown detail-breakdown-empty">
+    <div class="detail-section-header">
+      <h3>Why it sticks</h3>
+    </div>
+    <p class="detail-empty">No episode scores yet. Finish Rate appears once episode scores are available.</p>
+  </div>
+`;
+
+const renderDetailContent = (anime, {
+  synopsis = '',
+  escapeHtml,
+  escapeAttr,
+  sanitizeImageUrl,
+  sanitizeClassList,
+  buildImageSrcset,
+  getImageDimensions,
+  getImageFallbackAttrs,
+  getEpisodeCount,
+  renderSynopsis,
+  renderSynopsisLoading,
+  renderFranchiseHubSection,
+  renderTrailerSection,
+  renderReviewsLoading,
+  renderSimilarAnimeSection,
+  renderWatchlistControls
+}) => {
+  const synopsisMarkup = renderSynopsis(synopsis);
+  const synopsisSection = synopsisMarkup || renderSynopsisLoading();
+  const episodeCount = getEpisodeCount(anime);
+  const hasEpisodes = episodeCount > 0;
+  const rawRetention = anime?.stats?.retentionScore;
+  const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
+  const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
+  const retentionClass = Recommendations.getRetentionClass(retentionScore);
+  const malSatisfactionClass = Recommendations.getMalSatisfactionClass(malSatisfactionScore);
+  const rawStart = anime?.stats?.threeEpisodeHook;
+  const rawChurn = anime?.stats?.churnRisk?.score;
+  const rawFinish = anime?.stats?.worthFinishing;
+  const startScore = hasEpisodes && Number.isFinite(rawStart) ? Math.round(rawStart) : null;
+  const stayScore = hasEpisodes && Number.isFinite(rawChurn) ? Math.round(100 - rawChurn) : null;
+  const finishScore = hasEpisodes && Number.isFinite(rawFinish) ? Math.round(rawFinish) : null;
+  const safeStartScore = Number.isFinite(startScore) ? startScore : 0;
+  const safeStayScore = Number.isFinite(stayScore) ? stayScore : 0;
+  const safeFinishScore = Number.isFinite(finishScore) ? finishScore : 0;
+  const safeTitle = escapeHtml(anime.title);
+  const { src: detailSrc, srcset: detailSrcset, sizes: detailSizes, fallback: detailFallback } = buildImageSrcset(anime.cover, { sizeKey: 'detail', preferOptimized: false });
+  const safeCover = escapeAttr(detailSrc || sanitizeImageUrl(anime.cover));
+  const detailSrcsetAttr = detailSrcset ? `srcset="${escapeAttr(detailSrcset)}"` : '';
+  const detailSizesAttr = detailSizes ? `sizes="${escapeAttr(detailSizes)}"` : '';
+  const detailDims = getImageDimensions('detail');
+  const detailDimAttrs = detailDims ? `width="${detailDims.width}" height="${detailDims.height}"` : '';
+  const detailFallbackAttrs = getImageFallbackAttrs({
+    fallbackSrc: detailFallback,
+    placeholder: 'https://via.placeholder.com/150x210?text=No+Image'
+  });
+  const decision = buildDetailDecisionData(anime, { episodeCount });
+  const detailDecisionClass = sanitizeClassList('detail-verdict', decision.className);
+
+  return `
+    <div class="detail-header">
+      <img src="${safeCover}" ${detailSrcsetAttr} ${detailSizesAttr} alt="${safeTitle}" class="detail-cover" ${detailDimAttrs} ${detailFallbackAttrs}>
+      <div class="detail-info">
+        <div class="detail-title-row">
+          <h2 class="detail-title" id="detail-modal-title">${safeTitle}</h2>
+        </div>
+        ${renderAltTitles(anime, { escapeHtml })}
+        <div class="detail-meta">${renderMeta(anime, { escapeHtml })}</div>
+        <div class="detail-tags">
+          ${renderTagList(anime.genres, { escapeHtml })}${renderTagList(anime.themes, { escapeHtml })}
+        </div>
+        <div class="detail-decision-panel">
+          <div class="${detailDecisionClass}">
+            <span class="detail-verdict-label">Decision signal</span>
+            <strong class="detail-verdict-value">${escapeHtml(decision.value)}</strong>
+            <span class="detail-verdict-copy">${escapeHtml(decision.note)}</span>
+          </div>
+          <div class="detail-stats">
+            <div class="detail-stat has-tooltip" tabindex="0">
+              <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
+              <span class="detail-stat-label">Finish Rate</span>
+              <div class="tooltip" role="tooltip">
+                <div class="tooltip-title">Finish Rate</div>
+                <div class="tooltip-text">How reliably viewers keep watching through the series. Factors in strong starts, low drop-off, and steady pacing.</div>
+              </div>
+            </div>
+            <div class="detail-stat has-tooltip" tabindex="0">
+              <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
+              <span class="detail-stat-label">Satisfaction (MAL)</span>
+              <div class="tooltip" role="tooltip">
+                <div class="tooltip-title">Satisfaction Score</div>
+                <div class="tooltip-text">Community rating from MyAnimeList.</div>
+              </div>
+            </div>
+            <div class="detail-stat">
+              <span class="detail-stat-value">${episodeCount || 'N/A'}</span>
+              <span class="detail-stat-label">Episodes</span>
+            </div>
+          </div>
+          ${renderWatchlistControls(anime)}
+        </div>
+      </div>
+    </div>
+    ${renderBreakdown({ hasEpisodes, startScore, stayScore, finishScore, safeStartScore, safeStayScore, safeFinishScore })}
+    <div id="synopsis-section">${synopsisSection}</div>
+    ${renderFranchiseHubSection(anime)}
+    ${renderTrailerSection(anime)}
+    <div id="community-reviews-section">${renderReviewsLoading()}</div>
+    <div id="similar-anime-section">${renderSimilarAnimeSection(anime)}</div>
+  `;
+};
+
+export {
+  buildDetailDecisionData,
+  renderDetailContent
+};

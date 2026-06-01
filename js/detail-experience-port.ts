@@ -1,6 +1,18 @@
 // @ts-nocheck
+import { renderDetailContent } from './detail-presentation.ts';
+import { createDetailMediaAdapter } from './detail-media.ts';
+import { createDetailReviewsAdapter } from './detail-reviews.ts';
+import { renderDetailErrorState } from './detail-error-state.ts';
 
 const createDetailExperiencePort = (app) => {
+  const detailMedia = createDetailMediaAdapter(app);
+  const detailReviews = createDetailReviewsAdapter({
+    getCurrentAnimeId: () => app.currentAnimeId,
+    getLogger: app.getLogger.bind(app),
+    loadReviewsService: app.loadReviewsService.bind(app),
+    renderSynopsis: app.renderSynopsis.bind(app),
+    updateMetaForAnime: app.updateMetaForAnime.bind(app)
+  });
   const port = {
     get detailCache() {
       return app.detailCache;
@@ -20,30 +32,43 @@ const createDetailExperiencePort = (app) => {
     get isFullDataLoaded() {
       return app.isFullDataLoaded;
     },
-    get trailerCleanup() {
-      return app.trailerCleanup;
-    },
-    set trailerCleanup(value) {
-      app.trailerCleanup = value;
-    },
+    cleanupDetailMedia: (...args) => detailMedia.cleanup(...args),
     closeDetailModal: (...args) => app.closeDetailModal(...args),
     emitAppEvent: (...args) => app.emitAppEvent(...args),
     escapeAttr: (...args) => app.escapeAttr(...args),
     escapeHtml: (...args) => app.escapeHtml(...args),
     getAnimeIdFromUrl: (...args) => app.getAnimeIdFromUrl(...args),
-    getCardDecisionData: (...args) => app.getCardDecisionData(...args),
     getEpisodeCount: (...args) => app.getEpisodeCount(...args),
     getImageDimensions: (...args) => app.getImageDimensions(...args),
     getImageFallbackAttrs: (...args) => app.getImageFallbackAttrs(...args),
-    getLogger: (...args) => app.getLogger(...args),
     getPerformanceNow: (...args) => app.getPerformanceNow(...args),
     getSynopsisForAnime: (...args) => app.getSynopsisForAnime(...args),
     getWatchlistSnapshot: (...args) => app.getWatchlistSnapshot(...args),
     hasFullAnimeDetail: (...args) => app.hasFullAnimeDetail(...args),
     loadAnimeDetailChunk: (...args) => app.loadAnimeDetailChunk(...args),
     loadFullCatalog: (...args) => app.loadFullCatalog(...args),
-    loadReviewsService: (...args) => app.loadReviewsService(...args),
+    loadDetailReviews: (...args) => detailReviews.load(...args),
     normalizeBookmarkId: (...args) => app.normalizeBookmarkId(...args),
+    refreshDetailMedia: (...args) => detailMedia.refresh(...args),
+    renderDetailErrorState,
+    renderDetailContent: (anime, { synopsis = '' } = {}) => renderDetailContent(anime, {
+      synopsis,
+      escapeHtml: app.escapeHtml.bind(app),
+      escapeAttr: app.escapeAttr.bind(app),
+      sanitizeImageUrl: app.sanitizeImageUrl.bind(app),
+      sanitizeClassList: app.sanitizeClassList.bind(app),
+      buildImageSrcset: app.buildImageSrcset.bind(app),
+      getImageDimensions: app.getImageDimensions.bind(app),
+      getImageFallbackAttrs: app.getImageFallbackAttrs.bind(app),
+      getEpisodeCount: app.getEpisodeCount.bind(app),
+      renderSynopsis: app.renderSynopsis.bind(app),
+      renderSynopsisLoading: app.renderSynopsisLoading.bind(app),
+      renderFranchiseHubSection: app.renderFranchiseHubSection.bind(app),
+      renderTrailerSection: app.renderTrailerSection.bind(app),
+      renderReviewsLoading: app.renderReviewsLoading.bind(app),
+      renderSimilarAnimeSection: app.renderSimilarAnimeSection.bind(app),
+      renderWatchlistControls: app.renderWatchlistControls.bind(app)
+    }),
     renderDetailSkeleton: (...args) => app.renderDetailSkeleton(...args),
     renderFranchiseHubSection: (...args) => app.renderFranchiseHubSection(...args),
     renderReviewsLoading: (...args) => app.renderReviewsLoading(...args),
@@ -55,11 +80,9 @@ const createDetailExperiencePort = (app) => {
     sanitizeClassList: (...args) => app.sanitizeClassList(...args),
     sanitizeImageUrl: (...args) => app.sanitizeImageUrl(...args),
     setModalVisibility: (...args) => app.setModalVisibility(...args),
-    setupTrailerAutoplay: (...args) => app.setupTrailerAutoplay(...args),
+    setupDetailMedia: (...args) => detailMedia.setup(...args),
     showAnimeDetail: (...args) => app.showAnimeDetail(...args),
-    stopTrailerPlayback: (...args) => app.stopTrailerPlayback(...args),
-    teardownTrailerObserver: (...args) => app.teardownTrailerObserver(...args),
-    teardownTrailerScrollListener: (...args) => app.teardownTrailerScrollListener(...args),
+    stopDetailMedia: (...args) => detailMedia.stop(...args),
     updateMetaForAnime: (...args) => app.updateMetaForAnime(...args),
     updateMetaForFilters: (...args) => app.updateMetaForFilters(...args),
     updatePrefetchObserving: (...args) => app.updatePrefetchObserving(...args),
