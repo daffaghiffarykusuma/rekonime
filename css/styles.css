@@ -3307,6 +3307,51 @@ h4 {
   margin-bottom: 2.5rem;
 }
 
+.mobile-watchlist-link {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .mobile-watchlist-link {
+    display: inline-flex;
+  }
+}
+
+.viewing-intent-section {
+  margin: 1rem 0 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+}
+
+.viewing-intent-option {
+  min-width: min(100%, 11rem);
+}
+
+.experience-cues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.experience-cue {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgba(246, 148, 193, 0.22);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: rgba(246, 148, 193, 0.08);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.recommendations-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
 .watchlist-section {
   margin-top: 1.5rem;
   margin-bottom: 2.5rem;
@@ -7751,20 +7796,29 @@ summary:focus-visible,
     order: 3;
   }
 
-  .quick-filters {
+  .viewing-intent-section {
     order: 4;
   }
 
-  .seasonal-filters {
+  .recommendations-section {
     order: 5;
+    margin-top: 1.25rem;
   }
 
-  .airing-dashboard-section {
+  .quick-filters {
     order: 6;
   }
 
-  .grid-section {
+  .seasonal-filters {
     order: 7;
+  }
+
+  .airing-dashboard-section {
+    order: 8;
+  }
+
+  .grid-section {
+    order: 9;
     margin-top: 1rem;
     content-visibility: visible;
     contain-intrinsic-size: auto;
@@ -7775,26 +7829,21 @@ summary:focus-visible,
     contain-intrinsic-size: auto;
   }
 
-  .recommendations-section {
-    order: 8;
-    margin-top: 1.25rem;
-  }
-
   .because-you-watched-section {
-    order: 9;
-  }
-
-  .trending-section {
     order: 10;
   }
 
-  .rankings-section {
+  .trending-section {
     order: 11;
+  }
+
+  .rankings-section {
+    order: 12;
   }
 
   .header-controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.45rem;
     align-items: end;
   }
@@ -7956,10 +8005,7 @@ summary:focus-visible,
   }
 
   .header-sort {
-    grid-column: 1 / 2;
-    grid-row: 2;
-    order: 2 !important;
-    min-width: 0;
+    display: none;
   }
 
   .sort-select {
@@ -7967,21 +8013,26 @@ summary:focus-visible,
   }
 
   .surprise-btn {
-    grid-column: 2 / 3;
+    grid-column: 1 / 2;
     grid-row: 2;
     order: 2 !important;
   }
 
   .filter-btn {
-    grid-column: 1 / 2;
-    grid-row: 3;
-    order: 3 !important;
+    grid-column: 2 / 3;
+    grid-row: 2;
+    order: 2 !important;
+  }
+
+  .mobile-watchlist-link {
+    display: inline-flex;
+    grid-column: 3 / 4;
+    grid-row: 2;
+    align-items: center;
+    justify-content: center;
   }
 
   .header-more {
-    grid-column: 2 / 3;
-    grid-row: 3;
-    order: 3 !important;
-    flex: 0 0 auto;
+    display: none;
   }
 }

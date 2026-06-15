@@ -12,6 +12,14 @@ _Avoid_: bookmark logic, saved item helper, watch status utility
 A single saved anime record with an id, status, progress, timestamps, and optional snapshot used when catalog data is not loaded.
 _Avoid_: bookmark, saved card, list item
 
+**Taste Profile**:
+The user's editable, cross-title recommendation preferences and exclusions, derived from explicit feedback and supported by Watchlist Lifecycle evidence. Title-specific status, progress, and affinity remain on the Watchlist Entry.
+_Avoid_: recommendation settings, preference cache, personalization blob
+
+**Experience Cue**:
+A concise, curated label that sets expectations about a title's viewing experience or explains its fit for a viewing outcome. Experience Cues are derived through documented rules rather than displayed directly from raw catalog tags.
+_Avoid_: badge, raw theme, recommendation tag
+
 **Snapshot**:
 A compact copy of anime display metadata stored inside a watchlist entry so the entry can still render before the full catalog is available.
 _Avoid_: cache copy, embedded anime, fallback card data
@@ -21,7 +29,7 @@ The runtime path that loads preview catalog data, upgrades to the full catalog, 
 _Avoid_: data helper, fetch wrapper, loader utility
 
 **Catalog Payload**:
-A validated anime data package loaded from preview, full, cached, embedded, or detail-chunk sources before page rendering decisions are applied.
+A validated anime data package, including supported Experience Cues, loaded from preview, full, cached, embedded, or detail-chunk sources before page rendering decisions are applied.
 _Avoid_: JSON blob, response data, raw catalog
 
 **Airing Schedule**:
@@ -40,6 +48,12 @@ _Avoid_: browser utilities, app helpers, UI plumbing
 
 Dev: "When progress changes from 0 to 2, should that be handled by the page?"
 Domain expert: "No. That is a Watchlist Lifecycle transition. The page only asks to update a Watchlist Entry."
+
+Dev: "Should 'less Romance' be stored on the anime the user dismissed?"
+Domain expert: "No. Romance is a cross-title preference in the Taste Profile. The Watchlist Entry only owns the user's relationship with that title."
+
+Dev: "Can we show Psychological directly as an explanation?"
+Domain expert: "Not by default. Recommendation cards use Experience Cues with documented meaning; raw catalog tags remain available in details and advanced filters."
 
 Dev: "What renders if the full catalog has not loaded?"
 Domain expert: "Use the Snapshot on the Watchlist Entry until catalog data replaces it."

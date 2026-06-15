@@ -59,6 +59,19 @@ test('Discovery getTrending orders by score', () => {
   Math.random = originalRandom;
 });
 
+test('Discovery popularity score is deterministic for the same catalog data', () => {
+  const anime = createAnime({
+    id: 'stable',
+    communityScore: 8.4,
+    stats: createStats({ retentionScore: 84, worthFinishing: 82 })
+  });
+
+  assert.equal(
+    Discovery.calculateTrendingScore(anime),
+    Discovery.calculateTrendingScore(anime)
+  );
+});
+
 test('Discovery getPopularThisWeek is stable for same week', () => {
   const originalWeek = Discovery.getWeekNumber;
   Discovery.getWeekNumber = () => 5;

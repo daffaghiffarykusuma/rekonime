@@ -1092,7 +1092,7 @@
 
       .header-controls {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.55rem;
         width: 100%;
         flex: 1 1 auto;
@@ -1107,10 +1107,7 @@
       }
 
       .header-sort {
-        grid-column: 1 / 2;
-        grid-row: 2;
-        order: 2 !important;
-        min-width: 0;
+        display: none;
       }
 
       .sort-select {
@@ -1118,22 +1115,27 @@
       }
 
       .surprise-btn {
-        grid-column: 2 / 3;
+        grid-column: 1 / 2;
         grid-row: 2;
         order: 2 !important;
       }
 
       .filter-btn {
-        grid-column: 1 / 2;
-        grid-row: 3;
-        order: 3 !important;
+        grid-column: 2 / 3;
+        grid-row: 2;
+        order: 2 !important;
+      }
+
+      .mobile-watchlist-link {
+        display: inline-flex;
+        grid-column: 3 / 4;
+        grid-row: 2;
+        align-items: center;
+        justify-content: center;
       }
 
       .header-more {
-        grid-column: 2 / 3;
-        grid-row: 3;
-        order: 3 !important;
-        flex: 0 0 auto;
+        display: none;
       }
     }
   </style>
@@ -1164,7 +1166,7 @@
         <div class="header-search-wrapper">
           <form class="search-form" id="header-search-form" action="" method="GET" role="search">
             <input type="text" id="header-search" name="search" class="header-search-input"
-              placeholder="Search by title, genre, or theme" aria-label="Search anime titles, genres, or themes" aria-autocomplete="list" aria-expanded="false"
+              placeholder="Search all titles" aria-label="Search all anime titles, genres, or themes" aria-autocomplete="list" aria-expanded="false"
               aria-controls="header-search-dropdown" role="combobox" autocomplete="off">
             <noscript>
               <button class="btn btn-sm btn-outline search-submit" type="submit">Search titles</button>
@@ -1179,7 +1181,8 @@
           <span class="surprise-icon" aria-hidden="true">&#127922;</span>
           <span class="surprise-label">Pick for Me</span>
         </button>
-        <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Refine</button>
+        <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Filters</button>
+        <a class="btn btn-sm btn-outline mobile-watchlist-link" href="/watchlist.html">Watchlist</a>
         <div class="header-sort">
           <label class="sort-label" for="sort-select">Sort</label>
           <div class="select-wrapper sort-select-wrapper">
@@ -1233,18 +1236,28 @@
       </div>
     </section>
 
+    <section class="viewing-intent-section" id="viewing-intent-section" aria-labelledby="viewing-intent-title">
+      <div class="mood-filter-header">
+        <div>
+          <p class="mood-filter-kicker">For this session</p>
+          <h2 class="mood-filter-title" id="viewing-intent-title">What do you want from your next watch?</h2>
+        </div>
+        <p class="mood-filter-note">This changes the ranking, not your saved taste or manual filters.</p>
+      </div>
+      <div class="mood-filter-clusters" id="viewing-intent-options" aria-label="Viewing goals" aria-busy="true">
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Help me unwind</button>
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Give me energy</button>
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Surprise me</button>
+      </div>
+    </section>
+
     <div class="quick-filters" id="quick-filters">
       <div class="mood-filter-header">
         <div>
-          <p class="mood-filter-kicker">Optional shortcuts</p>
-          <h2 class="mood-filter-title">Mood shortcuts</h2>
+          <p class="mood-filter-kicker">Optional precision</p>
+          <h2 class="mood-filter-title">More filters</h2>
         </div>
-        <p class="mood-filter-note">Use these as quick combinations, or pick exact genres and themes below.</p>
-      </div>
-      <div class="mood-filter-clusters" id="mood-filter-clusters" aria-label="Guided mood shortcuts">
-        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Critically steady</button>
-        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Low stress</button>
-        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Strong start</button>
+        <p class="mood-filter-note">Choose exact genres and themes when you already know what you want.</p>
       </div>
       <div class="quick-filters-tabs" role="tablist" aria-label="Quick filters">
         <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" role="tab"
@@ -1303,7 +1316,7 @@
         <div>
           <h2>Best Bets for You</h2>
           <p class="section-subtitle" id="recommendations-context">
-            Dependable picks ranked to balance strong finish rates with community approval.
+            Dependable picks ranked to balance strong finish confidence with community approval.
           </p>
         </div>
         <button class="help-link" data-action="explain-recommendations" aria-label="Learn why these recommendations were selected">
@@ -1326,6 +1339,10 @@
         <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
         <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
       </div>
+      <div class="recommendations-footer">
+        <button class="btn btn-outline" type="button" data-action="scroll-to-results">See more matches</button>
+        <span class="visually-hidden" id="recommendations-status" role="status" aria-live="polite"></span>
+      </div>
     </section>
 
     <section class="because-you-watched-section is-hidden" id="because-you-watched-section">
@@ -1343,13 +1360,9 @@
     <section class="trending-section" id="trending-section">
       <div class="trending-header">
         <div class="trending-title-group">
-          <h2>Trending Right Now</h2>
-          <span class="trending-live-indicator">
-            <span class="live-dot"></span>
-            Live
-          </span>
+          <h2>Popular Recent Picks</h2>
         </div>
-        <p class="section-subtitle">Anime drawing the most attention this week</p>
+        <p class="section-subtitle">Recent titles ranked from catalog quality and staying-power signals</p>
       </div>
       <div class="trending-grid" id="trending-grid">
         <!-- Populated by JS -->
@@ -1358,7 +1371,7 @@
 
     <section class="rankings-section" id="rankings-section">
       <div class="ranking-card" id="ranking-card-1">
-        <h3 id="ranking-title-1">Best Finish Rate</h3>
+        <h3 id="ranking-title-1">Best Finish Confidence</h3>
         <div id="best-ranking-1">
           <div class="skeleton-card skeleton-ranking"></div>
         </div>

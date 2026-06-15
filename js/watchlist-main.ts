@@ -232,6 +232,11 @@ const bootstrap = () => {
   ThemeManager.init();
   initNonCriticalServices();
   scheduleImageProxyCheck();
+  const watchlistSection = document.getElementById('watchlist-section');
+  const airingSection = document.getElementById('airing-dashboard-section');
+  if (watchlistSection && airingSection && watchlistSection.nextElementSibling !== airingSection) {
+    watchlistSection.after(airingSection);
+  }
 
   renderWatchlist();
   getWatchlistPageInteractions().setupPageHandlers();

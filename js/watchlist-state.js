@@ -318,7 +318,13 @@ const buildWatchlistDisplayModel = (entries = [], animeItems = [], {
 } = {}) => {
   const normalizedEntries = Array.isArray(entries) ? entries : [];
   const lookup = createAnimeLookup(animeItems);
-  const visibleEntries = filterWatchlistEntries(normalizedEntries, statusFilter);
+  const statusPriority = { watching: 0, completed: 1, planned: 2, dropped: 3 };
+  const visibleEntries = filterWatchlistEntries(normalizedEntries, statusFilter)
+    .sort((a, b) => {
+      const priorityDifference = (statusPriority[a?.status] ?? 4) - (statusPriority[b?.status] ?? 4);
+      if (priorityDifference !== 0) return priorityDifference;
+      return (Number(b?.updatedAt) || 0) - (Number(a?.updatedAt) || 0);
+    });
   return {
     entries: normalizedEntries,
     visibleEntries,

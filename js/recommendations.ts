@@ -29,7 +29,7 @@ const Recommendations = {
       top.sort((a, b) => b.score - a.score);
     }
 
-    return top;
+    return top.sort((a, b) => b.score - a.score);
   },
 
   /**
@@ -46,6 +46,111 @@ const Recommendations = {
       ...entry.anime,
       reason: this.getRecommendationReason(entry.anime)
     }));
+  },
+
+  getIntentDefinition(intentKey) {
+    const definitions = {
+      unwind: {
+        reason: 'A gentler pick for an easy viewing session',
+        score: anime => {
+          const stats = anime?.stats || {};
+          return ((stats.comfortScore ?? 50) * 0.35) +
+            ((stats.emotionalStability ?? 50) * 0.25) +
+            ((stats.retentionScore ?? 0) * 0.25) +
+            ((100 - (stats.threeEpisodeHook ?? 50)) * 0.15);
+        }
+      },
+      energy: {
+        reason: 'Strong momentum for a higher-energy watch',
+        score: anime => {
+          const stats = anime?.stats || {};
+          return ((stats.threeEpisodeHook ?? 0) * 0.45) +
+            ((stats.flowState ?? 0) * 0.4) +
+            ((stats.retentionScore ?? 0) * 0.15);
+        }
+      },
+      emotional: {
+        reason: 'A character-led story with emotional payoff',
+        score: anime => {
+          const stats = anime?.stats || {};
+          const tags = this.normalizeTagSet([...(anime?.genres || []), ...(anime?.themes || [])]);
+          const tagBoost = ['Drama', 'Romance', 'Music', 'Performing Arts']
+            .some(tag => tags.has(tag)) ? 15 : 0;
+          return ((stats.worthFinishing ?? 0) * 0.45) +
+            ((anime?.communityScore ?? 0) * 3) +
+            ((stats.retentionScore ?? 0) * 0.25) +
+            tagBoost;
+        }
+      },
+      immersive: {
+        reason: 'A world-rich pick built for getting absorbed',
+        score: anime => {
+          const stats = anime?.stats || {};
+          const tags = this.normalizeTagSet([...(anime?.genres || []), ...(anime?.themes || [])]);
+          const tagBoost = ['Fantasy', 'Adventure', 'Sci-Fi', 'Isekai', 'Mythology', 'Space']
+            .filter(tag => tags.has(tag)).length * 8;
+          return ((stats.flowState ?? 0) * 0.35) +
+            ((stats.worthFinishing ?? 0) * 0.25) +
+            ((stats.retentionScore ?? 0) * 0.2) +
+            tagBoost;
+        }
+      },
+      surprise: {
+        reason: 'A qualified pick beyond the most obvious choices',
+        score: anime => {
+          const quality = this.scoreAnime(anime);
+          const id = String(anime?.id || anime?.title || '');
+          const diversity = [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 20;
+          return quality + diversity;
+        }
+      }
+    };
+    return definitions[intentKey] || null;
+  },
+
+  getRecommendationsForIntent(animeList, intentKey, {
+    limit = 4,
+    modeKey = this.currentMode
+  } = {}) {
+    if (!Array.isArray(animeList) || animeList.length === 0) return [];
+    const intent = this.getIntentDefinition(intentKey);
+    if (!intent) return this.getRecommendationsWithMode(animeList, modeKey, limit);
+
+    const top = this.selectTopByScore(
+      animeList,
+      limit,
+      anime => (intent.score(anime) * 0.7) + (this.scoreAnimeWithMode(anime, modeKey) * 0.3),
+      { minScore: 0.0001 }
+    );
+
+    return top.map(entry => ({
+      ...entry.anime,
+      reason: intent.reason,
+      experienceCues: this.getExperienceCues(entry.anime, intentKey)
+    }));
+  },
+
+  getExperienceCues(anime, intentKey = '') {
+    const stats = anime?.stats || {};
+    const tags = this.normalizeTagSet([...(anime?.genres || []), ...(anime?.themes || [])]);
+    const candidates = [];
+    const add = (label, score) => candidates.push({ label, score });
+
+    if ((stats.comfortScore ?? 0) >= 75 || tags.has('Iyashikei')) add('Gentle', intentKey === 'unwind' ? 120 : 80);
+    if ((stats.threeEpisodeHook ?? 0) >= 82) add('Fast hook', intentKey === 'energy' ? 110 : 82);
+    if ((stats.flowState ?? 0) >= 85) add('High energy', intentKey === 'energy' ? 120 : 85);
+    if ((stats.worthFinishing ?? 0) >= 78 || tags.has('Drama')) add('Emotional', intentKey === 'emotional' ? 120 : 78);
+    if (['Fantasy', 'Adventure', 'Sci-Fi', 'Isekai', 'Space'].some(tag => tags.has(tag))) {
+      add('Immersive', intentKey === 'immersive' ? 120 : 76);
+    }
+    if ((stats.threeEpisodeHook ?? 100) <= 65 && (stats.worthFinishing ?? 0) >= 72) add('Slow burn', 75);
+    if (['Horror', 'Gore', 'Psychological', 'Suspense'].some(tag => tags.has(tag))) add('Dark', 95);
+    if (['Psychological', 'Strategy Game', 'Time Travel'].some(tag => tags.has(tag))) add('Complex', 88);
+
+    return candidates
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 2)
+      .map(candidate => candidate.label);
   },
 
   /**
@@ -211,7 +316,7 @@ const Recommendations = {
    */
   getRankingTitles() {
     return {
-      title1: 'Highest Finish Rate',
+      title1: 'Highest Finish Confidence',
       title2: 'Most Loved by Viewers',
       metric1: 'retention',
       metric2: 'satisfaction'
@@ -272,13 +377,13 @@ const Recommendations = {
 
     return [
       {
-        label: 'Finish Rate',
+        label: 'Finish Confidence',
         value: retentionScore !== null ? retentionScore : 'N/A',
         suffix: retentionScore !== null ? '%' : '',
         class: this.getRetentionClass(retentionScore),
         tooltip: {
-          title: 'Finish Rate',
-          text: 'How reliably a show keeps viewers watching all the way through.'
+          title: 'Finish Confidence',
+          text: 'An estimate of how reliably a show may keep viewers watching all the way through.'
         }
       },
       {

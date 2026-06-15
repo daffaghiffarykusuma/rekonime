@@ -98,6 +98,15 @@ const createWatchlistPageRenderer = ({
     if (episodeCount) {
       card.dataset.episodeCount = String(episodeCount);
     }
+    if (watchEntry?.status === 'watching') {
+      const nextAction = documentRef.createElement('p');
+      nextAction.className = 'watchlist-next-action';
+      const nextEpisode = Math.max(1, (Number(watchEntry.progress) || 0) + 1);
+      nextAction.textContent = episodeCount && nextEpisode > episodeCount
+        ? 'Ready to mark finished'
+        : `Continue from episode ${nextEpisode}`;
+      body.appendChild(nextAction);
+    }
     body.appendChild(createWatchlistControlsElement(item, watchEntry));
 
     card.appendChild(body);

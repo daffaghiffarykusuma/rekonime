@@ -133,7 +133,7 @@ const renderBreakdown = ({
     <div class="detail-section-header">
       <h3>Why it sticks</h3>
     </div>
-    <p class="detail-empty">No episode scores yet. Finish Rate appears once episode scores are available.</p>
+    <p class="detail-empty">No episode scores yet. Finish Confidence appears once episode scores are available.</p>
   </div>
 `;
 
@@ -208,10 +208,10 @@ const renderDetailContent = (anime, {
           <div class="detail-stats">
             <div class="detail-stat has-tooltip" tabindex="0">
               <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
-              <span class="detail-stat-label">Finish Rate</span>
+              <span class="detail-stat-label">Finish Confidence</span>
               <div class="tooltip" role="tooltip">
-                <div class="tooltip-title">Finish Rate</div>
-                <div class="tooltip-text">How reliably viewers keep watching through the series. Factors in strong starts, low drop-off, and steady pacing.</div>
+                <div class="tooltip-title">Finish Confidence</div>
+                <div class="tooltip-text">An estimate based on strong starts, low drop-off risk, and steady pacing.</div>
               </div>
             </div>
             <div class="detail-stat has-tooltip" tabindex="0">

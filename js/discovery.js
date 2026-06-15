@@ -324,9 +324,6 @@ const Discovery = {
             score += 8;
         }
 
-        // Random factor to simulate real-time trends
-        score += Math.random() * 10;
-
         return score;
     },
 

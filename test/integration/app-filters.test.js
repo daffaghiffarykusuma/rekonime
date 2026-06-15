@@ -143,3 +143,52 @@ test('App refreshes recommendations immediately when filters change during secon
     Object.assign(App, originals);
   }
 });
+
+test('App shows four recommendations on desktop and three on mobile', () => {
+  setupDom();
+  window.matchMedia = query => ({
+    matches: query.includes('max-width: 640px') ? false : false
+  });
+  assert.equal(App.getRecommendationDisplayLimit(), 4);
+
+  window.matchMedia = query => ({
+    matches: query.includes('max-width: 640px')
+  });
+  assert.equal(App.getRecommendationDisplayLimit(), 3);
+});
+
+test('App applies a Viewing Intent without changing explicit filters', () => {
+  setupDom('<!doctype html><div id="viewing-intent-options"></div><div id="recommendations-grid"></div>');
+  const originals = {
+    activeFilters: App.activeFilters,
+    viewingIntentSession: App.viewingIntentSession,
+    renderViewingIntents: App.renderViewingIntents,
+    renderRecommendations: App.renderRecommendations
+  };
+
+  try {
+    App.activeFilters = {
+      seasonYear: [],
+      year: [],
+      studio: [],
+      source: [],
+      genres: ['Action'],
+      themes: ['Fantasy'],
+      demographic: []
+    };
+    App.viewingIntentSession = null;
+    App.renderViewingIntents = () => {};
+    let rendered = 0;
+    App.renderRecommendations = () => {
+      rendered += 1;
+    };
+
+    assert.equal(App.applyViewingIntent('unwind'), true);
+    assert.deepEqual(App.activeFilters.genres, ['Action']);
+    assert.deepEqual(App.activeFilters.themes, ['Fantasy']);
+    assert.equal(App.getActiveViewingIntent()?.key, 'unwind');
+    assert.equal(rendered, 1);
+  } finally {
+    Object.assign(App, originals);
+  }
+});

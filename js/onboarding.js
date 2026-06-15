@@ -112,7 +112,7 @@ const Onboarding = {
           <div class="onboarding-value-props">
             <div class="value-prop">
               <span class="value-prop-icon" aria-hidden="true">1</span>
-              <span class="value-prop-text">Finish Rate highlights which shows keep viewers invested</span>
+              <span class="value-prop-text">Finish Confidence estimates which shows may keep viewers invested</span>
             </div>
             <div class="value-prop">
               <span class="value-prop-icon" aria-hidden="true">2</span>
@@ -136,28 +136,28 @@ const Onboarding = {
       retention: `
         <div class="onboarding-step">
           <div class="onboarding-icon" aria-hidden="true">R</div>
-          <h2 class="onboarding-title">What Finish Rate Tells You</h2>
+          <h2 class="onboarding-title">What Finish Confidence Tells You</h2>
           <p class="onboarding-description">
-            Finish Rate is Rekonime's clearest signal for staying power: a 0 to 100 score that estimates how reliably a series keeps viewers watching.
+            Finish Confidence is Rekonime's staying-power estimate: a 0 to 100 score based on how reliably a series may keep viewers watching.
           </p>
           <div class="onboarding-retention-demo">
             <div class="retention-demo-high">
               <div class="retention-demo-bar">
-                <progress class="retention-demo-progress" value="92" max="100" aria-label="High Finish Rate example"></progress>
+                <progress class="retention-demo-progress" value="92" max="100" aria-label="High Finish Confidence example"></progress>
               </div>
               <div class="retention-demo-info">
                 <span class="retention-demo-score">92%</span>
-                <span class="retention-demo-label">High Finish Rate</span>
+                <span class="retention-demo-label">High Finish Confidence</span>
               </div>
               <p class="retention-demo-desc">A strong sign the series keeps delivering</p>
             </div>
             <div class="retention-demo-low">
               <div class="retention-demo-bar">
-                <progress class="retention-demo-progress is-low" value="45" max="100" aria-label="Low Finish Rate example"></progress>
+                <progress class="retention-demo-progress is-low" value="45" max="100" aria-label="Low Finish Confidence example"></progress>
               </div>
               <div class="retention-demo-info">
                 <span class="retention-demo-score">45%</span>
-                <span class="retention-demo-label">Low Finish Rate</span>
+                <span class="retention-demo-label">Low Finish Confidence</span>
               </div>
               <p class="retention-demo-desc">Expect more drop-off before the ending</p>
             </div>
@@ -192,7 +192,7 @@ const Onboarding = {
             <div class="two-scores-grid">
               <div class="score-box">
                 <span class="score-box-icon" aria-hidden="true">R</span>
-                <span class="score-box-title">Finish Rate</span>
+                <span class="score-box-title">Finish Confidence</span>
                 <span class="score-box-desc">Staying power: will it keep you watching?</span>
               </div>
               <div class="score-box">

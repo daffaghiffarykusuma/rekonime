@@ -77,6 +77,63 @@ test('getRecommendations returns limited results with reasons', () => {
   });
 });
 
+test('getRecommendationsForIntent ranks outcomes without removing viable titles', () => {
+  const energetic = baseAnime({
+    id: 'energetic',
+    stats: {
+      retentionScore: 78,
+      threeEpisodeHook: 96,
+      flowState: 95,
+      emotionalStability: 40,
+      worthFinishing: 72
+    }
+  });
+  const gentle = baseAnime({
+    id: 'gentle',
+    genres: ['Slice of Life'],
+    themes: ['Iyashikei'],
+    stats: {
+      retentionScore: 88,
+      threeEpisodeHook: 65,
+      flowState: 68,
+      emotionalStability: 96,
+      comfortScore: 95,
+      worthFinishing: 80
+    }
+  });
+
+  const result = Recommendations.getRecommendationsForIntent(
+    [gentle, energetic],
+    'energy',
+    { limit: 4 }
+  );
+
+  assert.equal(result.length, 2);
+  assert.equal(result[0].id, 'energetic');
+  assert.match(result[0].reason, /energy|momentum|hook/i);
+});
+
+test('getExperienceCues returns at most two decision cues for the active intent', () => {
+  const anime = baseAnime({
+    genres: ['Action', 'Suspense'],
+    themes: ['Psychological'],
+    stats: {
+      retentionScore: 88,
+      threeEpisodeHook: 94,
+      flowState: 93,
+      emotionalStability: 35,
+      comfortScore: 30,
+      worthFinishing: 82
+    }
+  });
+
+  const cues = Recommendations.getExperienceCues(anime, 'energy');
+
+  assert.ok(cues.length <= 2);
+  assert.equal(cues[0], 'High energy');
+  assert.ok(cues.includes('Dark') || cues.includes('Fast hook'));
+});
+
 test('getSimilarAnime prioritizes strict matches over higher-scoring relaxed matches', () => {
   const base = baseAnime({
     genres: ['Action', 'Adventure'],

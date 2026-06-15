@@ -19,6 +19,10 @@ import { createDetailExperiencePort } from './detail-experience-port.ts';
 import { buildDetailDecisionData } from './detail-presentation.ts';
 import { createRuntimeCapabilities } from './runtime-capabilities.ts';
 import {
+  VIEWING_INTENTS,
+  createViewingIntentSession
+} from './viewing-intent.ts';
+import {
   renderWatchlistControlsHtml,
   updateWatchlistControlsElement
 } from './watchlist-entry-presentation.ts';
@@ -138,43 +142,8 @@ const App = {
     genres: { expanded: false },
     themes: { expanded: false }
   },
-  moodFilterClusterDefinitions: [
-    {
-      key: 'comfort',
-      label: 'Comfort watch',
-      description: 'Gentler picks for familiar, low-friction viewing.',
-      genres: ['Slice of Life', 'Comedy'],
-      themes: ['Iyashikei', 'CGDCT', 'School']
-    },
-    {
-      key: 'high-energy',
-      label: 'High energy',
-      description: 'Fast starts, action, and momentum-heavy series.',
-      genres: ['Action', 'Adventure', 'Sports'],
-      themes: ['Combat Sports', 'Super Power', 'Team Sports']
-    },
-    {
-      key: 'emotional',
-      label: 'Emotional payoff',
-      description: 'Drama-forward stories where the ending matters.',
-      genres: ['Drama', 'Romance'],
-      themes: ['Love Polygon', 'Psychological', 'Performing Arts']
-    },
-    {
-      key: 'escape',
-      label: 'Escapist worlds',
-      description: 'Fantasy, adventure, and alternate-world hooks.',
-      genres: ['Fantasy', 'Adventure'],
-      themes: ['Isekai', 'Reincarnation', 'Mythology']
-    },
-    {
-      key: 'suspense',
-      label: 'Tense and clever',
-      description: 'Mystery, strategy, and sharper-edged viewing.',
-      genres: ['Mystery', 'Suspense'],
-      themes: ['Psychological', 'Detective', 'Strategy Game']
-    }
-  ],
+  viewingIntentSession: null,
+  lastRecommendationIds: new Set(),
   headerSearchState: {
     query: '',
     results: [],
@@ -923,6 +892,9 @@ const App = {
     if (!result.changed) return result;
     const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
     this.applyWatchlistTransition(transition);
+    if (status === 'watching' && this.lastRecommendationIds.has(key)) {
+      this.clearViewingIntent({ announce: true });
+    }
     return transition.compatibilityResult;
   },
 
@@ -1625,6 +1597,7 @@ const App = {
   async init() {
     try {
       this.syncHomePath();
+      this.prioritizeHomeDecisionFlow();
       this.renderLoadingState();
       this.loadWatchlist();
       this.migrateLegacyBookmarksToWatchlist();
@@ -1838,6 +1811,15 @@ const App = {
 
   async applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
     return applyCatalogPayloadEffects(this, payload, { isFull, preserveFilters });
+  },
+
+  prioritizeHomeDecisionFlow() {
+    if (typeof document === 'undefined') return;
+    const intentSection = document.getElementById('viewing-intent-section');
+    const recommendations = document.getElementById('recommendations-section');
+    if (intentSection && recommendations && intentSection.nextElementSibling !== recommendations) {
+      intentSection.after(recommendations);
+    }
   },
 
   renderCardSkeleton(type = 'catalog') {
@@ -3359,88 +3341,64 @@ const App = {
 
     renderGroup('genres', this.filterOptions.genres, genreContainer);
     renderGroup('themes', this.filterOptions.themes, themeContainer);
-    this.renderMoodFilterClusters();
+    this.renderViewingIntents();
   },
 
-  getAvailableMoodFilterClusters() {
-    const pickAvailable = (type, candidates = []) => {
-      const available = new Set((this.filterOptions[type] || []).map(option => String(option)));
-      return candidates.find(candidate => available.has(String(candidate))) || '';
-    };
-
-    return this.moodFilterClusterDefinitions
-      .map(cluster => {
-        const genre = pickAvailable('genres', cluster.genres);
-        const theme = pickAvailable('themes', cluster.themes);
-        const filters = [];
-        if (genre) filters.push({ type: 'genres', value: genre });
-        if (theme) filters.push({ type: 'themes', value: theme });
-        return { ...cluster, filters };
-      })
-      .filter(cluster => cluster.filters.length > 0);
+  getViewingIntentSession() {
+    if (!this.viewingIntentSession) {
+      this.viewingIntentSession = createViewingIntentSession();
+    }
+    return this.viewingIntentSession;
   },
 
-  renderMoodFilterClusters() {
-    const container = document.getElementById('mood-filter-clusters');
+  getActiveViewingIntent() {
+    const active = this.getViewingIntentSession().get();
+    if (!active) return null;
+    const definition = VIEWING_INTENTS.find(intent => intent.key === active.key);
+    return definition ? { ...definition, activeAt: active.activeAt } : null;
+  },
+
+  renderViewingIntents() {
+    const container = document.getElementById('viewing-intent-options');
     if (!container) return;
 
-    const clusters = this.getAvailableMoodFilterClusters();
-    if (clusters.length === 0) {
-      container.replaceChildren();
-      container.removeAttribute('aria-busy');
-      return;
-    }
-
-    setHTML(container, clusters.map(cluster => {
-      const isActive = cluster.filters.every(filter =>
-        Array.isArray(this.activeFilters[filter.type]) &&
-        this.activeFilters[filter.type].includes(filter.value)
-      );
-      const tokens = cluster.filters
-        .map(filter => this.escapeHtml(filter.value))
-        .join(' + ');
+    const active = this.getActiveViewingIntent();
+    setHTML(container, VIEWING_INTENTS.map(intent => {
+      const isActive = active?.key === intent.key;
       return `
-        <button class="mood-cluster ${isActive ? 'active' : ''}"
+        <button class="mood-cluster viewing-intent-option ${isActive ? 'active' : ''}"
                 type="button"
-                data-action="apply-mood-cluster"
-                data-cluster-key="${this.escapeAttr(cluster.key)}"
+                data-action="apply-viewing-intent"
+                data-intent-key="${this.escapeAttr(intent.key)}"
                 aria-pressed="${isActive ? 'true' : 'false'}">
-          <span class="mood-cluster-label">${this.escapeHtml(cluster.label)}</span>
-          <span class="mood-cluster-desc">${this.escapeHtml(cluster.description)}</span>
-          <span class="mood-cluster-tags">${tokens}</span>
+          <span class="mood-cluster-label">${this.escapeHtml(intent.label)}</span>
+          <span class="mood-cluster-desc">${this.escapeHtml(intent.description)}</span>
         </button>
       `;
     }).join(''));
     container.removeAttribute('aria-busy');
   },
 
-  applyMoodFilterCluster(clusterKey) {
-    const cluster = this.getAvailableMoodFilterClusters()
-      .find(item => item.key === clusterKey);
-    if (!cluster) return;
+  applyViewingIntent(intentKey) {
+    if (!VIEWING_INTENTS.some(intent => intent.key === intentKey)) return false;
+    this.getViewingIntentSession().set(intentKey);
+    this.renderViewingIntents();
+    this.renderRecommendationModes();
+    this.renderRecommendations();
+    return true;
+  },
 
-    const isActive = cluster.filters.every(filter =>
-      Array.isArray(this.activeFilters[filter.type]) &&
-      this.activeFilters[filter.type].includes(filter.value)
-    );
-
-    const nextFilters = Object.fromEntries(
-      Object.entries(this.activeFilters).map(([type, values]) => [
-        type,
-        Array.isArray(values) ? [...values] : []
-      ])
-    );
-    cluster.filters.forEach(filter => {
-      const current = Array.isArray(nextFilters[filter.type]) ? nextFilters[filter.type] : [];
-      nextFilters[filter.type] = isActive
-        ? current.filter(value => value !== filter.value)
-        : Array.from(new Set([...current, filter.value]));
-    });
-
-    this.activeFilters = nextFilters;
-    this.renderQuickFilters();
-    this.applyFilters();
-    this.scrollToResultsSection();
+  clearViewingIntent({ announce = false } = {}) {
+    const cleared = this.getViewingIntentSession().clear();
+    this.renderViewingIntents();
+    this.renderRecommendationModes();
+    if (announce) {
+      const status = document.getElementById('recommendations-status');
+      if (status) {
+        status.textContent = 'Added to Watching now. Choose another viewing goal when you are ready.';
+      }
+    }
+    return cleared;
   },
 
   /**
@@ -3919,7 +3877,10 @@ const App = {
     container.removeAttribute('aria-busy');
 
     if (contextEl) {
-      const nextContext = Recommendations.getModeContext(currentMode);
+      const activeIntent = this.getActiveViewingIntent();
+      const nextContext = activeIntent
+        ? `${activeIntent.label}: ${activeIntent.description}`
+        : Recommendations.getModeContext(currentMode);
       if (contextEl.textContent.trim() !== nextContext) {
         contextEl.textContent = nextContext;
       }
@@ -4004,7 +3965,7 @@ const App = {
           <div class="recommendation-info">
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
             <div class="recommendation-meta">
-              <span>Finish Rate ${retention}</span>
+              <span>Finish Confidence ${retention}</span>
               <span>MAL ${malScore}</span>
             </div>
             <div class="recommendation-reason">${this.escapeHtml(anime.reason || '')}</div>
@@ -4053,7 +4014,7 @@ const App = {
           <div class="trending-info">
             <div class="trending-title">${this.escapeHtml(anime.title)}</div>
             <div class="trending-meta">
-              ${safeYear} · Finish Rate ${retention}
+              ${safeYear} · Finish Confidence ${retention}
             </div>
           </div>
         </div>
@@ -4167,7 +4128,7 @@ const App = {
           <div class="card-badges"></div>
           <div class="card-stats"></div>
           <div class="retention-meter">
-            <progress class="retention-progress" value="0" max="100" aria-label="Finish Rate"></progress>
+            <progress class="retention-progress" value="0" max="100" aria-label="Finish Confidence"></progress>
           </div>
           <div class="card-reason"></div>
         </div>
@@ -4470,7 +4431,7 @@ const App = {
       }).join('')}
             </div>
             <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-              <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Finish Rate"></progress>
+              <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Finish Confidence"></progress>
             </div>
             <div class="card-reason">${safeReason}</div>
           </div>
@@ -4650,7 +4611,7 @@ const App = {
     if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)')?.matches) {
       return 3;
     }
-    return 6;
+    return 4;
   },
 
   getCardDecisionData(anime) {
@@ -4670,8 +4631,14 @@ const App = {
 
     // Get recommendations with current mode
     const recommendationLimit = this.getRecommendationDisplayLimit();
-    const recommendations =
-      Recommendations.getRecommendationsWithMode(this.filteredData, Recommendations.currentMode, recommendationLimit);
+    const activeIntent = this.getActiveViewingIntent();
+    const recommendations = activeIntent
+      ? Recommendations.getRecommendationsForIntent(this.filteredData, activeIntent.key, {
+        limit: recommendationLimit,
+        modeKey: Recommendations.currentMode
+      })
+      : Recommendations.getRecommendationsWithMode(this.filteredData, Recommendations.currentMode, recommendationLimit);
+    this.lastRecommendationIds = new Set(recommendations.map(anime => String(anime.id)));
 
 
     if (recommendations.length === 0) {
@@ -4684,8 +4651,8 @@ const App = {
       const hasEpisodes = episodeCount > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore ?? 0)}%` : 'N/A';
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
-      const retentionTooltipTitle = this.escapeHtml('Finish Rate');
-      const retentionTooltipText = this.escapeHtml('How likely you are to keep watching and finish. Based on strong starts, low drop-off risk, and consistent pacing.');
+      const retentionTooltipTitle = this.escapeHtml('Finish Confidence');
+      const retentionTooltipText = this.escapeHtml('An estimate of how likely the show is to keep viewers watching, based on starts, drop-off risk, and pacing.');
       const satisfactionTooltipTitle = this.escapeHtml('Satisfaction Score');
       const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
       const safeRetention = this.escapeHtml(retention);
@@ -4693,6 +4660,12 @@ const App = {
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
       const safeReason = this.escapeHtml(anime.reason || '');
+      const cues = Array.isArray(anime.experienceCues)
+        ? anime.experienceCues
+        : Recommendations.getExperienceCues(anime, activeIntent?.key);
+      const cueMarkup = cues.slice(0, 2)
+        .map(cue => `<span class="experience-cue">${this.escapeHtml(cue)}</span>`)
+        .join('');
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
       const decision = this.getCardDecisionData(anime);
@@ -4729,7 +4702,7 @@ const App = {
             </div>
             <div class="recommendation-meta">
               <span class="recommendation-stat has-tooltip" tabindex="0">
-                Finish Rate ${safeRetention}
+                Finish Confidence ${safeRetention}
                 <div class="tooltip tooltip--bottom" role="tooltip">
                   <div class="tooltip-title">${retentionTooltipTitle}</div>
                   <div class="tooltip-text">${retentionTooltipText}</div>
@@ -4744,6 +4717,7 @@ const App = {
               </span>
               </div>
               <div class="recommendation-reason">${safeReason}</div>
+              ${cueMarkup ? `<div class="experience-cues" aria-label="Viewing experience">${cueMarkup}</div>` : ''}
             </div>
         </div>
       `;
@@ -4837,7 +4811,7 @@ const App = {
         valueDisplay = `${score}%`;
         valueClass = Recommendations.getRetentionClass(score);
       }
-      labelDisplay = 'finish rate';
+      labelDisplay = 'finish confidence';
     } else if (metric === 'satisfaction') {
       if (Number.isFinite(anime.communityScore)) {
         valueDisplay = `${anime.communityScore.toFixed(1)}/10`;
@@ -5199,16 +5173,21 @@ const App = {
         return;
       }
 
-      if (action === 'apply-mood-cluster') {
-        const clusterKey = actionEl.dataset.clusterKey;
-        if (clusterKey) {
-          this.applyMoodFilterCluster(clusterKey);
+      if (action === 'apply-viewing-intent') {
+        const intentKey = actionEl.dataset.intentKey;
+        if (intentKey) {
+          this.applyViewingIntent(intentKey);
         }
         return;
       }
 
       if (action === 'scroll-to-filters') {
         this.scrollToFiltersSection();
+        return;
+      }
+
+      if (action === 'scroll-to-results') {
+        this.scrollToResultsSection();
         return;
       }
 
@@ -5518,7 +5497,7 @@ const App = {
       <div class="similar-anime">
         <div class="detail-section-header">
           <h3>Similar Anime</h3>
-          <span class="detail-section-note">Shared genre + theme, aligned finish rate and satisfaction</span>
+          <span class="detail-section-note">Shared genre + theme, aligned finish confidence and satisfaction</span>
         </div>
         ${similarResults.length > 0 ? `
           <div class="similar-grid">
@@ -5560,7 +5539,7 @@ const App = {
                       <span class="similar-tag">Themes: ${safeThemes}</span>
                     </div>
                     <div class="similar-stats">
-                      <span class="similar-stat ${retentionClass}">Finish Rate ${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
+                      <span class="similar-stat ${retentionClass}">Finish Confidence ${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
                       <span class="similar-stat ${satisfactionClass}">Satisfaction (MAL) ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
                     </div>
                   </div>
@@ -6029,8 +6008,8 @@ const App = {
         <h3>Why These Recommendations Stand Out</h3>
         <p>Rekonime balances two signals to keep suggestions both useful and trustworthy:</p>
         <div class="help-factor">
-          <strong>Finish Rate (60%)</strong>
-          <p>How likely a show is to keep viewers watching through the full run.</p>
+          <strong>Finish Confidence (60%)</strong>
+          <p>An estimate of how likely a show is to keep viewers watching through the full run.</p>
         </div>
         <div class="help-factor">
           <strong>Satisfaction Score (40%)</strong>
@@ -6296,7 +6275,7 @@ const App = {
     }).join('')}
           </div>
           <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-            <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Finish Rate"></progress>
+            <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Finish Confidence"></progress>
           </div>
           <div class="card-reason">${safeReason}</div>
         </div>

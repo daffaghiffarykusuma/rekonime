@@ -3166,6 +3166,58 @@ h4 {
   }
 }
 
+/* Task-first watchlist rows keep progress controls in the first viewport. */
+.watchlist-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
+.watchlist-grid .anime-card {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  min-height: 10.5rem;
+}
+
+.watchlist-grid .card-media {
+  height: 100%;
+  min-height: 10.5rem;
+  border-radius: inherit;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.watchlist-grid .card-cover {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.watchlist-grid .card-body {
+  min-width: 0;
+  padding: 0.9rem;
+}
+
+.watchlist-next-action {
+  margin: 0.35rem 0 0;
+  color: var(--accent-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .watchlist-grid .anime-card {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+  }
+
+  .watchlist-grid .card-media {
+    min-height: 9rem;
+  }
+
+  .watchlist-grid .watchlist-controls {
+    padding: 0.5rem;
+  }
+}
+
 @media (max-width: 480px) {
 .similar-grid {
     grid-template-columns: 1fr;

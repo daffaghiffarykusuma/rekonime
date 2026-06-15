@@ -111,6 +111,22 @@ test('watchlist lifecycle builds shared counts, filters, and display models', ()
   assert.equal(model.allDisplayItems[0].title, 'Show 1');
 });
 
+test('watchlist display puts Watching now entries before other statuses', () => {
+  const entries = [
+    { id: 'planned', status: 'planned', updatedAt: 300 },
+    { id: 'completed', status: 'completed', updatedAt: 500 },
+    { id: 'watching-old', status: 'watching', updatedAt: 100 },
+    { id: 'watching-new', status: 'watching', updatedAt: 400 }
+  ];
+
+  const model = buildWatchlistDisplayModel(entries);
+
+  assert.deepEqual(
+    model.visibleEntries.map(entry => entry.id),
+    ['watching-new', 'watching-old', 'completed', 'planned']
+  );
+});
+
 test('watchlist lifecycle builds shared control model and update payload', () => {
   const entry = { id: 'show-1', status: 'watching', progress: 3 };
   const model = buildWatchlistControlModel(entry, {
