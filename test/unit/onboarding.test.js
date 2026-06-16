@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Onboarding } from '../../js/onboarding.js';
-import { resetDomBody } from '../helpers/dom.js';
+import { resetDomBody, setupDom } from '../helpers/dom.js';
 
 const createCache = () => {
   const store = new Map();
@@ -30,6 +30,7 @@ test('Onboarding hasCompleted reflects stored state', () => {
 });
 
 test('Onboarding startTour renders modal and steps', () => {
+  setupDom();
   resetDomBody('');
   const cache = createCache();
   const originalGetCache = Onboarding.getCache;
@@ -41,11 +42,38 @@ test('Onboarding startTour renders modal and steps', () => {
   const modal = document.getElementById('onboarding-modal');
   assert.ok(modal);
   assert.equal(Onboarding.isActive, true);
+  assert.equal(Onboarding.steps.length, 1);
+  assert.ok(modal.querySelector('[data-action="onboarding-intent"]'));
+
+  Onboarding.getCache = originalGetCache;
+});
+
+test('Onboarding intent choice completes and dispatches selected intent', async () => {
+  setupDom();
+  resetDomBody('');
+  const cache = createCache();
+  const originalGetCache = Onboarding.getCache;
+  Onboarding.getCache = () => cache;
+
+  let selectedIntent = '';
+  window.addEventListener('rekonime:onboarding-intent', (event) => {
+    selectedIntent = event.detail.intentKey;
+  }, { once: true });
+
+  Onboarding.isActive = false;
+  Onboarding.startTour();
+  document.querySelector('[data-intent-key="energy"]').click();
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  assert.equal(cache.getRaw(Onboarding.storageKey), 'completed');
+  assert.equal(selectedIntent, 'energy');
 
   Onboarding.getCache = originalGetCache;
 });
 
 test('Onboarding skipTour stores state and closes', async () => {
+  setupDom();
   resetDomBody('');
   const cache = createCache();
   const originalGetCache = Onboarding.getCache;

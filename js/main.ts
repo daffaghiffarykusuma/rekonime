@@ -2,7 +2,6 @@
 import { ThemeManager } from './themeManager.js';
 import { Logger } from './services/logger.ts';
 import { initDeferredRuntimeServices } from './bootstrap/deferred-runtime.js';
-import './bootstrap/noncritical-styles.js';
 
 let appPromise = null;
 

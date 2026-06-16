@@ -61,4 +61,8 @@ test('Detail Presentation renders modal body without App Shell state', () => {
   assert.match(html, /Local synopsis/);
   assert.match(html, /watchlist-controls/);
   assert.match(html, /Finish Confidence/);
+  assert.match(html, /role="tab"[^>]*>Overview/);
+  assert.match(html, /role="tab"[^>]*>Watch order/);
+  assert.match(html, /id="detail-panel-reviews"/);
+  assert.match(html, /id="similar-anime-section"/);
 });

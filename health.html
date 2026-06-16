@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Rekonime Health Status</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Albert+Sans:wght@300;400;600&display=swap" rel="stylesheet" />
+    <link rel="preload" href="/fonts/fraunces-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/nunito-sans-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/css/fonts.css" />
     <style>
       :root {
         color-scheme: light;
@@ -29,7 +29,7 @@
 
       body {
         margin: 0;
-        font-family: 'Albert Sans', 'Segoe UI', sans-serif;
+        font-family: 'Nunito Sans', 'Segoe UI', sans-serif;
         background: radial-gradient(circle at top, var(--bg), var(--bg-accent));
         color: var(--ink);
         min-height: 100vh;
@@ -50,7 +50,7 @@
 
       .hero h1 {
         margin: 0;
-        font-family: 'Unbounded', 'Segoe UI', sans-serif;
+        font-family: 'Fraunces', Georgia, serif;
         font-size: clamp(2rem, 4vw, 3rem);
         letter-spacing: 0.04em;
         text-transform: uppercase;

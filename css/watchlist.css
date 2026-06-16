@@ -1563,8 +1563,8 @@ h4 {
   --error-bg: rgba(246, 148, 193, 0.12);
 
   /* Typography */
-  --font-display: Georgia, "Times New Roman", serif;
-  --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-display: 'Fraunces', Georgia, "Times New Roman", serif;
+  --font-body: 'Nunito Sans', 'Segoe UI', "Helvetica Neue", Arial, sans-serif;
   --font-display-adjust: 0.47;
   --font-body-adjust: 0.54;
 
@@ -4060,10 +4060,6 @@ summary:focus-visible,
   color: var(--text-secondary);
 }
 
-:root[data-fonts-ready="true"] {
-  --font-display: 'Fraunces', 'Noto Sans JP', Georgia, serif;
-  --font-body: 'Nunito Sans', 'Noto Sans JP', 'Segoe UI', sans-serif;
-}
 }
 
 @media (max-width: 640px) {

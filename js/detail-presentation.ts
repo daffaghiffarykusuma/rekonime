@@ -137,6 +137,38 @@ const renderBreakdown = ({
   </div>
 `;
 
+const renderDetailTabs = ({
+  breakdown,
+  synopsisSection,
+  franchiseSection,
+  trailerSection,
+  reviewsSection,
+  similarSection
+}) => `
+  <div class="detail-tabs">
+    <div class="detail-tab-list" role="tablist" aria-label="Anime details">
+      <button class="detail-tab is-active" type="button" role="tab" id="detail-tab-overview" aria-selected="true" aria-controls="detail-panel-overview" data-action="detail-tab" data-detail-tab="overview">Overview</button>
+      <button class="detail-tab" type="button" role="tab" id="detail-tab-watch-order" aria-selected="false" aria-controls="detail-panel-watch-order" data-action="detail-tab" data-detail-tab="watch-order">Watch order</button>
+      <button class="detail-tab" type="button" role="tab" id="detail-tab-reviews" aria-selected="false" aria-controls="detail-panel-reviews" data-action="detail-tab" data-detail-tab="reviews">Reviews</button>
+      <button class="detail-tab" type="button" role="tab" id="detail-tab-similar" aria-selected="false" aria-controls="detail-panel-similar" data-action="detail-tab" data-detail-tab="similar">Similar titles</button>
+    </div>
+    <section class="detail-tab-panel is-active" role="tabpanel" id="detail-panel-overview" aria-labelledby="detail-tab-overview" data-detail-panel="overview">
+      ${breakdown}
+      <div id="synopsis-section">${synopsisSection}</div>
+      ${trailerSection}
+    </section>
+    <section class="detail-tab-panel" role="tabpanel" id="detail-panel-watch-order" aria-labelledby="detail-tab-watch-order" data-detail-panel="watch-order" hidden>
+      ${franchiseSection || '<p class="detail-empty">No watch-order map is available for this title yet.</p>'}
+    </section>
+    <section class="detail-tab-panel" role="tabpanel" id="detail-panel-reviews" aria-labelledby="detail-tab-reviews" data-detail-panel="reviews" hidden>
+      <div id="community-reviews-section">${reviewsSection}</div>
+    </section>
+    <section class="detail-tab-panel" role="tabpanel" id="detail-panel-similar" aria-labelledby="detail-tab-similar" data-detail-panel="similar" hidden>
+      <div id="similar-anime-section">${similarSection}</div>
+    </section>
+  </div>
+`;
+
 const renderDetailContent = (anime, {
   synopsis = '',
   escapeHtml,
@@ -187,6 +219,8 @@ const renderDetailContent = (anime, {
   const decision = buildDetailDecisionData(anime, { episodeCount });
   const detailDecisionClass = sanitizeClassList('detail-verdict', decision.className);
 
+  const breakdown = renderBreakdown({ hasEpisodes, startScore, stayScore, finishScore, safeStartScore, safeStayScore, safeFinishScore });
+
   return `
     <div class="detail-header">
       <img src="${safeCover}" ${detailSrcsetAttr} ${detailSizesAttr} alt="${safeTitle}" class="detail-cover" ${detailDimAttrs} ${detailFallbackAttrs}>
@@ -231,12 +265,14 @@ const renderDetailContent = (anime, {
         </div>
       </div>
     </div>
-    ${renderBreakdown({ hasEpisodes, startScore, stayScore, finishScore, safeStartScore, safeStayScore, safeFinishScore })}
-    <div id="synopsis-section">${synopsisSection}</div>
-    ${renderFranchiseHubSection(anime)}
-    ${renderTrailerSection(anime)}
-    <div id="community-reviews-section">${renderReviewsLoading()}</div>
-    <div id="similar-anime-section">${renderSimilarAnimeSection(anime)}</div>
+    ${renderDetailTabs({
+    breakdown,
+    synopsisSection,
+    franchiseSection: renderFranchiseHubSection(anime),
+    trailerSection: renderTrailerSection(anime),
+    reviewsSection: renderReviewsLoading(),
+    similarSection: renderSimilarAnimeSection(anime)
+  })}
   `;
 };
 

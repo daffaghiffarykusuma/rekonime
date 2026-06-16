@@ -89,6 +89,26 @@ test('watchlist lifecycle clamps progress and upgrades planned entries to watchi
   assert.equal(result.progressChanged, true);
 });
 
+test('watchlist lifecycle stores reversible loved affinity only as explicit user evidence', () => {
+  const storage = createMemoryStorage();
+  const lifecycle = createWatchlistLifecycle({ storage, now: () => 4000 });
+  lifecycle.setStatus('show-1', 'completed', {
+    episodeCount: 12,
+    snapshot: { id: 'show-1', title: 'Show 1', cover: 'cover.jpg' }
+  });
+
+  const loved = lifecycle.setLoved('show-1', true);
+  assert.equal(loved.entry.status, 'completed');
+  assert.equal(loved.entry.loved, true);
+  assert.equal(loved.entry.lovedAt, 4000);
+  assert.equal(loved.operation, 'affinity');
+
+  const unliked = lifecycle.setLoved('show-1', false);
+  assert.equal(unliked.entry.status, 'completed');
+  assert.equal(unliked.entry.loved, undefined);
+  assert.equal(unliked.entry.lovedAt, undefined);
+});
+
 test('watchlist lifecycle builds shared counts, filters, and display models', () => {
   const entries = [
     { id: 'show-1', status: 'planned', snapshot: { id: 'show-1', title: 'Show 1', cover: 'cover-1.jpg' } },
@@ -144,6 +164,7 @@ test('watchlist lifecycle builds shared control model and update payload', () =>
     removed: false,
     status: 'watching',
     progress: 3,
+    loved: false,
     entry
   });
 });
@@ -167,6 +188,7 @@ test('watchlist lifecycle builds transition envelopes for adapters', () => {
     removed: false,
     status: 'watching',
     progress: 4,
+    loved: false,
     entry
   });
   assert.equal(transition.render.controls.shouldUpdate, true);

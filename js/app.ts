@@ -57,6 +57,10 @@ import {
   buildWatchlistTransitionEnvelope,
   createWatchlistLifecycle
 } from './watchlist-state.js';
+import {
+  createTasteProfileStore,
+  scoreAnimeForTaste
+} from './taste-profile.ts';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -298,6 +302,17 @@ const App = {
 
   getLogger() {
     return Logger;
+  },
+
+  getTasteProfileStore() {
+    if (!this.tasteProfileStore) {
+      this.tasteProfileStore = createTasteProfileStore({
+        storage: this.getCache(),
+        now: () => Date.now()
+      });
+      this.tasteProfileStore.load();
+    }
+    return this.tasteProfileStore;
   },
 
   markCatalogFresh() {
@@ -743,8 +758,8 @@ const App = {
     return normalizeWatchTimestampValue(value);
   },
 
-  buildWatchlistEntry({ id, status, progress, updatedAt, startedAt, completedAt, snapshot } = {}) {
-    return buildLifecycleWatchlistEntry({ id, status, progress, updatedAt, startedAt, completedAt, snapshot });
+  buildWatchlistEntry({ id, status, progress, updatedAt, startedAt, completedAt, loved, lovedAt, snapshot } = {}) {
+    return buildLifecycleWatchlistEntry({ id, status, progress, updatedAt, startedAt, completedAt, loved, lovedAt, snapshot });
   },
 
   normalizeWatchlistEntry(entry) {
@@ -756,6 +771,8 @@ const App = {
       updatedAt: entry.updatedAt,
       startedAt: entry.startedAt,
       completedAt: entry.completedAt,
+      loved: entry.loved,
+      lovedAt: entry.lovedAt,
       snapshot: entry.snapshot
     });
   },
@@ -768,6 +785,7 @@ const App = {
 
   refreshWatchlistSnapshots() {
     this.getWatchlistLifecycle().refreshSnapshotsFromCatalog(this.animeData, { persist: true, replaceExisting: false });
+    this.refreshTasteProfileEvidence();
   },
 
   getWatchlistStoragePayload() {
@@ -892,6 +910,8 @@ const App = {
     if (!result.changed) return result;
     const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
     this.applyWatchlistTransition(transition);
+    this.refreshTasteProfileEvidence();
+    this.renderRecommendations();
     if (status === 'watching' && this.lastRecommendationIds.has(key)) {
       this.clearViewingIntent({ announce: true });
     }
@@ -909,6 +929,22 @@ const App = {
     if (!result.changed) return result;
     const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
     this.applyWatchlistTransition(transition);
+    this.refreshTasteProfileEvidence();
+    return transition.compatibilityResult;
+  },
+
+  setWatchLoved(animeId, loved) {
+    const key = this.normalizeBookmarkId(animeId);
+    if (!key) return null;
+    const anime = this.animeData.find(item => item?.id === key);
+    const result = this.getWatchlistLifecycle().setLoved(key, loved, {
+      snapshot: this.buildAnimeSnapshot(anime)
+    });
+    if (!result.changed) return result;
+    const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
+    this.applyWatchlistTransition(transition);
+    this.refreshTasteProfileEvidence();
+    this.renderRecommendations();
     return transition.compatibilityResult;
   },
 
@@ -924,7 +960,110 @@ const App = {
     if (!result.changed) return result;
     const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
     this.applyWatchlistTransition(transition);
+    this.refreshTasteProfileEvidence();
     return transition.compatibilityResult;
+  },
+
+  refreshTasteProfileEvidence() {
+    this.getTasteProfileStore().updateInferredFromWatchlist(this.getWatchlistEntries());
+  },
+
+  updateTasteProfileUi() {
+    const settingsContent = document.getElementById('settings-content');
+    if (settingsContent) {
+      setHTML(settingsContent, this.renderSettingsPanel({ includeTitle: false }));
+    }
+  },
+
+  handleRecommendationFeedback(action, animeId, actionEl = null) {
+    const anime = this.animeData.find(item => item?.id === animeId);
+    if (!anime) return;
+    const profileStore = this.getTasteProfileStore();
+    if (action === 'rec-more-like') {
+      profileStore.addMoreLike(anime);
+      this.showToast(`More like ${anime.title} added to your Taste Profile.`);
+    } else if (action === 'rec-not-for-me') {
+      profileStore.addNotForMe(anime);
+      this.showToast(`${anime.title} hidden from recommendations.`);
+    } else if (action === 'rec-less-tag') {
+      const genre = actionEl?.dataset?.genre || '';
+      const theme = actionEl?.dataset?.theme || '';
+      if (genre) {
+        profileStore.reduceGenre(genre);
+        this.showToast(`Showing less ${genre}.`);
+      } else if (theme) {
+        profileStore.reduceTheme(theme);
+        this.showToast(`Showing less ${theme}.`);
+      }
+    } else if (action === 'rec-already-seen') {
+      this.setWatchStatus(anime.id, 'completed', { episodeCount: this.getEpisodeCount(anime) });
+      this.showToast(`${anime.title} marked as already seen.`);
+    }
+    this.updateTasteProfileUi();
+    this.renderRecommendations();
+  },
+
+  resetTasteProfile() {
+    this.getTasteProfileStore().reset();
+    this.refreshTasteProfileEvidence();
+    this.updateTasteProfileUi();
+    this.renderRecommendations();
+    this.showToast('Taste Profile reset.');
+  },
+
+  exportPersonalData() {
+    const payload = this.getTasteProfileStore().exportData(this.getWatchlistEntries());
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `rekonime-personal-data-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    this.showToast('Personal data export started.');
+  },
+
+  async importPersonalDataFile(file) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      this.getTasteProfileStore().importData(payload);
+      if (Array.isArray(payload.watchlist)) {
+        const nextEntries = new Map();
+        payload.watchlist.forEach((entry) => {
+          const normalized = this.normalizeWatchlistEntry(entry);
+          if (normalized) nextEntries.set(normalized.id, normalized);
+        });
+        this.getWatchlistLifecycle().setEntries(nextEntries);
+        this.saveWatchlist();
+      }
+      this.refreshTasteProfileEvidence();
+      this.updateTasteProfileUi();
+      this.renderRecommendations();
+      this.showToast('Personal data imported.');
+    } catch (error) {
+      this.showToast('Import failed. Use a Rekonime JSON export.');
+    }
+  },
+
+  getRecommendationSourceData() {
+    const excludedIds = new Set([
+      ...this.getWatchlistIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] }),
+      ...this.getTasteProfileStore().getExcludedIds()
+    ]);
+    return (Array.isArray(this.filteredData) ? this.filteredData : [])
+      .filter(anime => !excludedIds.has(String(anime?.id || '')));
+  },
+
+  applyTasteProfileRanking(animeList) {
+    const profile = this.getTasteProfileStore().getProfile();
+    return (Array.isArray(animeList) ? animeList : [])
+      .map((anime, index) => ({ anime, index, tasteScore: scoreAnimeForTaste(anime, profile) }))
+      .sort((left, right) => right.tasteScore - left.tasteScore || left.index - right.index)
+      .map(entry => entry.anime);
   },
 
   applyWatchlistTransition(transition) {
@@ -2603,6 +2742,12 @@ const App = {
         return;
       }
 
+      if (action === 'personal-data-file') {
+        void this.importPersonalDataFile(target.files?.[0] || null);
+        target.value = '';
+        return;
+      }
+
       if (!target.classList.contains('settings-toggle-input')) return;
       const key = target.dataset.settingKey;
       if (!key) return;
@@ -2625,6 +2770,13 @@ const App = {
       this.syncSearchWithUrl({ openDropdown: false });
       this.syncModalWithUrl({ updateUrl: false });
       this.updateMetaForFilters();
+    });
+
+    this.addTrackedListener(window, 'rekonime:onboarding-intent', (event) => {
+      const intentKey = event.detail?.intentKey;
+      if (intentKey) {
+        this.applyViewingIntent(intentKey);
+      }
     });
 
     const queueTooltipPosition = (trigger) => {
@@ -4447,6 +4599,22 @@ const App = {
     const reducedMotionEnabled = Boolean(settings.reducedMotion);
     const highContrastEnabled = Boolean(settings.highContrast);
     const largeTextEnabled = Boolean(settings.largeText);
+    const tasteProfile = this.getTasteProfileStore().getProfile();
+    const renderChips = (values) => values.length > 0
+      ? values.map(value => `<span class="taste-profile-chip">${this.escapeHtml(value)}</span>`).join('')
+      : '<span class="taste-profile-empty">None yet</span>';
+    const preferredTags = [
+      ...tasteProfile.explicit.preferredGenres,
+      ...tasteProfile.explicit.preferredThemes
+    ];
+    const reducedTags = [
+      ...tasteProfile.explicit.reducedGenres,
+      ...tasteProfile.explicit.reducedThemes
+    ];
+    const inferredTags = [
+      ...tasteProfile.inferred.positiveGenres.map(item => item.label),
+      ...tasteProfile.inferred.positiveThemes.map(item => item.label)
+    ].slice(0, 6);
 
     const titleMarkup = includeTitle
       ? '<div class="filter-section-title">Viewing preferences</div>'
@@ -4519,6 +4687,30 @@ const App = {
               <span class="settings-toggle-slider" aria-hidden="true"></span>
             </span>
           </label>
+        </div>
+
+        <div class="filter-section-title filter-section-title--spaced">Taste Profile</div>
+        <div class="taste-profile-panel">
+          <p class="settings-description">Recommendation feedback and watchlist history stay editable here.</p>
+          <div class="taste-profile-group">
+            <span class="settings-title">Prefer more</span>
+            <div class="taste-profile-chips">${renderChips(preferredTags)}</div>
+          </div>
+          <div class="taste-profile-group">
+            <span class="settings-title">Show less</span>
+            <div class="taste-profile-chips">${renderChips(reducedTags)}</div>
+          </div>
+          <div class="taste-profile-group">
+            <span class="settings-title">Learned from watchlist</span>
+            <div class="taste-profile-chips">${renderChips(inferredTags)}</div>
+          </div>
+          <div class="taste-profile-actions">
+            <button class="btn btn-outline btn-sm" type="button" data-action="reset-taste-profile">Reset profile</button>
+            <button class="btn btn-outline btn-sm" type="button" data-action="export-personal-data">Export data</button>
+            <button class="btn btn-outline btn-sm" type="button" data-action="import-personal-data">Import data</button>
+            <input class="visually-hidden" id="personal-data-import" type="file" accept="application/json" data-action="personal-data-file">
+          </div>
+          <p class="settings-description">${this.escapeHtml(tasteProfile.explicit.notForMeTitleIds.length)} hidden recommendation ${tasteProfile.explicit.notForMeTitleIds.length === 1 ? 'title' : 'titles'}.</p>
         </div>
         
         <!-- Keyboard Shortcuts Hint -->
@@ -4632,12 +4824,13 @@ const App = {
     // Get recommendations with current mode
     const recommendationLimit = this.getRecommendationDisplayLimit();
     const activeIntent = this.getActiveViewingIntent();
+    const recommendationSource = this.applyTasteProfileRanking(this.getRecommendationSourceData());
     const recommendations = activeIntent
-      ? Recommendations.getRecommendationsForIntent(this.filteredData, activeIntent.key, {
+      ? Recommendations.getRecommendationsForIntent(recommendationSource, activeIntent.key, {
         limit: recommendationLimit,
         modeKey: Recommendations.currentMode
       })
-      : Recommendations.getRecommendationsWithMode(this.filteredData, Recommendations.currentMode, recommendationLimit);
+      : Recommendations.getRecommendationsWithMode(recommendationSource, Recommendations.currentMode, recommendationLimit);
     this.lastRecommendationIds = new Set(recommendations.map(anime => String(anime.id)));
 
 
@@ -4673,6 +4866,9 @@ const App = {
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
+      const lessGenre = Array.isArray(anime.genres) && anime.genres[0] ? anime.genres[0] : '';
+      const lessTheme = !lessGenre && Array.isArray(anime.themes) && anime.themes[0] ? anime.themes[0] : '';
+      const lessLabel = lessGenre || lessTheme;
 
       const { src: recSrc, srcset: recSrcset, sizes: recSizes, fallback: recFallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'recommendation' });
       const safeRecCover = this.escapeAttr(recSrc || this.sanitizeImageUrl(anime.cover));
@@ -4718,6 +4914,12 @@ const App = {
               </div>
               <div class="recommendation-reason">${safeReason}</div>
               ${cueMarkup ? `<div class="experience-cues" aria-label="Viewing experience">${cueMarkup}</div>` : ''}
+              <div class="recommendation-feedback" aria-label="Tune recommendations for ${safeTitle}">
+                <button class="rec-feedback-btn" type="button" data-action="rec-more-like" data-anime-id="${safeId}">More like this</button>
+                <button class="rec-feedback-btn" type="button" data-action="rec-not-for-me" data-anime-id="${safeId}">Not for me</button>
+                ${lessLabel ? `<button class="rec-feedback-btn" type="button" data-action="rec-less-tag" data-anime-id="${safeId}" data-genre="${this.escapeAttr(lessGenre)}" data-theme="${this.escapeAttr(lessTheme)}">Less ${this.escapeHtml(lessLabel)}</button>` : ''}
+                <button class="rec-feedback-btn" type="button" data-action="rec-already-seen" data-anime-id="${safeId}">Already seen</button>
+              </div>
             </div>
         </div>
       `;
@@ -5181,6 +5383,31 @@ const App = {
         return;
       }
 
+      if (['rec-more-like', 'rec-not-for-me', 'rec-less-tag', 'rec-already-seen'].includes(action)) {
+        event.preventDefault();
+        event.stopPropagation();
+        const animeId = actionEl.dataset.animeId;
+        if (animeId) {
+          this.handleRecommendationFeedback(action, animeId, actionEl);
+        }
+        return;
+      }
+
+      if (action === 'reset-taste-profile') {
+        this.resetTasteProfile();
+        return;
+      }
+
+      if (action === 'export-personal-data') {
+        this.exportPersonalData();
+        return;
+      }
+
+      if (action === 'import-personal-data') {
+        document.getElementById('personal-data-import')?.click();
+        return;
+      }
+
       if (action === 'scroll-to-filters') {
         this.scrollToFiltersSection();
         return;
@@ -5244,6 +5471,31 @@ const App = {
         if (animeId) {
           this.adjustWatchProgress(animeId, -1);
         }
+        return;
+      }
+
+      if (action === 'watch-loved') {
+        const animeId = actionEl.dataset.animeId || this.currentAnimeId;
+        if (animeId) {
+          this.setWatchLoved(animeId, actionEl.getAttribute('aria-pressed') !== 'true');
+        }
+        return;
+      }
+
+      if (action === 'detail-tab') {
+        const tabKey = actionEl.dataset.detailTab;
+        const root = actionEl.closest('.detail-tabs');
+        if (!tabKey || !root) return;
+        root.querySelectorAll('[role="tab"]').forEach(tab => {
+          const isActive = tab.dataset.detailTab === tabKey;
+          tab.classList.toggle('is-active', isActive);
+          tab.setAttribute('aria-selected', String(isActive));
+        });
+        root.querySelectorAll('[data-detail-panel]').forEach(panel => {
+          const isActive = panel.dataset.detailPanel === tabKey;
+          panel.classList.toggle('is-active', isActive);
+          panel.toggleAttribute('hidden', !isActive);
+        });
         return;
       }
 

@@ -60,6 +60,10 @@ const renderWatchlistControlsHtml = (entry, {
               </button>
             </div>
           </div>
+          <button class="watchlist-loved-toggle ${model.showLoved ? '' : 'is-hidden'}" type="button"
+            data-action="watch-loved" data-anime-id="${safeId}" aria-pressed="${model.loved ? 'true' : 'false'}">
+            ${model.loved ? 'Loved it' : 'Mark loved'}
+          </button>
         </div>
       </div>
     `;
@@ -167,6 +171,18 @@ const createWatchlistControlsElement = (item, entry, {
   progressWrap.appendChild(stepper);
   wrapper.appendChild(progressWrap);
 
+  const loved = document.createElement('button');
+  loved.type = 'button';
+  loved.className = 'watchlist-loved-toggle';
+  if (!model.showLoved) {
+    loved.classList.add('is-hidden');
+  }
+  loved.setAttribute('data-action', 'watch-loved');
+  loved.setAttribute('data-anime-id', item.id);
+  loved.setAttribute('aria-pressed', model.loved ? 'true' : 'false');
+  loved.textContent = model.loved ? 'Loved it' : 'Mark loved';
+  wrapper.appendChild(loved);
+
   return wrapper;
 };
 
@@ -179,6 +195,7 @@ const updateWatchlistControlsElement = (root, entry, {
   const progressWrap = root.querySelector('.watchlist-controls-progress, #watchlist-progress');
   const input = root.querySelector('.watchlist-controls-input, #watchlist-progress-input');
   const total = root.querySelector('.watchlist-controls-total, #watchlist-progress-total');
+  const loved = root.querySelector('.watchlist-loved-toggle');
   if (!select || !progressWrap || !input) return false;
 
   const model = buildWatchlistEntryPresentationModel(entry, { anime, episodeCount });
@@ -192,6 +209,11 @@ const updateWatchlistControlsElement = (root, entry, {
   } else {
     input.removeAttribute('max');
     if (total) total.textContent = '';
+  }
+  if (loved) {
+    loved.classList.toggle('is-hidden', !model.showLoved);
+    loved.setAttribute('aria-pressed', model.loved ? 'true' : 'false');
+    loved.textContent = model.loved ? 'Loved it' : 'Mark loved';
   }
   return true;
 };

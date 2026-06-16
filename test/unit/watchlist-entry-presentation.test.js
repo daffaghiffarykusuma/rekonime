@@ -20,6 +20,7 @@ test('Watchlist Entry presentation renders detail controls from one model', () =
   assert.match(html, /value="watching" selected/);
   assert.match(html, /value="3"/);
   assert.match(html, /of 12/);
+  assert.match(html, /watchlist-loved-toggle is-hidden/);
 });
 
 test('Watchlist Entry presentation creates and updates watchlist page controls', () => {
@@ -41,4 +42,15 @@ test('Watchlist Entry presentation creates and updates watchlist page controls',
   assert.equal(root.querySelector('.watchlist-controls-select').value, 'watching');
   assert.equal(root.querySelector('.watchlist-controls-input').value, '4');
   assert.equal(root.querySelector('.watchlist-controls-total').textContent, 'of 10');
+
+  updateWatchlistControlsElement(root, {
+    id: 'show-1',
+    status: 'completed',
+    progress: 10,
+    loved: true
+  }, { episodeCount: 10 });
+  const loved = root.querySelector('.watchlist-loved-toggle');
+  assert.equal(loved.classList.contains('is-hidden'), false);
+  assert.equal(loved.getAttribute('aria-pressed'), 'true');
+  assert.equal(loved.textContent, 'Loved it');
 });

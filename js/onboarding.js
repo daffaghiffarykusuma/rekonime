@@ -10,7 +10,7 @@ import { setHTML } from './security/trusted-types.js';
 const Onboarding = {
   storageKey: 'rekonime.onboarding',
   stepStorageKey: 'rekonime.tourStep',
-  steps: ['welcome', 'retention', 'satisfaction', 'discovery'],
+  steps: ['welcome'],
   currentStep: 0,
   isActive: false,
 
@@ -107,26 +107,23 @@ const Onboarding = {
           <div class="onboarding-icon" aria-hidden="true">R</div>
           <h2 class="onboarding-title">Welcome to Rekonime</h2>
           <p class="onboarding-description">
-            Rekonime helps you skip the filler and find anime that stays rewarding from the first episode to the finale.
+            Pick what you want to watch right now. Rekonime will start with recommendations and keep the deeper filters available when you need them.
           </p>
-          <div class="onboarding-value-props">
-            <div class="value-prop">
-              <span class="value-prop-icon" aria-hidden="true">1</span>
-              <span class="value-prop-text">Finish Confidence estimates which shows may keep viewers invested</span>
-            </div>
-            <div class="value-prop">
-              <span class="value-prop-icon" aria-hidden="true">2</span>
-              <span class="value-prop-text">Community scores reveal what viewers loved most</span>
-            </div>
-            <div class="value-prop">
-              <span class="value-prop-icon" aria-hidden="true">3</span>
-              <span class="value-prop-text">Mood-first filters help you find the right pick faster</span>
-            </div>
+          <div class="onboarding-intent-options" role="group" aria-label="Choose a starting recommendation">
+            <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="unwind">
+              <span class="onboarding-intent-title">Help me unwind</span>
+              <span class="onboarding-intent-copy">Comfortable picks with lower effort.</span>
+            </button>
+            <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="energy">
+              <span class="onboarding-intent-title">Give me energy</span>
+              <span class="onboarding-intent-copy">Fast hooks and stronger momentum.</span>
+            </button>
+            <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="surprise">
+              <span class="onboarding-intent-title">Surprise me</span>
+              <span class="onboarding-intent-copy">A confident pick outside the obvious lane.</span>
+            </button>
           </div>
           <div class="onboarding-actions">
-            <button class="btn btn-primary onboarding-primary" data-action="onboarding-next">
-              Show me around
-            </button>
             <button class="btn btn-outline onboarding-secondary" data-action="onboarding-skip">
               Skip to recommendations
             </button>
@@ -319,6 +316,18 @@ const Onboarding = {
 
     content.querySelectorAll('[data-action="onboarding-complete"]').forEach(btn => {
       btn.addEventListener('click', () => this.completeTour());
+    });
+
+    content.querySelectorAll('[data-action="onboarding-intent"]').forEach(btn => {
+      btn.addEventListener('click', (event) => {
+        const intentKey = event.currentTarget.dataset.intentKey;
+        this.completeTour();
+        if (intentKey && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('rekonime:onboarding-intent', {
+            detail: { intentKey }
+          }));
+        }
+      });
     });
 
     content.querySelectorAll('[data-action="onboarding-restart"]').forEach(btn => {

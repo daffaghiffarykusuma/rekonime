@@ -134,7 +134,7 @@ const copyServiceWorker = () => {
 
 const stripInjectedStylesheetLinks = () => {
   const htmlFiles = ['index.html', 'watchlist.html'];
-  const injectedStylesheetPattern = /\s*<link\s+rel="stylesheet"\s+crossorigin\s+href="\/css\/(?:watchlist2|noncritical-styles)\.css">\r?\n?/g;
+  const injectedStylesheetPattern = /\s*<link\s+rel="stylesheet"\s+crossorigin\s+href="\/css\/watchlist2\.css">\r?\n?/g;
 
   htmlFiles.forEach((fileName) => {
     const filePath = path.join(dist, fileName);

@@ -33,6 +33,8 @@ const normalizeWatchTimestamp = (value) => {
   return Math.floor(parsed);
 };
 
+const normalizeWatchLoved = (value) => value === true;
+
 const normalizeSnapshotStats = (stats) => {
   if (!stats || typeof stats !== 'object') return null;
   return {
@@ -109,6 +111,8 @@ const buildWatchlistEntry = ({
   updatedAt,
   startedAt,
   completedAt,
+  loved,
+  lovedAt,
   snapshot
 } = {}, options = {}) => {
   const key = normalizeWatchId(id);
@@ -126,6 +130,11 @@ const buildWatchlistEntry = ({
 
   const completed = normalizeWatchTimestamp(completedAt);
   if (completed) entry.completedAt = completed;
+
+  if (normalizeWatchLoved(loved)) {
+    entry.loved = true;
+    entry.lovedAt = normalizeWatchTimestamp(lovedAt) || now;
+  }
 
   const normalizedSnapshot = normalizeWatchlistSnapshot(snapshot, {
     fallbackId: key,
@@ -250,6 +259,8 @@ const buildWatchlistControlModel = (entry, { anime, episodeCount } = {}) => {
     status,
     progress,
     showProgress: shouldShowWatchProgress(status),
+    showLoved: status === 'completed',
+    loved: Boolean(entry?.loved),
     episodeCount: total,
     inputMax: total ? String(total) : '',
     totalText: total ? `of ${total}` : '',
@@ -344,6 +355,7 @@ const buildWatchlistUpdatePayload = (result = {}) => {
   if (entry) {
     payload.status = entry.status;
     payload.progress = entry.progress;
+    payload.loved = Boolean(entry.loved);
     payload.entry = entry;
     if (entry.snapshot) payload.snapshot = entry.snapshot;
   }
@@ -723,6 +735,55 @@ const createWatchlistLifecycle = ({
     };
   };
 
+  const setLoved = (animeId, loved, { snapshot } = {}) => {
+    const key = normalizeWatchId(animeId);
+    if (!key) return { changed: false, entry: null, id: key, operation: 'affinity' };
+    const timestamp = now();
+    const current = watchlistEntries.get(key);
+    const previousEntry = current ? { ...current } : null;
+    let entry = current
+      ? { ...current, updatedAt: timestamp }
+      : buildWatchlistEntry({ id: key, status: 'completed', progress: 0, updatedAt: timestamp, completedAt: timestamp, snapshot }, options());
+
+    if (!entry) return { changed: false, entry: null, id: key, operation: 'affinity' };
+    if (entry.status !== 'completed') {
+      entry.status = 'completed';
+      entry.completedAt = entry.completedAt || timestamp;
+      entry.startedAt = entry.startedAt || timestamp;
+    }
+
+    if (loved) {
+      entry.loved = true;
+      entry.lovedAt = timestamp;
+    } else {
+      delete entry.loved;
+      delete entry.lovedAt;
+    }
+
+    if (!entry.snapshot) {
+      const normalizedSnapshot = normalizeWatchlistSnapshot(snapshot, {
+        fallbackId: key,
+        placeholderCover,
+        requireCover: !placeholderCover
+      });
+      if (normalizedSnapshot) entry.snapshot = normalizedSnapshot;
+    }
+
+    watchlistEntries.set(key, entry);
+    save();
+    return {
+      changed: true,
+      entry,
+      removed: false,
+      id: key,
+      operation: 'affinity',
+      previousEntry,
+      statusChanged: previousEntry ? previousEntry.status !== entry.status : true,
+      progressChanged: false,
+      affinityChanged: previousEntry ? Boolean(previousEntry.loved) !== Boolean(entry.loved) : Boolean(entry.loved)
+    };
+  };
+
   const adjustProgress = (animeId, delta, { episodeCount, snapshot } = {}) => {
     const key = normalizeWatchId(animeId);
     if (!key) return { changed: false, entry: null, id: key, operation: 'progress' };
@@ -804,6 +865,7 @@ const createWatchlistLifecycle = ({
     removeEntry,
     setStatus,
     setProgress,
+    setLoved,
     adjustProgress,
     refreshSnapshotsFromCatalog
   };
@@ -835,6 +897,7 @@ export {
   normalizeWatchProgress,
   normalizeWatchId,
   normalizeWatchTimestamp,
+  normalizeWatchLoved,
   normalizeSnapshotStats,
   buildAnimeSnapshot,
   normalizeWatchlistSnapshot,

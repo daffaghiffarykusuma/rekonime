@@ -20,7 +20,6 @@ import { createWatchlistPageInteractions } from './watchlist-page-interactions.t
 import { createWatchlistPageRenderer } from './watchlist-page-renderer.ts';
 import { createWatchlistPageRuntime } from './watchlist-page-runtime.ts';
 import './bootstrap/watchlist-cover-preload.js';
-import './bootstrap/noncritical-styles.js';
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/120x170?text=No+Image';
 const CARD_DIMENSIONS = { width: 240, height: 360 };

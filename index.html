@@ -71,15 +71,10 @@
       --success-bg: rgba(211, 248, 226, 0.12);
       --warning-bg: rgba(237, 231, 177, 0.14);
       --error-bg: rgba(246, 148, 193, 0.12);
-      --font-display: Georgia, "Times New Roman", serif;
-      --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      --font-display: 'Fraunces', Georgia, "Times New Roman", serif;
+      --font-body: 'Nunito Sans', 'Segoe UI', "Helvetica Neue", Arial, sans-serif;
       --font-display-adjust: 0.47;
       --font-body-adjust: 0.54;
-    }
-
-    :root[data-fonts-ready="true"] {
-      --font-display: 'Fraunces', 'Noto Sans JP', Georgia, serif;
-      --font-body: 'Nunito Sans', 'Noto Sans JP', 'Segoe UI', sans-serif;
     }
 
     [data-theme="light"] {
@@ -1140,12 +1135,13 @@
     }
   </style>
   <!-- Styles -->
+  <link rel="preload" href="/fonts/fraunces-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/nunito-sans-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/fonts.css">
   <link rel="stylesheet" href="/css/styles.css">
-  <link rel="stylesheet" href="/css/themes.css" media="print" data-noncritical="true">
+  <link rel="stylesheet" href="/css/themes.css">
   <noscript>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito+Sans:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=optional"
-      rel="stylesheet">
+    <link rel="stylesheet" href="/css/fonts.css">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/themes.css">
   </noscript>
