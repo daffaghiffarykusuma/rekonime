@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDetailExperience } from '../../js/detail-experience.ts';
+import { createDetailExperiencePort } from '../../js/detail-experience-port.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const createAppHarness = (overrides = {}) => {
@@ -21,7 +22,20 @@ const createAppHarness = (overrides = {}) => {
     refreshDetailMedia: (...args) => calls.push(['refreshDetailMedia', ...args]),
     setupDetailMedia: () => calls.push(['setupDetailMedia']),
     stopDetailMedia: () => calls.push(['stopDetailMedia']),
+    stopTrailerPlayback: () => calls.push(['stopTrailerPlayback']),
+    teardownTrailerObserver: () => calls.push(['teardownTrailerObserver']),
+    teardownTrailerScrollListener: () => calls.push(['teardownTrailerScrollListener']),
+    setupTrailerAutoplay: (...args) => calls.push(['setupTrailerAutoplay', ...args]),
+    renderTrailerSection: () => '<section id="detail-trailer"></section>',
     renderSynopsis: (value) => `<p>${value}</p>`,
+    loadReviewsService: async () => ({
+      fetchReviews: async (...args) => {
+        calls.push(['fetchReviews', ...args]);
+        return { description: 'Remote synopsis', reviews: [] };
+      },
+      renderSynopsis: (value) => `<p>${value}</p>`,
+      renderReviews: () => '<p>No reviews</p>'
+    }),
     loadDetailReviews: (...args) => calls.push(['loadDetailReviews', ...args]),
     updateMetaForAnime: (...args) => calls.push(['updateMetaForAnime', ...args]),
     updateMetaForFilters: () => calls.push(['updateMetaForFilters']),
@@ -65,7 +79,7 @@ const createAppHarness = (overrides = {}) => {
     ...overrides
   };
 
-  return { app, calls, detail: createDetailExperience(app) };
+  return { app, calls, detail: createDetailExperience(createDetailExperiencePort(app)) };
 };
 
 test('Detail Experience cache evicts least recently used detail markup', () => {
@@ -117,7 +131,7 @@ test('Detail Experience opens and renders a title lifecycle', () => {
 });
 
 test('Detail Experience syncs URL anime state to open or close actions', () => {
-  const { app, detail, calls } = createAppHarness({
+  const { detail, calls } = createAppHarness({
     currentAnimeId: 'current',
     getAnimeIdFromUrl: () => 'next'
   });
@@ -125,14 +139,16 @@ test('Detail Experience syncs URL anime state to open or close actions', () => {
   detail.syncWithUrl({ updateUrl: false });
   assert.deepEqual(calls[0], ['showAnimeDetail', 'next', { updateUrl: false }]);
 
-  calls.length = 0;
-  app.currentAnimeId = 'current';
-  app.getAnimeIdFromUrl = () => '';
-  detail.syncWithUrl({ updateUrl: true });
-  assert.deepEqual(calls[0], ['closeDetailModal', { updateUrl: true }]);
+  const closeHarness = createAppHarness({ currentAnimeId: 'current' });
+  closeHarness.detail.syncWithUrl({ updateUrl: true });
+  assert.deepEqual(closeHarness.calls[0], ['closeDetailModal', { updateUrl: true }]);
 });
 
 test('Detail Experience delegates trailer refresh to Detail Media', () => {
+  setupDom(`
+    <div id="detail-modal"><div class="modal-content"></div></div>
+    <div id="community-reviews-section"></div>
+  `);
   const animeData = [{ id: 'show-1', title: 'Show One' }];
   const { detail, calls } = createAppHarness({
     currentAnimeId: 'show-1',
@@ -141,10 +157,13 @@ test('Detail Experience delegates trailer refresh to Detail Media', () => {
 
   detail.refreshTrailerSection();
 
-  assert.deepEqual(calls[0], ['refreshDetailMedia', {
-    currentAnimeId: 'show-1',
-    animeData
-  }]);
+  assert.deepEqual(calls.slice(0, 4).map(([name]) => name), [
+    'stopTrailerPlayback',
+    'teardownTrailerObserver',
+    'teardownTrailerScrollListener',
+    'setupTrailerAutoplay'
+  ]);
+  assert.match(document.body.innerHTML, /detail-trailer/);
 });
 
 test('Detail Experience delegates community review loading to Detail Reviews', async () => {
@@ -153,7 +172,7 @@ test('Detail Experience delegates community review loading to Detail Reviews', a
 
   await detail.loadCommunityReviews(anime, 'fallback');
 
-  assert.deepEqual(calls[0], ['loadDetailReviews', anime, 'fallback']);
+  assert.deepEqual(calls[0], ['fetchReviews', 1, 'Anime A']);
 });
 
 test('Detail Experience delegates missing catalog title markup to Detail Error State', () => {

@@ -13,86 +13,106 @@ const createDetailExperiencePort = (app) => {
     renderSynopsis: app.renderSynopsis.bind(app),
     updateMetaForAnime: app.updateMetaForAnime.bind(app)
   });
-  const port = {
-    get detailCache() {
-      return app.detailCache;
+  return {
+    state: {
+      get currentAnimeId() {
+        return app.currentAnimeId;
+      },
+      set currentAnimeId(value) {
+        app.currentAnimeId = value;
+      },
+      get animeData() {
+        return app.animeData;
+      },
+      get isFullDataLoaded() {
+        return app.isFullDataLoaded;
+      }
     },
-    get detailCacheMaxSize() {
-      return app.detailCacheMaxSize;
+    cache: {
+      get store() {
+        return app.detailCache;
+      },
+      get maxSize() {
+        return app.detailCacheMaxSize;
+      }
     },
-    get currentAnimeId() {
-      return app.currentAnimeId;
+    clock: {
+      now: app.getPerformanceNow.bind(app)
     },
-    set currentAnimeId(value) {
-      app.currentAnimeId = value;
+    events: {
+      emit: app.emitAppEvent.bind(app)
     },
-    get animeData() {
-      return app.animeData;
+    routing: {
+      getAnimeIdFromUrl: app.getAnimeIdFromUrl.bind(app),
+      openAnime: app.showAnimeDetail.bind(app),
+      closeDetail: app.closeDetailModal.bind(app),
+      updateAnimeUrl: app.updateUrlForAnime.bind(app)
     },
-    get isFullDataLoaded() {
-      return app.isFullDataLoaded;
+    modal: {
+      getDetailElements: () => {
+        const modal = document.getElementById('detail-modal');
+        return {
+          modal,
+          content: document.getElementById('detail-content'),
+          modalContent: modal ? modal.querySelector('.modal-content') : null
+        };
+      },
+      setVisible: (isOpen, options = {}) => app.setModalVisibility('detail-modal', isOpen, options)
     },
-    cleanupDetailMedia: (...args) => detailMedia.cleanup(...args),
-    closeDetailModal: (...args) => app.closeDetailModal(...args),
-    emitAppEvent: (...args) => app.emitAppEvent(...args),
-    escapeAttr: (...args) => app.escapeAttr(...args),
-    escapeHtml: (...args) => app.escapeHtml(...args),
-    getAnimeIdFromUrl: (...args) => app.getAnimeIdFromUrl(...args),
-    getEpisodeCount: (...args) => app.getEpisodeCount(...args),
-    getImageDimensions: (...args) => app.getImageDimensions(...args),
-    getImageFallbackAttrs: (...args) => app.getImageFallbackAttrs(...args),
-    getPerformanceNow: (...args) => app.getPerformanceNow(...args),
-    getSynopsisForAnime: (...args) => app.getSynopsisForAnime(...args),
-    getWatchlistSnapshot: (...args) => app.getWatchlistSnapshot(...args),
-    hasFullAnimeDetail: (...args) => app.hasFullAnimeDetail(...args),
-    loadAnimeDetailChunk: (...args) => app.loadAnimeDetailChunk(...args),
-    loadFullCatalog: (...args) => app.loadFullCatalog(...args),
-    loadDetailReviews: (...args) => detailReviews.load(...args),
-    normalizeBookmarkId: (...args) => app.normalizeBookmarkId(...args),
-    refreshDetailMedia: (...args) => detailMedia.refresh(...args),
-    renderDetailErrorState,
-    renderDetailContent: (anime, { synopsis = '' } = {}) => renderDetailContent(anime, {
-      synopsis,
-      escapeHtml: app.escapeHtml.bind(app),
-      escapeAttr: app.escapeAttr.bind(app),
-      sanitizeImageUrl: app.sanitizeImageUrl.bind(app),
-      sanitizeClassList: app.sanitizeClassList.bind(app),
-      buildImageSrcset: app.buildImageSrcset.bind(app),
-      getImageDimensions: app.getImageDimensions.bind(app),
-      getImageFallbackAttrs: app.getImageFallbackAttrs.bind(app),
-      getEpisodeCount: app.getEpisodeCount.bind(app),
-      renderSynopsis: app.renderSynopsis.bind(app),
-      renderSynopsisLoading: app.renderSynopsisLoading.bind(app),
-      renderFranchiseHubSection: app.renderFranchiseHubSection.bind(app),
-      renderTrailerSection: app.renderTrailerSection.bind(app),
-      renderReviewsLoading: app.renderReviewsLoading.bind(app),
-      renderSimilarAnimeSection: app.renderSimilarAnimeSection.bind(app),
-      renderWatchlistControls: app.renderWatchlistControls.bind(app)
-    }),
-    renderDetailSkeleton: (...args) => app.renderDetailSkeleton(...args),
-    renderFranchiseHubSection: (...args) => app.renderFranchiseHubSection(...args),
-    renderReviewsLoading: (...args) => app.renderReviewsLoading(...args),
-    renderSimilarAnimeSection: (...args) => app.renderSimilarAnimeSection(...args),
-    renderSynopsis: (...args) => app.renderSynopsis(...args),
-    renderSynopsisLoading: (...args) => app.renderSynopsisLoading(...args),
-    renderTrailerSection: (...args) => app.renderTrailerSection(...args),
-    renderWatchlistControls: (...args) => app.renderWatchlistControls(...args),
-    sanitizeClassList: (...args) => app.sanitizeClassList(...args),
-    sanitizeImageUrl: (...args) => app.sanitizeImageUrl(...args),
-    setModalVisibility: (...args) => app.setModalVisibility(...args),
-    setupDetailMedia: (...args) => detailMedia.setup(...args),
-    showAnimeDetail: (...args) => app.showAnimeDetail(...args),
-    stopDetailMedia: (...args) => detailMedia.stop(...args),
-    updateMetaForAnime: (...args) => app.updateMetaForAnime(...args),
-    updateMetaForFilters: (...args) => app.updateMetaForFilters(...args),
-    updatePrefetchObserving: (...args) => app.updatePrefetchObserving(...args),
-    updateUrlForAnime: (...args) => app.updateUrlForAnime(...args),
-    updateWatchlistControls: (...args) => app.updateWatchlistControls(...args),
-    buildImageSrcset: (...args) => app.buildImageSrcset(...args),
-    resetMetaToDefault: (...args) => app.resetMetaToDefault(...args)
+    catalog: {
+      findAnime: (animeId) => app.animeData.find(anime => anime?.id === animeId) || null,
+      findSnapshot: (animeId) => {
+        const key = app.normalizeBookmarkId(animeId);
+        return key ? app.getWatchlistSnapshot(key) : null;
+      },
+      hasFullDetail: app.hasFullAnimeDetail.bind(app),
+      loadDetailChunk: app.loadAnimeDetailChunk.bind(app),
+      loadFull: app.loadFullCatalog.bind(app),
+      getSynopsis: app.getSynopsisForAnime.bind(app)
+    },
+    presentation: {
+      renderSkeleton: app.renderDetailSkeleton.bind(app),
+      renderError: renderDetailErrorState,
+      renderContent: (anime, { synopsis = '' } = {}) => renderDetailContent(anime, {
+        synopsis,
+        escapeHtml: app.escapeHtml.bind(app),
+        escapeAttr: app.escapeAttr.bind(app),
+        sanitizeImageUrl: app.sanitizeImageUrl.bind(app),
+        sanitizeClassList: app.sanitizeClassList.bind(app),
+        buildImageSrcset: app.buildImageSrcset.bind(app),
+        getImageDimensions: app.getImageDimensions.bind(app),
+        getImageFallbackAttrs: app.getImageFallbackAttrs.bind(app),
+        getEpisodeCount: app.getEpisodeCount.bind(app),
+        renderSynopsis: app.renderSynopsis.bind(app),
+        renderSynopsisLoading: app.renderSynopsisLoading.bind(app),
+        renderFranchiseHubSection: app.renderFranchiseHubSection.bind(app),
+        renderTrailerSection: app.renderTrailerSection.bind(app),
+        renderReviewsLoading: app.renderReviewsLoading.bind(app),
+        renderSimilarAnimeSection: app.renderSimilarAnimeSection.bind(app),
+        renderWatchlistControls: app.renderWatchlistControls.bind(app)
+      })
+    },
+    media: {
+      cleanup: detailMedia.cleanup,
+      refresh: detailMedia.refresh,
+      setup: detailMedia.setup,
+      stop: detailMedia.stop
+    },
+    reviews: {
+      load: detailReviews.load
+    },
+    metadata: {
+      forAnime: app.updateMetaForAnime.bind(app),
+      forFilters: app.updateMetaForFilters.bind(app),
+      reset: app.resetMetaToDefault.bind(app)
+    },
+    watchlist: {
+      updateControls: app.updateWatchlistControls.bind(app)
+    },
+    prefetch: {
+      updateObserving: app.updatePrefetchObserving.bind(app)
+    }
   };
-
-  return port;
 };
 
 export { createDetailExperiencePort };

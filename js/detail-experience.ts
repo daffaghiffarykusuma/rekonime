@@ -5,119 +5,116 @@ import {
 
 const normalizeDetailKey = (animeId) => String(animeId ?? '').trim();
 
-const createDetailExperience = (app) => {
+const createDetailExperience = (port) => {
   const isCached = (animeId) => {
     const key = normalizeDetailKey(animeId);
     if (!key) return false;
-    return app.detailCache.has(key);
+    return port.cache.store.has(key);
   };
 
   const getCached = (animeId) => {
     const key = normalizeDetailKey(animeId);
     if (!key) return '';
-    const entry = app.detailCache.get(key);
+    const entry = port.cache.store.get(key);
     if (!entry) return '';
-    app.detailCache.delete(key);
-    app.detailCache.set(key, entry);
+    port.cache.store.delete(key);
+    port.cache.store.set(key, entry);
     return entry;
   };
 
   const cache = (animeId, html) => {
     const key = normalizeDetailKey(animeId);
     if (!key || !html) return;
-    if (app.detailCache.has(key)) {
-      app.detailCache.delete(key);
+    if (port.cache.store.has(key)) {
+      port.cache.store.delete(key);
     }
-    while (app.detailCache.size >= app.detailCacheMaxSize) {
-      const firstKey = app.detailCache.keys().next().value;
+    while (port.cache.store.size >= port.cache.maxSize) {
+      const firstKey = port.cache.store.keys().next().value;
       if (firstKey) {
-        app.detailCache.delete(firstKey);
+        port.cache.store.delete(firstKey);
       } else {
         break;
       }
     }
-    app.detailCache.set(key, html);
+    port.cache.store.set(key, html);
   };
 
   const syncWithUrl = ({ updateUrl = true } = {}) => {
-    const animeId = app.getAnimeIdFromUrl();
+    const animeId = port.routing.getAnimeIdFromUrl();
     if (animeId) {
-      if (app.currentAnimeId !== animeId) {
-        app.showAnimeDetail(animeId, { updateUrl });
+      if (port.state.currentAnimeId !== animeId) {
+        port.routing.openAnime(animeId, { updateUrl });
       }
       return;
     }
 
-    if (app.currentAnimeId) {
-      app.closeDetailModal({ updateUrl });
+    if (port.state.currentAnimeId) {
+      port.routing.closeDetail({ updateUrl });
     }
   };
 
   const refreshTrailerSection = () => {
-    app.refreshDetailMedia({
-      currentAnimeId: app.currentAnimeId,
-      animeData: app.animeData
+    port.media.refresh({
+      currentAnimeId: port.state.currentAnimeId,
+      animeData: port.state.animeData
     });
   };
 
   const loadCommunityReviews = async (anime, fallbackSynopsis = '') => {
-    return app.loadDetailReviews(anime, fallbackSynopsis);
+    return port.reviews.load(anime, fallbackSynopsis);
   };
 
   const close = ({ updateUrl = true } = {}) => {
-    app.setModalVisibility('detail-modal', false);
-    app.cleanupDetailMedia();
-    app.currentAnimeId = null;
+    port.modal.setVisible(false);
+    port.media.cleanup();
+    port.state.currentAnimeId = null;
 
     if (updateUrl) {
-      app.updateUrlForAnime(null);
+      port.routing.updateAnimeUrl(null);
     }
-    app.updateMetaForFilters();
+    port.metadata.forFilters();
   };
 
   const handleDeepLink = async (animeId) => {
-    const modal = document.getElementById('detail-modal');
-    const content = document.getElementById('detail-content');
+    const { modal, content } = port.modal.getDetailElements();
 
     if (!modal || !content) return false;
 
-    setHTML(content, app.renderDetailSkeleton());
-    app.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+    setHTML(content, port.presentation.renderSkeleton());
+    port.modal.setVisible(true, { initialFocusSelector: '#close-detail' });
 
-    let anime = app.animeData.find(a => a.id === animeId);
+    let anime = port.catalog.findAnime(animeId);
 
-    if (!anime && !app.isFullDataLoaded) {
-      const fullLoaded = await app.loadFullCatalog();
+    if (!anime && !port.state.isFullDataLoaded) {
+      const fullLoaded = await port.catalog.loadFull();
       if (fullLoaded) {
-        anime = app.animeData.find(a => a.id === animeId);
+        anime = port.catalog.findAnime(animeId);
       }
     }
 
     if (anime) {
-      app.showAnimeDetail(animeId, { updateUrl: false, skipModalOpen: true });
+      port.routing.openAnime(animeId, { updateUrl: false, skipModalOpen: true });
       return true;
     }
 
-    setHTML(content, app.renderDetailErrorState({ reason: 'deepLink' }));
+    setHTML(content, port.presentation.renderError({ reason: 'deepLink' }));
     return false;
   };
 
   const open = (animeId, { updateUrl = true, skipModalOpen = false } = {}) => {
-    const renderStart = app.getPerformanceNow();
-    app.stopDetailMedia();
+    const renderStart = port.clock.now();
+    port.media.stop();
 
-    const modal = document.getElementById('detail-modal');
-    const content = document.getElementById('detail-content');
-    const modalContent = modal ? modal.querySelector('.modal-content') : null;
+    const { modal, content, modalContent } = port.modal.getDetailElements();
 
     if (!modal || !content) return;
 
     const cachedDetail = getCached(animeId);
     const hasCachedDetail = Boolean(cachedDetail);
     const reportModalOpened = (detail = {}) => {
-      app.emitAppEvent('rekonime:modal-opened', {
+      port.events.emit('rekonime:modal-opened', {
         animeId,
-        durationMs: Math.round(app.getPerformanceNow() - renderStart),
+        durationMs: Math.round(port.clock.now() - renderStart),
         cached: hasCachedDetail,
         ...detail
       });
@@ -126,75 +123,72 @@ const createDetailExperience = (app) => {
     if (hasCachedDetail) {
       setHTML(content, cachedDetail);
     } else if (!skipModalOpen) {
-      setHTML(content, app.renderDetailSkeleton());
+      setHTML(content, port.presentation.renderSkeleton());
     }
     if (!skipModalOpen) {
-      app.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+      port.modal.setVisible(true, { initialFocusSelector: '#close-detail' });
     }
 
-    let anime = app.animeData.find(a => a.id === animeId);
+    let anime = port.catalog.findAnime(animeId);
     if (!anime) {
-      const key = app.normalizeBookmarkId(animeId);
-      if (key) {
-        const cached = app.getWatchlistSnapshot(key);
-        if (cached) {
-          anime = cached;
-        }
+      const cached = port.catalog.findSnapshot(animeId);
+      if (cached) {
+        anime = cached;
       }
     }
     if (!anime) {
       if (updateUrl) {
-        app.updateUrlForAnime(null, { replace: true });
+        port.routing.updateAnimeUrl(null, { replace: true });
       }
-      app.resetMetaToDefault();
-      setHTML(content, app.renderDetailErrorState({ reason: 'catalog' }));
+      port.metadata.reset();
+      setHTML(content, port.presentation.renderError({ reason: 'catalog' }));
       reportModalOpened({ status: 'not_found' });
       return;
     }
 
-    app.currentAnimeId = anime.id;
+    port.state.currentAnimeId = anime.id;
 
     if (updateUrl) {
-      app.updateUrlForAnime(anime.id);
+      port.routing.updateAnimeUrl(anime.id);
     }
 
-    if (!app.hasFullAnimeDetail(anime)) {
-      app.loadAnimeDetailChunk(anime.id).then((detailAnime) => {
-        if (!detailAnime || app.currentAnimeId !== anime.id) return;
-        app.showAnimeDetail(anime.id, { updateUrl: false, skipModalOpen: true });
+    if (!port.catalog.hasFullDetail(anime)) {
+      port.catalog.loadDetailChunk(anime.id).then((detailAnime) => {
+        if (!detailAnime || port.state.currentAnimeId !== anime.id) return;
+        port.routing.openAnime(anime.id, { updateUrl: false, skipModalOpen: true });
       });
     }
 
-    const synopsis = app.getSynopsisForAnime(anime);
+    const synopsis = port.catalog.getSynopsis(anime);
     if (hasCachedDetail) {
-      app.updateWatchlistControls(anime.id);
+      port.watchlist.updateControls(anime.id);
       if (modalContent) {
         modalContent.scrollTop = 0;
       }
       content.scrollTop = 0;
-      app.updateMetaForAnime(anime, synopsis);
-      app.setupDetailMedia(modalContent);
+      port.metadata.forAnime(anime, synopsis);
+      port.media.setup(modalContent);
       loadCommunityReviews(anime, synopsis);
-      app.updatePrefetchObserving();
+      port.prefetch.updateObserving();
       reportModalOpened({ status: 'ok' });
       return;
     }
 
-    setHTML(content, app.renderDetailContent(anime, { synopsis }));
+    setHTML(content, port.presentation.renderContent(anime, { synopsis }));
 
     cache(anime.id, content.innerHTML);
-    app.updateWatchlistControls(anime.id);
+    port.watchlist.updateControls(anime.id);
 
     if (modalContent) {
       modalContent.scrollTop = 0;
     }
     content.scrollTop = 0;
 
-    app.updateMetaForAnime(anime, synopsis);
-    app.setupDetailMedia(modalContent);
+    port.metadata.forAnime(anime, synopsis);
+    port.media.setup(modalContent);
 
     loadCommunityReviews(anime, synopsis);
-    app.updatePrefetchObserving();
+    port.prefetch.updateObserving();
     reportModalOpened({ status: 'ok' });
   };
 

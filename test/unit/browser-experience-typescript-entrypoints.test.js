@@ -21,8 +21,10 @@ test('TypeScript browser experience entrypoints preserve core behavior', () => {
   });
   const runtime = createRuntimeCapabilities();
   const detail = createDetailExperience({
-    detailCache: new Map(),
-    detailCacheMaxSize: 1
+    cache: {
+      store: new Map(),
+      maxSize: 1
+    }
   });
 
   assert.equal(formatCountdownLabel(61_000, 1_000), 'in under a minute');

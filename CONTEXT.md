@@ -28,6 +28,10 @@ _Avoid_: cache copy, embedded anime, fallback card data
 The runtime path that loads preview catalog data, upgrades to the full catalog, falls back to cached or embedded data, and fetches detail chunks on demand.
 _Avoid_: data helper, fetch wrapper, loader utility
 
+**Browse View Filtering**:
+The catalog browsing state that turns URL parameters, search text, selected facets, available facet options, active-filter summaries, and Catalog Payload entries into the filtered anime list shown on the browse view.
+_Avoid_: filter helper, query utility, chip state
+
 **Catalog Payload**:
 A validated anime data package, including supported Experience Cues, loaded from preview, full, cached, embedded, or detail-chunk sources before page rendering decisions are applied.
 _Avoid_: JSON blob, response data, raw catalog
@@ -60,6 +64,9 @@ Domain expert: "Use the Snapshot on the Watchlist Entry until catalog data repla
 
 Dev: "Should the page decide whether to use IndexedDB or embedded data?"
 Domain expert: "No. The Catalog Runtime chooses the Catalog Payload source; the page applies the result."
+
+Dev: "Should filter chips, query parameters, and search matching each decide the visible catalog separately?"
+Domain expert: "No. Browse View Filtering owns the selected facets, search text, URL parameters, and filtered anime list. The page only renders the current state."
 
 Dev: "Does the URL `anime` parameter belong to filtering or the detail modal?"
 Domain expert: "It belongs to the Detail Experience. Filters describe the browse view; the Detail Experience owns whether a title is open."

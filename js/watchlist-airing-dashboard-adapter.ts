@@ -2,6 +2,7 @@
 
 const createWatchlistAiringDashboardAdapter = ({
   cancelTask = null,
+  controllerOptions = {},
   logger = null,
   loadDashboardFactory = async () => import('./airing-dashboard.ts')
     .then((module) => module.createAiringDashboardController),
@@ -47,7 +48,8 @@ const createWatchlistAiringDashboardAdapter = ({
         summaryId: 'airing-dashboard-summary',
         gridId: 'airing-dashboard-grid',
         emptyId: 'airing-dashboard-empty',
-        hideWhenNoEntries: true
+        hideWhenNoEntries: true,
+        ...controllerOptions
       }))
       .catch((error) => {
         dashboardControllerPromise = null;
@@ -56,6 +58,10 @@ const createWatchlistAiringDashboardAdapter = ({
     return dashboardControllerPromise;
   };
 
+  const resolveScheduledValue = (value) => (
+    typeof value === 'function' ? value() : value
+  );
+
   const scheduleUpdate = (entries, animeItems, { timeout = 2500 } = {}) => {
     cancelScheduledUpdate();
 
@@ -63,7 +69,10 @@ const createWatchlistAiringDashboardAdapter = ({
       dashboardUpdateHandle = null;
       try {
         const controller = await getAiringDashboardController();
-        await controller.update({ entries, animeItems });
+        await controller.update({
+          entries: resolveScheduledValue(entries),
+          animeItems: resolveScheduledValue(animeItems)
+        });
       } catch (error) {
         logger?.warn?.('Failed to update airing dashboard', { error });
       }

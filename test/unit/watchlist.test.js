@@ -12,6 +12,10 @@ const resetState = () => {
   CacheManager.clearMemory();
   App.watchlistEntries = new Map();
   App.animeData = [];
+  App.airingDashboardAdapter = null;
+  App.runtimeCapabilities = null;
+  App.watchlistLifecycleRuntime = null;
+  App.lastRecommendationIds = new Set();
 };
 
 test('Setting watch status creates a planned watchlist entry', () => {
@@ -56,4 +60,24 @@ test('Setting watch progress upgrades planned to watching', () => {
   assert.ok(entry);
   assert.equal(entry.status, 'watching');
   assert.equal(entry.progress, 2);
+});
+
+test('Watchlist lifecycle schedules Airing Schedule through the shared adapter', () => {
+  setupDom();
+  resetState();
+  const calls = [];
+  const anime = createAnime({ id: 'anime-4' });
+  App.animeData = [anime];
+  App.airingDashboardAdapter = {
+    scheduleUpdate: (...args) => calls.push(args)
+  };
+
+  App.setWatchStatus(anime.id, 'watching');
+
+  assert.equal(calls.length, 1);
+  assert.equal(typeof calls[0][0], 'function');
+  assert.equal(typeof calls[0][1], 'function');
+  assert.deepEqual(calls[0][2], { timeout: 500 });
+  assert.deepEqual(calls[0][0]().map((entry) => entry.id), ['anime-4']);
+  assert.deepEqual(calls[0][1]().map((item) => item.id), ['anime-4']);
 });

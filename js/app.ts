@@ -2,6 +2,7 @@
 import { Recommendations } from './recommendations.ts';
 import { Discovery } from './discovery.js';
 import { FilterPresets } from './filterPresets.ts';
+import { BrowseFiltering } from './browse-filtering.ts';
 import { MetricGlossary } from './metricGlossary.js';
 import { Onboarding } from './onboarding.js';
 import { ThemeManager } from './themeManager.js';
@@ -26,6 +27,7 @@ import {
   renderWatchlistControlsHtml,
   updateWatchlistControlsElement
 } from './watchlist-entry-presentation.ts';
+import { createWatchlistAiringDashboardAdapter } from './watchlist-airing-dashboard-adapter.ts';
 import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.ts';
 import {
   buildTrailerUrls as buildTrustedTrailerUrls,
@@ -54,9 +56,9 @@ import {
   buildWatchlistEntry as buildLifecycleWatchlistEntry,
   areWatchlistSnapshotsEqual as areLifecycleWatchlistSnapshotsEqual,
   shouldShowWatchProgress as shouldShowLifecycleWatchProgress,
-  buildWatchlistTransitionEnvelope,
   createWatchlistLifecycle
 } from './watchlist-state.js';
+import { createWatchlistLifecycleRuntime } from './watchlist-lifecycle-runtime.ts';
 import {
   createTasteProfileStore,
   scoreAnimeForTaste
@@ -124,24 +126,8 @@ const App = {
   watchlistStatusOptions: WATCH_STATUS_VALUES,
   seoInitialized: false,
   urlFiltersApplied: false,
-  filterQueryMap: {
-    seasonYear: 'season',
-    year: 'year',
-    studio: 'studio',
-    source: 'source',
-    genres: 'genre',
-    themes: 'theme',
-    demographic: 'demographic'
-  },
-  filterTypeLabels: {
-    genres: 'Genre',
-    themes: 'Theme',
-    demographic: 'Demographic',
-    seasonYear: 'Season',
-    year: 'Year',
-    studio: 'Studio',
-    source: 'Source'
-  },
+  filterQueryMap: BrowseFiltering.filterParamMap,
+  filterTypeLabels: BrowseFiltering.filterTypeLabels,
   quickFilterState: {
     genres: { expanded: false },
     themes: { expanded: false }
@@ -155,17 +141,14 @@ const App = {
   },
   lastAppliedSearchQuery: '',
   searchMaxResults: 8,
-  modalFocusState: {
-    activeId: null,
-    lastFocused: null,
-    handler: null
-  },
+  runtimeCapabilities: null,
   registeredListeners: [],
   healthMonitorUnsubscribe: null,
   animeCardTemplate: null,
   gridDomCache: new Map(),
   detailCache: new Map(),
   detailCacheMaxSize: 10,
+  detailExperience: null,
   toastRegionId: 'toast-region',
   toastTimers: new Map(),
   gridObserver: null,
@@ -206,43 +189,20 @@ const App = {
   imageProxyStatusTtlMs: 6 * 60 * 60 * 1000,
   imageProxyCheckTimeoutMs: 2500,
   imageProxyRuntime: null,
-  airingDashboardModulePromise: null,
-  airingDashboardController: null,
-  airingDashboardRenderHandle: null,
+  airingDashboardAdapter: null,
   catalogRuntime: null,
+  watchlistLifecycleRuntime: null,
 
   getDefaultActiveFilters() {
-    return {
-      seasonYear: [],
-      year: [],
-      studio: [],
-      source: [],
-      genres: [],
-      themes: [],
-      demographic: []
-    };
+    return BrowseFiltering.getDefaultActiveFilters();
   },
 
   getDefaultFilterOptions() {
-    return {
-      seasonYear: [],
-      year: [],
-      studio: [],
-      source: [],
-      genres: [],
-      themes: [],
-      demographic: []
-    };
+    return BrowseFiltering.getDefaultFilterOptions();
   },
 
   cloneFilterMap(map, fallback) {
-    const base = fallback || this.getDefaultActiveFilters();
-    const next = {};
-    Object.keys(base).forEach((key) => {
-      const value = map?.[key];
-      next[key] = Array.isArray(value) ? [...value] : [];
-    });
-    return next;
+    return BrowseFiltering.cloneFilterMap(map, fallback || this.getDefaultActiveFilters());
   },
 
   getCache() {
@@ -257,32 +217,37 @@ const App = {
   },
 
   getDetailExperience() {
-    return createDetailExperience(createDetailExperiencePort(this));
+    if (!this.detailExperience) {
+      this.detailExperience = createDetailExperience(createDetailExperiencePort(this));
+    }
+    return this.detailExperience;
   },
 
   getRuntimeCapabilities() {
-    return createRuntimeCapabilities({
-      modalFocusState: this.modalFocusState,
-      closeModalById: (modalId) => {
-        if (modalId === 'detail-modal') {
-          this.closeDetailModal();
-          return true;
+    if (!this.runtimeCapabilities) {
+      this.runtimeCapabilities = createRuntimeCapabilities({
+        closeModalById: (modalId) => {
+          if (modalId === 'detail-modal') {
+            this.closeDetailModal();
+            return true;
+          }
+          if (modalId === 'filter-modal') {
+            this.closeFilterModal();
+            return true;
+          }
+          if (modalId === 'settings-modal') {
+            this.closeSettingsModal();
+            return true;
+          }
+          if (modalId === 'metric-help-modal') {
+            this.closeMetricHelpModal();
+            return true;
+          }
+          return false;
         }
-        if (modalId === 'filter-modal') {
-          this.closeFilterModal();
-          return true;
-        }
-        if (modalId === 'settings-modal') {
-          this.closeSettingsModal();
-          return true;
-        }
-        if (modalId === 'metric-help-modal') {
-          this.closeMetricHelpModal();
-          return true;
-        }
-        return false;
-      }
-    });
+      });
+    }
+    return this.runtimeCapabilities;
   },
 
   getWatchlistLifecycle() {
@@ -294,6 +259,20 @@ const App = {
       entries: this.watchlistEntries,
       now: () => Date.now()
     });
+  },
+
+  getWatchlistLifecycleRuntime() {
+    if (!this.watchlistLifecycleRuntime) {
+      this.watchlistLifecycleRuntime = createWatchlistLifecycleRuntime({
+        buildSnapshot: (anime) => this.buildAnimeSnapshot(anime),
+        getAnime: (animeId) => this.animeData.find(item => item?.id === animeId) || null,
+        getEpisodeLimit: (animeId) => this.getEpisodeLimitForAnime(animeId),
+        getLifecycle: () => this.getWatchlistLifecycle(),
+        isLastRecommendation: (animeId) => this.lastRecommendationIds.has(animeId),
+        normalizeId: (animeId) => this.normalizeBookmarkId(animeId)
+      });
+    }
+    return this.watchlistLifecycleRuntime;
   },
 
   getAnalytics() {
@@ -817,53 +796,36 @@ const App = {
     return this.getWatchlistLifecycle().getDisplayItems(this.animeData, { statuses });
   },
 
-  async loadAiringDashboardModule() {
-    if (this.airingDashboardModulePromise) return this.airingDashboardModulePromise;
-    this.airingDashboardModulePromise = import('./airing-dashboard.ts')
-      .then((module) => module.createAiringDashboardController)
-      .catch((error) => {
-        this.airingDashboardModulePromise = null;
-        throw error;
+  getAiringDashboardAdapter() {
+    if (!this.airingDashboardAdapter) {
+      this.airingDashboardAdapter = createWatchlistAiringDashboardAdapter({
+        cancelTask: this.cancelIdleTask.bind(this),
+        logger: this.getLogger(),
+        queueTask: (callback, timeout) => this.queueIdleTask(callback, { timeout })
       });
-    return this.airingDashboardModulePromise;
-  },
-
-  async ensureAiringDashboardController() {
-    if (typeof document === 'undefined') return null;
-    if (this.airingDashboardController) return this.airingDashboardController;
-    const createAiringDashboardController = await this.loadAiringDashboardModule();
-    this.airingDashboardController = createAiringDashboardController({
-      sectionId: 'airing-dashboard-section',
-      subtitleId: 'airing-dashboard-subtitle',
-      summaryId: 'airing-dashboard-summary',
-      gridId: 'airing-dashboard-grid',
-      emptyId: 'airing-dashboard-empty',
-      hideWhenNoEntries: true
-    });
-    return this.airingDashboardController;
-  },
-
-  async renderAiringDashboard() {
-    const controller = await this.ensureAiringDashboardController();
-    if (!controller) return;
-
-    const entries = this.getWatchlistEntries({ statuses: ['planned', 'watching'] });
-    await controller.update({
-      entries,
-      animeItems: this.getAiringDashboardAnimeItems({ statuses: ['planned', 'watching'] })
-    });
+    }
+    return this.airingDashboardAdapter;
   },
 
   scheduleAiringDashboardRender({ timeout = 2500 } = {}) {
     if (typeof document === 'undefined') return;
-    if (this.airingDashboardRenderHandle) {
-      this.cancelIdleTask(this.airingDashboardRenderHandle);
-      this.airingDashboardRenderHandle = null;
-    }
-    this.airingDashboardRenderHandle = this.queueIdleTask(() => {
-      this.airingDashboardRenderHandle = null;
-      void this.renderAiringDashboard();
-    }, { timeout });
+    const statuses = ['planned', 'watching'];
+    this.getAiringDashboardAdapter().scheduleUpdate(
+      () => this.getWatchlistEntries({ statuses }),
+      () => this.getAiringDashboardAnimeItems({ statuses }),
+      { timeout }
+    );
+  },
+
+  async renderAiringDashboard() {
+    if (typeof document === 'undefined') return;
+    const statuses = ['planned', 'watching'];
+    const adapter = this.getAiringDashboardAdapter();
+    const controller = await adapter.getAiringDashboardController();
+    await controller.update({
+      entries: this.getWatchlistEntries({ statuses }),
+      animeItems: this.getAiringDashboardAnimeItems({ statuses })
+    });
   },
 
   getWatchlistSnapshots({ statuses } = {}) {
@@ -899,69 +861,44 @@ const App = {
     return total;
   },
 
-  setWatchStatus(animeId, status, { episodeCount } = {}) {
-    const key = this.normalizeBookmarkId(animeId);
-    if (!key) return null;
-    const anime = this.animeData.find(item => item?.id === key);
-    const result = this.getWatchlistLifecycle().setStatus(key, status, {
-      episodeCount,
-      snapshot: this.buildAnimeSnapshot(anime)
-    });
-    if (!result.changed) return result;
-    const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
-    this.applyWatchlistTransition(transition);
-    this.refreshTasteProfileEvidence();
-    this.renderRecommendations();
-    if (status === 'watching' && this.lastRecommendationIds.has(key)) {
+  applyWatchlistRuntimeResult(result) {
+    if (!result) return null;
+    if (!result.changed) return result.compatibilityResult;
+    this.applyWatchlistTransition(result.transition);
+    if (result.effects?.refreshTasteProfile) {
+      this.refreshTasteProfileEvidence();
+    }
+    if (result.effects?.renderRecommendations) {
+      this.renderRecommendations();
+    }
+    if (result.effects?.clearViewingIntent) {
       this.clearViewingIntent({ announce: true });
     }
-    return transition.compatibilityResult;
+    return result.compatibilityResult;
+  },
+
+  setWatchStatus(animeId, status, { episodeCount } = {}) {
+    return this.applyWatchlistRuntimeResult(
+      this.getWatchlistLifecycleRuntime().setStatus(animeId, status, { episodeCount })
+    );
   },
 
   setWatchProgress(animeId, progress, { episodeCount } = {}) {
-    const key = this.normalizeBookmarkId(animeId);
-    if (!key) return null;
-    const anime = this.animeData.find(item => item?.id === key);
-    const result = this.getWatchlistLifecycle().setProgress(key, progress, {
-      episodeCount,
-      snapshot: this.buildAnimeSnapshot(anime)
-    });
-    if (!result.changed) return result;
-    const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
-    this.applyWatchlistTransition(transition);
-    this.refreshTasteProfileEvidence();
-    return transition.compatibilityResult;
+    return this.applyWatchlistRuntimeResult(
+      this.getWatchlistLifecycleRuntime().setProgress(animeId, progress, { episodeCount })
+    );
   },
 
   setWatchLoved(animeId, loved) {
-    const key = this.normalizeBookmarkId(animeId);
-    if (!key) return null;
-    const anime = this.animeData.find(item => item?.id === key);
-    const result = this.getWatchlistLifecycle().setLoved(key, loved, {
-      snapshot: this.buildAnimeSnapshot(anime)
-    });
-    if (!result.changed) return result;
-    const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
-    this.applyWatchlistTransition(transition);
-    this.refreshTasteProfileEvidence();
-    this.renderRecommendations();
-    return transition.compatibilityResult;
+    return this.applyWatchlistRuntimeResult(
+      this.getWatchlistLifecycleRuntime().setLoved(animeId, loved)
+    );
   },
 
   adjustWatchProgress(animeId, delta) {
-    const key = this.normalizeBookmarkId(animeId);
-    if (!key) return null;
-    const episodeCount = this.getEpisodeLimitForAnime(key);
-    const anime = this.animeData.find(item => item?.id === key);
-    const result = this.getWatchlistLifecycle().adjustProgress(key, delta, {
-      episodeCount,
-      snapshot: this.buildAnimeSnapshot(anime)
-    });
-    if (!result.changed) return result;
-    const transition = buildWatchlistTransitionEnvelope(result, { renderMode: 'controls', dashboardTimeout: 500 });
-    this.applyWatchlistTransition(transition);
-    this.refreshTasteProfileEvidence();
-    return transition.compatibilityResult;
+    return this.applyWatchlistRuntimeResult(
+      this.getWatchlistLifecycleRuntime().adjustProgress(animeId, delta)
+    );
   },
 
   refreshTasteProfileEvidence() {
@@ -1186,67 +1123,26 @@ const App = {
   },
 
   getFilterParamMap() {
-    return this.filterQueryMap;
+    return BrowseFiltering.filterParamMap;
   },
 
   getFilterParamNames() {
-    return Object.values(this.filterQueryMap);
+    return Object.values(BrowseFiltering.filterParamMap);
   },
 
   parseFilterParamValues(values) {
-    if (!Array.isArray(values)) return [];
-    return values
-      .flatMap(value => String(value || '').split(','))
-      .map(value => value.trim())
-      .filter(Boolean);
+    return BrowseFiltering.parseFilterParamValues(values);
   },
 
   normalizeFilterValues(type, values) {
-    const cleaned = Array.isArray(values) ? values : [];
-    if (cleaned.length === 0) return [];
-
-    const options = Array.isArray(this.filterOptions?.[type]) ? this.filterOptions[type] : [];
-    const canonicalMap = new Map(options.map(option => [String(option).toLowerCase(), String(option)]));
-    const results = [];
-    const seen = new Set();
-
-    for (const value of cleaned) {
-      const raw = String(value || '').trim();
-      if (!raw) continue;
-      const normalized = raw.toLowerCase();
-      const canonical = canonicalMap.size ? (canonicalMap.get(normalized) || raw) : raw;
-      const key = canonical.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      results.push(canonical);
-    }
-
-    return results;
+    return BrowseFiltering.normalizeFilterValues(type, values, this.filterOptions);
   },
 
   getFiltersFromUrl(sourceUrl) {
-    const filters = {
-      seasonYear: [],
-      year: [],
-      studio: [],
-      source: [],
-      genres: [],
-      themes: [],
-      demographic: []
-    };
-
-    try {
-      const url = new URL(sourceUrl || window.location.href);
-      const paramMap = this.getFilterParamMap();
-      Object.entries(paramMap).forEach(([type, param]) => {
-        const values = this.parseFilterParamValues(url.searchParams.getAll(param));
-        filters[type] = this.normalizeFilterValues(type, values);
-      });
-    } catch (error) {
-      return filters;
-    }
-
-    return filters;
+    return BrowseFiltering.getFiltersFromUrl(sourceUrl, {
+      filterOptions: this.filterOptions,
+      fallbackHref: window.location.href
+    });
   },
 
   getSearchQueryFromUrl(sourceUrl) {
@@ -1259,26 +1155,11 @@ const App = {
   },
 
   hasFilterParamsInUrl(sourceUrl) {
-    try {
-      const url = new URL(sourceUrl || window.location.href);
-      return this.getFilterParamNames().some(param => url.searchParams.has(param));
-    } catch (error) {
-      return false;
-    }
+    return BrowseFiltering.hasFilterParamsInUrl(sourceUrl, { fallbackHref: window.location.href });
   },
 
   areFiltersEqual(left, right) {
-    const types = Object.keys(this.activeFilters);
-    for (const type of types) {
-      const a = Array.isArray(left?.[type]) ? left[type] : [];
-      const b = Array.isArray(right?.[type]) ? right[type] : [];
-      if (a.length !== b.length) return false;
-      const setA = new Set(a.map(value => String(value).toLowerCase()));
-      for (const value of b) {
-        if (!setA.has(String(value).toLowerCase())) return false;
-      }
-    }
-    return true;
+    return BrowseFiltering.areFiltersEqual(left, right, Object.keys(this.activeFilters));
   },
 
   setActiveFiltersFromUrl({ updateUi = false } = {}) {
@@ -1293,29 +1174,11 @@ const App = {
   },
 
   getSortedFilterValues(type, values) {
-    const cleaned = Array.isArray(values) ? values.map(value => String(value)) : [];
-    const unique = [...new Set(cleaned)];
-    const options = Array.isArray(this.filterOptions?.[type]) ? this.filterOptions[type] : [];
-    if (options.length === 0) {
-      return unique.sort((a, b) => a.localeCompare(b));
-    }
-    const order = new Map(options.map((option, index) => [String(option), index]));
-    return unique.sort((a, b) => {
-      const orderA = order.has(a) ? order.get(a) : Number.POSITIVE_INFINITY;
-      const orderB = order.has(b) ? order.get(b) : Number.POSITIVE_INFINITY;
-      if (orderA !== orderB) return orderA - orderB;
-      return a.localeCompare(b);
-    });
+    return BrowseFiltering.getSortedFilterValues(type, values, this.filterOptions);
   },
 
   setFiltersOnUrl(url, filters) {
-    if (!url) return;
-    const paramMap = this.getFilterParamMap();
-    Object.values(paramMap).forEach(param => url.searchParams.delete(param));
-    Object.entries(paramMap).forEach(([type, param]) => {
-      const values = this.getSortedFilterValues(type, filters?.[type] || []);
-      values.forEach(value => url.searchParams.append(param, value));
-    });
+    BrowseFiltering.setFiltersOnUrl(url, filters, { filterOptions: this.filterOptions });
   },
 
   buildFilterStateUrl(sourceUrl) {
@@ -1373,30 +1236,18 @@ const App = {
   },
 
   getActiveFilterGroups() {
-    const groups = [];
-    Object.entries(this.activeFilters).forEach(([type, values]) => {
-      const cleaned = values
-        .map(value => String(value ?? '').trim())
-        .filter(Boolean);
-      if (cleaned.length === 0) return;
-      groups.push({
-        type,
-        label: this.filterTypeLabels[type] || type,
-        values: cleaned
-      });
-    });
-    return groups;
+    return BrowseFiltering.getActiveFilterGroups(this.activeFilters, this.filterTypeLabels);
   },
 
   buildFilterMeta() {
-    const groups = this.getActiveFilterGroups();
-    const summary = groups.map(group => `${group.label}: ${group.values.join(', ')}`);
-    const headline = summary.join(' | ');
-    const title = headline ? `${headline} | ${this.siteName}` : this.defaultMeta.title || this.siteName;
-    const prefix = headline ? `Anime filtered by ${summary.join(', ')}.` : '';
-    const baseDescription = this.defaultMeta.description || '';
-    const description = this.buildMetaDescription(`${prefix} ${baseDescription}`.trim());
-    return { title, description };
+    return BrowseFiltering.buildFilterMeta({
+      activeFilters: this.activeFilters,
+      filterTypeLabels: this.filterTypeLabels,
+      siteName: this.siteName,
+      defaultTitle: this.defaultMeta.title,
+      defaultDescription: this.defaultMeta.description,
+      buildMetaDescription: this.buildMetaDescription.bind(this)
+    });
   },
 
   updateMetaForFilters() {
@@ -1709,26 +1560,10 @@ const App = {
   gridSortHandle: null,
 
   // Active filters state
-  activeFilters: {
-    seasonYear: [],
-    year: [],
-    studio: [],
-    source: [],
-    genres: [],
-    themes: [],
-    demographic: []
-  },
+  activeFilters: BrowseFiltering.getDefaultActiveFilters(),
 
   // Filter options (populated from data)
-  filterOptions: {
-    seasonYear: [],
-    year: [],
-    studio: [],
-    source: [],
-    genres: [],
-    themes: [],
-    demographic: []
-  },
+  filterOptions: BrowseFiltering.getDefaultFilterOptions(),
 
   /**
    * Initialize the application
@@ -2521,60 +2356,7 @@ const App = {
    * Extract unique filter options from data
    */
   extractFilterOptions() {
-    const seasonYears = new Set();
-    const years = new Set();
-    const studios = new Set();
-    const sources = new Set();
-    const genres = new Set();
-    const themes = new Set();
-    const demographics = new Set();
-
-    this.animeData.forEach(anime => {
-      // Generate season-year combinations
-      if (anime.year && anime.season) {
-        seasonYears.add(`${anime.season} ${anime.year}`);
-      }
-      // Extract year
-      if (anime.year) {
-        years.add(anime.year);
-      }
-      // Handle studio as string or array
-      if (anime.studio) {
-        if (Array.isArray(anime.studio)) {
-          anime.studio.forEach(s => studios.add(s));
-        } else {
-          studios.add(anime.studio);
-        }
-      }
-      if (anime.source) sources.add(anime.source);
-      if (anime.genres) anime.genres.forEach(g => genres.add(g));
-      if (anime.themes) anime.themes.forEach(t => themes.add(t));
-      if (anime.demographic) demographics.add(anime.demographic);
-    });
-
-    // Sort season-year by year descending, then by season order
-    const seasonOrder = { 'Winter': 0, 'Spring': 1, 'Summer': 2, 'Fall': 3 };
-    const sortedSeasonYears = [...seasonYears].sort((a, b) => {
-      const [seasonA, yearA] = a.split(' ');
-      const [seasonB, yearB] = b.split(' ');
-      if (yearA !== yearB) {
-        return parseInt(yearB) - parseInt(yearA); // Descending year
-      }
-      return seasonOrder[seasonB] - seasonOrder[seasonA]; // Descending season within year
-    });
-
-    // Sort years descending (newest first)
-    const sortedYears = [...years].sort((a, b) => b - a);
-
-    this.filterOptions = {
-      seasonYear: sortedSeasonYears,
-      year: sortedYears,
-      studio: [...studios].sort(),
-      source: [...sources].sort(),
-      genres: [...genres].sort(),
-      themes: [...themes].sort(),
-      demographic: [...demographics].sort()
-    };
+    this.filterOptions = BrowseFiltering.extractFilterOptions(this.animeData);
   },
 
   /**
@@ -3557,32 +3339,26 @@ const App = {
    * Toggle a filter on/off
    */
   toggleFilter(type, value) {
-    const valueStr = String(value);
-    const currentValues = Array.isArray(this.activeFilters[type]) ? this.activeFilters[type] : [];
-    const index = currentValues.indexOf(valueStr);
-    const nextValues = index > -1
-      ? currentValues.filter(item => item !== valueStr)
-      : [...currentValues, valueStr];
-    this.activeFilters = { ...this.activeFilters, [type]: nextValues };
-    const isActive = nextValues.includes(valueStr);
-    const ariaLabel = `${isActive ? 'Remove' : 'Add'} ${valueStr} filter`;
+    const transition = BrowseFiltering.toggleFilterValue(this.activeFilters, type, value);
+    this.activeFilters = transition.activeFilters;
+    const ariaLabel = `${transition.isActive ? 'Remove' : 'Add'} ${transition.value} filter`;
 
     // Update pill state in modal
     const safeType = this.escapeCssValue(type);
     const pillCandidates = document.querySelectorAll(`.filter-pill[data-filter-type="${safeType}"]`);
-    const pill = Array.from(pillCandidates).find(el => el.dataset.filterValue === valueStr);
+    const pill = Array.from(pillCandidates).find(el => el.dataset.filterValue === transition.value);
     if (pill) {
-      pill.classList.toggle('active', isActive);
-      pill.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      pill.classList.toggle('active', transition.isActive);
+      pill.setAttribute('aria-pressed', transition.isActive ? 'true' : 'false');
       pill.setAttribute('aria-label', ariaLabel);
     }
 
     // Update quick chip state
     const chipCandidates = document.querySelectorAll(`.quick-chip[data-filter-type="${safeType}"]`);
-    const chip = Array.from(chipCandidates).find(el => el.dataset.filterValue === valueStr);
+    const chip = Array.from(chipCandidates).find(el => el.dataset.filterValue === transition.value);
     if (chip) {
-      chip.classList.toggle('active', isActive);
-      chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      chip.classList.toggle('active', transition.isActive);
+      chip.setAttribute('aria-pressed', transition.isActive ? 'true' : 'false');
       chip.setAttribute('aria-label', ariaLabel);
     }
 
@@ -3594,10 +3370,7 @@ const App = {
    * @returns {number} Active filter count
    */
   getActiveFilterCount() {
-    return Object.values(this.activeFilters).reduce((total, values) => {
-      if (!Array.isArray(values)) return total;
-      return total + values.filter(value => value !== null && value !== undefined && value !== '').length;
-    }, 0);
+    return BrowseFiltering.getActiveFilterCount(this.activeFilters);
   },
 
   /**
@@ -3735,79 +3508,15 @@ const App = {
    * Apply all active filters to data
    */
   applyFilters({ syncUrl = true, replaceUrl = false, updateMeta = true } = {}) {
-    const hasActiveFilters = Object.values(this.activeFilters).some(values =>
-      Array.isArray(values) && values.length > 0
-    );
-
-    let nextData;
-    if (!hasActiveFilters) {
-      nextData = this.animeData;
-    } else {
-      nextData = this.animeData.filter(anime => {
-        // Check season-year filter
-        if (this.activeFilters.seasonYear.length > 0) {
-          const animeSeasonYear = `${anime.season} ${anime.year}`;
-          if (!this.activeFilters.seasonYear.includes(animeSeasonYear)) {
-            return false;
-          }
-        }
-
-        // Check year filter (independent of season)
-        if (this.activeFilters.year.length > 0) {
-          // Compare as strings since filter values are stored as strings
-          if (!this.activeFilters.year.includes(String(anime.year))) {
-            return false;
-          }
-        }
-
-        // Check studio filter (OR logic within category, handle array studios)
-        if (this.activeFilters.studio.length > 0) {
-          const animeStudios = Array.isArray(anime.studio) ? anime.studio : [anime.studio];
-          const hasMatchingStudio = animeStudios.some(s => this.activeFilters.studio.includes(s));
-          if (!hasMatchingStudio) {
-            return false;
-          }
-        }
-
-        // Check source filter
-        if (this.activeFilters.source.length > 0) {
-          if (!this.activeFilters.source.includes(anime.source)) {
-            return false;
-          }
-        }
-
-        // Check genres filter (anime must have ALL of the selected genres)
-        if (this.activeFilters.genres.length > 0) {
-          const hasAllGenres = anime.genres &&
-            this.activeFilters.genres.every(g => anime.genres.includes(g));
-          if (!hasAllGenres) {
-            return false;
-          }
-        }
-
-        // Check themes filter (anime must have ALL of the selected themes)
-        if (this.activeFilters.themes.length > 0) {
-          const hasAllThemes = anime.themes &&
-            this.activeFilters.themes.every(t => anime.themes.includes(t));
-          if (!hasAllThemes) {
-            return false;
-          }
-        }
-
-        // Check demographic filter
-        if (this.activeFilters.demographic.length > 0) {
-          if (!this.activeFilters.demographic.includes(anime.demographic)) {
-            return false;
-          }
-        }
-
-        return true;
-      });
-    }
     const searchQuery = this.getCatalogSearchQuery();
-    nextData = this.filterDataBySearch(nextData, searchQuery);
-    this.lastAppliedSearchQuery = searchQuery.length >= 2 ? searchQuery : '';
-    this.filteredData = nextData;
+    const result = BrowseFiltering.applyFilters({
+      animeData: this.animeData,
+      activeFilters: this.activeFilters,
+      searchQuery,
+      filterDataBySearch: this.filterDataBySearch.bind(this)
+    });
+    this.lastAppliedSearchQuery = result.lastAppliedSearchQuery;
+    this.filteredData = result.filteredData;
 
     // Reset pagination when filters change
     this.resetGridPagination();
@@ -4735,25 +4444,11 @@ const App = {
     const clearBtn = document.getElementById('active-filters-clear');
     if (!container || !list || !emptyState || !label || !clearBtn) return;
 
-    const active = [];
-    Object.entries(this.activeFilters).forEach(([type, values]) => {
-      values.forEach(value => {
-        if (value === null || value === undefined || value === '') return;
-        active.push({
-          type,
-          value,
-          label: this.filterTypeLabels[type] || type
-        });
-      });
+    const active = BrowseFiltering.buildActiveFilterItems({
+      activeFilters: this.activeFilters,
+      searchQuery: this.getCatalogSearchQuery(),
+      filterTypeLabels: this.filterTypeLabels
     });
-    const searchQuery = this.getCatalogSearchQuery();
-    if (searchQuery.length >= 2) {
-      active.unshift({
-        type: 'search',
-        value: searchQuery,
-        label: 'Search'
-      });
-    }
 
     if (active.length === 0) {
       list.replaceChildren();
@@ -5804,18 +5499,6 @@ const App = {
         `}
       </div>
     `;
-  },
-
-  isDetailCached(animeId) {
-    return this.getDetailExperience().isCached(animeId);
-  },
-
-  getCachedDetail(animeId) {
-    return this.getDetailExperience().getCached(animeId);
-  },
-
-  cacheDetail(animeId, html) {
-    return this.getDetailExperience().cache(animeId, html);
   },
 
   /**

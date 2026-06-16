@@ -54,14 +54,31 @@ test('Detail Experience port exposes a narrow adapter surface over App Shell', (
   };
 
   const port = createDetailExperiencePort(app);
-  port.currentAnimeId = 'show-1';
-  port.emitAppEvent('event', { id: 'show-1' });
+  port.state.currentAnimeId = 'show-1';
+  port.events.emit('event', { id: 'show-1' });
 
   assert.equal(app.currentAnimeId, 'show-1');
-  assert.equal(port.detailCache, app.detailCache);
-  assert.equal(typeof port.renderDetailContent, 'function');
-  assert.equal(typeof port.renderDetailErrorState, 'function');
-  assert.equal(typeof port.refreshDetailMedia, 'function');
-  assert.equal(typeof port.loadDetailReviews, 'function');
+  assert.deepEqual(Object.keys(port).sort(), [
+    'cache',
+    'catalog',
+    'clock',
+    'events',
+    'media',
+    'metadata',
+    'modal',
+    'prefetch',
+    'presentation',
+    'reviews',
+    'routing',
+    'state',
+    'watchlist'
+  ]);
+  assert.equal(port.cache.store, app.detailCache);
+  assert.equal(typeof port.presentation.renderContent, 'function');
+  assert.equal(typeof port.presentation.renderError, 'function');
+  assert.equal(typeof port.media.refresh, 'function');
+  assert.equal(typeof port.reviews.load, 'function');
+  assert.equal('renderDetailContent' in port, false);
+  assert.equal('loadDetailReviews' in port, false);
   assert.deepEqual(calls, [['emitAppEvent', 'event', { id: 'show-1' }]]);
 });

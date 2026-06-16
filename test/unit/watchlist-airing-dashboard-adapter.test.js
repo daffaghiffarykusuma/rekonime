@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWatchlistAiringDashboardAdapter } from '../../js/watchlist-airing-dashboard-adapter.ts';
 
-const createAdapter = ({ factoryRejects = false, updateRejects = false } = {}) => {
+const createAdapter = ({ controllerOptions, factoryRejects = false, updateRejects = false } = {}) => {
   const calls = [];
   const queued = [];
   let nextHandle = 1;
@@ -14,6 +14,7 @@ const createAdapter = ({ factoryRejects = false, updateRejects = false } = {}) =
   };
   const adapter = createWatchlistAiringDashboardAdapter({
     cancelTask: (handle) => calls.push(['cancelTask', handle]),
+    controllerOptions,
     logger: { warn: (...args) => calls.push(['warn', ...args]) },
     loadDashboardFactory: async () => {
       calls.push(['loadDashboardFactory']);
@@ -52,6 +53,35 @@ test('Watchlist Airing Dashboard Adapter schedules one dashboard update', async 
   assert.deepEqual(calls[0], ['queueTask', 1, 1800]);
   assert.equal(calls[2][1].gridId, 'airing-dashboard-grid');
   assert.deepEqual(calls[3][1], { entries, animeItems });
+});
+
+test('Watchlist Airing Dashboard Adapter resolves scheduled sources when work runs', async () => {
+  const { adapter, calls, queued } = createAdapter();
+  let entries = [{ id: 'show-before' }];
+  let animeItems = [{ id: 'show-before', title: 'Before' }];
+
+  adapter.scheduleUpdate(() => entries, () => animeItems, { timeout: 1800 });
+  entries = [{ id: 'show-after' }];
+  animeItems = [{ id: 'show-after', title: 'After' }];
+  await queued[0].callback();
+
+  assert.deepEqual(calls.at(-1), ['update', { entries, animeItems }]);
+});
+
+test('Watchlist Airing Dashboard Adapter shares controller options with callers', async () => {
+  const { adapter, calls, queued } = createAdapter({
+    controllerOptions: {
+      sectionId: 'custom-airing-section',
+      hideWhenNoEntries: false
+    }
+  });
+
+  adapter.scheduleUpdate([], [], { timeout: 1800 });
+  await queued[0].callback();
+
+  assert.equal(calls[2][1].sectionId, 'custom-airing-section');
+  assert.equal(calls[2][1].gridId, 'airing-dashboard-grid');
+  assert.equal(calls[2][1].hideWhenNoEntries, false);
 });
 
 test('Watchlist Airing Dashboard Adapter cancels previous scheduled work', () => {
