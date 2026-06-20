@@ -147,6 +147,36 @@ const stripInjectedStylesheetLinks = () => {
   });
 };
 
+const inlineWatchlistStyles = () => {
+  const filePath = path.join(dist, 'watchlist.html');
+  if (!fs.existsSync(filePath)) return;
+
+  const source = fs.readFileSync(filePath, 'utf8');
+  if (source.includes('id="watchlist-critical-styles"')) return;
+
+  const styleAssets = [
+    { href: '/css/preload-helper.css', filePath: path.join(dist, 'css', 'preload-helper.css') },
+    { href: '/css/watchlist.css', filePath: path.join(dist, 'css', 'watchlist.css') }
+  ];
+  if (styleAssets.some((asset) => !fs.existsSync(asset.filePath))) return;
+
+  let next = source;
+  styleAssets.forEach((asset) => {
+    const escapedHref = asset.href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const linkPattern = new RegExp(`\\s*<link\\s+rel="stylesheet"\\s+crossorigin\\s+href="${escapedHref}">\\r?\\n?`, 'g');
+    next = next.replace(linkPattern, '\n');
+  });
+
+  const css = styleAssets
+    .map((asset) => fs.readFileSync(asset.filePath, 'utf8'))
+    .join('\n');
+  next = next.replace(
+    '</head>',
+    `  <style id="watchlist-critical-styles">${css}</style>\n</head>`
+  );
+  fs.writeFileSync(filePath, next, 'utf8');
+};
+
 const injectCatalogStartupHints = () => {
   const filePath = path.join(dist, 'index.html');
   if (!fs.existsSync(filePath)) return;
@@ -173,4 +203,5 @@ copyRecursive(path.join(root, 'js', 'bootstrap'), path.join(dist, 'js', 'bootstr
 copyRecursive(path.join(root, 'health.html'), path.join(dist, 'health.html'));
 copyServiceWorker();
 stripInjectedStylesheetLinks();
+inlineWatchlistStyles();
 injectCatalogStartupHints();

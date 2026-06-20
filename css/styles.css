@@ -5075,6 +5075,11 @@ summary:focus-visible,
   visibility: visible;
 }
 
+html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
+  opacity: 1;
+  visibility: visible;
+}
+
 .onboarding-backdrop {
   position: absolute;
   inset: 0;

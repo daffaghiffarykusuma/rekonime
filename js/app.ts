@@ -1585,7 +1585,7 @@ const App = {
 
       // Check and trigger onboarding for first-time users
       if (!Onboarding.hasCompleted()) {
-        this.queueIdleTask(() => Onboarding.startTour(), { timeout: 3000 });
+        Onboarding.startTour();
       }
 
       const isCatalogPage = this.isCatalogPage();

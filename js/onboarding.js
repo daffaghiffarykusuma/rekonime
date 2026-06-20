@@ -88,7 +88,13 @@ const Onboarding = {
     const indicators = document.querySelectorAll('.onboarding-indicator');
 
     if (contentEl) {
-      setHTML(contentEl, content);
+      if (contentEl.dataset.onboardingStep !== stepName) {
+        setHTML(contentEl, content);
+        contentEl.dataset.onboardingStep = stepName;
+      }
+      contentEl.querySelectorAll('button:disabled[data-action]').forEach((button) => {
+        button.disabled = false;
+      });
       this.attachStepListeners();
     }
 
@@ -260,7 +266,10 @@ const Onboarding = {
   renderModal() {
     let modal = document.getElementById('onboarding-modal');
     if (modal) {
+      modal.classList.remove('onboarding-shell');
+      modal.setAttribute('aria-hidden', 'false');
       modal.classList.add('visible');
+      this.attachModalListeners();
       return;
     }
 
@@ -413,6 +422,7 @@ const Onboarding = {
    */
   closeModal() {
     const modal = document.getElementById('onboarding-modal');
+    document.documentElement.removeAttribute('data-onboarding-pending');
     if (modal) {
       modal.classList.remove('visible');
       setTimeout(() => {
