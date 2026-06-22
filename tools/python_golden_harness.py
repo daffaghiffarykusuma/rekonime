@@ -18,13 +18,12 @@ import tempfile
 from typing import Any, Dict, List
 
 from embedded_data import serialize_embedded_data
-import pipeline_parity_contract as parity_contract
 from quality_reporter import build_quality_report
 
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_DIR = ROOT / "test" / "fixtures" / "python-golden"
-PLACEHOLDER_TIMESTAMP = parity_contract.PLACEHOLDER_TIMESTAMP
+PLACEHOLDER_TIMESTAMP = "<generated-at>"
 
 
 def compact_json(payload: Any) -> str:
@@ -90,6 +89,55 @@ def representative_catalog_input() -> Dict[str, Any]:
                 "episodes": episodes_beta,
             },
         ]
+    }
+
+
+def validation_payload() -> Dict[str, Any]:
+    return {
+        "generatedAt": "2026-01-01T00:00:00.000Z",
+        "scoreProfile": {"p35": 4.05, "p50": 4.12, "p65": 4.2, "sampleSize": 2000, "source": "fixture"},
+        "anime": [{
+            "id": "alpha",
+            "title": "Alpha",
+            "cover": "https://cdn.myanimelist.net/images/anime/1/1.jpg",
+            "year": 2024,
+            "season": "Spring",
+            "studio": "Studio A",
+            "source": "Manga",
+            "score": 8.1,
+            "anilistId": 201,
+            "genres": ["Action"],
+            "themes": ["School"],
+            "episodes": [{"episode": 1, "score": 4.2}],
+            "trailer": {
+                "id": "abc123",
+                "url": "https://www.youtube.com/watch?v=abc123",
+                "embedUrl": "https://www.youtube.com/embed/abc123",
+            },
+            "stats": {"retentionScore": 80},
+        }],
+    }
+
+
+def contract_manifest() -> Dict[str, Any]:
+    return {
+        "version": 1,
+        "generatedBy": "tools/python_golden_harness.py",
+        "normalizations": [
+            "generatedAt fields use <generated-at>",
+            "quality report buildId uses <generated-at>",
+            "quality report duration uses 0",
+            "temporary fixture paths use <fixture-workdir>",
+        ],
+        "fixtures": [
+            "catalog-input.json",
+            "catalog-full.json",
+            "catalog-preview.json",
+            "embedded-data.js",
+            "quality-report.json",
+            "validation-success.txt",
+            "validation-failure.txt",
+        ],
     }
 
 
@@ -178,7 +226,7 @@ def build_actuals(workdir: Path) -> Dict[str, str]:
     failure_data_path = workdir / "validation-failure.full.json"
     failure_embedded_path = workdir / "validation-failure-data.js"
 
-    write_json(input_path, parity_contract.representative_catalog_input())
+    write_json(input_path, representative_catalog_input())
     run_command([
         sys.executable,
         "tools/build_catalogs.py",
@@ -193,7 +241,7 @@ def build_actuals(workdir: Path) -> Dict[str, str]:
         str(state_path),
     ])
 
-    valid_payload = parity_contract.validation_payload()
+    valid_payload = validation_payload()
     write_json(validation_data_path, valid_payload)
     validation_embedded_path.write_text(serialize_embedded_data(valid_payload), encoding="utf-8")
     validation_index_path.write_text(
@@ -232,7 +280,7 @@ def build_actuals(workdir: Path) -> Dict[str, str]:
     ], expect_success=False)
 
     return {
-        "catalog-input.json": compact_json(parity_contract.representative_catalog_input()),
+        "catalog-input.json": compact_json(representative_catalog_input()),
         "catalog-full.json": compact_json(normalize_catalog_payload(read_json(full_path))),
         "catalog-preview.json": compact_json(normalize_catalog_payload(read_json(preview_path))),
         "embedded-data.js": serialize_embedded_data(valid_payload),
@@ -245,7 +293,7 @@ def build_actuals(workdir: Path) -> Dict[str, str]:
         ))),
         "validation-success.txt": normalize_validation_output(success.stdout, workdir),
         "validation-failure.txt": normalize_validation_output(failure.stdout, workdir),
-        "manifest.json": compact_json(parity_contract.contract_manifest()),
+        "manifest.json": compact_json(contract_manifest()),
     }
 
 
@@ -281,7 +329,7 @@ def compare_or_update(actuals: Dict[str, str], *, update: bool) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Compare Python migration golden fixtures")
+    parser = argparse.ArgumentParser(description="Compare Python data-tool golden fixtures")
     parser.add_argument("--update", action="store_true", help="rewrite golden fixtures from current JS/Bun outputs")
     args = parser.parse_args()
 

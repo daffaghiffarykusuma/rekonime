@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 
-test('Python validation and quality reporting internals are present for migration parity', () => {
+test('Python validation and quality reporting internals are present', () => {
   const validatePath = path.join(process.cwd(), 'tools', 'validate_data.py');
   const qualityPath = path.join(process.cwd(), 'tools', 'quality_reporter.py');
   const harnessPath = path.join(process.cwd(), 'tools', 'python_golden_harness.py');

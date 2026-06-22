@@ -209,7 +209,7 @@ const main = async () => {
 
   if (!options.skipBuild) {
     console.log('\nRebuilding catalog outputs so finish-rate stats reflect refreshed episodes...');
-    await runCommand('bun', [path.join('tools', 'run-build-catalogs.js')]);
+    await runCommand('bun', [path.join('tools', 'run-python.js'), path.join('tools', 'build_catalogs.py')]);
   }
 };
 

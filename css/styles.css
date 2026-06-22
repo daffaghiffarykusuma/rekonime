@@ -860,6 +860,9 @@ h4 {
 
 /* Detail Modal */
 .modal-overlay {
+  border: 0;
+  max-height: none;
+  max-width: none;
   position: fixed;
   top: 0;
   left: 0;
@@ -1235,6 +1238,10 @@ h4 {
     calc(100% - 1rem) 50%;
   background-size: 0.35rem 0.35rem, 0.35rem 0.35rem;
   background-repeat: no-repeat;
+}
+
+.modal-overlay::backdrop {
+  background: transparent;
 }
 
 .watchlist-select:focus-visible {

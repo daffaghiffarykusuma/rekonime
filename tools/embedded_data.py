@@ -1,4 +1,4 @@
-"""Embedded catalog data helpers for Python migration parity."""
+"""Embedded catalog data helpers."""
 
 from __future__ import annotations
 

@@ -8,8 +8,8 @@
 /sw.js @security-team @runtime-team
 /js/urlSanitizer.js @security-team @runtime-team
 /js/security/* @security-team @runtime-team
-/tools/validate-data.js @security-team @pipeline-team
-/tools/lib/schema-validator.js @security-team @pipeline-team
+/tools/validate_data.py @security-team @pipeline-team
+/tools/run-python.js @pipeline-team
 
 # Data pipeline and data artifacts
 /tools/* @pipeline-team

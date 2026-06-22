@@ -1489,7 +1489,7 @@
     Refine ?
   </button>
 
-  <div class="modal-overlay filter-modal-overlay" id="filter-modal" hidden inert>
+  <dialog class="modal-overlay filter-modal-overlay" id="filter-modal" hidden inert>
     <div class="modal-content filter-modal-content" role="dialog" aria-modal="true" aria-labelledby="filter-modal-title"
       tabindex="-1">
       <div class="filter-modal-header">
@@ -1509,9 +1509,9 @@
         </div>
       </div>
     </div>
-  </div>
+  </dialog>
 
-  <div class="modal-overlay settings-modal-overlay" id="settings-modal" hidden inert>
+  <dialog class="modal-overlay settings-modal-overlay" id="settings-modal" hidden inert>
     <div class="modal-content settings-modal-content" role="dialog" aria-modal="true"
       aria-labelledby="settings-modal-title" tabindex="-1">
       <button class="modal-close" id="close-settings" type="button" aria-label="Close settings">&times;</button>
@@ -1523,21 +1523,21 @@
         <div id="settings-content"></div>
       </div>
     </div>
-  </div>
+  </dialog>
 
 
   <!-- Detail Modal -->
-  <div class="modal-overlay" id="detail-modal" hidden inert>
+  <dialog class="modal-overlay" id="detail-modal" hidden inert>
     <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" tabindex="-1">
       <button class="modal-close" id="close-detail" type="button" aria-label="Close details">&times;</button>
       <div class="modal-body" id="detail-content">
         <!-- Populated by JS -->
       </div>
     </div>
-  </div>
+  </dialog>
 
   <!-- Metric Help Modal -->
-  <div class="modal-overlay metric-help-overlay" id="metric-help-modal" hidden inert>
+  <dialog class="modal-overlay metric-help-overlay" id="metric-help-modal" hidden inert>
     <div class="modal-content metric-help-content" role="dialog" aria-modal="true" aria-labelledby="metric-help-title">
       <button class="modal-close" id="close-metric-help" type="button" aria-label="Close help">&times;</button>
       <h2 class="visually-hidden" id="metric-help-title">Score guide</h2>
@@ -1545,7 +1545,7 @@
         <!-- Populated by JS -->
       </div>
     </div>
-  </div>
+  </dialog>
 
   <!-- Offline Indicator -->
   <div class="offline-indicator" id="offline-indicator" role="status" aria-live="polite" hidden>

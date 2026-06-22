@@ -1,4 +1,4 @@
-"""Python quality reporting internals for data-tool migration parity."""
+"""Catalog quality reporting."""
 
 from __future__ import annotations
 

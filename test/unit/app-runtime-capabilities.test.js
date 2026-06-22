@@ -6,11 +6,11 @@ import { setupDom } from '../helpers/dom.js';
 test('App Shell keeps Runtime Capabilities as one stable instance', () => {
   setupDom(`
     <button id="before">Before</button>
-    <div id="detail-modal" class="modal-overlay" hidden inert>
+    <dialog id="detail-modal" class="modal-overlay" hidden inert>
       <div class="modal-content">
         <button id="close-detail">Close</button>
       </div>
-    </div>
+    </dialog>
   `, { url: 'https://example.com/' });
   App.runtimeCapabilities = null;
 

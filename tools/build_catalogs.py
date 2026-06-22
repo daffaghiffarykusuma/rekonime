@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Python catalog build pipeline for migration parity."""
+"""Build Rekonime catalog outputs."""
 
 from __future__ import annotations
 

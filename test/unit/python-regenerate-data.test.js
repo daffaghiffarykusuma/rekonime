@@ -7,7 +7,7 @@ import path from 'node:path';
 
 test('data:regenerate command preserves embedded data output through migration launcher', () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
-  assert.match(packageJson.scripts['data:regenerate'], /run-regenerate-data\.js/);
+  assert.equal(packageJson.scripts['data:regenerate'], 'bun tools/run-python.js tools/regenerate_data.py');
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rekonime-regenerate-'));
   const inputPath = path.join(dir, 'anime.preview.json');

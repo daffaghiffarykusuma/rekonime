@@ -2,7 +2,7 @@
 
 ## Trigger Conditions
 - `bun run data:validate` fails on default branch.
-- `tools/build-catalogs.js` strict mode fails quality gates unexpectedly.
+- `tools/build_catalogs.py` strict mode fails quality gates unexpectedly.
 - Production shows broken anime detail cards or malformed score data.
 
 ## Triage Steps

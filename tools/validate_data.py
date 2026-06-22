@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Python data validation CLI for migration parity with validate-data.js."""
+"""Validate Rekonime catalog and embedded data."""
 
 from __future__ import annotations
 

@@ -28,15 +28,14 @@ test('Runtime Capabilities uses requestIdleCallback and cancellation when availa
 test('Runtime Capabilities toggles modal visibility and body scroll lock', () => {
   setupDom(`
     <button id="before">Before</button>
-    <div id="detail-modal" class="modal-overlay" hidden inert>
+    <dialog id="detail-modal" class="modal-overlay" hidden inert>
       <div class="modal-content">
         <button id="close-detail">Close</button>
       </div>
-    </div>
+    </dialog>
   `, { url: 'https://example.com/' });
 
-  const state = { activeId: null, lastFocused: null, handler: null };
-  const runtime = createRuntimeCapabilities({ modalFocusState: state });
+  const runtime = createRuntimeCapabilities();
 
   runtime.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
 
@@ -45,7 +44,7 @@ test('Runtime Capabilities toggles modal visibility and body scroll lock', () =>
   assert.equal(modal.hasAttribute('hidden'), false);
   assert.equal(modal.hasAttribute('inert'), false);
   assert.equal(document.body.classList.contains('is-scroll-locked'), true);
-  assert.equal(state.activeId, 'detail-modal');
+  assert.equal(modal.hasAttribute('open'), true);
 
   runtime.setModalVisibility('detail-modal', false);
 
@@ -53,14 +52,14 @@ test('Runtime Capabilities toggles modal visibility and body scroll lock', () =>
   assert.equal(modal.hasAttribute('hidden'), true);
   assert.equal(modal.hasAttribute('inert'), true);
   assert.equal(document.body.classList.contains('is-scroll-locked'), false);
-  assert.equal(state.activeId, null);
+  assert.equal(modal.hasAttribute('open'), false);
 });
 
 test('Runtime Capabilities routes Escape to the highest-priority open modal', () => {
   setupDom(`
-    <div id="settings-modal" class="modal-overlay visible"></div>
-    <div id="filter-modal" class="modal-overlay visible"></div>
-    <div id="detail-modal" class="modal-overlay visible"></div>
+    <dialog id="settings-modal" class="modal-overlay visible" open></dialog>
+    <dialog id="filter-modal" class="modal-overlay visible" open></dialog>
+    <dialog id="detail-modal" class="modal-overlay visible" open></dialog>
   `, { url: 'https://example.com/' });
 
   let closed = '';

@@ -8,8 +8,8 @@ test('data operation package commands use Python-capable migration launcher', ()
   const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
 
   assert.match(packageJson.scripts['test:scraper'], /^bun tools\/run-scraper-tests\.js$/);
-  assert.match(packageJson.scripts['data:backup'], /^bun tools\/run-deploy-data\.js backup$/);
-  assert.match(packageJson.scripts['data:rollback'], /^bun tools\/run-deploy-data\.js rollback$/);
+  assert.equal(packageJson.scripts['data:backup'], 'bun tools/run-python.js tools/deploy_data.py backup');
+  assert.equal(packageJson.scripts['data:rollback'], 'bun tools/run-python.js tools/deploy_data.py rollback');
   assert.equal(fs.existsSync(path.join(process.cwd(), 'tools', 'deploy_data.py')), true);
 });
 

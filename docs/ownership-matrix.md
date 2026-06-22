@@ -8,12 +8,12 @@ Canonical reviewer mapping is codified in `.github/CODEOWNERS`.
   - Required review focus: user-facing regressions, accessibility, state transitions
 
 ## Security-Sensitive Surface
-- `vercel.json`, `sw.js`, `js/urlSanitizer.ts`, `js/security/trailer-url-policy.ts`, `tools/validate-data.js`, `tools/validate_data.py`, `tools/lib/schema-validator.js`:
+- `vercel.json`, `sw.js`, `js/urlSanitizer.ts`, `js/security/trailer-url-policy.ts`, `tools/validate_data.py`:
   - Owner group: Security + Runtime joint review
   - Required review focus: URL policy, host allowlists, CSP, network/cache behavior
 
 ## Data Pipeline
-- `tools/build-catalogs.js`, `tools/*_data.py`, `tools/*golden*harness*`, `tools/run-*-data.js`, `tools/scraper/*`, `data/*`:
+- `tools/*_data.py`, `tools/build_catalogs.py`, `tools/quality_reporter.py`, `tools/python_golden_harness.py`, `tools/run-python.js`, `tools/scraper/*`, `data/*`:
   - Owner group: Data pipeline team
   - Required review focus: schema compatibility, validation gates, rollback safety
 

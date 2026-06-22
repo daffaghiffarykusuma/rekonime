@@ -15,8 +15,7 @@ import { ApiClient } from './services/api-client.ts';
 import { Logger } from './services/logger.ts';
 import { HealthMonitor } from './healthMonitor.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
-import { createDetailExperience } from './detail-experience.ts';
-import { createDetailExperiencePort } from './detail-experience-port.ts';
+import { createDetailExperience, createDetailExperiencePort } from './detail-experience.ts';
 import { buildDetailDecisionData } from './detail-presentation.ts';
 import { createRuntimeCapabilities } from './runtime-capabilities.ts';
 import {
@@ -1443,10 +1442,6 @@ const App = {
     return this.getRuntimeCapabilities().getModalElement(modalId);
   },
 
-  getModalContent(modal) {
-    return this.getRuntimeCapabilities().getModalContent(modal);
-  },
-
   isModalVisible(modalId) {
     return this.getRuntimeCapabilities().isModalVisible(modalId);
   },
@@ -1457,22 +1452,6 @@ const App = {
 
   updateBodyScrollLock() {
     return this.getRuntimeCapabilities().updateBodyScrollLock();
-  },
-
-  isElementVisible(element) {
-    return this.getRuntimeCapabilities().isElementVisible(element);
-  },
-
-  getFocusableElements(container) {
-    return this.getRuntimeCapabilities().getFocusableElements(container);
-  },
-
-  activateModalFocus(modalId, { initialFocusSelector } = {}) {
-    return this.getRuntimeCapabilities().activateModalFocus(modalId, { initialFocusSelector });
-  },
-
-  deactivateModalFocus(modalId, { returnFocus = true } = {}) {
-    return this.getRuntimeCapabilities().deactivateModalFocus(modalId, { returnFocus });
   },
 
   setModalVisibility(modalId, isOpen, { initialFocusSelector, returnFocus = true } = {}) {

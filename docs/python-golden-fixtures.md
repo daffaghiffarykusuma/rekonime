@@ -1,6 +1,6 @@
 # Python Golden Fixture Harness
 
-The Python migration uses `tools/python_golden_harness.py` to compare migrated internal-tool outputs against checked-in fixtures.
+`tools/python_golden_harness.py` compares Python data-tool outputs against checked-in fixtures.
 
 Run:
 
@@ -8,7 +8,7 @@ Run:
 bun run test:golden
 ```
 
-The Bun command delegates to `tools/python_golden_harness.py` when a Python interpreter is available. In environments without Python on `PATH`, it runs a Bun fallback against the same fixture set through `tools/pipeline-parity-contract.js` so local parity checks still work; Python availability remains required before replacing JavaScript tools with Python implementations.
+The Bun command uses `tools/run-python.js` to find the local virtual environment or an installed Python 3 interpreter. Python is required.
 
 The harness covers:
 - Representative catalog input, full catalog output, and preview catalog output.
@@ -16,26 +16,20 @@ The harness covers:
 - Quality report output from the catalog build path.
 - Validation success and validation failure reports.
 
-Issue 10 adds Python validation and quality-reporting internals:
+Validation and quality reporting:
 - `tools/validate_data.py`
 - `tools/quality_reporter.py`
-- `tools/run-validate-data.js`
 
-When Python is available, `tools/python_golden_harness.py` exercises Python validation internals and the Python catalog build path against the checked-in golden outputs. On this Windows workspace, Python is not currently installed, so `bun run test:golden` uses the Bun fallback and reports that limitation.
-
-Issue 11 starts catalog regeneration migration with Python-compatible embedded fallback generation:
+Catalog generation:
 - `tools/build_catalogs.py`
-- `tools/run-build-catalogs.js`
 - `tools/embedded_data.py`
 - `tools/regenerate_data.py`
-- `tools/run-regenerate-data.js`
 
-The existing catalog refresh flow now uses `bun run data:build` and `bun run data:regenerate`. The Python build path owns normalization, score-profile derivation, build stats, preview selection, and quality-report handoff; `tools/python_golden_harness.py` calls `tools/build_catalogs.py` directly when Python is available. TypeScript `Stats` remains the browser/runtime scoring contract.
+The catalog refresh flow uses `bun run data:build` and `bun run data:regenerate`.
 
-Issue 12 moves selected scraper-adjacent/data-operation commands behind Bun launchers:
+Data operations:
 - `bun run test:scraper` now runs `tools/run-scraper-tests.js` through Bun.
-- `bun run data:backup` and `bun run data:rollback` now run `tools/run-deploy-data.js`.
-- `tools/deploy_data.py` owns the Python backup/rollback implementation when Python is available.
+- `bun run data:backup` and `bun run data:rollback` run `tools/deploy_data.py`.
 
 Golden files live in `test/fixtures/python-golden/`.
 
@@ -48,11 +42,5 @@ Volatile fields are normalized before comparison:
 Only update fixtures for reviewed, intentional output changes:
 
 ```powershell
-python tools/python_golden_harness.py --update
-```
-
-If Python is unavailable locally, use:
-
-```powershell
-bun tools/run-python-golden-harness.js --update
+bun tools/run-python.js tools/python_golden_harness.py --update
 ```

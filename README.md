@@ -91,7 +91,7 @@ Reference docs:
 - `sw.js`: service worker for offline caching.
 - `data/`: JSON catalogs (source, preview, full).
 - `dist/data/anime.full.index.json`, `dist/data/anime.detail/*.json`: production runtime catalog index and on-demand detail chunks.
-- `tools/`: data pipeline scripts, Python migration harnesses, and scrapers.
+- `tools/`: Python data pipeline scripts, regression fixtures, and scrapers.
 
 ## Architecture diagram (short)
 ```mermaid

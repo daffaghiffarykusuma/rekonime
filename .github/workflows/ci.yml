@@ -46,7 +46,7 @@ jobs:
       - name: Integration tests
         run: bun --silent run test:integration
 
-      - name: Python migration golden fixtures
+      - name: Python golden fixtures
         run: bun --silent run test:golden
 
       - name: Data validation

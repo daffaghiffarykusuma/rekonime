@@ -14,7 +14,6 @@
 - Runtime module: `js/services/catalog-loader.ts`
 - Runtime TypeScript entrypoint: `js/services/catalog-loader.ts`
 - Payload module: `js/services/catalog-payload.ts`
-- Payload effect plan module: `js/services/catalog-payload-effect-plan.ts`
 - Payload effect module: `js/services/catalog-payload-effects.ts`
 - Payload TypeScript entrypoint: `js/services/catalog-payload.ts`
 - Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/api-client.ts`, `js/services/cache-manager.ts`, `js/services/error-handler.ts`, `js/services/logger.ts`
@@ -23,7 +22,7 @@
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
 - Interface: load the full catalog index, fetch catalog payloads, read/write full catalog cache, use embedded fallback, and merge detail chunks
-- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, and render-ready catalog state; `js/services/catalog-payload-effect-plan.ts` owns the explicit post-payload effect plan; `js/services/catalog-payload-effects.ts` owns the App Shell adapter that applies that plan to caches, document flags, Snapshot refresh, Airing Schedule intent, and filter render intent
+- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, and render-ready catalog state; `js/services/catalog-payload-effects.ts` directly applies cache, document, Snapshot, Airing Schedule, and filter updates
 - Contract surface: `CatalogPayload`, `PreviewCatalogPayload`, `FullCatalogPayload`, `DetailChunkPayload`, `ScoreProfile`, `CatalogValidationIssue`, and `CatalogRuntimeEventMap`
 
 ### Browse View Filtering
@@ -50,7 +49,6 @@
 
 ### Detail Experience
 - Stable TypeScript entry point: `js/detail-experience.ts`
-- Port adapter: `js/detail-experience-port.ts`
 - Error state module: `js/detail-error-state.ts`
 - Media adapter: `js/detail-media.ts`
 - Reviews adapter: `js/detail-reviews.ts`
@@ -59,7 +57,7 @@
 - Inputs: anime id, cached detail, review payload, detail URL state (`?anime=...`)
 - Outputs: modal visibility, refreshed synopsis/reviews, cached detail HTML, detail URL synchronization
 - Side effects: history state, metadata updates, trailer cleanup/replacement, full-catalog deep-link fallback, modal-open telemetry
-- Interface rule: Detail Experience receives a narrow port adapter rather than the full App Shell object; `js/detail-presentation.ts` owns modal body markup and decision-signal presentation, `js/detail-media.ts` owns trailer DOM refresh, autoplay setup, and playback cleanup, `js/detail-reviews.ts` owns review loading, stale response checks, synopsis replacement, and review error markup, and `js/detail-error-state.ts` owns unavailable-title messaging.
+- Interface rule: `js/detail-experience.ts` contains its App Shell adapter; `js/detail-presentation.ts` owns modal body markup, `js/detail-media.ts` owns trailer behavior, `js/detail-reviews.ts` owns review loading, and `js/detail-error-state.ts` owns unavailable-title messaging.
 
 ### Airing Schedule
 - Stable TypeScript entry points: `js/airing-schedule.ts`, `js/airing-dashboard.ts`
@@ -91,10 +89,10 @@
 ### Runtime Capabilities
 - Stable TypeScript entry point: `js/runtime-capabilities.ts`
 - App handoff: `js/app.ts` keeps one Runtime Capabilities instance and provides product-specific close handlers
-- Inputs: idle callbacks, modal ids, focus targets, Escape key events
-- Outputs: idle task handles, modal open state, focus trap state, scroll lock state
-- Interface: App Shell callers ask the instance to schedule idle work, cancel idle work, open/close modals, query modal state, and route Escape; Runtime Capabilities owns focus-trap state internally
-- Side effects: modal attributes/classes, focus movement, body scroll lock, scheduled callbacks
+- Inputs: idle callbacks, native dialog ids, focus targets, Escape key events
+- Outputs: idle task handles, modal open state, scroll lock state
+- Interface: schedules idle work and opens/closes native `<dialog>` elements; the browser owns focus trapping
+- Side effects: dialog attributes/classes, initial focus, body scroll lock, scheduled callbacks
 
 ### Keyboard Shortcuts
 - Stable TypeScript entry point: `js/keyboardShortcuts.ts`
@@ -112,31 +110,28 @@
 
 ### Catalog Build
 - Stable Bun entry point: `bun run data:build`
-- JavaScript compatibility entry point: `tools/build-catalogs.js`
-- Python migration adapter: `tools/build_catalogs.py`, `tools/run-build-catalogs.js`
-- Python migration boundary: `tools/build_catalogs.py` owns normalization, score-profile derivation, build stats, preview selection, and quality-report handoff for the Python path; TypeScript `Stats` remains the browser/runtime scoring contract.
+- Python implementation: `tools/build_catalogs.py`
+- Cross-platform launcher: `tools/run-python.js`
+- `tools/build_catalogs.py` owns normalization, score-profile derivation, build stats, preview selection, and quality-report handoff; TypeScript `Stats` remains the browser/runtime scoring contract.
 - Inputs: `data/anime.json`
 - Outputs: `data/anime.full.json`, `data/anime.preview.json`
 - Gates: schema validation, integrity checks, quality gates
 
-### Pipeline Parity Contract
-- Contract modules: `tools/pipeline_parity_contract.py`, `tools/pipeline-parity-contract.js`
+### Pipeline Golden Fixtures
 - Harness: `tools/python_golden_harness.py`
-- Inputs: representative catalog input, validation payload, trailer policy vectors, fixture manifest
-- Outputs: golden fixture actuals for Python data pipeline adapters
-- Interface: adapters must satisfy the same contract fixture set; Bun command surfaces stay stable while Python and JavaScript fallback behavior is compared through the contract
+- Inputs: representative catalog input, validation payload, fixture manifest
+- Outputs: regression fixtures for the Python data pipeline
 
 ### Data Validation
 - Stable Bun entry points: `bun run data:validate`, `bun run data:validate:strict`
-- JavaScript compatibility entry point: `tools/validate-data.js`
-- Python parity entry points: `tools/validate_data.py`, `tools/quality_reporter.py`, `tools/python_golden_harness.py`, `tools/run-validate-data.js`
+- Python entry points: `tools/validate_data.py`, `tools/quality_reporter.py`, `tools/python_golden_harness.py`
 - Inputs: generated catalog + embedded payload
 - Outputs: error/warning report and process status
 
 ### Data Operations
 - Stable Bun commands: `bun run data:regenerate`, `bun run data:backup`, `bun run data:rollback`, `bun run test:scraper`
 - Python entry points: `tools/regenerate_data.py`, `tools/deploy_data.py`, existing `tools/scraper/*.py`
-- JavaScript fallback launchers: `tools/run-regenerate-data.js`, `tools/run-deploy-data.js`, `tools/run-scraper-tests.js`
+- Launchers: `tools/run-python.js`; scraper tests retain `tools/run-scraper-tests.js`
 - Inputs: preview catalog, source/full/preview data files, backup ids, scraper fixtures
 - Outputs: embedded `js/data.js`, data backups, restored data files, scraper test status
 - Safety gates: embedded payload shape validation, backup id allowlist, backup directory containment, scraper host-policy tests
@@ -145,6 +140,4 @@
 - `vercel.json`
 - `sw.js`
 - `js/urlSanitizer.ts`
-- `tools/validate-data.js`
 - `tools/validate_data.py`
-- `tools/lib/schema-validator.js`

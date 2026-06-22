@@ -1,9 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  applyCatalogPayloadEffects,
-  executeCatalogPayloadEffectPlan
-} from '../../js/services/catalog-payload-effects.ts';
+import { applyCatalogPayloadEffects } from '../../js/services/catalog-payload-effects.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('Catalog Payload effects apply payload state and downstream render intent', async () => {
@@ -72,13 +69,21 @@ test('Catalog Payload effects apply payload state and downstream render intent',
   ]);
 });
 
-test('Catalog Payload effects adapter executes deferred filter plan without rendering filter UI', async () => {
+test('Catalog Payload effects defer filter UI in low-motion mode', async () => {
   const calls = [];
   const app = {
     gridSortHandle: null,
     gridDomCache: new Map(),
     detailCache: new Map(),
     visibleCardIds: new Set(),
+    deferFilterUiUsed: false,
+    filterPanelOpen: false,
+    filterPanelRendered: false,
+    urlFiltersApplied: true,
+    getDefaultActiveFilters: () => ({}),
+    shouldEnableLowMotionMode: () => true,
+    isCatalogPage: () => true,
+    hasFilterParamsInUrl: () => false,
     ensureStats: async () => calls.push(['ensureStats']),
     refreshWatchlistSnapshotsFromCatalog: (options) => calls.push(['refreshWatchlistSnapshotsFromCatalog', options]),
     scheduleAiringDashboardRender: (options) => calls.push(['scheduleAiringDashboardRender', options]),
@@ -90,33 +95,14 @@ test('Catalog Payload effects adapter executes deferred filter plan without rend
     renderQuickFilters: () => calls.push(['renderQuickFilters']),
     applyFilters: (options) => calls.push(['applyFilters', options])
   };
-  const plan = {
-    state: {
-      scoreProfile: null,
-      animeData: [],
-      isFullDataLoaded: false,
-      activeFilters: null,
-      deferFilterUiOnce: true
-    },
-    document: { catalogStatus: 'embedded', catalogReady: true },
-    gridState: {
-      sortedCache: null,
-      sortedKey: '',
-      sortedSource: null,
-      sortedIsPartial: false
-    },
-    steps: [
-      { type: 'assignCatalogState' },
-      { type: 'resetGridState' },
-      { type: 'ensureStats' },
-      { type: 'assignDeferredFilterUi' },
-      { type: 'renderFilterUi', enabled: false, filterPanel: 'schedule' },
-      { type: 'applyFilters', options: { syncUrl: false, updateMeta: false } }
-    ]
-  };
-
-  await executeCatalogPayloadEffectPlan(app, plan);
+  await applyCatalogPayloadEffects(app, { anime: [] });
 
   assert.equal(app.deferFilterUiOnce, true);
-  assert.deepEqual(calls.map(call => call[0]), ['ensureStats', 'applyFilters']);
+  assert.deepEqual(calls.map(call => call[0]), [
+    'ensureStats',
+    'refreshWatchlistSnapshotsFromCatalog',
+    'scheduleAiringDashboardRender',
+    'extractFilterOptions',
+    'applyFilters'
+  ]);
 });
