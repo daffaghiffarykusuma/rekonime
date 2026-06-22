@@ -15,14 +15,12 @@ const WATCHLIST_FILTERS = [
 ];
 
 const createWatchlistPageRenderer = ({
-  buildProxyUrl,
-  cardDimensions,
   documentRef = typeof document !== 'undefined' ? document : null,
   getCurrentFilter,
   getWatchlistState,
   migrateLegacyBookmarksToWatchlist,
   placeholderCover,
-  sanitizeImageUrl,
+  resolveImage,
   saveWatchlistMap,
   scheduleAiringDashboardUpdate
 }) => {
@@ -62,21 +60,22 @@ const createWatchlistPageRenderer = ({
     const img = documentRef.createElement('img');
     img.className = 'card-cover';
     img.alt = item.title;
-    img.width = cardDimensions.width;
-    img.height = cardDimensions.height;
-    const proxyUrl = buildProxyUrl(item.cover);
-    const fallbackSrc = sanitizeImageUrl(item.cover);
-    img.src = proxyUrl || fallbackSrc || placeholderCover;
-    if (fallbackSrc && proxyUrl) {
-      img.dataset.fallbackSrc = fallbackSrc;
-      img.dataset.fallbackSecondary = placeholderCover;
-    } else {
-      img.dataset.fallbackSrc = placeholderCover;
-    }
-    const eager = index < 2;
-    img.loading = eager ? 'eager' : 'lazy';
-    img.decoding = 'async';
-    img.setAttribute('fetchpriority', index === 0 ? 'high' : (eager ? 'auto' : 'low'));
+    const image = resolveImage({
+      coverUrl: item.cover,
+      sizeKey: 'card',
+      placeholder: placeholderCover,
+      index,
+      eagerCount: 2,
+      priorityCount: 1
+    });
+    img.src = image.src;
+    if (image.width) img.width = image.width;
+    if (image.height) img.height = image.height;
+    if (image.fallbackSrc) img.dataset.fallbackSrc = image.fallbackSrc;
+    if (image.fallbackSecondary) img.dataset.fallbackSecondary = image.fallbackSecondary;
+    img.loading = image.loading;
+    img.decoding = image.decoding;
+    img.setAttribute('fetchpriority', image.fetchpriority);
 
     media.appendChild(img);
     card.appendChild(media);

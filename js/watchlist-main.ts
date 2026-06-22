@@ -4,10 +4,6 @@ import { Logger } from './services/logger.ts';
 import { initDeferredRuntimeServices, queueIdleTask } from './bootstrap/deferred-runtime.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
 import { sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.ts';
-import {
-  isProxyImageUrl,
-  buildImageProxyUrl
-} from './image-proxy.js';
 import { createWatchlistAiringDashboardAdapter } from './watchlist-airing-dashboard-adapter.ts';
 import {
   createWatchlistLifecycle
@@ -46,7 +42,9 @@ const imageProxyRuntime = createImageProxyRuntime({
   ttlMs: IMAGE_PROXY_STATUS_TTL_MS,
   timeoutMs: IMAGE_PROXY_CHECK_TIMEOUT_MS,
   queueTask: (callback, options = {}) => queueIdleTask(callback, options.timeout ?? 2000),
-  waitForLoad: false
+  waitForLoad: false,
+  sanitizeImageUrl: (value) => sanitizeImageUrl(value),
+  dimensions: { card: CARD_DIMENSIONS }
 });
 
 const getWatchlistLifecycle = () => createWatchlistLifecycle({
@@ -81,14 +79,6 @@ const scheduleImageProxyCheck = () => {
   imageProxyRuntime.scheduleCheck({ timeout: IMAGE_PROXY_IDLE_TIMEOUT_MS });
 };
 
-const shouldUseImageProxy = () => {
-  return imageProxyRuntime.shouldUseProxy();
-};
-
-const markImageProxyFailed = () => {
-  imageProxyRuntime.markFailed();
-};
-
 const loadFullApp = async () => {
   if (appInitPromise) return appInitPromise;
   appInitPromise = import('./app.ts')
@@ -111,17 +101,6 @@ const sanitizeImageUrl = (rawUrl) => {
   return sanitizeSafeImageUrl(rawUrl, {
     allowRelative: false,
     allowedHosts: ALLOWED_IMAGE_HOSTS
-  });
-};
-
-const buildProxyUrl = (coverUrl) => {
-  if (!shouldUseImageProxy()) return '';
-  return buildImageProxyUrl(coverUrl, {
-    sanitizeImageUrl,
-    width: CARD_DIMENSIONS.width,
-    height: CARD_DIMENSIONS.height,
-    fit: 'cover',
-    output: 'webp'
   });
 };
 
@@ -176,9 +155,8 @@ const getWatchlistPageInteractions = () => {
   watchlistPageInteractions = createWatchlistPageInteractions({
     handleWatchlistChange,
     handleWatchlistClick,
-    isProxyImageUrl,
+    handleImageError: (img) => imageProxyRuntime.handleImageError(img),
     loadFullApp,
-    markImageProxyFailed,
     onFilterChange: setCurrentWatchlistFilter,
     renderWatchlist
   });
@@ -201,13 +179,11 @@ const scheduleWatchlistAiringDashboardUpdate = (...args) => {
 const getWatchlistPageRenderer = () => {
   if (watchlistPageRenderer) return watchlistPageRenderer;
   watchlistPageRenderer = createWatchlistPageRenderer({
-    buildProxyUrl,
-    cardDimensions: CARD_DIMENSIONS,
+    resolveImage: (options) => imageProxyRuntime.resolveImage(options),
     getCurrentFilter: getCurrentWatchlistFilter,
     getWatchlistState,
     migrateLegacyBookmarksToWatchlist,
     placeholderCover: PLACEHOLDER_COVER,
-    sanitizeImageUrl,
     saveWatchlistMap,
     scheduleAiringDashboardUpdate: scheduleWatchlistAiringDashboardUpdate
   });

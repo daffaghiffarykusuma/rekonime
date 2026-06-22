@@ -68,15 +68,21 @@ test('KeyboardShortcuts show and close modal', async () => {
   assert.equal(KeyboardShortcuts.isModalOpen, false);
 });
 
-test('KeyboardShortcuts navigateAnime uses app reference', () => {
+test('KeyboardShortcuts uses explicit commands and navigation state', () => {
   const animeList = [createAnime({ id: 'a' }), createAnime({ id: 'b' })];
-  let shown = null;
-  KeyboardShortcuts.setApp({
-    currentAnimeId: 'a',
-    animeData: animeList,
-    showAnimeDetail: (id) => { shown = id; }
+  const calls = [];
+  KeyboardShortcuts.configure({
+    commands: {
+      openAnime: (id) => calls.push(['openAnime', id]),
+      openFilters: () => calls.push(['openFilters'])
+    },
+    getNavigationState: () => ({
+      currentAnimeId: 'a',
+      animeIds: animeList.map(anime => anime.id)
+    })
   });
 
+  KeyboardShortcuts.openFilters();
   KeyboardShortcuts.navigateAnime(1);
-  assert.equal(shown, 'b');
+  assert.deepEqual(calls, [['openFilters'], ['openAnime', 'b']]);
 });

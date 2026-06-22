@@ -64,3 +64,47 @@ test('taste score rewards matching preferences and strongly suppresses not-for-m
   assert.equal(scoreAnimeForTaste({ id: 'candidate', genres: ['Adventure'], themes: ['Found Family'] }, profile) > 0, true);
   assert.equal(scoreAnimeForTaste({ id: 'blocked', genres: ['Adventure'], themes: [] }, profile) < -900, true);
 });
+
+test('taste profile owns feedback, recommendation preparation, and settings summary', () => {
+  const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 3000 });
+  store.load();
+  const liked = { id: 'liked', title: 'Liked', genres: ['Action'], themes: ['School'] };
+  const blocked = { id: 'blocked', title: 'Blocked', genres: ['Action'], themes: [] };
+  const neutral = { id: 'neutral', title: 'Neutral', genres: ['Drama'], themes: [] };
+
+  assert.deepEqual(store.applyRecommendationFeedback('rec-more-like', liked), {
+    changed: true,
+    message: 'More like Liked added to your Taste Profile.'
+  });
+  store.applyRecommendationFeedback('rec-not-for-me', blocked);
+  store.applyRecommendationFeedback('rec-less-tag', neutral, { genre: 'Drama' });
+
+  assert.deepEqual(
+    store.prepareRecommendationSource([neutral, blocked, liked], { excludedIds: ['watched'] }).map(item => item.id),
+    ['liked', 'neutral']
+  );
+  assert.deepEqual(store.getSettingsSummary(), {
+    preferredTags: ['Action', 'School'],
+    reducedTags: ['Drama'],
+    inferredTags: [],
+    hiddenCount: 1
+  });
+});
+
+test('taste profile reset preserves evidence learned from Watchlist Lifecycle', () => {
+  const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 4000 });
+  store.load();
+  store.addMoreLike({ id: 'liked', genres: ['Action'] });
+  store.reset([{
+    id: 'completed',
+    status: 'completed',
+    snapshot: { genres: ['Drama'], themes: ['Coming of Age'] }
+  }]);
+
+  assert.deepEqual(store.getSettingsSummary(), {
+    preferredTags: [],
+    reducedTags: [],
+    inferredTags: ['Drama', 'Coming of Age'],
+    hiddenCount: 0
+  });
+});

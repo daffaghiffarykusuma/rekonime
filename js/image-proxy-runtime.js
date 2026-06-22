@@ -1,4 +1,6 @@
 import {
+  buildImageProxyUrl,
+  isProxyImageUrl,
   readImageProxyStatus,
   getFreshImageProxyStatus,
   writeImageProxyStatus,
@@ -22,7 +24,11 @@ const createImageProxyRuntime = ({
   ttlMs = 0,
   timeoutMs = 2500,
   queueTask = defaultQueueTask,
-  waitForLoad = true
+  waitForLoad = true,
+  enabled = true,
+  smartLoading = true,
+  sanitizeImageUrl = value => String(value || ''),
+  dimensions = {}
 } = {}) => {
   let status = { ok: null, checkedAt: 0 };
   let statusLoaded = false;
@@ -51,6 +57,31 @@ const createImageProxyRuntime = ({
   };
 
   const runtime = {
+    getDimensions(sizeKey) {
+      const configured = dimensions?.[sizeKey];
+      const width = Number(configured?.width);
+      const height = Number(configured?.height);
+      return Number.isFinite(width) && Number.isFinite(height) ? { width, height } : null;
+    },
+
+    getLoading(index = 0, { eagerCount = 0, priorityCount = 0 } = {}) {
+      const eager = smartLoading && index < eagerCount;
+      return {
+        loading: eager ? 'eager' : 'lazy',
+        decoding: 'async',
+        fetchpriority: smartLoading && index < priorityCount ? 'high' : (eager ? 'auto' : (smartLoading ? 'low' : 'auto'))
+      };
+    },
+
+    isProxyImageUrl,
+
+    getFallbacks({ fallbackSrc = '', placeholder = '' } = {}) {
+      return {
+        primary: fallbackSrc || placeholder || '',
+        secondary: fallbackSrc && placeholder && fallbackSrc !== placeholder ? placeholder : ''
+      };
+    },
+
     loadStatus() {
       if (statusLoaded) return status;
       statusLoaded = true;
@@ -98,6 +129,7 @@ const createImageProxyRuntime = ({
     },
 
     shouldUseProxy() {
+      if (!enabled) return false;
       const nextStatus = runtime.getStatus();
       if (nextStatus === null) {
         runtime.scheduleCheck();
@@ -108,6 +140,66 @@ const createImageProxyRuntime = ({
 
     markFailed() {
       runtime.storeStatus(false);
+    },
+
+    resolveImage({
+      coverUrl,
+      sizeKey = '',
+      width,
+      height,
+      placeholder = '',
+      index = 0,
+      eagerCount = 0,
+      priorityCount = 0,
+      preferOptimized
+    } = {}) {
+      const sanitized = sanitizeImageUrl(coverUrl);
+      const configured = runtime.getDimensions(sizeKey) || {};
+      const resolvedWidth = Number.isFinite(width) ? width : Number(configured.width);
+      const resolvedHeight = Number.isFinite(height) ? height : Number(configured.height);
+      const hasDimensions = Number.isFinite(resolvedWidth) && Number.isFinite(resolvedHeight);
+      const useProxy = typeof preferOptimized === 'boolean' ? preferOptimized : runtime.shouldUseProxy();
+      const optimized = sanitized && useProxy && hasDimensions
+        ? buildImageProxyUrl(sanitized, {
+            sanitizeImageUrl,
+            width: resolvedWidth,
+            height: resolvedHeight,
+            fit: 'cover',
+            output: 'webp'
+          })
+        : '';
+      const hasDistinctOptimizedSource = Boolean(optimized && optimized !== sanitized);
+      const primaryFallback = hasDistinctOptimizedSource ? sanitized : placeholder;
+      const secondaryFallback = hasDistinctOptimizedSource && sanitized && placeholder && sanitized !== placeholder ? placeholder : '';
+      const loading = runtime.getLoading(index, { eagerCount, priorityCount });
+      return {
+        optimized,
+        src: optimized || sanitized || placeholder,
+        srcset: '',
+        sizes: '',
+        fallback: hasDistinctOptimizedSource ? sanitized : '',
+        fallbackSrc: primaryFallback,
+        fallbackSecondary: secondaryFallback,
+        width: hasDimensions ? resolvedWidth : null,
+        height: hasDimensions ? resolvedHeight : null,
+        ...loading
+      };
+    },
+
+    handleImageError(img) {
+      if (!img || img.tagName !== 'IMG') return false;
+      if (isProxyImageUrl(img.currentSrc || img.src)) runtime.markFailed();
+      if (img.dataset.fallbackApplied) return false;
+      const fallback = img.dataset.fallbackSrc;
+      if (!fallback) return false;
+      img.dataset.fallbackApplied = 'true';
+      img.src = fallback;
+      if (img.dataset.fallbackSecondary) {
+        img.dataset.fallbackSrc = img.dataset.fallbackSecondary;
+        delete img.dataset.fallbackSecondary;
+        delete img.dataset.fallbackApplied;
+      }
+      return true;
     }
   };
 

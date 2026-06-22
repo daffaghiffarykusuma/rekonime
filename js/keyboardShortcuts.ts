@@ -10,14 +10,12 @@ import { setHTML } from './security/trusted-types.js';
 const KeyboardShortcuts = {
     STORAGE_KEY: 'rekonime.shortcutsAcknowledged',
     isModalOpen: false,
-    appRef: null,
+    commands: {},
+    getNavigationState: () => ({ currentAnimeId: '', animeIds: [] }),
 
-    setApp(app) {
-        this.appRef = app;
-    },
-
-    getApp() {
-        return this.appRef;
+    configure({ commands = {}, getNavigationState = () => ({ currentAnimeId: '', animeIds: [] }) } = {}) {
+        this.commands = { ...commands };
+        this.getNavigationState = getNavigationState;
     },
 
     getCache() {
@@ -397,12 +395,7 @@ const KeyboardShortcuts = {
             return;
         }
 
-        // Use App's modal handling if available
-        const app = this.getApp();
-        if (app && typeof app.handleGlobalEscape === 'function') {
-            const event = { key: 'Escape' };
-            app.handleGlobalEscape(event);
-        }
+        this.commands.closeModal?.();
     },
 
     /**
@@ -416,40 +409,28 @@ const KeyboardShortcuts = {
      * Open filter panel
      */
     openFilters() {
-        const app = this.getApp();
-        if (app && typeof app.toggleFilterPanel === 'function') {
-            app.toggleFilterPanel();
-        }
+        this.commands.openFilters?.();
     },
 
     /**
      * Toggle settings modal
      */
     toggleSettings() {
-        const app = this.getApp();
-        if (app && typeof app.toggleSettingsModal === 'function') {
-            app.toggleSettingsModal();
-        }
+        this.commands.toggleSettings?.();
     },
 
     /**
      * Trigger surprise me feature
      */
     surpriseMe() {
-        const surpriseBtn = document.getElementById('surprise-toggle');
-        if (surpriseBtn) {
-            surpriseBtn.click();
-        }
+        this.commands.surpriseMe?.();
     },
 
     /**
      * Go to home and clear filters
      */
     goHome() {
-        const app = this.getApp();
-        if (app && typeof app.clearAllFilters === 'function') {
-            app.clearAllFilters();
-        }
+        this.commands.goHome?.();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
@@ -457,16 +438,14 @@ const KeyboardShortcuts = {
      * Navigate to previous/next anime in detail modal
      */
     navigateAnime(direction) {
-        const app = this.getApp();
-        if (!app || !app.currentAnimeId || !app.animeData) return;
-
-        const currentIndex = app.animeData.findIndex(a => a.id === app.currentAnimeId);
+        const { currentAnimeId, animeIds = [] } = this.getNavigationState();
+        if (!currentAnimeId || !Array.isArray(animeIds)) return;
+        const currentIndex = animeIds.findIndex(id => id === currentAnimeId);
         if (currentIndex === -1) return;
 
         const newIndex = currentIndex + direction;
-        if (newIndex >= 0 && newIndex < app.animeData.length) {
-            const nextAnime = app.animeData[newIndex];
-            app.showAnimeDetail(nextAnime.id);
+        if (newIndex >= 0 && newIndex < animeIds.length) {
+            this.commands.openAnime?.(animeIds[newIndex]);
         }
     },
 

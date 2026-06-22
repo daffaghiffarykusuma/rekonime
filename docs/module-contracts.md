@@ -29,8 +29,15 @@
 - Runtime module: `js/browse-filtering.ts`
 - Inputs: Catalog Payload anime records, URL filter parameters, search text, selected facets, and available facet options
 - Outputs: filtered anime list, normalized active filters, available facet options, active-filter summary items, and filter metadata inputs
-- Interface: parse and write browse filter URL state, canonicalize selected facet values, extract available facet options, apply selected facets and search text, and build active-filter summaries
+- Interface: parse and write browse filter URL state, canonicalize selected facet values, extract available facet options, prepare and score catalog search matches, apply selected facets and search text, and build active-filter and metadata summaries
 - Side effects: none; App Shell owns DOM rendering, history mutation, and metadata application after consuming Browse View Filtering output
+
+### Taste Profile
+- Runtime module: `js/taste-profile.ts`
+- Inputs: recommendation feedback, Watchlist Lifecycle entries, Catalog Payload anime records, and excluded Watchlist Entry ids
+- Outputs: persisted cross-title preferences, Watchlist-derived evidence, ranked recommendation source, feedback result, and settings summary
+- Interface: apply recommendation feedback, refresh inferred evidence, prepare recommendation candidates, reset while preserving Watchlist Lifecycle evidence, and import/export personal profile data
+- Side effects: Taste Profile storage writes only; App Shell owns DOM rendering, announcements, file download/upload, and Watchlist Lifecycle transitions such as Already seen
 
 ### Watchlist State
 - Entry points: `js/app.ts`, `js/watchlist-main.ts`
@@ -75,8 +82,10 @@
 
 ### Shared Image Proxy
 - Entry point: `js/image-proxy.js`
-- Inputs: image URLs, storage keys, status TTL/probe config
-- Outputs: proxy URL, status state, availability checks
+- Runtime module: `js/image-proxy-runtime.js`
+- Inputs: image URL, display intent, dimensions, loading priority, placeholder, storage key, and status TTL/probe config
+- Outputs: complete image-delivery decision, proxy status, availability checks, and fallback transition
+- Interface: resolve primary URL, fallback chain, dimensions, loading hints, and proxy use through one decision; apply image failures through the same module
 - Side effects: localStorage reads/writes for proxy health status
 
 ### Runtime Calculations
@@ -96,8 +105,9 @@
 
 ### Keyboard Shortcuts
 - Stable TypeScript entry point: `js/keyboardShortcuts.ts`
-- Inputs: browser keyboard events, active route/modal state, app command handlers
+- Inputs: browser keyboard events, active detail state, explicit product commands, and ordered anime ids
 - Outputs: command dispatch, shortcut help markup, shortcut acknowledgement state
+- Interface: configure explicit commands and a read-only navigation-state provider; Keyboard Shortcuts never receives the mutable App Shell
 - Side effects: focus movement, navigation, local preference cache, and modal/help rendering
 
 ### Reviews

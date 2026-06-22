@@ -55,3 +55,40 @@ test('image proxy runtime markFailed forces disabled status', () => {
   runtime.markFailed();
   assert.equal(runtime.getStatus(), false);
 });
+
+test('image proxy runtime resolves complete image delivery and failure transition', () => {
+  setupDom('<img id="cover">');
+  const runtime = createImageProxyRuntime({
+    storageKey: 'rekonime.imageProxyRuntime.decision',
+    ttlMs: 60_000,
+    enabled: true,
+    sanitizeImageUrl: value => String(value || '').startsWith('https://') ? value : '',
+    dimensions: { card: { width: 240, height: 360 } },
+    queueTask: () => null,
+    waitForLoad: false
+  });
+  runtime.storeStatus(true);
+
+  const decision = runtime.resolveImage({
+    coverUrl: 'https://cdn.myanimelist.net/show.jpg',
+    sizeKey: 'card',
+    placeholder: 'https://via.placeholder.com/cover.jpg',
+    index: 0,
+    eagerCount: 2,
+    priorityCount: 1
+  });
+  assert.equal(decision.src.includes('images.weserv.nl'), true);
+  assert.equal(decision.fallbackSrc, 'https://cdn.myanimelist.net/show.jpg');
+  assert.equal(decision.fallbackSecondary, 'https://via.placeholder.com/cover.jpg');
+  assert.deepEqual([decision.width, decision.height], [240, 360]);
+  assert.deepEqual([decision.loading, decision.fetchpriority], ['eager', 'high']);
+
+  const img = document.getElementById('cover');
+  img.src = decision.src;
+  img.dataset.fallbackSrc = decision.fallbackSrc;
+  img.dataset.fallbackSecondary = decision.fallbackSecondary;
+  assert.equal(runtime.handleImageError(img), true);
+  assert.equal(img.src, 'https://cdn.myanimelist.net/show.jpg');
+  assert.equal(img.dataset.fallbackSrc, 'https://via.placeholder.com/cover.jpg');
+  assert.equal(runtime.getStatus(), false);
+});

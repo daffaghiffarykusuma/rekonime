@@ -10,14 +10,21 @@ const createRenderer = ({
 } = {}) => {
   const calls = [];
   const renderer = createWatchlistPageRenderer({
-    buildProxyUrl: (cover) => cover ? `https://proxy.example/${cover}` : '',
-    cardDimensions: { width: 240, height: 360 },
     documentRef: document,
     getCurrentFilter: () => currentFilter,
     getWatchlistState: () => ({ map, entries, version: 1 }),
     migrateLegacyBookmarksToWatchlist: () => calls.push(['migrateLegacyBookmarksToWatchlist']),
     placeholderCover: 'https://placeholder.example/cover.webp',
-    sanitizeImageUrl: (cover) => cover ? `https://cdn.example/${cover}` : '',
+    resolveImage: ({ coverUrl, placeholder, index }) => ({
+      src: coverUrl ? `https://proxy.example/${coverUrl}` : placeholder,
+      fallbackSrc: coverUrl ? `https://cdn.example/${coverUrl}` : placeholder,
+      fallbackSecondary: coverUrl ? placeholder : '',
+      width: 240,
+      height: 360,
+      loading: index < 2 ? 'eager' : 'lazy',
+      decoding: 'async',
+      fetchpriority: index === 0 ? 'high' : 'auto'
+    }),
     saveWatchlistMap: (...args) => calls.push(['saveWatchlistMap', ...args]),
     scheduleAiringDashboardUpdate: (...args) => calls.push(['scheduleAiringDashboardUpdate', ...args])
   });

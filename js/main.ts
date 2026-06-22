@@ -47,9 +47,20 @@ const initNonCriticalServices = (app) => {
       AnalyticsService.init();
       PerformanceMonitor.init();
       Recommendations.loadModePreference();
-      if (app) {
-        KeyboardShortcuts.setApp(app);
-      }
+      KeyboardShortcuts.configure({
+        commands: {
+          closeModal: () => app?.handleGlobalEscape?.({ key: 'Escape' }),
+          openFilters: () => app?.toggleFilterPanel?.(),
+          toggleSettings: () => app?.toggleSettingsModal?.(),
+          surpriseMe: () => document.getElementById('surprise-toggle')?.click(),
+          goHome: () => app?.clearAllFilters?.(),
+          openAnime: (animeId) => app?.showAnimeDetail?.(animeId)
+        },
+        getNavigationState: () => ({
+          currentAnimeId: app?.currentAnimeId || '',
+          animeIds: Array.isArray(app?.animeData) ? app.animeData.map(anime => anime?.id).filter(Boolean) : []
+        })
+      });
       KeyboardShortcuts.init();
       ServiceWorkerManager.register();
       ServiceWorkerManager.initConnectivityListeners();

@@ -41,10 +41,6 @@ import {
   setScriptSource
 } from './security/trusted-types.js';
 import {
-  isProxyImageUrl as isSharedProxyImageUrl,
-  buildImageProxyUrl as buildSharedImageProxyUrl
-} from './image-proxy.js';
-import {
   WATCH_STATUS_VALUES,
   normalizeWatchStatus as normalizeWatchStatusValue,
   normalizeWatchProgress as normalizeWatchProgressValue,
@@ -58,10 +54,7 @@ import {
   createWatchlistLifecycle
 } from './watchlist-state.js';
 import { createWatchlistLifecycleRuntime } from './watchlist-lifecycle-runtime.ts';
-import {
-  createTasteProfileStore,
-  scoreAnimeForTaste
-} from './taste-profile.ts';
+import { createTasteProfileStore } from './taste-profile.ts';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -421,7 +414,11 @@ const App = {
         ttlMs: this.imageProxyStatusTtlMs,
         timeoutMs: this.imageProxyCheckTimeoutMs,
         queueTask: (callback, options = {}) => this.queueIdleTask(callback, { timeout: options.timeout ?? 1500 }),
-        waitForLoad: true
+        waitForLoad: true,
+        enabled: this.features.imageProxy,
+        smartLoading: this.features.smartImageLoading,
+        sanitizeImageUrl: (value) => this.sanitizeImageUrl(value),
+        dimensions: this.imageDimensions
       });
     }
     return this.imageProxyRuntime;
@@ -453,7 +450,7 @@ const App = {
   },
 
   isProxyImageUrl(url) {
-    return isSharedProxyImageUrl(url);
+    return this.getImageProxyRuntime().isProxyImageUrl(url);
   },
 
   markImageProxyFailed() {
@@ -461,12 +458,7 @@ const App = {
   },
 
   getImageDimensions(kind) {
-    const dims = this.imageDimensions?.[kind];
-    if (!dims) return null;
-    const width = Number(dims.width);
-    const height = Number(dims.height);
-    if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
-    return { width, height };
+    return this.getImageProxyRuntime().getDimensions(kind);
   },
 
   shouldPrefetchFullCatalog() {
@@ -914,34 +906,23 @@ const App = {
   handleRecommendationFeedback(action, animeId, actionEl = null) {
     const anime = this.animeData.find(item => item?.id === animeId);
     if (!anime) return;
-    const profileStore = this.getTasteProfileStore();
-    if (action === 'rec-more-like') {
-      profileStore.addMoreLike(anime);
-      this.showToast(`More like ${anime.title} added to your Taste Profile.`);
-    } else if (action === 'rec-not-for-me') {
-      profileStore.addNotForMe(anime);
-      this.showToast(`${anime.title} hidden from recommendations.`);
-    } else if (action === 'rec-less-tag') {
-      const genre = actionEl?.dataset?.genre || '';
-      const theme = actionEl?.dataset?.theme || '';
-      if (genre) {
-        profileStore.reduceGenre(genre);
-        this.showToast(`Showing less ${genre}.`);
-      } else if (theme) {
-        profileStore.reduceTheme(theme);
-        this.showToast(`Showing less ${theme}.`);
-      }
-    } else if (action === 'rec-already-seen') {
+    if (action === 'rec-already-seen') {
       this.setWatchStatus(anime.id, 'completed', { episodeCount: this.getEpisodeCount(anime) });
       this.showToast(`${anime.title} marked as already seen.`);
+    } else {
+      const result = this.getTasteProfileStore().applyRecommendationFeedback(action, anime, {
+        genre: actionEl?.dataset?.genre || '',
+        theme: actionEl?.dataset?.theme || ''
+      });
+      if (!result.changed) return;
+      this.showToast(result.message);
     }
     this.updateTasteProfileUi();
     this.renderRecommendations();
   },
 
   resetTasteProfile() {
-    this.getTasteProfileStore().reset();
-    this.refreshTasteProfileEvidence();
+    this.getTasteProfileStore().reset(this.getWatchlistEntries());
     this.updateTasteProfileUi();
     this.renderRecommendations();
     this.showToast('Taste Profile reset.');
@@ -983,23 +964,6 @@ const App = {
     } catch (error) {
       this.showToast('Import failed. Use a Rekonime JSON export.');
     }
-  },
-
-  getRecommendationSourceData() {
-    const excludedIds = new Set([
-      ...this.getWatchlistIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] }),
-      ...this.getTasteProfileStore().getExcludedIds()
-    ]);
-    return (Array.isArray(this.filteredData) ? this.filteredData : [])
-      .filter(anime => !excludedIds.has(String(anime?.id || '')));
-  },
-
-  applyTasteProfileRanking(animeList) {
-    const profile = this.getTasteProfileStore().getProfile();
-    return (Array.isArray(animeList) ? animeList : [])
-      .map((anime, index) => ({ anime, index, tasteScore: scoreAnimeForTaste(anime, profile) }))
-      .sort((left, right) => right.tasteScore - left.tasteScore || left.index - right.index)
-      .map(entry => entry.anime);
   },
 
   applyWatchlistTransition(transition) {
@@ -1241,6 +1205,7 @@ const App = {
   buildFilterMeta() {
     return BrowseFiltering.buildFilterMeta({
       activeFilters: this.activeFilters,
+      searchQuery: this.getCatalogSearchQuery(),
       filterTypeLabels: this.filterTypeLabels,
       siteName: this.siteName,
       defaultTitle: this.defaultMeta.title,
@@ -1251,7 +1216,7 @@ const App = {
 
   updateMetaForFilters() {
     if (!this.seoInitialized || this.currentAnimeId) return;
-    const hasFilters = this.getActiveFilterGroups().length > 0;
+    const hasFilters = this.getActiveFilterGroups().length > 0 || this.getCatalogSearchQuery().length >= 2;
     if (!hasFilters) {
       this.resetMetaToDefault();
       return;
@@ -2112,129 +2077,16 @@ const App = {
     return CatalogPayload.sanitizeTagList(tags);
   },
 
-  normalizeSearchQuery(value, { stripPunctuation = false, compact = false } = {}) {
-    return CatalogPayload.normalizeSearchQuery(value, { stripPunctuation, compact });
-  },
-
-  buildSearchIndex(title, titleEnglish, titleJapanese) {
-    return CatalogPayload.buildSearchIndex(title, titleEnglish, titleJapanese);
-  },
-
-  mergeSearchText(existingText, searchIndex) {
-    return CatalogPayload.mergeSearchText(existingText, searchIndex);
-  },
-
-  buildSearchText(title, titleEnglish, titleJapanese) {
-    return CatalogPayload.buildSearchText(title, titleEnglish, titleJapanese);
-  },
-
-  prepareSearchQuery(query) {
-    const normalized = this.normalizeSearchQuery(query);
-    const loose = this.normalizeSearchQuery(query, { stripPunctuation: true });
-    const compact = this.normalizeSearchQuery(query, { stripPunctuation: true, compact: true });
-    const tokens = loose.split(' ').filter(Boolean);
-    return { normalized, loose, compact, tokens };
-  },
-
-  getSearchIndex(anime) {
-    if (anime?.searchIndex) return anime.searchIndex;
-    const index = this.buildSearchIndex(anime?.title, anime?.titleEnglish, anime?.titleJapanese);
-    if (anime) {
-      anime.searchIndex = index;
-      anime.searchText = this.mergeSearchText(anime.searchText, index);
-    }
-    return index;
-  },
-
-  scoreSearchMatch(index, queryInfo) {
-    if (!index || !queryInfo) return 0;
-    const { normalized, loose, compact, tokens } = queryInfo;
-    if (!normalized && !loose && !compact) return 0;
-
-    const variants = index.variants || [];
-    const compactVariants = index.compactVariants || [];
-    const tokenSet = index.tokenSet || new Set();
-
-    const exact = variants.some(value => value === normalized || value === loose);
-    if (exact) return 100;
-
-    const startsWith = variants.some(value => value.startsWith(normalized) || value.startsWith(loose));
-    if (startsWith) return 90;
-
-    const contains = variants.some(value => value.includes(normalized) || value.includes(loose));
-    if (contains) return 75;
-
-    if (tokens.length) {
-      const tokenMatch = tokens.every(token => tokenSet.has(token));
-      if (tokenMatch && tokens.length > 1) return 70;
-      if (tokenMatch) return 60;
-    }
-
-    if (compact) {
-      const compactMatch = compactVariants.some(value => value.includes(compact));
-      if (compactMatch) return 55;
-    }
-
-    return 0;
-  },
-
   findSearchMatches(query) {
-    const queryInfo = this.prepareSearchQuery(query);
-    const results = [];
-
-    for (const anime of this.animeData) {
-      const index = this.getSearchIndex(anime);
-      const score = this.scoreSearchMatch(index, queryInfo);
-      if (score > 0) {
-        results.push({ anime, score });
-      }
-    }
-
-    results.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return String(a.anime.title || '').localeCompare(String(b.anime.title || ''));
+    return BrowseFiltering.findSearchMatches({
+      animeData: this.animeData,
+      query,
+      limit: this.searchMaxResults
     });
-
-    return results.slice(0, this.searchMaxResults).map(item => item.anime);
   },
 
   getCatalogSearchQuery() {
     return String(this.getSearchQueryFromUrl() || '').slice(0, 120).trim();
-  },
-
-  matchesCatalogSearch(anime, queryInfo) {
-    if (!anime || !queryInfo) return false;
-    const index = this.getSearchIndex(anime);
-    if (this.scoreSearchMatch(index, queryInfo) > 0) return true;
-
-    const searchableText = [
-      anime.searchText,
-      anime.title,
-      anime.titleEnglish,
-      anime.titleJapanese,
-      anime.studio,
-      anime.source,
-      anime.demographic,
-      ...(Array.isArray(anime.genres) ? anime.genres : []),
-      ...(Array.isArray(anime.themes) ? anime.themes : [])
-    ]
-      .map(value => String(value || '').trim())
-      .filter(Boolean)
-      .join(' ');
-
-    const looseText = this.normalizeSearchQuery(searchableText, { stripPunctuation: true });
-    const compactText = this.normalizeSearchQuery(searchableText, { stripPunctuation: true, compact: true });
-    if (!looseText && !compactText) return false;
-    if (queryInfo.loose && looseText.includes(queryInfo.loose)) return true;
-    if (queryInfo.compact && compactText.includes(queryInfo.compact)) return true;
-    return queryInfo.tokens.length > 0 && queryInfo.tokens.every(token => looseText.includes(token));
-  },
-
-  filterDataBySearch(animeList, query) {
-    const trimmed = String(query || '').trim();
-    if (trimmed.length < 2) return animeList;
-    const queryInfo = this.prepareSearchQuery(trimmed);
-    return animeList.filter(anime => this.matchesCatalogSearch(anime, queryInfo));
   },
 
   applyHeaderSearchQuery(query, { scroll = true } = {}) {
@@ -3491,8 +3343,7 @@ const App = {
     const result = BrowseFiltering.applyFilters({
       animeData: this.animeData,
       activeFilters: this.activeFilters,
-      searchQuery,
-      filterDataBySearch: this.filterDataBySearch.bind(this)
+      searchQuery
     });
     this.lastAppliedSearchQuery = result.lastAppliedSearchQuery;
     this.filteredData = result.filteredData;
@@ -3929,18 +3780,7 @@ const App = {
   },
 
   getImageLoadingAttrs(index = 0, { eagerCount = this.eagerImageCount, priorityCount = this.highPriorityImageCount } = {}) {
-    const smartLoading = this.features.smartImageLoading;
-    const shouldEager = smartLoading && index < eagerCount;
-    const shouldHigh = smartLoading && index < priorityCount;
-    const fetchpriority = shouldHigh
-      ? 'high'
-      : (shouldEager ? 'auto' : (smartLoading ? 'low' : 'auto'));
-
-    return {
-      loading: shouldEager ? 'eager' : 'lazy',
-      decoding: 'async',
-      fetchpriority
-    };
+    return this.getImageProxyRuntime().getLoading(index, { eagerCount, priorityCount });
   },
 
   initCardTemplate() {
@@ -4287,23 +4127,10 @@ const App = {
     const reducedMotionEnabled = Boolean(settings.reducedMotion);
     const highContrastEnabled = Boolean(settings.highContrast);
     const largeTextEnabled = Boolean(settings.largeText);
-    const tasteProfile = this.getTasteProfileStore().getProfile();
+    const tasteProfile = this.getTasteProfileStore().getSettingsSummary();
     const renderChips = (values) => values.length > 0
       ? values.map(value => `<span class="taste-profile-chip">${this.escapeHtml(value)}</span>`).join('')
       : '<span class="taste-profile-empty">None yet</span>';
-    const preferredTags = [
-      ...tasteProfile.explicit.preferredGenres,
-      ...tasteProfile.explicit.preferredThemes
-    ];
-    const reducedTags = [
-      ...tasteProfile.explicit.reducedGenres,
-      ...tasteProfile.explicit.reducedThemes
-    ];
-    const inferredTags = [
-      ...tasteProfile.inferred.positiveGenres.map(item => item.label),
-      ...tasteProfile.inferred.positiveThemes.map(item => item.label)
-    ].slice(0, 6);
-
     const titleMarkup = includeTitle
       ? '<div class="filter-section-title">Viewing preferences</div>'
       : '';
@@ -4382,15 +4209,15 @@ const App = {
           <p class="settings-description">Recommendation feedback and watchlist history stay editable here.</p>
           <div class="taste-profile-group">
             <span class="settings-title">Prefer more</span>
-            <div class="taste-profile-chips">${renderChips(preferredTags)}</div>
+            <div class="taste-profile-chips">${renderChips(tasteProfile.preferredTags)}</div>
           </div>
           <div class="taste-profile-group">
             <span class="settings-title">Show less</span>
-            <div class="taste-profile-chips">${renderChips(reducedTags)}</div>
+            <div class="taste-profile-chips">${renderChips(tasteProfile.reducedTags)}</div>
           </div>
           <div class="taste-profile-group">
             <span class="settings-title">Learned from watchlist</span>
-            <div class="taste-profile-chips">${renderChips(inferredTags)}</div>
+            <div class="taste-profile-chips">${renderChips(tasteProfile.inferredTags)}</div>
           </div>
           <div class="taste-profile-actions">
             <button class="btn btn-outline btn-sm" type="button" data-action="reset-taste-profile">Reset profile</button>
@@ -4398,7 +4225,7 @@ const App = {
             <button class="btn btn-outline btn-sm" type="button" data-action="import-personal-data">Import data</button>
             <input class="visually-hidden" id="personal-data-import" type="file" accept="application/json" data-action="personal-data-file">
           </div>
-          <p class="settings-description">${this.escapeHtml(tasteProfile.explicit.notForMeTitleIds.length)} hidden recommendation ${tasteProfile.explicit.notForMeTitleIds.length === 1 ? 'title' : 'titles'}.</p>
+          <p class="settings-description">${this.escapeHtml(tasteProfile.hiddenCount)} hidden recommendation ${tasteProfile.hiddenCount === 1 ? 'title' : 'titles'}.</p>
         </div>
         
         <!-- Keyboard Shortcuts Hint -->
@@ -4498,7 +4325,9 @@ const App = {
     // Get recommendations with current mode
     const recommendationLimit = this.getRecommendationDisplayLimit();
     const activeIntent = this.getActiveViewingIntent();
-    const recommendationSource = this.applyTasteProfileRanking(this.getRecommendationSourceData());
+    const recommendationSource = this.getTasteProfileStore().prepareRecommendationSource(this.filteredData, {
+      excludedIds: this.getWatchlistIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] })
+    });
     const recommendations = activeIntent
       ? Recommendations.getRecommendationsForIntent(recommendationSource, activeIntent.key, {
         limit: recommendationLimit,
@@ -5252,18 +5081,7 @@ const App = {
 
   setupImageFallbacks() {
     this.addTrackedListener(document, 'error', (event) => {
-      const target = event.target;
-      if (!target || target.tagName !== 'IMG') return;
-      if (this.isProxyImageUrl(target.currentSrc || target.src)) {
-        this.markImageProxyFailed();
-      }
-      const primary = target.dataset.fallbackSrc;
-      const secondary = target.dataset.fallbackSecondary;
-      const appliedLevel = Number.parseInt(target.dataset.fallbackApplied || '0', 10);
-      const nextSrc = appliedLevel === 0 ? primary : (appliedLevel === 1 ? secondary : '');
-      if (!nextSrc) return;
-      target.dataset.fallbackApplied = String(appliedLevel + 1);
-      target.src = nextSrc;
+      this.getImageProxyRuntime().handleImageError(event.target);
     }, true);
   },
 
@@ -5973,20 +5791,11 @@ const App = {
   },
 
   buildImageProxyUrl(coverUrl, { width, height } = {}) {
-    if (!this.shouldUseImageProxy()) return '';
-    return buildSharedImageProxyUrl(coverUrl, {
-      sanitizeImageUrl: (value) => this.sanitizeImageUrl(value),
-      width,
-      height,
-      fit: 'cover',
-      output: 'webp'
-    });
+    return this.getImageProxyRuntime().resolveImage({ coverUrl, width, height }).optimized;
   },
 
   getImageFallbackSources({ fallbackSrc, placeholder }) {
-    const primary = fallbackSrc || placeholder || '';
-    const secondary = fallbackSrc && placeholder && fallbackSrc !== placeholder ? placeholder : '';
-    return { primary, secondary };
+    return this.getImageProxyRuntime().getFallbacks({ fallbackSrc, placeholder });
   },
 
   getImageFallbackAttrs({ fallbackSrc, placeholder }) {
@@ -6003,27 +5812,7 @@ const App = {
    * Returns srcset string, sizes attribute, and fallback (original URL when proxied).
    */
   buildImageSrcset(coverUrl, { sizeKey = 'card', preferOptimized } = {}) {
-    if (!coverUrl) return { src: '', srcset: '', sizes: '', fallback: '' };
-
-    const sanitized = this.sanitizeImageUrl(coverUrl);
-    if (!sanitized) return { src: '', srcset: '', sizes: '', fallback: '' };
-
-    const useOptimized = typeof preferOptimized === 'boolean' ? preferOptimized : this.shouldUseImageProxy();
-    if (!useOptimized) {
-      return { src: sanitized, srcset: '', sizes: '', fallback: '' };
-    }
-
-    const dims = this.getImageDimensions(sizeKey);
-    if (!dims) {
-      return { src: sanitized, srcset: '', sizes: '', fallback: '' };
-    }
-
-    const optimized = this.buildImageProxyUrl(sanitized, dims);
-    if (!optimized) {
-      return { src: sanitized, srcset: '', sizes: '', fallback: '' };
-    }
-
-    return { src: optimized, srcset: '', sizes: '', fallback: sanitized };
+    return this.getImageProxyRuntime().resolveImage({ coverUrl, sizeKey, preferOptimized });
   },
 
   /**

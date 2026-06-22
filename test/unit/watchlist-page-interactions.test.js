@@ -11,6 +11,12 @@ const createInteractions = (overrides = {}) => {
   };
   const interactions = createWatchlistPageInteractions({
     documentRef: document,
+    handleImageError: (img) => {
+      calls.push(['handleImageError']);
+      img.dataset.fallbackApplied = 'true';
+      img.src = img.dataset.fallbackSrc;
+      return true;
+    },
     handleWatchlistChange: (target) => {
       calls.push(['handleWatchlistChange', target.dataset.action]);
       return Boolean(overrides.changeHandled);
@@ -19,9 +25,7 @@ const createInteractions = (overrides = {}) => {
       calls.push(['handleWatchlistClick', target.dataset.action]);
       return Boolean(overrides.clickHandled);
     },
-    isProxyImageUrl: (value) => String(value || '').includes('/proxy/'),
     loadFullApp: async () => app,
-    markImageProxyFailed: () => calls.push(['markImageProxyFailed']),
     onFilterChange: (next) => calls.push(['onFilterChange', next]),
     renderWatchlist: () => calls.push(['renderWatchlist'])
   });
@@ -95,5 +99,5 @@ test('Watchlist Page Interactions applies image fallback and records proxy failu
 
   assert.equal(img.dataset.fallbackApplied, 'true');
   assert.equal(img.src, 'https://cdn.example/show.webp');
-  assert.deepEqual(calls, [['markImageProxyFailed']]);
+  assert.deepEqual(calls, [['handleImageError']]);
 });

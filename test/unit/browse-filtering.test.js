@@ -63,12 +63,34 @@ test('Browse View Filtering applies facet and search filters through one interfa
       genres: ['Action'],
       themes: ['School']
     },
-    searchQuery: 'school',
-    filterDataBySearch: (items, query) => items.filter(item => item.title.toLowerCase().includes(query))
+    searchQuery: 'school'
   });
 
   assert.deepEqual(result.filteredData.map(item => item.id), ['a']);
   assert.equal(result.lastAppliedSearchQuery, 'school');
+});
+
+test('Browse View Filtering owns ranked search matching and metadata inputs', () => {
+  const animeData = [
+    { id: 'a', title: 'Blue Lock', genres: ['Sports'] },
+    { id: 'b', title: 'Blue Period', themes: ['Visual Arts'] },
+    { id: 'c', title: 'Lockdown Drama', genres: ['Drama'] }
+  ];
+
+  assert.deepEqual(
+    BrowseFiltering.findSearchMatches({ animeData, query: 'blue', limit: 2 }).map(item => item.id),
+    ['a', 'b']
+  );
+
+  const meta = BrowseFiltering.buildFilterMeta({
+    activeFilters: BrowseFiltering.getDefaultActiveFilters(),
+    searchQuery: 'blue',
+    siteName: 'Rekonime',
+    defaultTitle: 'Rekonime',
+    defaultDescription: 'Find anime.'
+  });
+  assert.equal(meta.title, 'Search: blue | Rekonime');
+  assert.match(meta.description, /Anime filtered by Search: blue/);
 });
 
 test('Browse View Filtering builds active filter summary items', () => {

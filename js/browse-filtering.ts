@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { CatalogPayload } from './services/catalog-payload.ts';
 
 const FILTER_PARAM_MAP = {
   seasonYear: 'season',
@@ -150,6 +151,7 @@ const getActiveFilterGroups = (activeFilters, filterTypeLabels = FILTER_TYPE_LAB
 
 const buildFilterMeta = ({
   activeFilters,
+  searchQuery = '',
   filterTypeLabels = FILTER_TYPE_LABELS,
   siteName,
   defaultTitle,
@@ -157,6 +159,10 @@ const buildFilterMeta = ({
   buildMetaDescription = value => value
 }) => {
   const groups = getActiveFilterGroups(activeFilters, filterTypeLabels);
+  const trimmedSearch = String(searchQuery || '').trim();
+  if (trimmedSearch.length >= 2) {
+    groups.unshift({ type: 'search', label: 'Search', values: [trimmedSearch] });
+  }
   const summary = groups.map(group => `${group.label}: ${group.values.join(', ')}`);
   const headline = summary.join(' | ');
   const title = headline ? `${headline} | ${siteName}` : defaultTitle || siteName;
@@ -242,16 +248,88 @@ const matchesActiveFilters = (anime, activeFilters = {}) => {
   return true;
 };
 
+const prepareSearchQuery = (query) => {
+  const normalized = CatalogPayload.normalizeSearchQuery(query);
+  const loose = CatalogPayload.normalizeSearchQuery(query, { stripPunctuation: true });
+  const compact = CatalogPayload.normalizeSearchQuery(query, { stripPunctuation: true, compact: true });
+  return { normalized, loose, compact, tokens: loose.split(' ').filter(Boolean) };
+};
+
+const getSearchIndex = (anime) => {
+  if (anime?.searchIndex) return anime.searchIndex;
+  const index = CatalogPayload.buildSearchIndex(anime?.title, anime?.titleEnglish, anime?.titleJapanese);
+  if (anime) {
+    anime.searchIndex = index;
+    anime.searchText = CatalogPayload.mergeSearchText(anime.searchText, index);
+  }
+  return index;
+};
+
+const scoreSearchMatch = (index, queryInfo) => {
+  if (!index || !queryInfo) return 0;
+  const { normalized, loose, compact, tokens } = queryInfo;
+  if (!normalized && !loose && !compact) return 0;
+  const variants = index.variants || [];
+  const compactVariants = index.compactVariants || [];
+  const tokenSet = index.tokenSet || new Set();
+  if (variants.some(value => value === normalized || value === loose)) return 100;
+  if (variants.some(value => value.startsWith(normalized) || value.startsWith(loose))) return 90;
+  if (variants.some(value => value.includes(normalized) || value.includes(loose))) return 75;
+  const tokenMatch = tokens.length > 0 && tokens.every(token => tokenSet.has(token));
+  if (tokenMatch) return tokens.length > 1 ? 70 : 60;
+  if (compact && compactVariants.some(value => value.includes(compact))) return 55;
+  return 0;
+};
+
+const matchesSearch = (anime, queryInfo) => {
+  if (!anime || !queryInfo) return false;
+  if (scoreSearchMatch(getSearchIndex(anime), queryInfo) > 0) return true;
+  const searchableText = [
+    anime.searchText,
+    anime.title,
+    anime.titleEnglish,
+    anime.titleJapanese,
+    anime.studio,
+    anime.source,
+    anime.demographic,
+    ...(Array.isArray(anime.genres) ? anime.genres : []),
+    ...(Array.isArray(anime.themes) ? anime.themes : [])
+  ].map(value => String(value || '').trim()).filter(Boolean).join(' ');
+  const looseText = CatalogPayload.normalizeSearchQuery(searchableText, { stripPunctuation: true });
+  const compactText = CatalogPayload.normalizeSearchQuery(searchableText, { stripPunctuation: true, compact: true });
+  if (queryInfo.loose && looseText.includes(queryInfo.loose)) return true;
+  if (queryInfo.compact && compactText.includes(queryInfo.compact)) return true;
+  return queryInfo.tokens.length > 0 && queryInfo.tokens.every(token => looseText.includes(token));
+};
+
+const filterBySearch = (animeData, query) => {
+  const trimmed = String(query || '').trim();
+  if (trimmed.length < 2) return animeData;
+  const queryInfo = prepareSearchQuery(trimmed);
+  return animeData.filter(anime => matchesSearch(anime, queryInfo));
+};
+
+const findSearchMatches = ({ animeData = [], query = '', limit = 8 } = {}) => {
+  const trimmed = String(query || '').trim();
+  if (trimmed.length < 2) return [];
+  const queryInfo = prepareSearchQuery(trimmed);
+  return animeData
+    .map(anime => ({ anime, score: scoreSearchMatch(getSearchIndex(anime), queryInfo) }))
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score || String(a.anime.title || '').localeCompare(String(b.anime.title || '')))
+    .slice(0, limit)
+    .map(item => item.anime);
+};
+
 const applyFilters = ({
   animeData = [],
   activeFilters = getDefaultActiveFilters(),
-  searchQuery = '',
-  filterDataBySearch = data => data
+  searchQuery = ''
 } = {}) => {
   const filteredByFacets = hasActiveFilters(activeFilters)
     ? animeData.filter(anime => matchesActiveFilters(anime, activeFilters))
     : animeData;
-  const filteredData = filterDataBySearch(filteredByFacets, searchQuery);
+  const filteredData = filterBySearch(filteredByFacets, searchQuery);
   return {
     filteredData,
     lastAppliedSearchQuery: String(searchQuery || '').trim().length >= 2 ? String(searchQuery || '').trim() : ''
@@ -324,6 +402,12 @@ const BrowseFiltering = {
   extractFilterOptions,
   hasActiveFilters,
   matchesActiveFilters,
+  prepareSearchQuery,
+  getSearchIndex,
+  scoreSearchMatch,
+  matchesSearch,
+  filterBySearch,
+  findSearchMatches,
   applyFilters,
   toggleFilterValue,
   getActiveFilterCount,

@@ -2,11 +2,10 @@
 
 const createWatchlistPageInteractions = ({
   documentRef = typeof document !== 'undefined' ? document : null,
+  handleImageError,
   handleWatchlistChange,
   handleWatchlistClick,
-  isProxyImageUrl,
   loadFullApp,
-  markImageProxyFailed,
   onFilterChange,
   renderWatchlist
 }) => {
@@ -46,16 +45,7 @@ const createWatchlistPageInteractions = ({
     });
 
     grid.addEventListener('error', (event) => {
-      const img = event.target;
-      if (!img || img.tagName !== 'IMG') return;
-      if (isProxyImageUrl(img.currentSrc || img.src)) {
-        markImageProxyFailed();
-      }
-      if (img.dataset.fallbackApplied) return;
-      const fallback = img.dataset.fallbackSrc;
-      if (!fallback) return;
-      img.dataset.fallbackApplied = 'true';
-      img.src = fallback;
+      handleImageError(event.target);
     }, true);
   };
 

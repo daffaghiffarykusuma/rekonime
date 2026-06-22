@@ -37,9 +37,18 @@ const unique = (values = []) => {
   return result;
 };
 
-const normalizeEvidence = (values = []) => unique(values)
-  .map((label) => ({ label, weight: 0 }))
-  .filter(item => item.label);
+const normalizeEvidence = (values = []) => {
+  const evidence = new Map();
+  (Array.isArray(values) ? values : []).forEach((value) => {
+    const label = normalizeTag(value?.label ?? value);
+    if (!label) return;
+    const key = label.toLowerCase();
+    const weight = Number.isFinite(value?.weight) ? value.weight : 0;
+    const current = evidence.get(key);
+    if (!current || weight > current.weight) evidence.set(key, { label, weight });
+  });
+  return [...evidence.values()];
+};
 
 const normalizeProfile = (value) => {
   const profile = emptyProfile();
@@ -186,50 +195,113 @@ const createTasteProfileStore = ({
     return profile;
   };
 
-  const reset = () => save(emptyProfile());
+  const reset = (watchlistEntries = []) => save({
+    ...emptyProfile(),
+    inferred: buildTasteProfileFromWatchlist(watchlistEntries)
+  });
 
   const update = (mapper) => save(mapper(normalizeProfile(profile)));
 
-  return {
+  const addMoreLike = (anime) => update((current) => ({
+    ...current,
+    explicit: {
+      ...current.explicit,
+      moreLikeTitleIds: addUnique(current.explicit.moreLikeTitleIds, anime?.id),
+      preferredGenres: unique([...current.explicit.preferredGenres, ...(anime?.genres || []).slice(0, 2)]),
+      preferredThemes: unique([...current.explicit.preferredThemes, ...(anime?.themes || []).slice(0, 2)]),
+      notForMeTitleIds: removeValue(current.explicit.notForMeTitleIds, anime?.id)
+    }
+  }));
+
+  const addNotForMe = (anime) => update((current) => ({
+    ...current,
+    explicit: {
+      ...current.explicit,
+      notForMeTitleIds: addUnique(current.explicit.notForMeTitleIds, anime?.id),
+      moreLikeTitleIds: removeValue(current.explicit.moreLikeTitleIds, anime?.id)
+    }
+  }));
+
+  const reduceGenre = (genre) => update((current) => ({
+    ...current,
+    explicit: {
+      ...current.explicit,
+      reducedGenres: addUnique(current.explicit.reducedGenres, genre),
+      preferredGenres: removeValue(current.explicit.preferredGenres, genre)
+    }
+  }));
+
+  const reduceTheme = (theme) => update((current) => ({
+    ...current,
+    explicit: {
+      ...current.explicit,
+      reducedThemes: addUnique(current.explicit.reducedThemes, theme),
+      preferredThemes: removeValue(current.explicit.preferredThemes, theme)
+    }
+  }));
+
+  const applyRecommendationFeedback = (action, anime, { genre = '', theme = '' } = {}) => {
+    if (!anime) return { changed: false, message: '' };
+    if (action === 'rec-more-like') {
+      addMoreLike(anime);
+      return { changed: true, message: `More like ${anime.title} added to your Taste Profile.` };
+    }
+    if (action === 'rec-not-for-me') {
+      addNotForMe(anime);
+      return { changed: true, message: `${anime.title} hidden from recommendations.` };
+    }
+    if (action === 'rec-less-tag' && genre) {
+      reduceGenre(genre);
+      return { changed: true, message: `Showing less ${genre}.` };
+    }
+    if (action === 'rec-less-tag' && theme) {
+      reduceTheme(theme);
+      return { changed: true, message: `Showing less ${theme}.` };
+    }
+    return { changed: false, message: '' };
+  };
+
+  const prepareRecommendationSource = (animeList, { excludedIds = [] } = {}) => {
+    const excluded = new Set([
+      ...excludedIds,
+      ...normalizeProfile(profile).explicit.notForMeTitleIds
+    ].map(normalizeId).filter(Boolean));
+    return (Array.isArray(animeList) ? animeList : [])
+      .filter(anime => !excluded.has(normalizeId(anime?.id)))
+      .map((anime, index) => ({ anime, index, tasteScore: scoreAnimeForTaste(anime, profile) }))
+      .sort((left, right) => right.tasteScore - left.tasteScore || left.index - right.index)
+      .map(entry => entry.anime);
+  };
+
+  const getSettingsSummary = () => {
+    const normalized = normalizeProfile(profile);
+    return {
+      preferredTags: unique([
+        ...normalized.explicit.preferredGenres,
+        ...normalized.explicit.preferredThemes
+      ]),
+      reducedTags: unique([
+        ...normalized.explicit.reducedGenres,
+        ...normalized.explicit.reducedThemes
+      ]),
+      inferredTags: unique([
+        ...normalized.inferred.positiveGenres.map(item => item.label),
+        ...normalized.inferred.positiveThemes.map(item => item.label)
+      ]).slice(0, 6),
+      hiddenCount: normalized.explicit.notForMeTitleIds.length
+    };
+  };
+
+  const store = {
     load,
     save,
     reset,
     getProfile: () => normalizeProfile(profile),
     replaceProfile: (nextProfile) => save(nextProfile),
-    addMoreLike: (anime) => update((current) => ({
-      ...current,
-      explicit: {
-        ...current.explicit,
-        moreLikeTitleIds: addUnique(current.explicit.moreLikeTitleIds, anime?.id),
-        preferredGenres: unique([...current.explicit.preferredGenres, ...(anime?.genres || []).slice(0, 2)]),
-        preferredThemes: unique([...current.explicit.preferredThemes, ...(anime?.themes || []).slice(0, 2)]),
-        notForMeTitleIds: removeValue(current.explicit.notForMeTitleIds, anime?.id)
-      }
-    })),
-    addNotForMe: (anime) => update((current) => ({
-      ...current,
-      explicit: {
-        ...current.explicit,
-        notForMeTitleIds: addUnique(current.explicit.notForMeTitleIds, anime?.id),
-        moreLikeTitleIds: removeValue(current.explicit.moreLikeTitleIds, anime?.id)
-      }
-    })),
-    reduceGenre: (genre) => update((current) => ({
-      ...current,
-      explicit: {
-        ...current.explicit,
-        reducedGenres: addUnique(current.explicit.reducedGenres, genre),
-        preferredGenres: removeValue(current.explicit.preferredGenres, genre)
-      }
-    })),
-    reduceTheme: (theme) => update((current) => ({
-      ...current,
-      explicit: {
-        ...current.explicit,
-        reducedThemes: addUnique(current.explicit.reducedThemes, theme),
-        preferredThemes: removeValue(current.explicit.preferredThemes, theme)
-      }
-    })),
+    addMoreLike,
+    addNotForMe,
+    reduceGenre,
+    reduceTheme,
     updateInferredFromWatchlist: (entries) => update((current) => ({
       ...current,
       inferred: buildTasteProfileFromWatchlist(entries)
@@ -244,8 +316,13 @@ const createTasteProfileStore = ({
     importData: (payload) => {
       const nextProfile = payload?.tasteProfile || payload;
       return save(nextProfile);
-    }
+    },
+    applyRecommendationFeedback,
+    prepareRecommendationSource,
+    getSettingsSummary
   };
+
+  return store;
 };
 
 export {
