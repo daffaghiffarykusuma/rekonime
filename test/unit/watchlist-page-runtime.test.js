@@ -3,42 +3,22 @@ import assert from 'node:assert/strict';
 import { createWatchlistPageRuntime } from '../../js/watchlist-page-runtime.ts';
 import { setupDom } from '../helpers/dom.js';
 
-const createLifecycle = (result) => {
+const createRuntime = (result) => {
   const calls = [];
   return {
     calls,
-    lifecycle: {
-      load: () => calls.push(['load']),
-      getEntry: (id) => {
-        calls.push(['getEntry', id]);
-        return { id, status: 'planned', progress: 0, snapshot: { id, title: 'Show 1' } };
-      },
+    runtime: {
       setStatus: (id, status, options) => {
         calls.push(['setStatus', id, status, options]);
-        return result || {
-          changed: true,
-          id,
-          entry: { id, status, progress: 0 },
-          operation: 'status'
-        };
+        return result || { transition: { changed: true, render: { controls: { shouldUpdate: true, entry: { id, status } }, watchlist: { shouldRender: true } } } };
       },
       setProgress: (id, progress, options) => {
         calls.push(['setProgress', id, progress, options]);
-        return result || {
-          changed: true,
-          id,
-          entry: { id, status: 'watching', progress: Number(progress) },
-          operation: 'progress'
-        };
+        return result || { transition: { changed: true, render: { controls: { shouldUpdate: true, entry: { id, progress } }, watchlist: { shouldRender: false } } } };
       },
       adjustProgress: (id, delta, options) => {
         calls.push(['adjustProgress', id, delta, options]);
-        return result || {
-          changed: true,
-          id,
-          entry: { id, status: 'watching', progress: delta },
-          operation: 'progress'
-        };
+        return result || { transition: { changed: true, render: { controls: { shouldUpdate: true, entry: { id, progress: delta } }, watchlist: { shouldRender: false } } } };
       }
     }
   };
@@ -53,11 +33,11 @@ test('Watchlist Page Runtime handles status changes through one transition path'
       </select>
     </article>
   `);
-  const { calls, lifecycle } = createLifecycle();
+  const { calls, runtime: watchlistRuntime } = createRuntime();
   const uiCalls = [];
   const runtime = createWatchlistPageRuntime({
     getEpisodeCountFromCard: () => 12,
-    getWatchlistLifecycle: () => lifecycle,
+    getWatchlistRuntime: () => watchlistRuntime,
     renderWatchlist: () => uiCalls.push(['renderWatchlist']),
     updateWatchlistUi: (...args) => uiCalls.push(['updateWatchlistUi', ...args])
   });
@@ -65,8 +45,8 @@ test('Watchlist Page Runtime handles status changes through one transition path'
   const handled = runtime.handleWatchlistChange(document.querySelector('select'));
 
   assert.equal(handled, true);
-  assert.deepEqual(calls.map(call => call[0]), ['load', 'getEntry', 'setStatus']);
-  assert.equal(calls[2][3].episodeCount, 12);
+  assert.deepEqual(calls.map(call => call[0]), ['setStatus']);
+  assert.equal(calls[0][3].episodeCount, 12);
   assert.equal(uiCalls[0][0], 'updateWatchlistUi');
   assert.equal(uiCalls[1][0], 'renderWatchlist');
 });
@@ -79,11 +59,11 @@ test('Watchlist Page Runtime handles progress clicks without re-rendering full w
       </div>
     </article>
   `);
-  const { calls, lifecycle } = createLifecycle();
+  const { calls, runtime: watchlistRuntime } = createRuntime();
   const uiCalls = [];
   const runtime = createWatchlistPageRuntime({
     getEpisodeCountFromCard: () => 12,
-    getWatchlistLifecycle: () => lifecycle,
+    getWatchlistRuntime: () => watchlistRuntime,
     renderWatchlist: () => uiCalls.push(['renderWatchlist']),
     updateWatchlistUi: (...args) => uiCalls.push(['updateWatchlistUi', ...args])
   });
@@ -91,7 +71,7 @@ test('Watchlist Page Runtime handles progress clicks without re-rendering full w
   const handled = runtime.handleWatchlistClick(document.querySelector('button'));
 
   assert.equal(handled, true);
-  assert.deepEqual(calls.map(call => call[0]), ['load', 'getEntry', 'adjustProgress']);
+  assert.deepEqual(calls.map(call => call[0]), ['adjustProgress']);
   assert.equal(uiCalls.length, 1);
   assert.equal(uiCalls[0][0], 'updateWatchlistUi');
 });

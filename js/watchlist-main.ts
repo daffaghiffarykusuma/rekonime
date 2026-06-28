@@ -8,6 +8,7 @@ import { createWatchlistAiringDashboardAdapter } from './watchlist-airing-dashbo
 import {
   createWatchlistLifecycle
 } from './watchlist-state.js';
+import { createWatchlistLifecycleRuntime } from './watchlist-lifecycle-runtime.ts';
 import {
   updateWatchlistControlsElement,
   getEpisodeCountFromCard as getPresentationEpisodeCountFromCard
@@ -37,6 +38,7 @@ let watchlistAiringDashboardAdapter = null;
 let watchlistPageInteractions = null;
 let watchlistPageRenderer = null;
 let watchlistPageRuntime = null;
+let watchlistLifecycleRuntime = null;
 const imageProxyRuntime = createImageProxyRuntime({
   storageKey: IMAGE_PROXY_STATUS_KEY,
   ttlMs: IMAGE_PROXY_STATUS_TTL_MS,
@@ -136,7 +138,20 @@ const getWatchlistPageRuntime = () => {
   if (watchlistPageRuntime) return watchlistPageRuntime;
   watchlistPageRuntime = createWatchlistPageRuntime({
     getEpisodeCountFromCard,
-    getWatchlistLifecycle,
+    getWatchlistRuntime: () => {
+      if (!watchlistLifecycleRuntime) {
+        watchlistLifecycleRuntime = createWatchlistLifecycleRuntime({
+          buildSnapshot: () => null,
+          dashboardTimeout: null,
+          getAnime: () => null,
+          getEpisodeLimit: () => null,
+          getLifecycle: getWatchlistLifecycle,
+          loadBeforeTransition: true,
+          renderMode: null
+        });
+      }
+      return watchlistLifecycleRuntime;
+    },
     renderWatchlist,
     updateWatchlistUi
   });

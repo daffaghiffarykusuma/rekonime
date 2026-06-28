@@ -250,7 +250,39 @@ const prepareCatalogPayloadState = (
   };
 };
 
+const prepareCatalogPayloadApplication = (payload, {
+  isFull = false,
+  preserveFilters = true,
+  defaultActiveFilters = DEFAULT_ACTIVE_FILTERS,
+  filterUi = {},
+  validator = DataValidator
+} = {}) => {
+  const state = prepareCatalogPayloadState(payload, {
+    isFull,
+    preserveFilters,
+    defaultActiveFilters,
+    validator
+  });
+  const deferFilterUi = !filterUi.deferUsed && Boolean(filterUi.lowMotion);
+  const applyUrlFilters = !filterUi.urlFiltersApplied && Boolean(filterUi.catalogPage);
+
+  return {
+    state,
+    intent: {
+      applyUrlFilters,
+      replaceUrlFilters: applyUrlFilters && Boolean(filterUi.hasFilterParams),
+      deferFilterUi,
+      filterPanel: deferFilterUi ? 'none' : (filterUi.panelVisible ? 'render' : 'schedule'),
+      renderQuickFilters: !deferFilterUi,
+      refreshWatchlistSnapshots: { persist: true },
+      scheduleAiringDashboard: { timeout: 3500 },
+      applyFilters: { syncUrl: false, updateMeta: false }
+    }
+  };
+};
+
 const CatalogPayload = {
+  prepareApplication: prepareCatalogPayloadApplication,
   prepareState: prepareCatalogPayloadState,
   normalizeAnimeData,
   validateAnimeData,
@@ -265,6 +297,7 @@ const CatalogPayload = {
 
 export {
   CatalogPayload,
+  prepareCatalogPayloadApplication,
   prepareCatalogPayloadState,
   normalizeAnimeData,
   validateAnimeData,

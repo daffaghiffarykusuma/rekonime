@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDetailExperience, createDetailExperiencePort } from '../../js/detail-experience.ts';
+import { createDetailExperience } from '../../js/detail-experience.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const createAppHarness = (overrides = {}) => {
@@ -42,16 +42,12 @@ const createAppHarness = (overrides = {}) => {
     setModalVisibility: (...args) => calls.push(['setModalVisibility', ...args]),
     updateUrlForAnime: (...args) => calls.push(['updateUrlForAnime', ...args]),
     resetMetaToDefault: () => calls.push(['resetMetaToDefault']),
-    renderDetailSkeleton: () => '<div class="skeleton"></div>',
-    renderDetailErrorState: ({ reason }) => `<div class="error-message">${reason}</div>`,
     normalizeBookmarkId: (value) => String(value ?? '').trim(),
     getWatchlistSnapshot: () => null,
     hasFullAnimeDetail: () => true,
     loadAnimeDetailChunk: async () => null,
     getSynopsisForAnime: (anime) => anime.synopsis || '',
-    renderSynopsisLoading: () => '<p>Loading synopsis</p>',
     renderFranchiseHubSection: () => '',
-    renderReviewsLoading: () => '<p>Loading reviews</p>',
     getEpisodeCount: (anime) => anime.episodes?.length || anime.episodeCount || 0,
     sanitizeClassList: (...classes) => classes.filter(Boolean).join(' '),
     buildImageSrcset: (cover) => ({ src: cover || '', srcset: '', sizes: '', fallback: '' }),
@@ -67,18 +63,13 @@ const createAppHarness = (overrides = {}) => {
     getImageFallbackAttrs: () => '',
     renderSimilarAnimeSection: () => '<div class="similar-empty"></div>',
     renderWatchlistControls: () => '<div class="watchlist-controls"></div>',
-    renderDetailContent: (anime, { synopsis = '' } = {}) => `
-      <h2>${app.escapeHtml(anime.title)}</h2>
-      <div id="synopsis-section">${app.renderSynopsis(synopsis)}</div>
-      <div id="community-reviews-section">${app.renderReviewsLoading()}</div>
-    `,
     updateWatchlistControls: (...args) => calls.push(['updateWatchlistControls', ...args]),
     updatePrefetchObserving: () => calls.push(['updatePrefetchObserving']),
     loadFullCatalog: async () => false,
     ...overrides
   };
 
-  return { app, calls, detail: createDetailExperience(createDetailExperiencePort(app)) };
+  return { app, calls, detail: createDetailExperience(app) };
 };
 
 test('Detail Experience cache evicts least recently used detail markup', () => {

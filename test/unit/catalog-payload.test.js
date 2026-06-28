@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   CatalogPayload,
   normalizeAnimeData,
+  prepareCatalogPayloadApplication,
   prepareCatalogPayloadState
 } from '../../js/services/catalog-payload.ts';
 
@@ -118,4 +119,41 @@ test('CatalogPayload keeps filters untouched and drops invalid score profiles', 
   assert.equal(state.catalogStatus, 'embedded');
   assert.equal(state.activeFilters, null);
   assert.equal(state.animeData[0].id, 'embedded-entry');
+});
+
+test('CatalogPayload prepares downstream refresh intent without App Shell knowledge', () => {
+  const application = prepareCatalogPayloadApplication({
+    anime: [{ id: 'show-1', title: 'Show 1' }]
+  }, {
+    filterUi: {
+      catalogPage: true,
+      deferUsed: false,
+      hasFilterParams: true,
+      lowMotion: false,
+      panelVisible: false,
+      urlFiltersApplied: false
+    }
+  });
+
+  assert.equal(application.state.animeData[0].id, 'show-1');
+  assert.deepEqual(application.intent, {
+    applyUrlFilters: true,
+    replaceUrlFilters: true,
+    deferFilterUi: false,
+    filterPanel: 'schedule',
+    renderQuickFilters: true,
+    refreshWatchlistSnapshots: { persist: true },
+    scheduleAiringDashboard: { timeout: 3500 },
+    applyFilters: { syncUrl: false, updateMeta: false }
+  });
+});
+
+test('CatalogPayload suppresses filter rendering when low-motion deferral is active', () => {
+  const { intent } = CatalogPayload.prepareApplication({ anime: [] }, {
+    filterUi: { catalogPage: true, lowMotion: true }
+  });
+
+  assert.equal(intent.deferFilterUi, true);
+  assert.equal(intent.filterPanel, 'none');
+  assert.equal(intent.renderQuickFilters, false);
 });

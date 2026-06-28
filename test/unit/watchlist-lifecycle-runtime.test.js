@@ -33,6 +33,29 @@ const createRuntimeHarness = ({ lastRecommendationIds = [] } = {}) => {
   return { lifecycle, runtime };
 };
 
+test('Watchlist Lifecycle Runtime loads page state and preserves its Snapshot', () => {
+  const storage = createMemoryStorage();
+  const seeded = createWatchlistLifecycle({ storage, now: () => 1000 });
+  seeded.setStatus('show-1', 'planned', {
+    snapshot: { id: 'show-1', title: 'Show 1', cover: 'cover.jpg' }
+  });
+  const runtime = createWatchlistLifecycleRuntime({
+    buildSnapshot: () => null,
+    dashboardTimeout: null,
+    getAnime: () => null,
+    getEpisodeLimit: () => null,
+    getLifecycle: () => createWatchlistLifecycle({ storage, now: () => 2000 }),
+    loadBeforeTransition: true,
+    renderMode: null
+  });
+
+  const result = runtime.setStatus('show-1', 'watching', { episodeCount: 12 });
+
+  assert.equal(result.transition.entry.snapshot.title, 'Show 1');
+  assert.equal(result.transition.render.watchlist.shouldRender, true);
+  assert.equal(result.transition.dashboard.shouldSchedule, false);
+});
+
 test('Watchlist Lifecycle Runtime owns status transition envelope and follow-up effects', () => {
   const { lifecycle, runtime } = createRuntimeHarness({ lastRecommendationIds: ['show-1'] });
 
@@ -68,4 +91,3 @@ test('Watchlist Lifecycle Runtime owns progress and loved transition effects', (
     renderRecommendations: true
   });
 });
-

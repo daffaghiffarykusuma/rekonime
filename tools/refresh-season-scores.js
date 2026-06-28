@@ -85,6 +85,14 @@ const getPreviousSeason = ({ index, year }) => {
   };
 };
 
+const getNextSeason = ({ index, year }) => {
+  const nextIndex = index === SEASONS.length - 1 ? 0 : index + 1;
+  return {
+    season: SEASONS[nextIndex].name,
+    year: index === SEASONS.length - 1 ? year + 1 : year
+  };
+};
+
 const getMalId = (anime) => (
   anime?.mal_id ??
   anime?.malId ??
@@ -155,10 +163,12 @@ const main = async () => {
   const root = JSON.parse(fs.readFileSync(options.dataPath, 'utf8'));
   const animeList = Array.isArray(root?.anime) ? root.anime : [];
   const currentSeason = getSeasonForDate(options.date);
-  const previousSeason = getPreviousSeason(currentSeason);
+  const companionSeason = options.date.getMonth() % 3 === 2
+    ? getNextSeason(currentSeason)
+    : getPreviousSeason(currentSeason);
   const seasons = [
     { season: currentSeason.season, year: currentSeason.year },
-    previousSeason
+    companionSeason
   ];
 
   const { targets, skippedWithoutMal } = collectTargets(animeList, seasons);

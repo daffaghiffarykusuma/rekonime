@@ -1,6 +1,43 @@
 // @ts-nocheck
 import { Recommendations } from './recommendations.ts';
 
+const renderDetailSkeleton = () => `
+  <div class="detail-skeleton">
+    <div class="detail-skeleton-header">
+      <div class="detail-skeleton-cover"></div>
+      <div class="detail-skeleton-info">
+        <div class="detail-skeleton-title"></div>
+        <div class="detail-skeleton-meta"></div>
+        <div class="detail-skeleton-tags"><div class="detail-skeleton-tag"></div><div class="detail-skeleton-tag"></div><div class="detail-skeleton-tag"></div></div>
+        <div class="detail-skeleton-stats"><div class="detail-skeleton-stat"></div><div class="detail-skeleton-stat"></div><div class="detail-skeleton-stat"></div></div>
+        <div class="detail-skeleton-watchlist"><div class="detail-skeleton-pill"></div><div class="detail-skeleton-pill wide"></div></div>
+      </div>
+    </div>
+    <div class="detail-skeleton-breakdown">
+      <div class="detail-skeleton-section-title"></div>
+      ${Array.from({ length: 3 }, () => '<div class="detail-skeleton-row"><div class="detail-skeleton-label"></div><div class="detail-skeleton-bar"></div><div class="detail-skeleton-value"></div></div>').join('')}
+    </div>
+    <div class="detail-skeleton-section"><div class="detail-skeleton-section-title"></div><div class="detail-skeleton-text"></div><div class="detail-skeleton-text medium"></div><div class="detail-skeleton-text short"></div></div>
+    <div class="detail-skeleton-trailer"></div>
+    <div class="detail-skeleton-reviews"><div class="detail-skeleton-section-title"></div><div class="detail-skeleton-tabs"><div class="detail-skeleton-tab"></div><div class="detail-skeleton-tab"></div><div class="detail-skeleton-tab"></div></div><div class="detail-skeleton-review-cards"><div class="detail-skeleton-review"></div><div class="detail-skeleton-review"></div></div></div>
+    <div class="detail-skeleton-similar"><div class="detail-skeleton-section-title"></div><div class="detail-skeleton-similar-grid"><div class="detail-skeleton-similar-card"></div><div class="detail-skeleton-similar-card"></div><div class="detail-skeleton-similar-card"></div></div></div>
+  </div>
+`;
+
+const renderSynopsisLoading = () => `
+  <div class="anime-synopsis">
+    <h3>Synopsis</h3>
+    <div class="synopsis-loading"><div class="loading-shimmer"></div><div class="loading-shimmer"></div><div class="loading-shimmer short"></div></div>
+  </div>
+`;
+
+const renderReviewsLoading = () => `
+  <div class="community-reviews">
+    <h3>Community Reviews</h3>
+    <div class="reviews-loading"><div class="loading-spinner"></div><p>Loading reviews...</p></div>
+  </div>
+`;
+
 const buildDetailDecisionData = (anime, { episodeCount = 0 } = {}) => {
   const hasEpisodes = episodeCount > 0;
   const retention = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
@@ -278,5 +315,8 @@ const renderDetailContent = (anime, {
 
 export {
   buildDetailDecisionData,
+  renderDetailSkeleton,
+  renderReviewsLoading,
+  renderSynopsisLoading,
   renderDetailContent
 };

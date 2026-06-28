@@ -14,7 +14,6 @@
 - Runtime module: `js/services/catalog-loader.ts`
 - Runtime TypeScript entrypoint: `js/services/catalog-loader.ts`
 - Payload module: `js/services/catalog-payload.ts`
-- Payload effect module: `js/services/catalog-payload-effects.ts`
 - Payload TypeScript entrypoint: `js/services/catalog-payload.ts`
 - Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/api-client.ts`, `js/services/cache-manager.ts`, `js/services/error-handler.ts`, `js/services/logger.ts`
 - Shared TypeScript contracts: `js/contracts/catalog-runtime.ts`
@@ -22,7 +21,7 @@
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
 - Interface: load the full catalog index, fetch catalog payloads, read/write full catalog cache, use embedded fallback, and merge detail chunks
-- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, and render-ready catalog state; `js/services/catalog-payload-effects.ts` directly applies cache, document, Snapshot, Airing Schedule, and filter updates
+- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, render-ready catalog state, and downstream refresh intent; the App Shell applies document, cache, Snapshot, Airing Schedule, and filter effects from that intent
 - Contract surface: `CatalogPayload`, `PreviewCatalogPayload`, `FullCatalogPayload`, `DetailChunkPayload`, `ScoreProfile`, `CatalogValidationIssue`, and `CatalogRuntimeEventMap`
 
 ### Browse View Filtering
@@ -51,7 +50,7 @@
 - Shared TypeScript contracts: `js/contracts/watchlist-lifecycle.ts`
 - Storage key: `rekonime.watchlist`
 - Interface: load entries, migrate legacy bookmarks, update status/progress, refresh snapshots, expose filtered entries/items, and build transition envelopes for adapters
-- Side effects: storage writes only; Watchlist Lifecycle Runtime owns detail-page transition assembly, snapshot resolution, transition envelopes, Taste Profile intent, recommendation render intent, and Airing Schedule dashboard intent; callers apply the returned event, render, and dashboard scheduling intent; Watchlist Airing Dashboard Adapter owns shared home/watchlist lazy dashboard loading, controller caching, idle scheduling, cancellation, scheduled data-source resolution, controller options, and update failure logging; Watchlist Page Renderer owns filter-chip markup, card DOM assembly, empty-state class updates, snapshot backfill, and dashboard render scheduling; Watchlist Page Interactions owns page-level DOM event listeners, filter changes, card opening, image fallback, settings, and sync events; Watchlist Page Runtime owns watchlist-page status/progress transition handling; Watchlist Entry presentation owns shared control labels, progress visibility, total text, and detail/watchlist page adapters
+- Side effects: storage writes only; Watchlist Lifecycle Runtime owns shared home/watchlist mutation, snapshot resolution, transition envelopes, Taste Profile intent, recommendation render intent, and Airing Schedule dashboard intent; callers apply the returned event, render, and dashboard scheduling intent; Watchlist Airing Dashboard Adapter owns shared home/watchlist lazy dashboard loading, controller caching, idle scheduling, cancellation, scheduled data-source resolution, controller options, and update failure logging; Watchlist Page Renderer owns filter-chip markup, card DOM assembly, empty-state class updates, snapshot backfill, and dashboard render scheduling; Watchlist Page Interactions owns page-level DOM event listeners, filter changes, card opening, image fallback, settings, and sync events; Watchlist Page Runtime translates page DOM actions into Watchlist Lifecycle Runtime commands and applies returned render intent; Watchlist Entry presentation owns shared control labels, progress visibility, total text, and detail/watchlist page adapters
 - Contract surface: `WatchlistEntry`, `Snapshot`, `WatchlistPersistedPayload`, `WatchlistTransitionResult`, `WatchlistControlModel`, `WatchlistDisplayModel`, and `WatchlistLifecycleEventMap`
 
 ### Detail Experience
@@ -64,7 +63,7 @@
 - Inputs: anime id, cached detail, review payload, detail URL state (`?anime=...`)
 - Outputs: modal visibility, refreshed synopsis/reviews, cached detail HTML, detail URL synchronization
 - Side effects: history state, metadata updates, trailer cleanup/replacement, full-catalog deep-link fallback, modal-open telemetry
-- Interface rule: `js/detail-experience.ts` contains its App Shell adapter; `js/detail-presentation.ts` owns modal body markup, `js/detail-media.ts` owns trailer behavior, `js/detail-reviews.ts` owns review loading, and `js/detail-error-state.ts` owns unavailable-title messaging.
+- Interface rule: `js/detail-experience.ts` privately wires the single App Shell integration and exports only the Detail Experience factory; `js/detail-presentation.ts` owns modal body and loading markup, `js/detail-media.ts` owns trailer behavior, `js/detail-reviews.ts` owns review loading, and `js/detail-error-state.ts` owns unavailable-title messaging.
 
 ### Airing Schedule
 - Stable TypeScript entry points: `js/airing-schedule.ts`, `js/airing-dashboard.ts`

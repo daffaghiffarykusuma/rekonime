@@ -2,12 +2,19 @@
 import {
   setHTML
 } from './security/trusted-types.js';
-import { renderDetailContent } from './detail-presentation.ts';
+import {
+  renderDetailContent,
+  renderDetailSkeleton,
+  renderReviewsLoading,
+  renderSynopsisLoading
+} from './detail-presentation.ts';
 import { createDetailMediaAdapter } from './detail-media.ts';
 import { createDetailReviewsAdapter } from './detail-reviews.ts';
 import { renderDetailErrorState } from './detail-error-state.ts';
 
-const createDetailExperiencePort = (app) => {
+const normalizeDetailKey = (animeId) => String(animeId ?? '').trim();
+
+const createDetailExperience = (app) => {
   const media = createDetailMediaAdapter(app);
   const reviews = createDetailReviewsAdapter({
     getCurrentAnimeId: () => app.currentAnimeId,
@@ -16,7 +23,7 @@ const createDetailExperiencePort = (app) => {
     renderSynopsis: app.renderSynopsis.bind(app),
     updateMetaForAnime: app.updateMetaForAnime.bind(app)
   });
-  return {
+  const port = {
     state: {
       get currentAnimeId() { return app.currentAnimeId; },
       set currentAnimeId(value) { app.currentAnimeId = value; },
@@ -58,7 +65,7 @@ const createDetailExperiencePort = (app) => {
       getSynopsis: app.getSynopsisForAnime.bind(app)
     },
     presentation: {
-      renderSkeleton: app.renderDetailSkeleton.bind(app),
+      renderSkeleton: renderDetailSkeleton,
       renderError: renderDetailErrorState,
       renderContent: (anime, { synopsis = '' } = {}) => renderDetailContent(anime, {
         synopsis,
@@ -71,10 +78,10 @@ const createDetailExperiencePort = (app) => {
         getImageFallbackAttrs: app.getImageFallbackAttrs.bind(app),
         getEpisodeCount: app.getEpisodeCount.bind(app),
         renderSynopsis: app.renderSynopsis.bind(app),
-        renderSynopsisLoading: app.renderSynopsisLoading.bind(app),
+        renderSynopsisLoading,
         renderFranchiseHubSection: app.renderFranchiseHubSection.bind(app),
         renderTrailerSection: app.renderTrailerSection.bind(app),
-        renderReviewsLoading: app.renderReviewsLoading.bind(app),
+        renderReviewsLoading,
         renderSimilarAnimeSection: app.renderSimilarAnimeSection.bind(app),
         renderWatchlistControls: app.renderWatchlistControls.bind(app)
       })
@@ -89,11 +96,7 @@ const createDetailExperiencePort = (app) => {
     watchlist: { updateControls: app.updateWatchlistControls.bind(app) },
     prefetch: { updateObserving: app.updatePrefetchObserving.bind(app) }
   };
-};
 
-const normalizeDetailKey = (animeId) => String(animeId ?? '').trim();
-
-const createDetailExperience = (port) => {
   const isCached = (animeId) => {
     const key = normalizeDetailKey(animeId);
     if (!key) return false;
@@ -293,4 +296,4 @@ const createDetailExperience = (port) => {
   };
 };
 
-export { createDetailExperience, createDetailExperiencePort };
+export { createDetailExperience };

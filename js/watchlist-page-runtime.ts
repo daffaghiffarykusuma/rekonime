@@ -1,54 +1,14 @@
 // @ts-nocheck
-import { buildWatchlistTransitionEnvelope } from './watchlist-state.js';
-
 const normalizeActionId = (value) => String(value || '').trim();
 
 const createWatchlistPageRuntime = ({
   getEpisodeCountFromCard,
-  getWatchlistLifecycle,
+  getWatchlistRuntime,
   renderWatchlist,
   updateWatchlistUi
 }) => {
-  const setWatchStatus = (animeId, status, episodeCount) => {
-    const key = normalizeActionId(animeId);
-    if (!key) return null;
-    const lifecycle = getWatchlistLifecycle();
-    lifecycle.load();
-    const current = lifecycle.getEntry(key);
-    const result = lifecycle.setStatus(key, status, {
-      episodeCount,
-      snapshot: current?.snapshot || null
-    });
-    return buildWatchlistTransitionEnvelope(result);
-  };
-
-  const setWatchProgress = (animeId, progress, episodeCount) => {
-    const key = normalizeActionId(animeId);
-    if (!key) return null;
-    const lifecycle = getWatchlistLifecycle();
-    lifecycle.load();
-    const current = lifecycle.getEntry(key);
-    const result = lifecycle.setProgress(key, progress, {
-      episodeCount,
-      snapshot: current?.snapshot || null
-    });
-    return buildWatchlistTransitionEnvelope(result, { renderMode: 'controls' });
-  };
-
-  const adjustWatchProgress = (animeId, delta, episodeCount) => {
-    const key = normalizeActionId(animeId);
-    if (!key) return null;
-    const lifecycle = getWatchlistLifecycle();
-    lifecycle.load();
-    const current = lifecycle.getEntry(key);
-    const result = lifecycle.adjustProgress(key, delta, {
-      episodeCount,
-      snapshot: current?.snapshot || null
-    });
-    return buildWatchlistTransitionEnvelope(result, { renderMode: 'controls' });
-  };
-
-  const applyWatchlistTransition = (card, transition) => {
+  const applyWatchlistTransition = (card, result) => {
+    const transition = result?.transition;
     if (!transition?.changed) return false;
     if (transition.render?.controls?.shouldUpdate) {
       updateWatchlistUi(card, transition.render.controls.entry);
@@ -70,14 +30,12 @@ const createWatchlistPageRuntime = ({
     const episodeCount = getEpisodeCountFromCard(card);
 
     if (action === 'watch-status') {
-      const transition = setWatchStatus(animeId, target.value, episodeCount);
-      applyWatchlistTransition(card, transition);
+      applyWatchlistTransition(card, getWatchlistRuntime().setStatus(animeId, target.value, { episodeCount }));
       return true;
     }
 
     if (action === 'watch-progress') {
-      const transition = setWatchProgress(animeId, target.value, episodeCount);
-      applyWatchlistTransition(card, transition);
+      applyWatchlistTransition(card, getWatchlistRuntime().setProgress(animeId, target.value, { episodeCount }));
       return true;
     }
 
@@ -99,14 +57,12 @@ const createWatchlistPageRuntime = ({
     const episodeCount = getEpisodeCountFromCard(card);
 
     if (action === 'watch-progress-inc') {
-      const transition = adjustWatchProgress(animeId, 1, episodeCount);
-      applyWatchlistTransition(card, transition);
+      applyWatchlistTransition(card, getWatchlistRuntime().adjustProgress(animeId, 1, { episodeCount }));
       return true;
     }
 
     if (action === 'watch-progress-dec') {
-      const transition = adjustWatchProgress(animeId, -1, episodeCount);
-      applyWatchlistTransition(card, transition);
+      applyWatchlistTransition(card, getWatchlistRuntime().adjustProgress(animeId, -1, { episodeCount }));
       return true;
     }
 
@@ -114,12 +70,9 @@ const createWatchlistPageRuntime = ({
   };
 
   return {
-    adjustWatchProgress,
     applyWatchlistTransition,
     handleWatchlistChange,
-    handleWatchlistClick,
-    setWatchProgress,
-    setWatchStatus
+    handleWatchlistClick
   };
 };
 

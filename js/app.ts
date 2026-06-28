@@ -9,13 +9,12 @@ import { ThemeManager } from './themeManager.js';
 import { CacheManager } from './services/cache-manager.ts';
 import { CatalogLoader } from './services/catalog-loader.ts';
 import { CatalogPayload } from './services/catalog-payload.ts';
-import { applyCatalogPayloadEffects } from './services/catalog-payload-effects.ts';
 import { AnalyticsService } from './services/analytics-service.js';
 import { ApiClient } from './services/api-client.ts';
 import { Logger } from './services/logger.ts';
 import { HealthMonitor } from './healthMonitor.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
-import { createDetailExperience, createDetailExperiencePort } from './detail-experience.ts';
+import { createDetailExperience } from './detail-experience.ts';
 import { buildDetailDecisionData } from './detail-presentation.ts';
 import { createRuntimeCapabilities } from './runtime-capabilities.ts';
 import {
@@ -42,15 +41,9 @@ import {
 } from './security/trusted-types.js';
 import {
   WATCH_STATUS_VALUES,
-  normalizeWatchStatus as normalizeWatchStatusValue,
-  normalizeWatchProgress as normalizeWatchProgressValue,
-  normalizeWatchTimestamp as normalizeWatchTimestampValue,
-  normalizeSnapshotStats as normalizeWatchlistSnapshotStats,
   buildAnimeSnapshot as buildWatchlistAnimeSnapshot,
   normalizeWatchlistSnapshot,
   buildWatchlistEntry as buildLifecycleWatchlistEntry,
-  areWatchlistSnapshotsEqual as areLifecycleWatchlistSnapshotsEqual,
-  shouldShowWatchProgress as shouldShowLifecycleWatchProgress,
   createWatchlistLifecycle
 } from './watchlist-state.js';
 import { createWatchlistLifecycleRuntime } from './watchlist-lifecycle-runtime.ts';
@@ -210,7 +203,7 @@ const App = {
 
   getDetailExperience() {
     if (!this.detailExperience) {
-      this.detailExperience = createDetailExperience(createDetailExperiencePort(this));
+      this.detailExperience = createDetailExperience(this);
     }
     return this.detailExperience;
   },
@@ -256,7 +249,7 @@ const App = {
   getWatchlistLifecycleRuntime() {
     if (!this.watchlistLifecycleRuntime) {
       this.watchlistLifecycleRuntime = createWatchlistLifecycleRuntime({
-        buildSnapshot: (anime) => this.buildAnimeSnapshot(anime),
+        buildSnapshot: buildWatchlistAnimeSnapshot,
         getAnime: (animeId) => this.animeData.find(item => item?.id === animeId) || null,
         getEpisodeLimit: (animeId) => this.getEpisodeLimitForAnime(animeId),
         getLifecycle: () => this.getWatchlistLifecycle(),
@@ -661,31 +654,6 @@ const App = {
     `;
   },
 
-  renderSynopsisLoading() {
-    return `
-      <div class="anime-synopsis">
-        <h3>Synopsis</h3>
-        <div class="synopsis-loading">
-          <div class="loading-shimmer"></div>
-          <div class="loading-shimmer"></div>
-          <div class="loading-shimmer short"></div>
-        </div>
-      </div>
-    `;
-  },
-
-  renderReviewsLoading() {
-    return `
-      <div class="community-reviews">
-        <h3>Community Reviews</h3>
-        <div class="reviews-loading">
-          <div class="loading-spinner"></div>
-          <p>Loading reviews...</p>
-        </div>
-      </div>
-    `;
-  },
-
   renderWatchlistControls(anime) {
     if (!anime) return '';
     return renderWatchlistControlsHtml(this.getWatchlistEntry(anime.id), {
@@ -696,45 +664,17 @@ const App = {
     });
   },
 
-  normalizeSnapshotStats(stats) {
-    return normalizeWatchlistSnapshotStats(stats);
-  },
-
-  buildAnimeSnapshot(anime) {
-    return buildWatchlistAnimeSnapshot(anime);
-  },
-
-  normalizeAnimeSnapshot(item) {
-    return normalizeWatchlistSnapshot(item);
-  },
-
   getWatchlistSnapshot(animeId) {
     const key = this.normalizeBookmarkId(animeId);
     if (!key) return null;
     const entry = this.watchlistEntries.get(key);
     if (!entry?.snapshot) return null;
-    return this.normalizeAnimeSnapshot(entry.snapshot) || null;
-  },
-
-  normalizeWatchStatus(value) {
-    return normalizeWatchStatusValue(value, { fallback: 'planned' });
-  },
-
-  normalizeWatchProgress(value) {
-    return normalizeWatchProgressValue(value);
-  },
-
-  normalizeWatchTimestamp(value) {
-    return normalizeWatchTimestampValue(value);
-  },
-
-  buildWatchlistEntry({ id, status, progress, updatedAt, startedAt, completedAt, loved, lovedAt, snapshot } = {}) {
-    return buildLifecycleWatchlistEntry({ id, status, progress, updatedAt, startedAt, completedAt, loved, lovedAt, snapshot });
+    return normalizeWatchlistSnapshot(entry.snapshot) || null;
   },
 
   normalizeWatchlistEntry(entry) {
     if (!entry || typeof entry !== 'object') return null;
-    return this.buildWatchlistEntry({
+    return buildLifecycleWatchlistEntry({
       id: entry.id,
       status: entry.status,
       progress: entry.progress,
@@ -751,15 +691,6 @@ const App = {
     if (typeof window === 'undefined') return;
     const lifecycle = this.getWatchlistLifecycle();
     this.watchlistEntries = lifecycle.load();
-  },
-
-  refreshWatchlistSnapshots() {
-    this.getWatchlistLifecycle().refreshSnapshotsFromCatalog(this.animeData, { persist: true, replaceExisting: false });
-    this.refreshTasteProfileEvidence();
-  },
-
-  getWatchlistStoragePayload() {
-    return this.getWatchlistLifecycle().getStoragePayload();
   },
 
   saveWatchlist() {
@@ -819,29 +750,9 @@ const App = {
     });
   },
 
-  getWatchlistSnapshots({ statuses } = {}) {
-    return this.getWatchlistLifecycle().getSnapshots({ statuses });
-  },
-
-  ensureWatchlistEntry(animeId, { status = 'planned', progress = 0 } = {}) {
-    return this.getWatchlistLifecycle().ensureEntry(animeId, { status, progress }).changed;
-  },
-
-  removeWatchlistEntry(animeId) {
-    return this.getWatchlistLifecycle().removeEntry(animeId).removed;
-  },
-
-  getLegacyBookmarksPayload() {
-    return this.getWatchlistLifecycle().getLegacyPayload();
-  },
-
   migrateLegacyBookmarksToWatchlist() {
     if (typeof window === 'undefined') return;
     this.getWatchlistLifecycle().migrateLegacy();
-  },
-
-  shouldShowWatchProgress(status) {
-    return shouldShowLifecycleWatchProgress(status);
   },
 
   getEpisodeLimitForAnime(animeId) {
@@ -1373,7 +1284,7 @@ const App = {
 
     // Refresh trailer if relevant setting changed
     if (['trailerAutoplay', 'dataSaver'].includes(key)) {
-      this.refreshTrailerSection();
+      this.getDetailExperience().refreshTrailerSection();
     }
   },
 
@@ -1397,10 +1308,6 @@ const App = {
     iframe.removeAttribute('loading');
     iframe.src = safeEmbedSrc;
     this.setTrailerPaused(iframe, true);
-  },
-
-  refreshTrailerSection() {
-    return this.getDetailExperience().refreshTrailerSection();
   },
 
   getModalElement(modalId) {
@@ -1454,10 +1361,6 @@ const App = {
     this.settingsRendered = true;
   },
 
-
-  areWatchlistSnapshotsEqual(left, right) {
-    return areLifecycleWatchlistSnapshotsEqual(left, right);
-  },
 
   refreshWatchlistSnapshotsFromCatalog({ persist = false } = {}) {
     return this.getWatchlistLifecycle().refreshSnapshotsFromCatalog(this.animeData, { persist, replaceExisting: true });
@@ -1547,7 +1450,7 @@ const App = {
           throw new Error('Failed to load catalog');
         }
         if (requestedAnimeId) {
-          await this.handleDeepLink(requestedAnimeId);
+          await this.getDetailExperience().handleDeepLink(requestedAnimeId);
         }
       }
 
@@ -1728,7 +1631,57 @@ const App = {
   },
 
   async applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
-    return applyCatalogPayloadEffects(this, payload, { isFull, preserveFilters });
+    const { state, intent } = CatalogPayload.prepareApplication(payload, {
+      isFull,
+      preserveFilters,
+      defaultActiveFilters: this.getDefaultActiveFilters(),
+      filterUi: {
+        catalogPage: this.isCatalogPage(),
+        deferUsed: this.deferFilterUiUsed,
+        hasFilterParams: this.hasFilterParamsInUrl(),
+        lowMotion: this.shouldEnableLowMotionMode(),
+        panelVisible: this.filterPanelRendered || this.filterPanelOpen,
+        urlFiltersApplied: this.urlFiltersApplied
+      }
+    });
+
+    this.scoreProfile = state.scoreProfile;
+    this.animeData = state.animeData;
+    this.isFullDataLoaded = state.isFullDataLoaded;
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.catalogStatus = state.catalogStatus;
+      document.documentElement.dataset.catalogReady = String(state.catalogReady);
+    }
+    this.gridSortedCache = state.gridState.sortedCache;
+    this.gridSortedKey = state.gridState.sortedKey;
+    this.gridSortedSource = state.gridState.sortedSource;
+    this.gridSortedIsPartial = state.gridState.sortedIsPartial;
+    if (this.gridSortHandle) this.cancelIdleTask(this.gridSortHandle);
+    this.gridSortHandle = null;
+    this.gridDomCache.clear();
+    this.detailCache.clear();
+    this.visibleCardIds.clear();
+    this.markCatalogFresh();
+    if (state.activeFilters) this.activeFilters = state.activeFilters;
+
+    await this.ensureStats();
+    this.refreshWatchlistSnapshotsFromCatalog(intent.refreshWatchlistSnapshots);
+    this.scheduleAiringDashboardRender(intent.scheduleAiringDashboard);
+    this.extractFilterOptions();
+
+    this.deferFilterUiOnce = intent.deferFilterUi;
+    if (intent.applyUrlFilters) {
+      this.setActiveFiltersFromUrl();
+      this.urlFiltersApplied = true;
+      if (intent.replaceUrlFilters) this.updateUrlForFilters({ replace: true });
+    }
+
+    if (intent.filterPanel !== 'none') this.updateSortOptions();
+    if (intent.filterPanel === 'render') this.renderFilterPanel({ force: true });
+    if (intent.filterPanel === 'schedule') this.scheduleFilterPanelRender();
+    if (intent.renderQuickFilters) this.renderQuickFilters();
+    this.applyFilters(intent.applyFilters);
+    return state;
   },
 
   prioritizeHomeDecisionFlow() {
@@ -5062,7 +5015,7 @@ const App = {
       if (action === 'retry-reviews') {
         const anime = this.animeData.find(a => a.id === this.currentAnimeId);
         if (anime) {
-          this.loadCommunityReviews(anime, anime.synopsis, true);
+          this.getDetailExperience().loadCommunityReviews(anime, anime.synopsis);
         }
         return;
       }
@@ -5303,17 +5256,6 @@ const App = {
    */
   showAnimeDetail(animeId, options = {}) {
     return this.getDetailExperience().open(animeId, options);
-  },
-
-  openAnimeDetailImplementation(animeId, options = {}) {
-    return this.showAnimeDetail(animeId, options);
-  },
-
-  /**
-   * Load community reviews and synopsis from MyAnimeList
-   */
-  async loadCommunityReviews(anime, fallbackSynopsis = '') {
-    return this.getDetailExperience().loadCommunityReviews(anime, fallbackSynopsis);
   },
 
   /**
@@ -5813,90 +5755,6 @@ const App = {
    */
   buildImageSrcset(coverUrl, { sizeKey = 'card', preferOptimized } = {}) {
     return this.getImageProxyRuntime().resolveImage({ coverUrl, sizeKey, preferOptimized });
-  },
-
-  /**
-   * Render detail modal skeleton screen for immediate visual feedback
-   * Prevents layout jump during async data loading
-   */
-  renderDetailSkeleton() {
-    return `
-      <div class="detail-skeleton">
-        <div class="detail-skeleton-header">
-          <div class="detail-skeleton-cover"></div>
-          <div class="detail-skeleton-info">
-            <div class="detail-skeleton-title"></div>
-            <div class="detail-skeleton-meta"></div>
-            <div class="detail-skeleton-tags">
-              <div class="detail-skeleton-tag"></div>
-              <div class="detail-skeleton-tag"></div>
-              <div class="detail-skeleton-tag"></div>
-            </div>
-            <div class="detail-skeleton-stats">
-              <div class="detail-skeleton-stat"></div>
-              <div class="detail-skeleton-stat"></div>
-              <div class="detail-skeleton-stat"></div>
-            </div>
-            <div class="detail-skeleton-watchlist">
-              <div class="detail-skeleton-pill"></div>
-              <div class="detail-skeleton-pill wide"></div>
-            </div>
-          </div>
-        </div>
-        <div class="detail-skeleton-breakdown">
-          <div class="detail-skeleton-section-title"></div>
-          <div class="detail-skeleton-row">
-            <div class="detail-skeleton-label"></div>
-            <div class="detail-skeleton-bar"></div>
-            <div class="detail-skeleton-value"></div>
-          </div>
-          <div class="detail-skeleton-row">
-            <div class="detail-skeleton-label"></div>
-            <div class="detail-skeleton-bar"></div>
-            <div class="detail-skeleton-value"></div>
-          </div>
-          <div class="detail-skeleton-row">
-            <div class="detail-skeleton-label"></div>
-            <div class="detail-skeleton-bar"></div>
-            <div class="detail-skeleton-value"></div>
-          </div>
-        </div>
-        <div class="detail-skeleton-section">
-          <div class="detail-skeleton-section-title"></div>
-          <div class="detail-skeleton-text"></div>
-          <div class="detail-skeleton-text medium"></div>
-          <div class="detail-skeleton-text short"></div>
-        </div>
-        <div class="detail-skeleton-trailer"></div>
-        <div class="detail-skeleton-reviews">
-          <div class="detail-skeleton-section-title"></div>
-          <div class="detail-skeleton-tabs">
-            <div class="detail-skeleton-tab"></div>
-            <div class="detail-skeleton-tab"></div>
-            <div class="detail-skeleton-tab"></div>
-          </div>
-          <div class="detail-skeleton-review-cards">
-            <div class="detail-skeleton-review"></div>
-            <div class="detail-skeleton-review"></div>
-          </div>
-        </div>
-        <div class="detail-skeleton-similar">
-          <div class="detail-skeleton-section-title"></div>
-          <div class="detail-skeleton-similar-grid">
-            <div class="detail-skeleton-similar-card"></div>
-            <div class="detail-skeleton-similar-card"></div>
-            <div class="detail-skeleton-similar-card"></div>
-          </div>
-        </div>
-      </div>
-    `;
-  },
-
-  /**
-   * Handle deep link navigation after the catalog is ready.
-   */
-  async handleDeepLink(animeId) {
-    return this.getDetailExperience().handleDeepLink(animeId);
   },
 
   /**
