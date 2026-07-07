@@ -18,9 +18,9 @@ const runScraperLauncherWithoutPython = (extraEnv = {}) => spawnSync(process.exe
   encoding: 'utf8',
   env: {
     ...process.env,
-    PATH: '',
-    Path: '',
-    CI: '',
+    PATH: path.dirname(process.execPath),
+    Path: path.dirname(process.execPath),
+    CI: 'false',
     REKONIME_IGNORE_LOCAL_VENV: '1',
     ...extraEnv
   }

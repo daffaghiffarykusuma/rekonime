@@ -74,7 +74,7 @@ for (const command of COMMANDS) {
   break;
 }
 
-if (!matched && process.env.CI) {
+if (!matched && process.env.CI === 'true') {
   console.error('Unable to find a Python interpreter for scraper tests. Tried:');
   COMMANDS.forEach(({ file, args }) => {
     console.error(`- ${file} ${args.join(' ')}`);
