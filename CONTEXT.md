@@ -16,6 +16,10 @@ _Avoid_: bookmark, saved card, list item
 The user's editable, cross-title recommendation preferences and exclusions, derived from explicit feedback and supported by Watchlist Lifecycle evidence. Title-specific status, progress, and affinity remain on the Watchlist Entry.
 _Avoid_: recommendation settings, preference cache, personalization blob
 
+**Viewing Intent**:
+The user's temporary viewing outcome for the current discovery session, including its definition, four-hour activity window, apply transition, and clear transition. A Viewing Intent guides recommendations without changing Browse View Filtering or the longer-lived Taste Profile.
+_Avoid_: mood filter, recommendation mode, session flag
+
 **Experience Cue**:
 A concise, curated label that sets expectations about a title's viewing experience or explains its fit for a viewing outcome. Experience Cues are derived through documented rules rather than displayed directly from raw catalog tags.
 _Avoid_: badge, raw theme, recommendation tag
@@ -55,6 +59,9 @@ Domain expert: "No. That is a Watchlist Lifecycle transition. The page only asks
 
 Dev: "Should 'less Romance' be stored on the anime the user dismissed?"
 Domain expert: "No. Romance is a cross-title preference in the Taste Profile. The Watchlist Entry only owns the user's relationship with that title."
+
+Dev: "Should choosing 'Help me unwind' change the active filters or the Taste Profile?"
+Domain expert: "No. That is a temporary Viewing Intent. It guides the current recommendation session without changing Browse View Filtering or the Taste Profile."
 
 Dev: "Can we show Psychological directly as an explanation?"
 Domain expert: "Not by default. Recommendation cards use Experience Cues with documented meaning; raw catalog tags remain available in details and advanced filters."

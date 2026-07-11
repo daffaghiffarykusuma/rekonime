@@ -38,6 +38,13 @@
 - Interface: apply recommendation feedback, refresh inferred evidence, prepare recommendation candidates, reset while preserving Watchlist Lifecycle evidence, and import/export personal profile data
 - Side effects: Taste Profile storage writes only; App Shell owns DOM rendering, announcements, file download/upload, and Watchlist Lifecycle transitions such as Already seen
 
+### Viewing Intent
+- Runtime module: `js/viewing-intent.ts`
+- Inputs: Viewing Intent key, session activity time, and optional completion announcement
+- Outputs: active Viewing Intent definition and apply/clear transition effects
+- Interface: list definitions, read the active Viewing Intent, apply a Viewing Intent, and clear it after discovery completes
+- Side effects: Viewing Intent session storage writes only; App Shell executes returned option, recommendation-mode, recommendation, and announcement effects
+
 ### Watchlist State
 - Entry points: `js/app.ts`, `js/watchlist-main.ts`
 - Airing dashboard adapter: `js/watchlist-airing-dashboard-adapter.ts`

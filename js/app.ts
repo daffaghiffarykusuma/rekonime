@@ -17,10 +17,7 @@ import { createImageProxyRuntime } from './image-proxy-runtime.js';
 import { createDetailExperience } from './detail-experience.ts';
 import { buildDetailDecisionData } from './detail-presentation.ts';
 import { createRuntimeCapabilities } from './runtime-capabilities.ts';
-import {
-  VIEWING_INTENTS,
-  createViewingIntentSession
-} from './viewing-intent.ts';
+import { createViewingIntentRuntime } from './viewing-intent.ts';
 import {
   renderWatchlistControlsHtml,
   updateWatchlistControlsElement
@@ -118,7 +115,7 @@ const App = {
     genres: { expanded: false },
     themes: { expanded: false }
   },
-  viewingIntentSession: null,
+  viewingIntentRuntime: null,
   lastRecommendationIds: new Set(),
   headerSearchState: {
     query: '',
@@ -3071,18 +3068,26 @@ const App = {
     this.renderViewingIntents();
   },
 
-  getViewingIntentSession() {
-    if (!this.viewingIntentSession) {
-      this.viewingIntentSession = createViewingIntentSession();
+  getViewingIntentRuntime() {
+    if (!this.viewingIntentRuntime) {
+      this.viewingIntentRuntime = createViewingIntentRuntime();
     }
-    return this.viewingIntentSession;
+    return this.viewingIntentRuntime;
   },
 
   getActiveViewingIntent() {
-    const active = this.getViewingIntentSession().get();
-    if (!active) return null;
-    const definition = VIEWING_INTENTS.find(intent => intent.key === active.key);
-    return definition ? { ...definition, activeAt: active.activeAt } : null;
+    return this.getViewingIntentRuntime().getActive();
+  },
+
+  applyViewingIntentEffects({ effects = {} } = {}) {
+    if (effects.collapseOptions) this.viewingIntentExpanded = false;
+    if (effects.renderViewingIntents) this.renderViewingIntents();
+    if (effects.renderRecommendationModes) this.renderRecommendationModes();
+    if (effects.renderRecommendations) this.renderRecommendations();
+    if (effects.announcement) {
+      const status = document.getElementById('recommendations-status');
+      if (status) status.textContent = effects.announcement;
+    }
   },
 
   syncDiscoveryGardenVisibility() {
@@ -3112,7 +3117,7 @@ const App = {
       return;
     }
 
-    setHTML(container, VIEWING_INTENTS.map(intent => {
+    setHTML(container, this.getViewingIntentRuntime().getOptions().map(intent => {
       const isActive = active?.key === intent.key;
       return `
         <button class="mood-cluster viewing-intent-option ${isActive ? 'active' : ''}"
@@ -3129,26 +3134,15 @@ const App = {
   },
 
   applyViewingIntent(intentKey) {
-    if (!VIEWING_INTENTS.some(intent => intent.key === intentKey)) return false;
-    this.getViewingIntentSession().set(intentKey);
-    this.viewingIntentExpanded = false;
-    this.renderViewingIntents();
-    this.renderRecommendationModes();
-    this.renderRecommendations();
-    return true;
+    const result = this.getViewingIntentRuntime().apply(intentKey);
+    this.applyViewingIntentEffects(result);
+    return result.changed;
   },
 
   clearViewingIntent({ announce = false } = {}) {
-    const cleared = this.getViewingIntentSession().clear();
-    this.renderViewingIntents();
-    this.renderRecommendationModes();
-    if (announce) {
-      const status = document.getElementById('recommendations-status');
-      if (status) {
-        status.textContent = 'Added to Watching now. Choose another viewing goal when you are ready.';
-      }
-    }
-    return cleared;
+    const result = this.getViewingIntentRuntime().clear({ announce });
+    this.applyViewingIntentEffects(result);
+    return result.changed;
   },
 
   /**

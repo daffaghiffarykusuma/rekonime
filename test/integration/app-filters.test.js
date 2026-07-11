@@ -161,7 +161,7 @@ test('App applies a Viewing Intent without changing explicit filters', () => {
   setupDom('<!doctype html><div id="viewing-intent-options"></div><div id="recommendations-grid"></div>');
   const originals = {
     activeFilters: App.activeFilters,
-    viewingIntentSession: App.viewingIntentSession,
+    viewingIntentRuntime: App.viewingIntentRuntime,
     renderViewingIntents: App.renderViewingIntents,
     renderRecommendations: App.renderRecommendations
   };
@@ -176,7 +176,7 @@ test('App applies a Viewing Intent without changing explicit filters', () => {
       themes: ['Fantasy'],
       demographic: []
     };
-    App.viewingIntentSession = null;
+    App.viewingIntentRuntime = null;
     App.renderViewingIntents = () => {};
     let rendered = 0;
     App.renderRecommendations = () => {

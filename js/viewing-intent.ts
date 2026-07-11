@@ -30,6 +30,8 @@ const VIEWING_INTENTS = [
 ];
 
 const VIEWING_INTENT_KEYS = new Set(VIEWING_INTENTS.map(intent => intent.key));
+const VIEWING_INTENT_COMPLETE_ANNOUNCEMENT = 'Added to Watching now. Choose another viewing goal when you are ready.';
+const getViewingIntentDefinition = (key: string) => VIEWING_INTENTS.find(intent => intent.key === key) || null;
 
 const createViewingIntentSession = ({
   storage = typeof sessionStorage !== 'undefined' ? sessionStorage : null,
@@ -91,9 +93,48 @@ const createViewingIntentSession = ({
   };
 };
 
+const createViewingIntentRuntime = (options = {}) => {
+  const session = createViewingIntentSession(options);
+  const getActive = () => {
+    const active = session.get();
+    if (!active) return null;
+    const definition = getViewingIntentDefinition(active.key);
+    return definition ? { ...definition, activeAt: active.activeAt } : null;
+  };
+
+  return {
+    getActive,
+    getOptions: () => VIEWING_INTENTS,
+    apply(key: string) {
+      const active = session.set(key);
+      return {
+        changed: Boolean(active),
+        active: active ? getActive() : null,
+        effects: {
+          collapseOptions: Boolean(active),
+          renderViewingIntents: Boolean(active),
+          renderRecommendationModes: Boolean(active),
+          renderRecommendations: Boolean(active),
+          announcement: ''
+        }
+      };
+    },
+    clear({ announce = false } = {}) {
+      return {
+        changed: session.clear(),
+        active: null,
+        effects: {
+          collapseOptions: false,
+          renderViewingIntents: true,
+          renderRecommendationModes: true,
+          renderRecommendations: false,
+          announcement: announce ? VIEWING_INTENT_COMPLETE_ANNOUNCEMENT : ''
+        }
+      };
+    }
+  };
+};
+
 export {
-  VIEWING_INTENTS,
-  VIEWING_INTENT_STORAGE_KEY,
-  VIEWING_INTENT_TTL_MS,
-  createViewingIntentSession
+  createViewingIntentRuntime
 };
