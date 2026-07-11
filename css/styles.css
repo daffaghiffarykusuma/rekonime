@@ -3354,6 +3354,21 @@ h4 {
   min-width: min(100%, 11rem);
 }
 
+.active-viewing-intent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .active-viewing-intent {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .experience-cues {
   display: flex;
   flex-wrap: wrap;

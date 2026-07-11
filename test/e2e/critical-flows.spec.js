@@ -86,6 +86,32 @@ test('first-run intent choices are usable before entering discovery', async ({ b
     .toContainText('Surprise me');
 });
 
+test('selected viewing intent collapses to a changeable summary', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+
+  const options = page.locator('#viewing-intent-options');
+  await options.getByRole('button', { name: /Help me unwind/ }).click();
+
+  const summary = page.locator('#active-viewing-intent');
+  await expect(summary).toBeVisible();
+  await expect(summary).toContainText('Help me unwind');
+  await expect(page.locator('#recommendations-context')).toContainText('Help me unwind');
+  await expect(options.locator('.viewing-intent-option')).toHaveCount(0);
+  await expect(page.locator('#quick-filters')).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const summaryBox = await summary.boundingBox();
+  expect(summaryBox.x).toBeGreaterThanOrEqual(0);
+  expect(summaryBox.x + summaryBox.width).toBeLessThanOrEqual(390);
+
+  await summary.getByRole('button', { name: 'Change' }).click();
+  await expect(options.locator('.viewing-intent-option')).toHaveCount(5);
+  await expect(options.locator('.viewing-intent-option').first()).toBeFocused();
+  await expect(options.getByRole('button', { name: /Help me unwind/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#recommendations-context')).toContainText('Help me unwind');
+});
+
 test('light-theme Airing Schedule keeps readable foreground contrast', async ({ page }) => {
   await page.goto('/');
   await page.waitForSelector('#anime-grid .anime-card');

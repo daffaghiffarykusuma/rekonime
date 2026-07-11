@@ -3086,6 +3086,17 @@ const App = {
     if (!container) return;
 
     const active = this.getActiveViewingIntent();
+    if (active && !this.viewingIntentExpanded) {
+      setHTML(container, `
+        <div class="active-viewing-intent" id="active-viewing-intent">
+          <span><strong>${this.escapeHtml(active.label)}</strong> · ${this.escapeHtml(active.description)}</span>
+          <button class="btn btn-outline btn-sm" type="button" data-action="change-viewing-intent">Change</button>
+        </div>
+      `);
+      container.removeAttribute('aria-busy');
+      return;
+    }
+
     setHTML(container, VIEWING_INTENTS.map(intent => {
       const isActive = active?.key === intent.key;
       return `
@@ -3105,6 +3116,7 @@ const App = {
   applyViewingIntent(intentKey) {
     if (!VIEWING_INTENTS.some(intent => intent.key === intentKey)) return false;
     this.getViewingIntentSession().set(intentKey);
+    this.viewingIntentExpanded = false;
     this.renderViewingIntents();
     this.renderRecommendationModes();
     this.renderRecommendations();
@@ -4841,6 +4853,13 @@ const App = {
         if (intentKey) {
           this.applyViewingIntent(intentKey);
         }
+        return;
+      }
+
+      if (action === 'change-viewing-intent') {
+        this.viewingIntentExpanded = true;
+        this.renderViewingIntents();
+        document.querySelector('#viewing-intent-options .viewing-intent-option')?.focus();
         return;
       }
 
