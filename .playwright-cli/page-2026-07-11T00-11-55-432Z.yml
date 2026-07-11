@@ -1,0 +1,82 @@
+- main [ref=f2e2]:
+  - generic [ref=f2e3]:
+    - link "Go to Rekonime home and clear filters" [ref=f2e4] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f2e5]: R
+      - generic [ref=f2e6]:
+        - generic [ref=f2e7]: Rekonime
+        - generic [ref=f2e8]: Find stories you will want to finish
+    - generic [ref=f2e9]:
+      - link "Go back to the anime catalog" [ref=f2e10] [cursor=pointer]:
+        - /url: /
+        - text: Return to discoveries
+      - button "Open viewing preferences" [ref=f2e11] [cursor=pointer]:
+        - generic [ref=f2e12]: ⚙
+  - generic [ref=f2e13]:
+    - generic [ref=f2e15]:
+      - heading "My Watchlist" [level=2] [ref=f2e16]
+      - paragraph [ref=f2e17]: Keep upcoming picks, current watches, and finished favorites in one place.
+    - generic [ref=f2e18]:
+      - generic [ref=f2e19]: View by status
+      - tablist "Watchlist filters" [ref=f2e20]:
+        - tab "All titles 1" [selected] [ref=f2e21] [cursor=pointer]:
+          - generic [ref=f2e22]: All titles
+          - generic [ref=f2e23]: "1"
+        - tab "Want to watch 1" [ref=f2e24] [cursor=pointer]:
+          - generic [ref=f2e25]: Want to watch
+          - generic [ref=f2e26]: "1"
+        - tab "Watching now 0" [ref=f2e27] [cursor=pointer]:
+          - generic [ref=f2e28]: Watching now
+          - generic [ref=f2e29]: "0"
+        - tab "Finished 0" [ref=f2e30] [cursor=pointer]:
+          - generic [ref=f2e31]: Finished
+          - generic [ref=f2e32]: "0"
+        - tab "Stopped 0" [ref=f2e33] [cursor=pointer]:
+          - generic [ref=f2e34]: Stopped
+          - generic [ref=f2e35]: "0"
+    - button "View details for Doraemon" [ref=f2e37] [cursor=pointer]:
+      - img "Doraemon" [ref=f2e39]
+      - generic [ref=f2e40]:
+        - heading "Doraemon" [level=3] [ref=f2e41]
+        - generic [ref=f2e42]: 1973 • Nippon TV Douga
+        - generic [ref=f2e43]:
+          - generic [ref=f2e44]: Your watch status
+          - combobox [ref=f2e45]:
+            - option "Not saved"
+            - option "Want to watch" [selected]
+            - option "Watching now"
+            - option "Finished"
+            - option "Stopped"
+          - generic [ref=f2e46]:
+            - generic [ref=f2e47]: Episodes watched
+            - generic [ref=f2e48]:
+              - button "Decrease watched episodes" [ref=f2e49]: "-"
+              - spinbutton "Episodes watched" [ref=f2e50]: "0"
+              - generic [ref=f2e51]: of 26
+              - button "Increase watched episodes" [ref=f2e52]: +
+      - text: 🌸
+  - generic [ref=f2e53]:
+    - generic [ref=f2e55]:
+      - heading "Airing from My Watchlist" [level=2] [ref=f2e56]
+      - paragraph [ref=f2e57]: Times automatically match your browser time zone whenever an airing title is available.
+    - generic [ref=f2e58]:
+      - generic [ref=f2e59]:
+        - generic [ref=f2e60]: "0"
+        - generic [ref=f2e61]: ready right now
+      - generic [ref=f2e62]:
+        - generic [ref=f2e63]: "0"
+        - generic [ref=f2e64]: landing today
+      - generic [ref=f2e65]:
+        - generic [ref=f2e66]: No upcoming releases
+        - generic [ref=f2e67]: next countdown
+    - paragraph [ref=f2e68]: Nothing from your watchlist is airing right now.
+  - status [ref=f2e69]:
+    - generic [ref=f2e70]: "!"
+    - generic [ref=f2e71]:
+      - generic [ref=f2e72]: You are offline
+      - generic [ref=f2e73]: Using saved data where available.
+  - status [ref=f2e74]:
+    - generic [ref=f2e75]:
+      - text: A newer version of Rekonime is ready.
+      - button "Refresh now" [ref=f2e76] [cursor=pointer]
+      - button "Dismiss update" [ref=f2e77] [cursor=pointer]: ×

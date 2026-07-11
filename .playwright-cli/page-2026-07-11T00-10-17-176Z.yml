@@ -1,0 +1,930 @@
+- main [ref=f1e21]:
+  - generic [ref=f1e22]:
+    - link "Go to Rekonime home and clear filters" [ref=f1e23] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f1e24]: R
+      - generic [ref=f1e25]:
+        - generic [ref=f1e26]: Rekonime
+        - generic [ref=f1e27]: Find stories you will want to finish
+    - generic [ref=f1e28]:
+      - search [ref=f1e30]:
+        - combobox "Search all anime titles, genres, or themes" [ref=f1e31]
+      - button "Show me a surprise anime pick" [ref=f1e32] [cursor=pointer]:
+        - generic [ref=f1e33]: 🎲
+        - generic [ref=f1e34]: Pick for Me
+      - button "Filters" [ref=f1e35] [cursor=pointer]
+      - generic [ref=f1e36]:
+        - generic [ref=f1e37]: Sort
+        - combobox "Sort anime" [ref=f1e39] [cursor=pointer]:
+          - option "Best chance you will finish" [selected]
+          - option "Highest community rating"
+      - group [ref=f1e40]:
+        - generic "Open secondary navigation" [ref=f1e41] [cursor=pointer]: More
+  - region [ref=f1e42]:
+    - generic [ref=f1e43]:
+      - paragraph [ref=f1e44]: Start here
+      - heading "Discover by genre, theme, or finish confidence" [level=1] [ref=f1e45]
+      - paragraph [ref=f1e46]: Pick the categories you already like, then use Rekonime's finish and satisfaction signals to narrow the list.
+      - generic "Primary discovery actions" [ref=f1e47]:
+        - button "Choose genres" [ref=f1e48] [cursor=pointer]
+        - button "Pick for Me" [ref=f1e49] [cursor=pointer]
+        - button "How scoring works" [ref=f1e50] [cursor=pointer]
+  - region [ref=f1e51]:
+    - generic [ref=f1e52]:
+      - generic [ref=f1e53]:
+        - paragraph [ref=f1e54]: For this session
+        - heading "What do you want from your next watch?" [level=2] [ref=f1e55]
+      - paragraph [ref=f1e56]: This changes the ranking, not your saved taste or manual filters.
+    - generic "Viewing goals" [ref=f1e57]:
+      - button "Help me unwind Gentle, stable, low-friction viewing." [pressed] [ref=f1e58] [cursor=pointer]:
+        - generic [ref=f1e59]: Help me unwind
+        - generic [ref=f1e60]: Gentle, stable, low-friction viewing.
+      - button "Give me energy Fast hooks and strong episode-to-episode momentum." [ref=f1e61] [cursor=pointer]:
+        - generic [ref=f1e62]: Give me energy
+        - generic [ref=f1e63]: Fast hooks and strong episode-to-episode momentum.
+      - button "Make me feel something Character investment and a meaningful payoff." [ref=f1e64] [cursor=pointer]:
+        - generic [ref=f1e65]: Make me feel something
+        - generic [ref=f1e66]: Character investment and a meaningful payoff.
+      - button "Pull me into another world Atmosphere, discovery, and a world worth settling into." [ref=f1e67] [cursor=pointer]:
+        - generic [ref=f1e68]: Pull me into another world
+        - generic [ref=f1e69]: Atmosphere, discovery, and a world worth settling into.
+      - button "Surprise me A qualified pick outside the obvious choices." [ref=f1e70] [cursor=pointer]:
+        - generic [ref=f1e71]: Surprise me
+        - generic [ref=f1e72]: A qualified pick outside the obvious choices.
+  - generic [ref=f1e73]:
+    - generic [ref=f1e74]:
+      - generic [ref=f1e75]:
+        - heading "Best Bets for You" [level=2] [ref=f1e76]
+        - paragraph [ref=f1e77]: "Help me unwind: Gentle, stable, low-friction viewing."
+      - button "Learn why these recommendations were selected" [ref=f1e78] [cursor=pointer]:
+        - text: "?"
+        - generic [ref=f1e79]: Why these made the cut
+    - generic [ref=f1e80]:
+      - generic [ref=f1e81]: "Tune recommendations:"
+      - generic [ref=f1e82]:
+        - button "⚖️ Balanced" [ref=f1e83] [cursor=pointer]:
+          - generic [ref=f1e84]: ⚖️
+          - generic [ref=f1e85]: Balanced
+        - button "🔥 Binge Mode" [ref=f1e86] [cursor=pointer]:
+          - generic [ref=f1e87]: 🔥
+          - generic [ref=f1e88]: Binge Mode
+        - button "⭐ Critical Acclaim" [ref=f1e89] [cursor=pointer]:
+          - generic [ref=f1e90]: ⭐
+          - generic [ref=f1e91]: Critical Acclaim
+        - button "💎 Hidden Gems" [ref=f1e92] [cursor=pointer]:
+          - generic [ref=f1e93]: 💎
+          - generic [ref=f1e94]: Hidden Gems
+        - button "😌 Comfort Shows" [ref=f1e95] [cursor=pointer]:
+          - generic [ref=f1e96]: 😌
+          - generic [ref=f1e97]: Comfort Shows
+    - generic [ref=f1e98]:
+      - button "View details for Doraemon, 1973" [ref=f1e99] [cursor=pointer]:
+        - generic [ref=f1e100]:
+          - generic [ref=f1e101]: "#1"
+          - img "Doraemon" [ref=f1e102]
+        - generic [ref=f1e103]:
+          - generic [ref=f1e104]: Doraemon
+          - generic [ref=f1e105]: 1973 • Nippon TV Douga
+          - generic [ref=f1e106]:
+            - generic [ref=f1e107]: 87%
+            - generic [ref=f1e108]:
+              - generic [ref=f1e109]: Finish confidence
+              - generic [ref=f1e110]: Reliable through the middle
+          - generic [ref=f1e111]:
+            - generic [ref=f1e112]: Finish Confidence 87%
+            - generic [ref=f1e113]: MAL 7.4/10
+          - generic [ref=f1e114]: A gentler pick for an easy viewing session
+          - generic "Viewing experience" [ref=f1e115]:
+            - generic [ref=f1e116]: Gentle
+            - generic [ref=f1e117]: High energy
+          - generic "Tune recommendations for Doraemon" [ref=f1e118]:
+            - button "More like this" [ref=f1e119]
+            - button "Not for me" [ref=f1e120]
+            - button "Less Adventure" [ref=f1e121]
+            - button "Already seen" [ref=f1e122]
+      - button "View details for Musashi no Ken, 1985" [ref=f1e123] [cursor=pointer]:
+        - generic [ref=f1e124]:
+          - generic [ref=f1e125]: "#2"
+          - img "Musashi no Ken" [ref=f1e126]
+        - generic [ref=f1e127]:
+          - generic [ref=f1e128]: Musashi no Ken
+          - generic [ref=f1e129]: 1985 • Eiken
+          - generic [ref=f1e130]:
+            - generic [ref=f1e131]: 87%
+            - generic [ref=f1e132]:
+              - generic [ref=f1e133]: Finish confidence
+              - generic [ref=f1e134]: Reliable through the middle
+          - generic [ref=f1e135]:
+            - generic [ref=f1e136]: Finish Confidence 87%
+            - generic [ref=f1e137]: MAL 7.1/10
+          - generic [ref=f1e138]: A gentler pick for an easy viewing session
+          - generic "Viewing experience" [ref=f1e139]:
+            - generic [ref=f1e140]: Gentle
+            - generic [ref=f1e141]: High energy
+          - generic "Tune recommendations for Musashi no Ken" [ref=f1e142]:
+            - button "More like this" [ref=f1e143]
+            - button "Not for me" [ref=f1e144]
+            - button "Less Sports" [ref=f1e145]
+            - button "Already seen" [ref=f1e146]
+      - 'button "View details for Qin Shi Mingyue: Zhu Zi Bai Jia, 2011" [ref=f1e147] [cursor=pointer]':
+        - generic [ref=f1e148]:
+          - generic [ref=f1e149]: "#3"
+          - 'img "Qin Shi Mingyue: Zhu Zi Bai Jia" [ref=f1e150]'
+        - generic [ref=f1e151]:
+          - generic [ref=f1e152]: "Qin Shi Mingyue: Zhu Zi Bai Jia"
+          - generic [ref=f1e153]: 2011 • Sparkly Key Animation Studio
+          - generic [ref=f1e154]:
+            - generic [ref=f1e155]: 87%
+            - generic [ref=f1e156]:
+              - generic [ref=f1e157]: Finish confidence
+              - generic [ref=f1e158]: Reliable through the middle
+          - generic [ref=f1e159]:
+            - generic [ref=f1e160]: Finish Confidence 87%
+            - generic [ref=f1e161]: MAL 6.9/10
+          - generic [ref=f1e162]: A gentler pick for an easy viewing session
+          - generic "Viewing experience" [ref=f1e163]:
+            - generic [ref=f1e164]: Gentle
+            - generic [ref=f1e165]: High energy
+          - 'generic "Tune recommendations for Qin Shi Mingyue: Zhu Zi Bai Jia" [ref=f1e166]':
+            - button "More like this" [ref=f1e167]
+            - button "Not for me" [ref=f1e168]
+            - button "Less Action" [ref=f1e169]
+            - button "Already seen" [ref=f1e170]
+      - 'button "View details for Saikyou Bushouden: Sangoku Engi, 2010" [ref=f1e171] [cursor=pointer]':
+        - generic [ref=f1e172]:
+          - generic [ref=f1e173]: "#4"
+          - 'img "Saikyou Bushouden: Sangoku Engi" [ref=f1e174]'
+        - generic [ref=f1e175]:
+          - generic [ref=f1e176]: "Saikyou Bushouden: Sangoku Engi"
+          - generic [ref=f1e177]: 2010 • Future Planet,Beijing Huihuang Animation Company
+          - generic [ref=f1e178]:
+            - generic [ref=f1e179]: 87%
+            - generic [ref=f1e180]:
+              - generic [ref=f1e181]: Finish confidence
+              - generic [ref=f1e182]: Reliable through the middle
+          - generic [ref=f1e183]:
+            - generic [ref=f1e184]: Finish Confidence 87%
+            - generic [ref=f1e185]: MAL 6.8/10
+          - generic [ref=f1e186]: A gentler pick for an easy viewing session
+          - generic "Viewing experience" [ref=f1e187]:
+            - generic [ref=f1e188]: Gentle
+            - generic [ref=f1e189]: High energy
+          - 'generic "Tune recommendations for Saikyou Bushouden: Sangoku Engi" [ref=f1e190]':
+            - button "More like this" [ref=f1e191]
+            - button "Not for me" [ref=f1e192]
+            - button "Less Historical" [ref=f1e193]
+            - button "Already seen" [ref=f1e194]
+    - generic [ref=f1e195]:
+      - button "See more matches" [ref=f1e196] [cursor=pointer]
+      - status [ref=f1e197]
+  - generic [ref=f1e198]:
+    - generic [ref=f1e199]:
+      - generic [ref=f1e200]:
+        - paragraph [ref=f1e201]: Optional precision
+        - heading "More filters" [level=2] [ref=f1e202]
+      - paragraph [ref=f1e203]: Choose exact genres and themes when you already know what you want.
+    - generic [ref=f1e204]:
+      - tabpanel "Genres" [ref=f1e205]:
+        - text: Genre
+        - button "Add Action filter" [ref=f1e206] [cursor=pointer]: Action
+        - button "Add Adventure filter" [ref=f1e207] [cursor=pointer]: Adventure
+        - button "Add Award Winning filter" [ref=f1e208] [cursor=pointer]: Award Winning
+        - button "Add Boys Love filter" [ref=f1e209] [cursor=pointer]: Boys Love
+        - button "Add Comedy filter" [ref=f1e210] [cursor=pointer]: Comedy
+        - button "Add Drama filter" [ref=f1e211] [cursor=pointer]: Drama
+        - button "Add Ecchi filter" [ref=f1e212] [cursor=pointer]: Ecchi
+        - button "Add Erotica filter" [ref=f1e213] [cursor=pointer]: Erotica
+        - button "Add Fantasy filter" [ref=f1e214] [cursor=pointer]: Fantasy
+        - button "Add Girls Love filter" [ref=f1e215] [cursor=pointer]: Girls Love
+        - button "Add Gourmet filter" [ref=f1e216] [cursor=pointer]: Gourmet
+        - button "Add Horror filter" [ref=f1e217] [cursor=pointer]: Horror
+        - button "Add Mystery filter" [ref=f1e218] [cursor=pointer]: Mystery
+        - button "Add Romance filter" [ref=f1e219] [cursor=pointer]: Romance
+        - button "Add Sci-Fi filter" [ref=f1e220] [cursor=pointer]: Sci-Fi
+        - button "Add Slice of Life filter" [ref=f1e221] [cursor=pointer]: Slice of Life
+        - button "Add Sports filter" [ref=f1e222] [cursor=pointer]: Sports
+        - button "Add Supernatural filter" [ref=f1e223] [cursor=pointer]: Supernatural
+        - button "Add Suspense filter" [ref=f1e224] [cursor=pointer]: Suspense
+      - tabpanel "Themes" [ref=f1e225]:
+        - text: Theme
+        - button "Add Adult Cast filter" [ref=f1e226] [cursor=pointer]: Adult Cast
+        - button "Add Anthropomorphic filter" [ref=f1e227] [cursor=pointer]: Anthropomorphic
+        - button "Add CGDCT filter" [ref=f1e228] [cursor=pointer]: CGDCT
+        - button "Add Childcare filter" [ref=f1e229] [cursor=pointer]: Childcare
+        - button "Add Combat Sports filter" [ref=f1e230] [cursor=pointer]: Combat Sports
+        - button "Add Crossdressing filter" [ref=f1e231] [cursor=pointer]: Crossdressing
+        - button "Add Delinquents filter" [ref=f1e232] [cursor=pointer]: Delinquents
+        - button "Add Detective filter" [ref=f1e233] [cursor=pointer]: Detective
+        - button "Add Educational filter" [ref=f1e234] [cursor=pointer]: Educational
+        - button "Add Gag Humor filter" [ref=f1e235] [cursor=pointer]: Gag Humor
+        - button "Add Gore filter" [ref=f1e236] [cursor=pointer]: Gore
+        - button "Add Harem filter" [ref=f1e237] [cursor=pointer]: Harem
+        - button "Add High Stakes Game filter" [ref=f1e238] [cursor=pointer]: High Stakes Game
+        - button "Add Historical filter" [ref=f1e239] [cursor=pointer]: Historical
+        - button "Add Idols (Female) filter" [ref=f1e240] [cursor=pointer]: Idols (Female)
+        - button "Add Idols (Male) filter" [ref=f1e241] [cursor=pointer]: Idols (Male)
+        - button "Add Isekai filter" [ref=f1e242] [cursor=pointer]: Isekai
+        - button "Add Iyashikei filter" [ref=f1e243] [cursor=pointer]: Iyashikei
+        - button "Add Love Polygon filter" [ref=f1e244] [cursor=pointer]: Love Polygon
+        - button "Add Love Status Quo filter" [ref=f1e245] [cursor=pointer]: Love Status Quo
+        - button "Add Mahou Shoujo filter" [ref=f1e246] [cursor=pointer]: Mahou Shoujo
+        - button "Add Martial Arts filter" [ref=f1e247] [cursor=pointer]: Martial Arts
+        - button "Add Mecha filter" [ref=f1e248] [cursor=pointer]: Mecha
+        - button "Add Medical filter" [ref=f1e249] [cursor=pointer]: Medical
+        - button "Add Military filter" [ref=f1e250] [cursor=pointer]: Military
+        - button "Add Music filter" [ref=f1e251] [cursor=pointer]: Music
+        - button "Add Mythology filter" [ref=f1e252] [cursor=pointer]: Mythology
+        - button "Add Organized Crime filter" [ref=f1e253] [cursor=pointer]: Organized Crime
+        - button "Add Otaku Culture filter" [ref=f1e254] [cursor=pointer]: Otaku Culture
+        - button "Add Parody filter" [ref=f1e255] [cursor=pointer]: Parody
+        - button "Add Performing Arts filter" [ref=f1e256] [cursor=pointer]: Performing Arts
+        - button "Add Pets filter" [ref=f1e257] [cursor=pointer]: Pets
+        - button "Add Psychological filter" [ref=f1e258] [cursor=pointer]: Psychological
+        - button "Add Racing filter" [ref=f1e259] [cursor=pointer]: Racing
+        - button "Add Reincarnation filter" [ref=f1e260] [cursor=pointer]: Reincarnation
+        - button "Add Samurai filter" [ref=f1e261] [cursor=pointer]: Samurai
+        - button "Add School filter" [ref=f1e262] [cursor=pointer]: School
+        - button "Add Showbiz filter" [ref=f1e263] [cursor=pointer]: Showbiz
+        - button "Add Space filter" [ref=f1e264] [cursor=pointer]: Space
+        - button "Add Strategy Game filter" [ref=f1e265] [cursor=pointer]: Strategy Game
+        - button "Add Super Power filter" [ref=f1e266] [cursor=pointer]: Super Power
+        - button "Add Survival filter" [ref=f1e267] [cursor=pointer]: Survival
+        - button "Add Team Sports filter" [ref=f1e268] [cursor=pointer]: Team Sports
+        - button "Add Time Travel filter" [ref=f1e269] [cursor=pointer]: Time Travel
+        - button "Add Urban Fantasy filter" [ref=f1e270] [cursor=pointer]: Urban Fantasy
+        - button "Add Vampire filter" [ref=f1e271] [cursor=pointer]: Vampire
+        - button "Add Villainess filter" [ref=f1e272] [cursor=pointer]: Villainess
+        - button "Add Visual Arts filter" [ref=f1e273] [cursor=pointer]: Visual Arts
+        - button "Add Workplace filter" [ref=f1e274] [cursor=pointer]: Workplace
+  - generic [ref=f1e275]:
+    - generic [ref=f1e276]: "Seasonal picks:"
+    - 'button "Last season: Spring 2026" [ref=f1e278] [cursor=pointer]'
+  - text: "?"
+  - generic [ref=f1e279]:
+    - generic [ref=f1e280]:
+      - heading "Popular Recent Picks" [level=2] [ref=f1e282]
+      - paragraph [ref=f1e283]: Recent titles ranked from catalog quality and staying-power signals
+    - generic [ref=f1e284]:
+      - button "View details for Sousou no Frieren 2nd Season, 2026" [ref=f1e285] [cursor=pointer]:
+        - generic [ref=f1e286]: "1"
+        - img "Sousou no Frieren 2nd Season" [ref=f1e287]
+        - generic [ref=f1e288]:
+          - generic [ref=f1e289]: Sousou no Frieren 2nd Season
+          - generic [ref=f1e290]: 2026 · Finish Confidence 78%
+      - button "View details for Re:Zero kara Hajimeru Isekai Seikatsu 4th Season, 2026" [ref=f1e291] [cursor=pointer]:
+        - generic [ref=f1e292]: "2"
+        - img "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season" [ref=f1e293]
+        - generic [ref=f1e294]:
+          - generic [ref=f1e295]: Re:Zero kara Hajimeru Isekai Seikatsu 4th Season
+          - generic [ref=f1e296]: 2026 · Finish Confidence 79%
+      - button "View details for Tongari Boushi no Atelier, 2026" [ref=f1e297] [cursor=pointer]:
+        - generic [ref=f1e298]: "3"
+        - img "Tongari Boushi no Atelier" [ref=f1e299]
+        - generic [ref=f1e300]:
+          - generic [ref=f1e301]: Tongari Boushi no Atelier
+          - generic [ref=f1e302]: 2026 · Finish Confidence 77%
+      - 'button "View details for Jujutsu Kaisen: Shimetsu Kaiyuu - Zenpen, 2026" [ref=f1e303] [cursor=pointer]':
+        - generic [ref=f1e304]: "4"
+        - 'img "Jujutsu Kaisen: Shimetsu Kaiyuu - Zenpen" [ref=f1e305]'
+        - generic [ref=f1e306]:
+          - generic [ref=f1e307]: "Jujutsu Kaisen: Shimetsu Kaiyuu - Zenpen"
+          - generic [ref=f1e308]: 2026 · Finish Confidence 74%
+      - button "View details for Shingeki no Kyojin Season 3 Part 2, 2019" [ref=f1e309] [cursor=pointer]:
+        - generic [ref=f1e310]: "5"
+        - img "Shingeki no Kyojin Season 3 Part 2" [ref=f1e311]
+        - generic [ref=f1e312]:
+          - generic [ref=f1e313]: Shingeki no Kyojin Season 3 Part 2
+          - generic [ref=f1e314]: 2019 · Finish Confidence 80%
+      - 'button "View details for Gintama'': Enchousen, 2012" [ref=f1e315] [cursor=pointer]':
+        - generic [ref=f1e316]: "6"
+        - 'img "Gintama'': Enchousen" [ref=f1e317]'
+        - generic [ref=f1e318]:
+          - generic [ref=f1e319]: "Gintama': Enchousen"
+          - generic [ref=f1e320]: 2012 · Finish Confidence 80%
+  - generic [ref=f1e321]:
+    - generic [ref=f1e322]:
+      - heading "Highest Finish Confidence" [level=3] [ref=f1e323]
+      - generic [ref=f1e325]:
+        - img "Doraemon" [ref=f1e326]
+        - generic [ref=f1e327]:
+          - generic [ref=f1e328]: Doraemon
+          - generic [ref=f1e329]:
+            - generic [ref=f1e330]: 87%
+            - generic [ref=f1e331]: finish confidence
+    - generic [ref=f1e332]:
+      - heading "Most Loved by Viewers" [level=3] [ref=f1e333]
+      - generic [ref=f1e335]:
+        - img "Sousou no Frieren" [ref=f1e336]
+        - generic [ref=f1e337]:
+          - generic [ref=f1e338]: Sousou no Frieren
+          - generic [ref=f1e339]:
+            - generic [ref=f1e340]: 9.3/10
+            - generic [ref=f1e341]: satisfaction score (MAL)
+  - generic [ref=f1e342]:
+    - generic [ref=f1e344]:
+      - heading "Explore Every Title" [level=2] [ref=f1e345]
+      - paragraph [ref=f1e346]: Browse the full catalog and sort it around what matters most to you.
+    - generic [ref=f1e347]:
+      - button "View details for Doraemon, 1973" [ref=f1e348] [cursor=pointer]:
+        - img "Doraemon" [ref=f1e350]
+        - generic [ref=f1e351]:
+          - heading "Doraemon" [level=3] [ref=f1e353]
+          - generic [ref=f1e354]: 1973 • Nippon TV Douga
+          - generic [ref=f1e355]:
+            - generic [ref=f1e356]:
+              - generic [ref=f1e357]: 87%
+              - generic [ref=f1e358]: Finish confidence
+            - generic [ref=f1e359]: Reliable through the middle
+          - generic [ref=f1e360]:
+            - generic [ref=f1e361]: Hard to stop watching
+            - generic [ref=f1e362]: Strong opening episodes
+          - generic [ref=f1e363]:
+            - generic [ref=f1e364]:
+              - generic [ref=f1e365]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e366]:
+              - generic [ref=f1e367]: 7.4/10
+              - text: Community Score
+            - generic [ref=f1e368]:
+              - generic [ref=f1e369]: "26"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e371]
+          - generic [ref=f1e372]: Easy to keep watching + Strong finish potential
+      - button "View details for Musashi no Ken, 1985" [ref=f1e373] [cursor=pointer]:
+        - img "Musashi no Ken" [ref=f1e375]
+        - generic [ref=f1e376]:
+          - heading "Musashi no Ken" [level=3] [ref=f1e378]
+          - generic [ref=f1e379]: 1985 • Eiken
+          - generic [ref=f1e380]:
+            - generic [ref=f1e381]:
+              - generic [ref=f1e382]: 87%
+              - generic [ref=f1e383]: Finish confidence
+            - generic [ref=f1e384]: Reliable through the middle
+          - generic [ref=f1e385]:
+            - generic [ref=f1e386]: Hard to stop watching
+            - generic [ref=f1e387]: Strong opening episodes
+          - generic [ref=f1e388]:
+            - generic [ref=f1e389]:
+              - generic [ref=f1e390]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e391]:
+              - generic [ref=f1e392]: 7.1/10
+              - text: Community Score
+            - generic [ref=f1e393]:
+              - generic [ref=f1e394]: "72"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e396]
+          - generic [ref=f1e397]: Easy to keep watching + Strong finish potential
+      - button "View details for Ore wa Teppei, 1977" [ref=f1e398] [cursor=pointer]:
+        - img "Ore wa Teppei" [ref=f1e400]
+        - generic [ref=f1e401]:
+          - heading "Ore wa Teppei" [level=3] [ref=f1e403]
+          - generic [ref=f1e404]: 1977 • Nippon Animation
+          - generic [ref=f1e405]:
+            - generic [ref=f1e406]:
+              - generic [ref=f1e407]: 87%
+              - generic [ref=f1e408]: Finish confidence
+            - generic [ref=f1e409]: Reliable through the middle
+          - generic [ref=f1e410]:
+            - generic [ref=f1e411]: Hard to stop watching
+            - generic [ref=f1e412]: Strong opening episodes
+          - generic [ref=f1e413]:
+            - generic [ref=f1e414]:
+              - generic [ref=f1e415]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e416]:
+              - generic [ref=f1e417]: 6.7/10
+              - text: Community Score
+            - generic [ref=f1e418]:
+              - generic [ref=f1e419]: "28"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e421]
+          - generic [ref=f1e422]: Easy to keep watching + Strong finish potential
+      - button "View details for Bakusou Kyoudai Let's & Go MAX, 1998" [ref=f1e423] [cursor=pointer]:
+        - img "Bakusou Kyoudai Let's & Go MAX" [ref=f1e425]
+        - generic [ref=f1e426]:
+          - heading "Bakusou Kyoudai Let's & Go MAX" [level=3] [ref=f1e428]
+          - generic [ref=f1e429]: 1998 • Xebec
+          - generic [ref=f1e430]:
+            - generic [ref=f1e431]:
+              - generic [ref=f1e432]: 87%
+              - generic [ref=f1e433]: Finish confidence
+            - generic [ref=f1e434]: Reliable through the middle
+          - generic [ref=f1e435]:
+            - generic [ref=f1e436]: Hard to stop watching
+            - generic [ref=f1e437]: Strong opening episodes
+          - generic [ref=f1e438]:
+            - generic [ref=f1e439]:
+              - generic [ref=f1e440]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e441]:
+              - generic [ref=f1e442]: 6.7/10
+              - text: Community Score
+            - generic [ref=f1e443]:
+              - generic [ref=f1e444]: "51"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e446]
+          - generic [ref=f1e447]: Easy to keep watching + Strong finish potential
+      - 'button "View details for Saikyou Bushouden: Sangoku Engi, 2010" [ref=f1e448] [cursor=pointer]':
+        - 'img "Saikyou Bushouden: Sangoku Engi" [ref=f1e450]'
+        - generic [ref=f1e451]:
+          - 'heading "Saikyou Bushouden: Sangoku Engi" [level=3] [ref=f1e453]'
+          - generic [ref=f1e454]: 2010 • Future Planet,Beijing Huihuang Animation Company
+          - generic [ref=f1e455]:
+            - generic [ref=f1e456]:
+              - generic [ref=f1e457]: 87%
+              - generic [ref=f1e458]: Finish confidence
+            - generic [ref=f1e459]: Reliable through the middle
+          - generic [ref=f1e460]:
+            - generic [ref=f1e461]: Hard to stop watching
+            - generic [ref=f1e462]: Strong opening episodes
+          - generic [ref=f1e463]:
+            - generic [ref=f1e464]:
+              - generic [ref=f1e465]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e466]:
+              - generic [ref=f1e467]: 6.8/10
+              - text: Community Score
+            - generic [ref=f1e468]:
+              - generic [ref=f1e469]: "52"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e471]
+          - generic [ref=f1e472]: Easy to keep watching + Strong finish potential
+      - button "View details for Shokupan Mimi, 2010" [ref=f1e473] [cursor=pointer]:
+        - img "Shokupan Mimi" [ref=f1e475]
+        - generic [ref=f1e476]:
+          - heading "Shokupan Mimi" [level=3] [ref=f1e478]
+          - generic [ref=f1e479]: 2010 • Kachidoki Studio
+          - generic [ref=f1e480]:
+            - generic [ref=f1e481]:
+              - generic [ref=f1e482]: 87%
+              - generic [ref=f1e483]: Finish confidence
+            - generic [ref=f1e484]: Reliable through the middle
+          - generic [ref=f1e485]:
+            - generic [ref=f1e486]: Hard to stop watching
+            - generic [ref=f1e487]: Strong opening episodes
+          - generic [ref=f1e488]:
+            - generic [ref=f1e489]:
+              - generic [ref=f1e490]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e491]:
+              - generic [ref=f1e492]: 5.7/10
+              - text: Community Score
+            - generic [ref=f1e493]:
+              - generic [ref=f1e494]: "12"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e496]
+          - generic [ref=f1e497]: Easy to keep watching + Strong finish potential
+      - 'button "View details for Qin Shi Mingyue: Zhu Zi Bai Jia, 2011" [ref=f1e498] [cursor=pointer]':
+        - 'img "Qin Shi Mingyue: Zhu Zi Bai Jia" [ref=f1e500]'
+        - generic [ref=f1e501]:
+          - 'heading "Qin Shi Mingyue: Zhu Zi Bai Jia" [level=3] [ref=f1e503]'
+          - generic [ref=f1e504]: 2011 • Sparkly Key Animation Studio
+          - generic [ref=f1e505]:
+            - generic [ref=f1e506]:
+              - generic [ref=f1e507]: 87%
+              - generic [ref=f1e508]: Finish confidence
+            - generic [ref=f1e509]: Reliable through the middle
+          - generic [ref=f1e510]:
+            - generic [ref=f1e511]: Hard to stop watching
+            - generic [ref=f1e512]: Strong opening episodes
+          - generic [ref=f1e513]:
+            - generic [ref=f1e514]:
+              - generic [ref=f1e515]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e516]:
+              - generic [ref=f1e517]: 6.9/10
+              - text: Community Score
+            - generic [ref=f1e518]:
+              - generic [ref=f1e519]: "34"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e521]
+          - generic [ref=f1e522]: Easy to keep watching + Strong finish potential
+      - 'button "View details for Q Transformers: Saranaru Ninki Mono e no Michi, 2015" [ref=f1e523] [cursor=pointer]':
+        - 'img "Q Transformers: Saranaru Ninki Mono e no Michi" [ref=f1e525]'
+        - generic [ref=f1e526]:
+          - 'heading "Q Transformers: Saranaru Ninki Mono e no Michi" [level=3] [ref=f1e528]'
+          - generic [ref=f1e529]: 2015 • DLE
+          - generic [ref=f1e530]:
+            - generic [ref=f1e531]:
+              - generic [ref=f1e532]: 87%
+              - generic [ref=f1e533]: Finish confidence
+            - generic [ref=f1e534]: Reliable through the middle
+          - generic [ref=f1e535]:
+            - generic [ref=f1e536]: Hard to stop watching
+            - generic [ref=f1e537]: Strong opening episodes
+          - generic [ref=f1e538]:
+            - generic [ref=f1e539]:
+              - generic [ref=f1e540]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e541]:
+              - generic [ref=f1e542]: 5.4/10
+              - text: Community Score
+            - generic [ref=f1e543]:
+              - generic [ref=f1e544]: "13"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e546]
+          - generic [ref=f1e547]: Easy to keep watching + Strong finish potential
+      - button "View details for Oshiri Kajiri Mushi (TV) 4th Season, 2015" [ref=f1e548] [cursor=pointer]:
+        - img "Oshiri Kajiri Mushi (TV) 4th Season" [ref=f1e550]
+        - generic [ref=f1e551]:
+          - heading "Oshiri Kajiri Mushi (TV) 4th Season" [level=3] [ref=f1e553]
+          - generic [ref=f1e554]: 2015 • Kinema Citrus
+          - generic [ref=f1e555]:
+            - generic [ref=f1e556]:
+              - generic [ref=f1e557]: 87%
+              - generic [ref=f1e558]: Finish confidence
+            - generic [ref=f1e559]: Reliable through the middle
+          - generic [ref=f1e560]:
+            - generic [ref=f1e561]: Hard to stop watching
+            - generic [ref=f1e562]: Strong opening episodes
+          - generic [ref=f1e563]:
+            - generic [ref=f1e564]:
+              - generic [ref=f1e565]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e566]:
+              - generic [ref=f1e567]: 5.2/10
+              - text: Community Score
+            - generic [ref=f1e568]:
+              - generic [ref=f1e569]: "10"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e571]
+          - generic [ref=f1e572]: Easy to keep watching + Strong finish potential
+      - 'button "View details for Punirunes: Puni 2, 2024" [ref=f1e573] [cursor=pointer]':
+        - 'img "Punirunes: Puni 2" [ref=f1e575]'
+        - generic [ref=f1e576]:
+          - 'heading "Punirunes: Puni 2" [level=3] [ref=f1e578]'
+          - generic [ref=f1e579]: 2024 • OLM Digital
+          - generic [ref=f1e580]:
+            - generic [ref=f1e581]:
+              - generic [ref=f1e582]: 87%
+              - generic [ref=f1e583]: Finish confidence
+            - generic [ref=f1e584]: Reliable through the middle
+          - generic [ref=f1e585]:
+            - generic [ref=f1e586]: Hard to stop watching
+            - generic [ref=f1e587]: Strong opening episodes
+          - generic [ref=f1e588]:
+            - generic [ref=f1e589]:
+              - generic [ref=f1e590]: 87%
+              - text: Finish Confidence
+            - generic [ref=f1e591]:
+              - generic [ref=f1e592]: N/A
+              - text: Community Score
+            - generic [ref=f1e593]:
+              - generic [ref=f1e594]: "25"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e596]
+          - generic [ref=f1e597]: Easy to keep watching + Strong finish potential
+      - button "View details for Duel Masters, 2002" [ref=f1e598] [cursor=pointer]:
+        - img "Duel Masters" [ref=f1e600]
+        - generic [ref=f1e601]:
+          - heading "Duel Masters" [level=3] [ref=f1e603]
+          - generic [ref=f1e604]: 2002 • Studio Hibari,A.C.G.T.
+          - generic [ref=f1e605]:
+            - generic [ref=f1e606]:
+              - generic [ref=f1e607]: 84%
+              - generic [ref=f1e608]: Finish confidence
+            - generic [ref=f1e609]: Reliable through the middle
+          - generic [ref=f1e610]:
+            - generic [ref=f1e611]: Strong opening episodes
+            - generic [ref=f1e612]: Underrated standout
+          - generic [ref=f1e613]:
+            - generic [ref=f1e614]:
+              - generic [ref=f1e615]: 84%
+              - text: Finish Confidence
+            - generic [ref=f1e616]:
+              - generic [ref=f1e617]: 5.9/10
+              - text: Community Score
+            - generic [ref=f1e618]:
+              - generic [ref=f1e619]: "26"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e621]
+          - generic [ref=f1e622]: Strong finish potential + Grabs you quickly
+      - 'button "View details for Kinnikuman: Kinnikusei Oui Soudatsu-hen, 1991" [ref=f1e623] [cursor=pointer]':
+        - 'img "Kinnikuman: Kinnikusei Oui Soudatsu-hen" [ref=f1e625]'
+        - generic [ref=f1e626]:
+          - 'heading "Kinnikuman: Kinnikusei Oui Soudatsu-hen" [level=3] [ref=f1e628]'
+          - generic [ref=f1e629]: 1991 • Toei Animation
+          - generic [ref=f1e630]:
+            - generic [ref=f1e631]:
+              - generic [ref=f1e632]: 82%
+              - generic [ref=f1e633]: Finish confidence
+            - generic [ref=f1e634]: Reliable through the middle
+          - generic [ref=f1e635]:
+            - generic [ref=f1e636]: Strong opening episodes
+            - generic [ref=f1e637]: Underrated standout
+          - generic [ref=f1e638]:
+            - generic [ref=f1e639]:
+              - generic [ref=f1e640]: 82%
+              - text: Finish Confidence
+            - generic [ref=f1e641]:
+              - generic [ref=f1e642]: 7.0/10
+              - text: Community Score
+            - generic [ref=f1e643]:
+              - generic [ref=f1e644]: "46"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e646]
+          - generic [ref=f1e647]: Strong finish potential + Grabs you quickly
+      - button "View details for Tenkai Knights, 2014" [ref=f1e648] [cursor=pointer]:
+        - img "Tenkai Knights" [ref=f1e650]
+        - generic [ref=f1e651]:
+          - heading "Tenkai Knights" [level=3] [ref=f1e653]
+          - generic [ref=f1e654]: 2014 • Bones
+          - generic [ref=f1e655]:
+            - generic [ref=f1e656]:
+              - generic [ref=f1e657]: 82%
+              - generic [ref=f1e658]: Finish confidence
+            - generic [ref=f1e659]: Reliable through the middle
+          - generic [ref=f1e660]:
+            - generic [ref=f1e661]: Strong opening episodes
+            - generic [ref=f1e662]: Underrated standout
+          - generic [ref=f1e663]:
+            - generic [ref=f1e664]:
+              - generic [ref=f1e665]: 82%
+              - text: Finish Confidence
+            - generic [ref=f1e666]:
+              - generic [ref=f1e667]: 6.5/10
+              - text: Community Score
+            - generic [ref=f1e668]:
+              - generic [ref=f1e669]: "52"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e671]
+          - generic [ref=f1e672]: Strong finish potential + Grabs you quickly
+      - 'button "View details for Rilu Rilu Fairilu: Yousei no Door, 2016" [ref=f1e673] [cursor=pointer]':
+        - 'img "Rilu Rilu Fairilu: Yousei no Door" [ref=f1e675]'
+        - generic [ref=f1e676]:
+          - 'heading "Rilu Rilu Fairilu: Yousei no Door" [level=3] [ref=f1e678]'
+          - generic [ref=f1e679]: 2016 • Studio Deen
+          - generic [ref=f1e680]:
+            - generic [ref=f1e681]:
+              - generic [ref=f1e682]: 82%
+              - generic [ref=f1e683]: Finish confidence
+            - generic [ref=f1e684]: Reliable through the middle
+          - generic [ref=f1e685]:
+            - generic [ref=f1e686]: Strong opening episodes
+            - generic [ref=f1e687]: Underrated standout
+          - generic [ref=f1e688]:
+            - generic [ref=f1e689]:
+              - generic [ref=f1e690]: 82%
+              - text: Finish Confidence
+            - generic [ref=f1e691]:
+              - generic [ref=f1e692]: 6.8/10
+              - text: Community Score
+            - generic [ref=f1e693]:
+              - generic [ref=f1e694]: "59"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e696]
+          - generic [ref=f1e697]: Strong finish potential + Grabs you quickly
+      - button "View details for Akachan to Boku, 1996" [ref=f1e698] [cursor=pointer]:
+        - img "Akachan to Boku" [ref=f1e700]
+        - generic [ref=f1e701]:
+          - heading "Akachan to Boku" [level=3] [ref=f1e703]
+          - generic [ref=f1e704]: 1996 • Studio Pierrot
+          - generic [ref=f1e705]:
+            - generic [ref=f1e706]:
+              - generic [ref=f1e707]: 81%
+              - generic [ref=f1e708]: Finish confidence
+            - generic [ref=f1e709]: Reliable through the middle
+          - generic [ref=f1e710]: Strong opening episodes
+          - generic [ref=f1e712]:
+            - generic [ref=f1e713]:
+              - generic [ref=f1e714]: 81%
+              - text: Finish Confidence
+            - generic [ref=f1e715]:
+              - generic [ref=f1e716]: 7.8/10
+              - text: Community Score
+            - generic [ref=f1e717]:
+              - generic [ref=f1e718]: "35"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e720]
+          - generic [ref=f1e721]: Strong finish potential + Grabs you quickly
+      - 'button "View details for Yuuki Yuuna wa Yuusha de Aru: Yuusha no Shou, 2017" [ref=f1e722] [cursor=pointer]':
+        - 'img "Yuuki Yuuna wa Yuusha de Aru: Yuusha no Shou" [ref=f1e724]'
+        - generic [ref=f1e725]:
+          - 'heading "Yuuki Yuuna wa Yuusha de Aru: Yuusha no Shou" [level=3] [ref=f1e727]'
+          - generic [ref=f1e728]: 2017 • Studio Gokumi
+          - generic [ref=f1e729]:
+            - generic [ref=f1e730]:
+              - generic [ref=f1e731]: 81%
+              - generic [ref=f1e732]: Finish confidence
+            - generic [ref=f1e733]: Reliable through the middle
+          - generic [ref=f1e734]: Strong opening episodes
+          - generic [ref=f1e736]:
+            - generic [ref=f1e737]:
+              - generic [ref=f1e738]: 81%
+              - text: Finish Confidence
+            - generic [ref=f1e739]:
+              - generic [ref=f1e740]: 7.7/10
+              - text: Community Score
+            - generic [ref=f1e741]:
+              - generic [ref=f1e742]: "6"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e744]
+          - generic [ref=f1e745]: Strong finish potential + Grabs you quickly
+      - button "View details for Jewelpet Happiness, 2013" [ref=f1e746] [cursor=pointer]:
+        - img "Jewelpet Happiness" [ref=f1e748]
+        - generic [ref=f1e749]:
+          - heading "Jewelpet Happiness" [level=3] [ref=f1e751]
+          - generic [ref=f1e752]: 2013 • Studio Comet
+          - generic [ref=f1e753]:
+            - generic [ref=f1e754]:
+              - generic [ref=f1e755]: 81%
+              - generic [ref=f1e756]: Finish confidence
+            - generic [ref=f1e757]: Reliable through the middle
+          - generic [ref=f1e758]:
+            - generic [ref=f1e759]: Strong opening episodes
+            - generic [ref=f1e760]: Underrated standout
+          - generic [ref=f1e761]:
+            - generic [ref=f1e762]:
+              - generic [ref=f1e763]: 81%
+              - text: Finish Confidence
+            - generic [ref=f1e764]:
+              - generic [ref=f1e765]: 6.9/10
+              - text: Community Score
+            - generic [ref=f1e766]:
+              - generic [ref=f1e767]: "52"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e769]
+          - generic [ref=f1e770]: Strong finish potential + Grabs you quickly
+      - button "View details for Kaguya-sama wa Kokurasetai? Tensai-tachi no Renai Zunousen, 2020" [ref=f1e771] [cursor=pointer]:
+        - img "Kaguya-sama wa Kokurasetai? Tensai-tachi no Renai Zunousen" [ref=f1e773]
+        - generic [ref=f1e774]:
+          - heading "Kaguya-sama wa Kokurasetai? Tensai-tachi no Renai Zunousen" [level=3] [ref=f1e776]
+          - generic [ref=f1e777]: 2020 • A-1 Pictures
+          - generic [ref=f1e778]:
+            - generic [ref=f1e779]:
+              - generic [ref=f1e780]: 80%
+              - generic [ref=f1e781]: Finish confidence
+            - generic [ref=f1e782]: Reliable through the middle
+          - generic [ref=f1e783]:
+            - generic [ref=f1e784]: Viewer favorite
+            - generic [ref=f1e785]: Strong opening episodes
+          - generic [ref=f1e786]:
+            - generic [ref=f1e787]:
+              - generic [ref=f1e788]: 80%
+              - text: Finish Confidence
+            - generic [ref=f1e789]:
+              - generic [ref=f1e790]: 8.6/10
+              - text: Community Score
+            - generic [ref=f1e791]:
+              - generic [ref=f1e792]: "12"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e794]
+          - generic [ref=f1e795]: Strong finish potential + Grabs you quickly
+      - button "View details for Love Live! School Idol Project 2nd Season, 2014" [ref=f1e796] [cursor=pointer]:
+        - img "Love Live! School Idol Project 2nd Season" [ref=f1e798]
+        - generic [ref=f1e799]:
+          - heading "Love Live! School Idol Project 2nd Season" [level=3] [ref=f1e801]
+          - generic [ref=f1e802]: 2014 • Sunrise
+          - generic [ref=f1e803]:
+            - generic [ref=f1e804]:
+              - generic [ref=f1e805]: 80%
+              - generic [ref=f1e806]: Finish confidence
+            - generic [ref=f1e807]: Reliable through the middle
+          - generic [ref=f1e808]: Strong opening episodes
+          - generic [ref=f1e810]:
+            - generic [ref=f1e811]:
+              - generic [ref=f1e812]: 80%
+              - text: Finish Confidence
+            - generic [ref=f1e813]:
+              - generic [ref=f1e814]: 7.8/10
+              - text: Community Score
+            - generic [ref=f1e815]:
+              - generic [ref=f1e816]: "13"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e818]
+          - generic [ref=f1e819]: Strong finish potential + Grabs you quickly
+      - button "View details for Usagi Drop, 2011" [ref=f1e820] [cursor=pointer]:
+        - img "Usagi Drop" [ref=f1e822]
+        - generic [ref=f1e823]:
+          - heading "Usagi Drop" [level=3] [ref=f1e825]
+          - generic [ref=f1e826]: 2011 • Production I.G
+          - generic [ref=f1e827]:
+            - generic [ref=f1e828]:
+              - generic [ref=f1e829]: 80%
+              - generic [ref=f1e830]: Finish confidence
+            - generic [ref=f1e831]: Reliable through the middle
+          - generic [ref=f1e832]: Strong opening episodes
+          - generic [ref=f1e834]:
+            - generic [ref=f1e835]:
+              - generic [ref=f1e836]: 80%
+              - text: Finish Confidence
+            - generic [ref=f1e837]:
+              - generic [ref=f1e838]: 8.3/10
+              - text: Community Score
+            - generic [ref=f1e839]:
+              - generic [ref=f1e840]: "11"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e842]
+          - generic [ref=f1e843]: Strong finish potential + Grabs you quickly
+      - button "View details for Shingeki no Kyojin Season 3 Part 2, 2019" [ref=f1e844] [cursor=pointer]:
+        - img "Shingeki no Kyojin Season 3 Part 2" [ref=f1e846]
+        - generic [ref=f1e847]:
+          - heading "Shingeki no Kyojin Season 3 Part 2" [level=3] [ref=f1e849]
+          - generic [ref=f1e850]: 2019 • Wit Studio
+          - generic [ref=f1e851]:
+            - generic [ref=f1e852]:
+              - generic [ref=f1e853]: 80%
+              - generic [ref=f1e854]: Finish confidence
+            - generic [ref=f1e855]: Reliable through the middle
+          - generic [ref=f1e856]:
+            - generic [ref=f1e857]: Viewer favorite
+            - generic [ref=f1e858]: Strong opening episodes
+          - generic [ref=f1e859]:
+            - generic [ref=f1e860]:
+              - generic [ref=f1e861]: 80%
+              - text: Finish Confidence
+            - generic [ref=f1e862]:
+              - generic [ref=f1e863]: 9.1/10
+              - text: Community Score
+            - generic [ref=f1e864]:
+              - generic [ref=f1e865]: "10"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e867]
+          - generic [ref=f1e868]: Strong finish potential + Grabs you quickly
+      - button "View details for Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou, 2016" [ref=f1e869] [cursor=pointer]:
+        - img "Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou" [ref=f1e871]
+        - generic [ref=f1e872]:
+          - heading "Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou" [level=3] [ref=f1e874]
+          - generic [ref=f1e875]: 2016 • Production I.G
+          - generic [ref=f1e876]:
+            - generic [ref=f1e877]:
+              - generic [ref=f1e878]: 80%
+              - generic [ref=f1e879]: Finish confidence
+            - generic [ref=f1e880]: Reliable through the middle
+          - generic [ref=f1e881]:
+            - generic [ref=f1e882]: Viewer favorite
+            - generic [ref=f1e883]: Strong opening episodes
+          - generic [ref=f1e884]:
+            - generic [ref=f1e885]:
+              - generic [ref=f1e886]: 80%
+              - text: Finish Confidence
+            - generic [ref=f1e887]:
+              - generic [ref=f1e888]: 8.8/10
+              - text: Community Score
+            - generic [ref=f1e889]:
+              - generic [ref=f1e890]: "10"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e892]
+          - generic [ref=f1e893]: Strong finish potential + Grabs you quickly
+      - button "View details for Fate/Zero 2nd Season, 2012" [ref=f1e894] [cursor=pointer]:
+        - img "Fate/Zero 2nd Season" [ref=f1e896]
+        - generic [ref=f1e897]:
+          - heading "Fate/Zero 2nd Season" [level=3] [ref=f1e899]
+          - generic [ref=f1e900]: 2012 • ufotable
+          - generic [ref=f1e901]:
+            - generic [ref=f1e902]:
+              - generic [ref=f1e903]: 80%
+              - generic [ref=f1e904]: Finish confidence
+            - generic [ref=f1e905]: Reliable through the middle
+          - generic [ref=f1e906]:
+            - generic [ref=f1e907]: Viewer favorite
+            - generic [ref=f1e908]: Strong opening episodes
+          - generic [ref=f1e909]:
+            - generic [ref=f1e910]:
+              - generic [ref=f1e911]: 80%
+              - text: Finish Confidence
+            - generic [ref=f1e912]:
+              - generic [ref=f1e913]: 8.5/10
+              - text: Community Score
+            - generic [ref=f1e914]:
+              - generic [ref=f1e915]: "12"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e917]
+          - generic [ref=f1e918]: Strong finish potential + Grabs you quickly
+      - 'button "View details for Fruits Basket: The Final, 2021" [ref=f1e919] [cursor=pointer]':
+        - 'img "Fruits Basket: The Final" [ref=f1e921]'
+        - generic [ref=f1e922]:
+          - 'heading "Fruits Basket: The Final" [level=3] [ref=f1e924]'
+          - generic [ref=f1e925]: 2021 • TMS Entertainment
+          - generic [ref=f1e926]:
+            - generic [ref=f1e927]:
+              - generic [ref=f1e928]: 80%
+              - generic [ref=f1e929]: Finish confidence
+            - generic [ref=f1e930]: Reliable through the middle
+          - generic [ref=f1e931]:
+            - generic [ref=f1e932]: Viewer favorite
+            - generic [ref=f1e933]: Strong opening episodes
+          - generic [ref=f1e934]:
+            - generic [ref=f1e935]:
+              - generic [ref=f1e936]: 80%
+              - text: Finish Confidence
+            - generic [ref=f1e937]:
+              - generic [ref=f1e938]: 8.9/10
+              - text: Community Score
+            - generic [ref=f1e939]:
+              - generic [ref=f1e940]: "13"
+              - text: Episodes
+          - progressbar "Finish Confidence" [ref=f1e942]
+          - generic [ref=f1e943]: Strong finish potential + Grabs you quickly
+      - button "Load More (176 remaining)" [ref=f1e945] [cursor=pointer]
+  - status [ref=f1e946]:
+    - generic [ref=f1e947]: "!"
+    - generic [ref=f1e948]:
+      - generic [ref=f1e949]: You are offline
+      - generic [ref=f1e950]: Using saved data where available.
+  - alert [ref=f1e951]:
+    - generic [ref=f1e952]: New
+    - generic [ref=f1e953]: A newer version of Rekonime is ready.
+    - button "Refresh now" [ref=f1e954] [cursor=pointer]
+    - button "Dismiss update notification" [ref=f1e955] [cursor=pointer]: ×
