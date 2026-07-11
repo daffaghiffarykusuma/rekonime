@@ -4387,6 +4387,9 @@ const App = {
               </div>
               <div class="recommendation-reason">${safeReason}</div>
               ${cueMarkup ? `<div class="experience-cues" aria-label="Viewing experience">${cueMarkup}</div>` : ''}
+              <div class="recommendation-quick-actions">
+                <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
+              </div>
               <div class="recommendation-feedback" aria-label="Tune recommendations for ${safeTitle}">
                 <button class="rec-feedback-btn" type="button" data-action="rec-more-like" data-anime-id="${safeId}">More like this</button>
                 <button class="rec-feedback-btn" type="button" data-action="rec-not-for-me" data-anime-id="${safeId}">Not for me</button>
@@ -4860,6 +4863,17 @@ const App = {
         this.viewingIntentExpanded = true;
         this.renderViewingIntents();
         document.querySelector('#viewing-intent-options .viewing-intent-option')?.focus();
+        return;
+      }
+
+      if (action === 'quick-save-recommendation') {
+        event.preventDefault();
+        event.stopPropagation();
+        const animeId = actionEl.dataset.animeId;
+        const anime = this.animeData.find(item => String(item?.id) === String(animeId));
+        if (anime) {
+          this.setWatchStatus(anime.id, 'planned', { episodeCount: this.getEpisodeCount(anime) });
+        }
         return;
       }
 

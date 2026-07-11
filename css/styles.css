@@ -3386,6 +3386,16 @@ h4 {
   font-weight: 600;
 }
 
+.recommendation-quick-actions {
+  display: flex;
+  margin-top: 0.75rem;
+}
+
+.recommendation-quick-actions .btn {
+  min-height: 2.75rem;
+  width: 100%;
+}
+
 .recommendation-feedback {
   display: flex;
   flex-wrap: wrap;

@@ -121,6 +121,35 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
     .toContainText('higher-energy watch');
 });
 
+test('recommendation quick-save persists without replacing detail access', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  await page.getByRole('button', { name: /Help me unwind/ }).click();
+
+  const firstCard = page.locator('#recommendations-grid .recommendation-card').first();
+  const title = (await firstCard.locator('.recommendation-title').textContent()).trim();
+  const save = firstCard.getByRole('button', { name: `Want to watch ${title}` });
+  await expect(save).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const saveBox = await save.boundingBox();
+  expect(saveBox.x + saveBox.width).toBeLessThanOrEqual(390);
+  await save.focus();
+  await expect(save).toBeFocused();
+  await page.keyboard.press('Enter');
+
+  const toast = page.getByRole('status').filter({ hasText: 'Saved to Want to watch' });
+  await expect(toast).toBeVisible();
+  await toast.getByRole('link', { name: 'View watchlist' }).click();
+  await expect(page).toHaveURL(/watchlist\.html/);
+  await expect(page.locator('.card-title', { hasText: title })).toBeVisible();
+
+  await page.goto('/');
+  const remainingCard = page.locator('#recommendations-grid .recommendation-card').first();
+  await remainingCard.click();
+  await expect(page.locator('#detail-modal.visible')).toBeVisible();
+});
+
 test('light-theme Airing Schedule keeps readable foreground contrast', async ({ page }) => {
   await page.goto('/');
   await page.waitForSelector('#anime-grid .anime-card');
