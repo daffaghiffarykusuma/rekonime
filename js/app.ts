@@ -898,10 +898,16 @@ const App = {
   updateWatchlistControls(animeId) {
     if (typeof document === 'undefined') return;
     if (!animeId || this.currentAnimeId !== animeId) return;
+    const focusedAction = document.activeElement?.closest?.('[data-action]')?.dataset?.action || '';
     updateWatchlistControlsElement(document, this.getWatchlistEntry(animeId), {
       anime: this.animeData.find(item => item?.id === animeId),
       episodeCount: this.getEpisodeLimitForAnime(animeId)
     });
+    if (focusedAction) {
+      Array.from(document.querySelectorAll('[data-action]'))
+        .find(element => element.dataset.action === focusedAction && element.dataset.animeId === String(animeId))
+        ?.focus();
+    }
   },
 
   sanitizeUrl(rawUrl, { allowRelative = false } = {}) {
@@ -2302,6 +2308,7 @@ const App = {
         if (!animeId) return;
         const episodeCount = this.getEpisodeLimitForAnime(animeId);
         this.setWatchStatus(animeId, target.value, { episodeCount });
+        target.focus({ preventScroll: true });
         return;
       }
 

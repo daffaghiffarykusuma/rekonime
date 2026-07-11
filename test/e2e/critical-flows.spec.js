@@ -130,6 +130,10 @@ test('recommendation quick-save persists without replacing detail access', async
   const save = firstCard.getByRole('button', { name: `Want to watch ${title}` });
   await expect(save).toBeVisible();
 
+  await firstCard.click({ position: { x: 20, y: 20 } });
+  await expect(page.locator('#detail-modal.visible')).toBeVisible();
+  await page.getByRole('button', { name: 'Close details' }).click();
+
   await page.setViewportSize({ width: 390, height: 844 });
   const saveBox = await save.boundingBox();
   expect(saveBox.x + saveBox.width).toBeLessThanOrEqual(390);
@@ -139,14 +143,11 @@ test('recommendation quick-save persists without replacing detail access', async
 
   const toast = page.getByRole('status').filter({ hasText: 'Saved to Want to watch' });
   await expect(toast).toBeVisible();
+  await expect(page.locator('#recommendations-grid .recommendation-card').filter({ hasText: title })).toHaveCount(0);
   await toast.getByRole('link', { name: 'View watchlist' }).click();
   await expect(page).toHaveURL(/watchlist\.html/);
   await expect(page.locator('.card-title', { hasText: title })).toBeVisible();
 
-  await page.goto('/');
-  const remainingCard = page.locator('#recommendations-grid .recommendation-card').first();
-  await remainingCard.click();
-  await expect(page.locator('#detail-modal.visible')).toBeVisible();
 });
 
 test('complete discovery-to-watchlist journey', async ({ browser }) => {
@@ -158,6 +159,9 @@ test('complete discovery-to-watchlist journey', async ({ browser }) => {
   const onboardingChoice = page.locator('.onboarding-intent-card').first();
   await expect(onboardingChoice).toBeVisible();
   await expect(onboardingChoice).toBeEnabled();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const onboardingBox = await onboardingChoice.boundingBox();
+  expect(onboardingBox.x + onboardingBox.width).toBeLessThanOrEqual(390);
   await onboardingChoice.focus();
   await expect(onboardingChoice).toBeFocused();
   expect(await onboardingChoice.evaluate((button) => getComputedStyle(button).outlineStyle)).not.toBe('none');
@@ -167,6 +171,10 @@ test('complete discovery-to-watchlist journey', async ({ browser }) => {
   const card = page.locator('#recommendations-grid .recommendation-card').first();
   await expect(card.locator('.recommendation-reason')).toContainText('gentler pick');
   expect(await card.locator('.experience-cue').count()).toBeGreaterThanOrEqual(2);
+  await card.scrollIntoViewIfNeeded();
+  await expect(card).toBeVisible();
+  const cardBox = await card.boundingBox();
+  expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(390);
   const title = (await card.locator('.recommendation-title').textContent()).trim();
 
   await card.click({ position: { x: 20, y: 20 } });
@@ -202,17 +210,29 @@ test('complete discovery-to-watchlist journey', async ({ browser }) => {
     }, theme);
     const colors = await panel.evaluate((element) => ({
       background: getComputedStyle(element).backgroundColor,
-      foreground: getComputedStyle(element.querySelector('h2')).color
+      foregrounds: [
+        'h2',
+        '.airing-summary-value',
+        '.airing-summary-label',
+        '.airing-dashboard-empty',
+        '.airing-dashboard-link'
+      ].flatMap((selector) => [...element.querySelectorAll(selector)])
+        .filter((node) => getComputedStyle(node).display !== 'none')
+        .map((node) => getComputedStyle(node).color)
     }));
-    expect(contrastRatio(colors.foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
+    for (const foreground of colors.foregrounds) {
+      expect(contrastRatio(foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
+    }
   }
 
-  await page.setViewportSize({ width: 390, height: 844 });
   const watchBox = await watchCard.boundingBox();
   expect(watchBox.x).toBeGreaterThanOrEqual(0);
   expect(watchBox.x + watchBox.width).toBeLessThanOrEqual(390);
   await status.focus();
   await expect(status).toBeFocused();
+  expect(await status.evaluate((select) => getComputedStyle(select).boxShadow)).not.toBe('none');
+  const panelBox = await panel.boundingBox();
+  expect(panelBox.x + panelBox.width).toBeLessThanOrEqual(390);
   await context.close();
 });
 
@@ -221,7 +241,10 @@ test('light-theme Airing Schedule keeps readable foreground contrast', async ({ 
   await page.waitForSelector('#anime-grid .anime-card');
   await page.locator('#anime-grid .anime-card').first().click();
   await page.waitForSelector('#watchlist-select');
-  await page.selectOption('#watchlist-select', 'planned');
+  await page.locator('#watchlist-select').focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#watchlist-select')).toHaveValue('planned');
   await page.evaluate(() => localStorage.setItem('rekonime.theme', 'light'));
 
   await page.goto('/watchlist.html');
@@ -289,7 +312,10 @@ test('watchlist flow persists to watchlist page', async ({ page }) => {
   await expect(feedback).toBeVisible();
   await expect(feedback.getByRole('link', { name: 'View watchlist' }))
     .toHaveAttribute('href', '/watchlist.html');
-  await page.selectOption('#watchlist-select', 'watching');
+  await expect(page.locator('#watchlist-select')).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#watchlist-select')).toHaveValue('watching');
   await expect(page.locator('.toast')).toHaveCount(1);
   await expect(page.locator('.toast')).toContainText('Saved to Watching now');
 
