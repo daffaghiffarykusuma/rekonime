@@ -1,5 +1,20 @@
 import { test, expect } from '@playwright/test';
 
+const contrastRatio = (foreground, background) => {
+  const luminance = (color) => {
+    const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number);
+    return channels.reduce((sum, channel, index) => {
+      const normalized = channel / 255;
+      const linear = normalized <= 0.04045
+        ? normalized / 12.92
+        : ((normalized + 0.055) / 1.055) ** 2.4;
+      return sum + linear * [0.2126, 0.7152, 0.0722][index];
+    }, 0);
+  };
+  const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+};
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('rekonime.onboarding', 'completed');
@@ -69,6 +84,34 @@ test('first-run intent choices are usable before entering discovery', async ({ b
   await expect(page.locator('#onboarding-modal')).toBeHidden();
   await expect(page.locator('#viewing-intent-options .mood-cluster[aria-pressed="true"]'))
     .toContainText('Surprise me');
+});
+
+test('light-theme Airing Schedule keeps readable foreground contrast', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForSelector('#anime-grid .anime-card');
+  await page.locator('#anime-grid .anime-card').first().click();
+  await page.waitForSelector('#watchlist-select');
+  await page.selectOption('#watchlist-select', 'planned');
+  await page.evaluate(() => localStorage.setItem('rekonime.theme', 'light'));
+
+  await page.goto('/watchlist.html');
+  const panel = page.locator('.airing-dashboard-section');
+  await expect(panel).toBeVisible();
+  await expect(page.locator('.airing-dashboard-empty')).toBeVisible();
+
+  const colors = await panel.evaluate((element) => ({
+    background: getComputedStyle(element).backgroundColor,
+    foregrounds: [
+      element.querySelector('h2'),
+      element.querySelector('.airing-summary-value'),
+      element.querySelector('.airing-summary-label'),
+      element.querySelector('.airing-dashboard-empty')
+    ].map((node) => getComputedStyle(node).color)
+  }));
+
+  for (const color of colors.foregrounds) {
+    expect(contrastRatio(color, colors.background)).toBeGreaterThanOrEqual(4.5);
+  }
 });
 
 test('home renders catalog grid', async ({ page }) => {
