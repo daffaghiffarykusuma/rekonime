@@ -5,6 +5,7 @@ const createWatchlistPageRuntime = ({
   getEpisodeCountFromCard,
   getWatchlistRuntime,
   renderWatchlist,
+  showFeedback = () => {},
   updateWatchlistUi
 }) => {
   const applyWatchlistTransition = (card, result) => {
@@ -15,6 +16,9 @@ const createWatchlistPageRuntime = ({
     }
     if (transition.render?.watchlist?.shouldRender) {
       renderWatchlist();
+    }
+    if (transition.feedback) {
+      showFeedback(transition.feedback);
     }
     return true;
   };

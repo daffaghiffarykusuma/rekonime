@@ -123,6 +123,10 @@ export interface WatchlistTransitionEnvelope {
   previousEntry: WatchlistEntry | null;
   statusChanged: boolean;
   progressChanged: boolean;
+  feedback: {
+    message: string;
+    action: { label: string; href: string } | null;
+  } | null;
   event: {
     name: 'rekonime:watchlist-updated';
     payload: WatchlistUpdatedEventPayload;

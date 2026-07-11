@@ -362,6 +362,17 @@ const buildWatchlistUpdatePayload = (result = {}) => {
   return payload;
 };
 
+const buildWatchlistFeedback = ({ changed, entry, removed, statusChanged }) => {
+  if (!changed || !statusChanged) return null;
+  if (removed || !entry) return { message: 'Removed from watchlist', action: null };
+  const label = WATCH_STATUS_DISPLAY_OPTIONS.find(option => option.value === entry.status)?.label;
+  if (!label) return null;
+  return {
+    message: `Saved to ${label}`,
+    action: { label: 'View watchlist', href: '/watchlist.html' }
+  };
+};
+
 const buildWatchlistTransitionEnvelope = (result = {}, {
   eventName = 'rekonime:watchlist-updated',
   renderMode,
@@ -393,6 +404,7 @@ const buildWatchlistTransitionEnvelope = (result = {}, {
     previousEntry,
     statusChanged,
     progressChanged,
+    feedback: buildWatchlistFeedback({ changed, entry, removed, statusChanged }),
     event: changed ? {
       name: eventName,
       payload: buildWatchlistUpdatePayload(result)

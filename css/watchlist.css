@@ -4331,6 +4331,12 @@ summary:focus-visible,
   transform: translateY(0);
 }
 
+.toast-action {
+  margin-left: 0.75rem;
+  color: inherit;
+  font-weight: 800;
+}
+
 .toast--success {
   border-color: var(--success);
   background: var(--success-bg);

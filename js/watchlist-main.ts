@@ -16,6 +16,7 @@ import {
 import { createWatchlistPageInteractions } from './watchlist-page-interactions.ts';
 import { createWatchlistPageRenderer } from './watchlist-page-renderer.ts';
 import { createWatchlistPageRuntime } from './watchlist-page-runtime.ts';
+import { showToast } from './toast.ts';
 import './bootstrap/watchlist-cover-preload.js';
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/120x170?text=No+Image';
@@ -153,6 +154,7 @@ const getWatchlistPageRuntime = () => {
       return watchlistLifecycleRuntime;
     },
     renderWatchlist,
+    showFeedback: (feedback) => showToast(feedback.message, { key: 'watchlist', type: 'success' }),
     updateWatchlistUi
   });
   return watchlistPageRuntime;

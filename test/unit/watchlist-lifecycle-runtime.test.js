@@ -65,6 +65,10 @@ test('Watchlist Lifecycle Runtime owns status transition envelope and follow-up 
   assert.equal(result.compatibilityResult.entry.id, 'show-1');
   assert.equal(result.transition.event.name, 'rekonime:watchlist-updated');
   assert.equal(result.transition.dashboard.timeout, 500);
+  assert.deepEqual(result.transition.feedback, {
+    message: 'Saved to Watching now',
+    action: { label: 'View watchlist', href: '/watchlist.html' }
+  });
   assert.deepEqual(result.effects, {
     clearViewingIntent: true,
     refreshTasteProfile: true,

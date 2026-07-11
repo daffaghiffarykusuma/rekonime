@@ -10,7 +10,7 @@ const createRuntime = (result) => {
     runtime: {
       setStatus: (id, status, options) => {
         calls.push(['setStatus', id, status, options]);
-        return result || { transition: { changed: true, render: { controls: { shouldUpdate: true, entry: { id, status } }, watchlist: { shouldRender: true } } } };
+        return result || { transition: { changed: true, feedback: { message: 'Saved to Watching now', action: { label: 'View watchlist', href: '/watchlist.html' } }, render: { controls: { shouldUpdate: true, entry: { id, status } }, watchlist: { shouldRender: true } } } };
       },
       setProgress: (id, progress, options) => {
         calls.push(['setProgress', id, progress, options]);
@@ -39,6 +39,7 @@ test('Watchlist Page Runtime handles status changes through one transition path'
     getEpisodeCountFromCard: () => 12,
     getWatchlistRuntime: () => watchlistRuntime,
     renderWatchlist: () => uiCalls.push(['renderWatchlist']),
+    showFeedback: (...args) => uiCalls.push(['showFeedback', ...args]),
     updateWatchlistUi: (...args) => uiCalls.push(['updateWatchlistUi', ...args])
   });
 
@@ -49,6 +50,10 @@ test('Watchlist Page Runtime handles status changes through one transition path'
   assert.equal(calls[0][3].episodeCount, 12);
   assert.equal(uiCalls[0][0], 'updateWatchlistUi');
   assert.equal(uiCalls[1][0], 'renderWatchlist');
+  assert.deepEqual(uiCalls[2], ['showFeedback', {
+    message: 'Saved to Watching now',
+    action: { label: 'View watchlist', href: '/watchlist.html' }
+  }]);
 });
 
 test('Watchlist Page Runtime handles progress clicks without re-rendering full watchlist', () => {

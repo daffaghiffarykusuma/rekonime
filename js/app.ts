@@ -48,6 +48,7 @@ import {
 } from './watchlist-state.js';
 import { createWatchlistLifecycleRuntime } from './watchlist-lifecycle-runtime.ts';
 import { createTasteProfileStore } from './taste-profile.ts';
+import { dismissToast as dismissToastNotification, showToast as showToastNotification } from './toast.ts';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -134,8 +135,6 @@ const App = {
   detailCache: new Map(),
   detailCacheMaxSize: 10,
   detailExperience: null,
-  toastRegionId: 'toast-region',
-  toastTimers: new Map(),
   gridObserver: null,
   visibleCardIds: new Set(),
   prefetchObserver: null,
@@ -819,7 +818,6 @@ const App = {
     if (!anime) return;
     if (action === 'rec-already-seen') {
       this.setWatchStatus(anime.id, 'completed', { episodeCount: this.getEpisodeCount(anime) });
-      this.showToast(`${anime.title} marked as already seen.`);
     } else {
       const result = this.getTasteProfileStore().applyRecommendationFeedback(action, anime, {
         genre: actionEl?.dataset?.genre || '',
@@ -887,6 +885,13 @@ const App = {
     }
     if (transition.dashboard?.shouldSchedule) {
       this.scheduleAiringDashboardRender({ timeout: transition.dashboard.timeout });
+    }
+    if (transition.feedback) {
+      this.showToast(transition.feedback.message, {
+        action: transition.feedback.action,
+        key: 'watchlist',
+        type: 'success'
+      });
     }
   },
 
@@ -5585,64 +5590,12 @@ const App = {
     }
   },
 
-  ensureToastRegion() {
-    if (typeof document === 'undefined') return null;
-    let region = document.getElementById(this.toastRegionId);
-    if (region) return region;
-    region = document.createElement('div');
-    region.id = this.toastRegionId;
-    region.className = 'toast-region';
-    region.setAttribute('role', 'region');
-    region.setAttribute('aria-label', 'Notifications');
-    document.body.appendChild(region);
-    return region;
-  },
-
-  showToast(message, { type = 'info', duration = 4500 } = {}) {
-    if (typeof document === 'undefined') return '';
-    if (!message) return '';
-    const region = this.ensureToastRegion();
-    if (!region) return '';
-
-    const toastId = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const toast = document.createElement('div');
-    const ariaLive = type === 'error' || type === 'success' ? 'assertive' : 'polite';
-
-    toast.id = toastId;
-    toast.className = `toast toast--${type}`;
-    toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', ariaLive);
-    toast.setAttribute('aria-atomic', 'true');
-    toast.textContent = message;
-
-    region.appendChild(toast);
-    requestAnimationFrame(() => {
-      toast.classList.add('is-visible');
-    });
-
-    const timeoutId = window.setTimeout(() => this.dismissToast(toastId), duration);
-    this.toastTimers.set(toastId, timeoutId);
-    return toastId;
+  showToast(message, options = {}) {
+    return showToastNotification(message, options);
   },
 
   dismissToast(toastId) {
-    const toast = document.getElementById(toastId);
-    if (!toast) return;
-
-    const timeoutId = this.toastTimers.get(toastId);
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      this.toastTimers.delete(toastId);
-    }
-
-    toast.classList.remove('is-visible');
-    window.setTimeout(() => {
-      toast.remove();
-      const region = document.getElementById(this.toastRegionId);
-      if (region && region.childElementCount === 0) {
-        region.remove();
-      }
-    }, 250);
+    dismissToastNotification(toastId);
   },
 
   /**

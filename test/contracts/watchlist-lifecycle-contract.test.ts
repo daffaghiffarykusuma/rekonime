@@ -109,6 +109,7 @@ const transitionEnvelope: WatchlistTransitionEnvelope = {
   previousEntry: transitionResult.previousEntry ?? null,
   statusChanged: false,
   progressChanged: true,
+  feedback: null,
   event: {
     name: 'rekonime:watchlist-updated',
     payload: eventPayload

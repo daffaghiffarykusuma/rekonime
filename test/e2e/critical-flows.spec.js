@@ -155,6 +155,13 @@ test('watchlist flow persists to watchlist page', async ({ page }) => {
   await page.waitForSelector('#detail-modal.visible');
   await page.waitForSelector('#watchlist-select');
   await page.selectOption('#watchlist-select', 'planned');
+  const feedback = page.locator('.toast').filter({ hasText: 'Saved to Want to watch' });
+  await expect(feedback).toBeVisible();
+  await expect(feedback.getByRole('link', { name: 'View watchlist' }))
+    .toHaveAttribute('href', '/watchlist.html');
+  await page.selectOption('#watchlist-select', 'watching');
+  await expect(page.locator('.toast')).toHaveCount(1);
+  await expect(page.locator('.toast')).toContainText('Saved to Watching now');
 
   await page.goto('/watchlist.html');
   await page.waitForSelector('#watchlist-grid .anime-card');
