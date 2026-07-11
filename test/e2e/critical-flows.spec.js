@@ -82,8 +82,7 @@ test('first-run intent choices are usable before entering discovery', async ({ b
   expect(await choices.evaluateAll((buttons) => buttons.map((button) => button.disabled)))
     .toEqual([true, true, true]);
   await expect(page.locator('#onboarding-modal')).toBeHidden();
-  await expect(page.locator('#viewing-intent-options .mood-cluster[aria-pressed="true"]'))
-    .toContainText('Surprise me');
+  await expect(page.locator('#active-viewing-intent')).toContainText('Surprise me');
 });
 
 test('selected viewing intent collapses to a changeable summary', async ({ page }) => {
@@ -148,6 +147,73 @@ test('recommendation quick-save persists without replacing detail access', async
   const remainingCard = page.locator('#recommendations-grid .recommendation-card').first();
   await remainingCard.click();
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
+});
+
+test('complete discovery-to-watchlist journey', async ({ browser }) => {
+  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:4173', viewport: { width: 1280, height: 720 } });
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+
+  const onboardingChoice = page.locator('.onboarding-intent-card').first();
+  await expect(onboardingChoice).toBeVisible();
+  await expect(onboardingChoice).toBeEnabled();
+  await onboardingChoice.focus();
+  await expect(onboardingChoice).toBeFocused();
+  expect(await onboardingChoice.evaluate((button) => getComputedStyle(button).outlineStyle)).not.toBe('none');
+  await onboardingChoice.click();
+
+  await expect(page.locator('#active-viewing-intent')).toContainText('Help me unwind');
+  const card = page.locator('#recommendations-grid .recommendation-card').first();
+  await expect(card.locator('.recommendation-reason')).toContainText('gentler pick');
+  expect(await card.locator('.experience-cue').count()).toBeGreaterThanOrEqual(2);
+  const title = (await card.locator('.recommendation-title').textContent()).trim();
+
+  await card.click({ position: { x: 20, y: 20 } });
+  await expect(page.locator('#detail-modal.visible')).toBeVisible();
+  await page.getByRole('button', { name: 'Close details' }).click();
+
+  const save = page.getByRole('button', { name: `Want to watch ${title}` });
+  await save.focus();
+  await expect(save).toBeFocused();
+  await page.keyboard.press('Enter');
+  const toast = page.getByRole('status').filter({ hasText: 'Saved to Want to watch' });
+  await expect(toast).toBeVisible();
+  await expect(toast).toHaveAttribute('aria-live', 'polite');
+  await toast.getByRole('link', { name: 'View watchlist' }).click();
+
+  const watchCard = page.locator('#watchlist-grid .anime-card').filter({ hasText: title });
+  await expect(watchCard).toBeVisible();
+  const status = watchCard.locator('.watchlist-controls-select');
+  await expect(status).toHaveValue('planned');
+  await status.selectOption('watching');
+  const progress = watchCard.locator('.watchlist-controls-input');
+  await expect(progress).toBeVisible();
+  await progress.fill('1');
+  await progress.press('Enter');
+  await expect(progress).toHaveValue('1');
+
+  const panel = page.locator('.airing-dashboard-section');
+  await expect(panel).toBeVisible();
+  for (const theme of ['dark', 'light']) {
+    await page.evaluate((nextTheme) => {
+      localStorage.setItem('rekonime.theme', nextTheme);
+      document.documentElement.dataset.theme = nextTheme;
+    }, theme);
+    const colors = await panel.evaluate((element) => ({
+      background: getComputedStyle(element).backgroundColor,
+      foreground: getComputedStyle(element.querySelector('h2')).color
+    }));
+    expect(contrastRatio(colors.foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const watchBox = await watchCard.boundingBox();
+  expect(watchBox.x).toBeGreaterThanOrEqual(0);
+  expect(watchBox.x + watchBox.width).toBeLessThanOrEqual(390);
+  await status.focus();
+  await expect(status).toBeFocused();
+  await context.close();
 });
 
 test('light-theme Airing Schedule keeps readable foreground contrast', async ({ page }) => {
