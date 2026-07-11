@@ -86,7 +86,7 @@
       --text-primary: #211B2C;
       --text-secondary: #4E445D;
       --text-muted: #70667C;
-      --text-tertiary: #887D95;
+      --text-tertiary: #70667C;
       --border-color: #E7D7F0;
       --border-hover: #D4BDE2;
       --shadow: 0 2px 8px rgba(42, 31, 35, 0.08);
@@ -1489,9 +1489,8 @@
     Refine ?
   </button>
 
-  <dialog class="modal-overlay filter-modal-overlay" id="filter-modal" hidden inert>
-    <div class="modal-content filter-modal-content" role="dialog" aria-modal="true" aria-labelledby="filter-modal-title"
-      tabindex="-1">
+  <dialog class="modal-overlay filter-modal-overlay" id="filter-modal" aria-labelledby="filter-modal-title" hidden inert>
+    <div class="modal-content filter-modal-content">
       <div class="filter-modal-header">
         <div>
           <h2 class="filter-modal-title" id="filter-modal-title">Refine your next great watch</h2>
@@ -1503,17 +1502,16 @@
         <div class="filter-sections" id="filter-sections">
           <!-- Populated by JS -->
         </div>
-        <div class="filter-modal-actions">
-          <button class="btn btn-clear" id="clear-filters" type="button">Reset all</button>
-          <button class="btn btn-primary" id="apply-filters" type="button">Show matches</button>
-        </div>
+      </div>
+      <div class="filter-modal-actions">
+        <button class="btn btn-clear" id="clear-filters" type="button">Reset all</button>
+        <button class="btn btn-primary" id="apply-filters" type="button">Show matches</button>
       </div>
     </div>
   </dialog>
 
-  <dialog class="modal-overlay settings-modal-overlay" id="settings-modal" hidden inert>
-    <div class="modal-content settings-modal-content" role="dialog" aria-modal="true"
-      aria-labelledby="settings-modal-title" tabindex="-1">
+  <dialog class="modal-overlay settings-modal-overlay" id="settings-modal" aria-labelledby="settings-modal-title" hidden inert>
+    <div class="modal-content settings-modal-content">
       <button class="modal-close" id="close-settings" type="button" aria-label="Close settings">&times;</button>
       <div class="settings-modal-body">
         <div class="settings-modal-header">
@@ -1527,8 +1525,8 @@
 
 
   <!-- Detail Modal -->
-  <dialog class="modal-overlay" id="detail-modal" hidden inert>
-    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" tabindex="-1">
+  <dialog class="modal-overlay" id="detail-modal" aria-labelledby="detail-modal-title" hidden inert>
+    <div class="modal-content">
       <button class="modal-close" id="close-detail" type="button" aria-label="Close details">&times;</button>
       <div class="modal-body" id="detail-content">
         <!-- Populated by JS -->
@@ -1537,8 +1535,8 @@
   </dialog>
 
   <!-- Metric Help Modal -->
-  <dialog class="modal-overlay metric-help-overlay" id="metric-help-modal" hidden inert>
-    <div class="modal-content metric-help-content" role="dialog" aria-modal="true" aria-labelledby="metric-help-title">
+  <dialog class="modal-overlay metric-help-overlay" id="metric-help-modal" aria-labelledby="metric-help-title" hidden inert>
+    <div class="modal-content metric-help-content">
       <button class="modal-close" id="close-metric-help" type="button" aria-label="Close help">&times;</button>
       <h2 class="visually-hidden" id="metric-help-title">Score guide</h2>
       <div class="metric-help-body" id="metric-help-body">

@@ -44,7 +44,7 @@
     --text-primary: #211B2C;
     --text-secondary: #4E445D;
     --text-muted: #70667C;
-    --text-tertiary: #887D95;
+    --text-tertiary: #70667C;
 
     /* Accent Application (similar, slightly adjusted for contrast) */
     --accent-primary: var(--sakura-deep);

@@ -189,7 +189,6 @@ const FilterPresets = {
         <div class="preset-grid">
           ${presets.map(p => `
             <button class="preset-card" data-action="apply-preset" data-preset="${p.key}">
-              <span class="preset-card-icon">${p.icon}</span>
               <span class="preset-card-label">${p.label}</span>
               <span class="preset-card-desc">${p.description}</span>
             </button>

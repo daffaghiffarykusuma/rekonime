@@ -231,7 +231,6 @@ const renderDetailContent = (anime, {
   const rawRetention = anime?.stats?.retentionScore;
   const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
   const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
-  const retentionClass = Recommendations.getRetentionClass(retentionScore);
   const malSatisfactionClass = Recommendations.getMalSatisfactionClass(malSatisfactionScore);
   const rawStart = anime?.stats?.threeEpisodeHook;
   const rawChurn = anime?.stats?.churnRisk?.score;
@@ -277,14 +276,6 @@ const renderDetailContent = (anime, {
             <span class="detail-verdict-copy">${escapeHtml(decision.note)}</span>
           </div>
           <div class="detail-stats">
-            <div class="detail-stat has-tooltip" tabindex="0">
-              <span class="detail-stat-value ${retentionClass}">${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
-              <span class="detail-stat-label">Finish Confidence</span>
-              <div class="tooltip" role="tooltip">
-                <div class="tooltip-title">Finish Confidence</div>
-                <div class="tooltip-text">An estimate based on strong starts, low drop-off risk, and steady pacing.</div>
-              </div>
-            </div>
             <div class="detail-stat has-tooltip" tabindex="0">
               <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
               <span class="detail-stat-label">Satisfaction (MAL)</span>

@@ -98,8 +98,11 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
   await expect(page.locator('#recommendations-context')).toContainText('Help me unwind');
   await expect(page.locator('#recommendations-grid .recommendation-card').first().locator('.recommendation-reason'))
     .toContainText('gentler pick');
-  expect(await page.locator('#recommendations-grid .recommendation-card').first().locator('.experience-cue').count())
-    .toBeGreaterThanOrEqual(2);
+  const firstRecommendation = page.locator('#recommendations-grid .recommendation-card').first();
+  await expect(firstRecommendation.locator('.recommendation-signal-value')).toHaveCount(1);
+  await expect(firstRecommendation.locator('.recommendation-stat')).toHaveCount(1);
+  await expect(firstRecommendation.locator('.recommendation-stat')).toContainText('Community Score');
+  await expect(firstRecommendation.locator('.experience-cues')).toHaveCount(0);
   await expect(options.locator('.viewing-intent-option')).toHaveCount(0);
   await expect(page.locator('#quick-filters')).toBeVisible();
 
@@ -107,8 +110,19 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
   const summaryBox = await summary.boundingBox();
   expect(summaryBox.x).toBeGreaterThanOrEqual(0);
   expect(summaryBox.x + summaryBox.width).toBeLessThanOrEqual(390);
+  const intentSectionBox = await page.locator('#viewing-intent-section').boundingBox();
+  expect(intentSectionBox.height).toBeLessThanOrEqual(140);
+  await expect(page.locator('#discovery-garden')).toBeHidden();
+  await expect(page.locator('#surprise-toggle .surprise-label')).toBeVisible();
+  const firstRecommendationBox = await page.locator('#recommendations-grid .recommendation-card').first().boundingBox();
+  expect(firstRecommendationBox.y).toBeLessThan(844);
 
-  await summary.getByRole('button', { name: 'Change' }).click();
+  await page.reload();
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  await expect(page.locator('#discovery-garden')).toBeHidden();
+  const reloadedSummary = page.locator('#active-viewing-intent');
+  await expect(reloadedSummary).toBeVisible();
+  await reloadedSummary.getByRole('button', { name: 'Change' }).click();
   await expect(options.locator('.viewing-intent-option')).toHaveCount(5);
   await expect(options.locator('.viewing-intent-option').first()).toBeFocused();
   await expect(options.getByRole('button', { name: /Help me unwind/ })).toHaveAttribute('aria-pressed', 'true');
@@ -130,9 +144,19 @@ test('recommendation quick-save persists without replacing detail access', async
   const save = firstCard.getByRole('button', { name: `Want to watch ${title}` });
   await expect(save).toBeVisible();
 
+  await firstCard.focus();
   await firstCard.click({ position: { x: 20, y: 20 } });
-  await expect(page.locator('#detail-modal.visible')).toBeVisible();
+  const detailModal = page.locator('#detail-modal.visible');
+  await expect(detailModal).toBeVisible();
+  await expect(detailModal.locator('[role="dialog"]')).toHaveCount(0);
+  await expect(detailModal.locator('.detail-verdict-value')).toHaveCount(1);
+  await expect(detailModal.locator('.detail-stat-label')).toHaveCount(2);
+  await expect(detailModal.locator('.detail-stat-label', { hasText: 'Finish Confidence' })).toHaveCount(0);
+  const closeBox = await page.getByRole('button', { name: 'Close details' }).boundingBox();
+  expect(closeBox.width).toBeGreaterThanOrEqual(44);
+  expect(closeBox.height).toBeGreaterThanOrEqual(44);
   await page.getByRole('button', { name: 'Close details' }).click();
+  await expect(firstCard).toBeFocused();
 
   await page.setViewportSize({ width: 390, height: 844 });
   const saveBox = await save.boundingBox();
@@ -170,7 +194,7 @@ test('complete discovery-to-watchlist journey', async ({ browser }) => {
   await expect(page.locator('#active-viewing-intent')).toContainText('Help me unwind');
   const card = page.locator('#recommendations-grid .recommendation-card').first();
   await expect(card.locator('.recommendation-reason')).toContainText('gentler pick');
-  expect(await card.locator('.experience-cue').count()).toBeGreaterThanOrEqual(2);
+  await expect(card.locator('.experience-cues')).toHaveCount(0);
   await card.scrollIntoViewIfNeeded();
   await expect(card).toBeVisible();
   const cardBox = await card.boundingBox();
@@ -265,6 +289,48 @@ test('light-theme Airing Schedule keeps readable foreground contrast', async ({ 
   for (const color of colors.foregrounds) {
     expect(contrastRatio(color, colors.background)).toBeGreaterThanOrEqual(4.5);
   }
+});
+
+test('light-theme tertiary text token remains readable on elevated surfaces', async ({ page }) => {
+  await page.goto('/');
+  const colors = await page.evaluate(() => {
+    document.documentElement.dataset.theme = 'light';
+    const sample = document.createElement('span');
+    sample.style.cssText = 'color: var(--text-tertiary); background: var(--bg-secondary)';
+    document.body.append(sample);
+    const styles = getComputedStyle(sample);
+    const colors = { foreground: styles.color, background: styles.backgroundColor };
+    sample.remove();
+    return colors;
+  });
+  expect(contrastRatio(colors.foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
+});
+
+test('advanced filters stay actionable while long groups remain progressive', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  await page.getByRole('button', { name: 'Filters' }).click();
+
+  const modal = page.locator('#filter-modal.visible');
+  await expect(modal).toBeVisible();
+  await expect(modal.locator('.preset-card-icon')).toHaveCount(0);
+
+  const studios = modal.locator('details').filter({ hasText: 'Studios' });
+  const sources = modal.locator('details').filter({ hasText: 'Sources' });
+  await expect(studios).not.toHaveAttribute('open');
+  await expect(sources).not.toHaveAttribute('open');
+  await studios.locator('summary').click();
+  await expect(studios).toHaveAttribute('open');
+
+  const body = modal.locator('.filter-modal-body');
+  await body.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  await expect(modal.getByRole('button', { name: 'Reset all' })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Show matches' })).toBeVisible();
+
+  await modal.getByRole('button', { name: 'Add Action filter' }).click();
+  await modal.getByRole('button', { name: 'Show matches' }).click();
+  await expect(modal).toBeHidden();
+  await expect(page.locator('#active-filters')).toContainText('Action');
 });
 
 test('home renders catalog grid', async ({ page }) => {

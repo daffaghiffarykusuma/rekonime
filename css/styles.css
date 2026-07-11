@@ -898,8 +898,8 @@ h4 {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--bg-tertiary);
   border: none;
@@ -966,6 +966,7 @@ h4 {
   max-height: 85vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .filter-modal-header {
@@ -990,6 +991,8 @@ h4 {
 
 .filter-modal-body {
   padding: 1.5rem 1.75rem 1.75rem;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .filter-modal-title {
@@ -1002,9 +1005,18 @@ h4 {
 .filter-modal-actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
+  flex: 0 0 auto;
+  padding: 1rem 1.75rem;
   border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.filter-disclosure > summary {
+  cursor: pointer;
+}
+
+.filter-disclosure[open] > summary {
+  margin-bottom: 0.75rem;
 }
 
 .btn-primary {
@@ -3354,6 +3366,16 @@ h4 {
   min-width: min(100%, 11rem);
 }
 
+.viewing-intent-section.is-complete {
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.viewing-intent-section.is-complete .mood-filter-header,
+.viewing-intent-section.is-complete .mood-filter-note {
+  display: none;
+}
+
 .active-viewing-intent {
   display: flex;
   align-items: center;
@@ -3363,7 +3385,7 @@ h4 {
 }
 
 @media (max-width: 640px) {
-  .active-viewing-intent {
+  .viewing-intent-section:not(.is-complete) .active-viewing-intent {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -4857,12 +4879,10 @@ h4 {
   }
 
   .filter-modal-actions {
-    position: sticky;
-    bottom: 0;
     flex-direction: column-reverse;
     gap: 0.75rem;
     background: var(--card-bg);
-    padding-top: 1rem;
+    padding: 1rem 1.1rem;
   }
 
   .filter-modal-actions .btn {
@@ -6908,12 +6928,8 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
     box-shadow: none;
   }
 
-  .surprise-btn .surprise-label {
-    display: none;
-  }
-
   .surprise-btn {
-    padding: 0.55rem;
+    padding: 0.55rem 0.75rem;
     min-width: 44px;
   }
 

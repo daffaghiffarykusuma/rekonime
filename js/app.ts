@@ -2953,8 +2953,8 @@ const App = {
       { key: 'demographic', label: 'Demographic' },
       { key: 'seasonYear', label: 'Season' },
       { key: 'year', label: 'Year' },
-      { key: 'studio', label: 'Studios' },
-      { key: 'source', label: 'Source' }
+      { key: 'studio', label: 'Studios', advanced: true },
+      { key: 'source', label: 'Sources', advanced: true }
     ];
 
     const filtersMarkup = filterConfig.map(config => {
@@ -2964,10 +2964,8 @@ const App = {
       const safeLabel = this.escapeHtml(config.label);
       const safeType = this.escapeAttr(config.key);
 
-      return `
-        <div class="filter-section">
-          <div class="filter-section-title">${safeLabel}</div>
-          <div class="filter-pills">
+      const pills = `
+        <div class="filter-pills">
             ${options.map(option => {
         const optionStr = String(option);
         const isActive = this.activeFilters[config.key].includes(optionStr) || this.activeFilters[config.key].includes(option);
@@ -2984,9 +2982,11 @@ const App = {
                 ${safeOptionText}
               </button>
        `}).join('')}
-          </div>
         </div>
       `;
+      return config.advanced
+        ? `<details class="filter-section filter-disclosure"><summary class="filter-section-title">${safeLabel}</summary>${pills}</details>`
+        : `<div class="filter-section"><div class="filter-section-title">${safeLabel}</div>${pills}</div>`;
     }).join('');
 
     html += filtersMarkup;
@@ -3093,6 +3093,8 @@ const App = {
     if (!container) return;
 
     const active = this.getActiveViewingIntent();
+    document.getElementById('discovery-garden')?.classList.toggle('is-hidden', Boolean(active));
+    document.getElementById('viewing-intent-section')?.classList.toggle('is-complete', Boolean(active && !this.viewingIntentExpanded));
     if (active && !this.viewingIntentExpanded) {
       setHTML(container, `
         <div class="active-viewing-intent" id="active-viewing-intent">
@@ -4238,7 +4240,7 @@ const App = {
       label.textContent = 'Showing';
       clearBtn.classList.add('is-hidden');
       container.classList.add('is-empty');
-      emptyState.classList.remove('is-hidden');
+      emptyState.classList.toggle('is-hidden', Boolean(this.getActiveViewingIntent()));
       return;
     }
 
@@ -4320,25 +4322,13 @@ const App = {
     }
 
     setHTML(container, recommendations.map((anime, index) => {
-      const episodeCount = this.getEpisodeCount(anime);
-      const hasEpisodes = episodeCount > 0;
-      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore ?? 0)}%` : 'N/A';
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
-      const retentionTooltipTitle = this.escapeHtml('Finish Confidence');
-      const retentionTooltipText = this.escapeHtml('An estimate of how likely the show is to keep viewers watching, based on starts, drop-off risk, and pacing.');
-      const satisfactionTooltipTitle = this.escapeHtml('Satisfaction Score');
+      const satisfactionTooltipTitle = this.escapeHtml('Community Score');
       const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
-      const safeRetention = this.escapeHtml(retention);
       const safeSatisfaction = this.escapeHtml(malSatisfaction);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
       const safeReason = this.escapeHtml(anime.reason || '');
-      const cues = Array.isArray(anime.experienceCues)
-        ? anime.experienceCues
-        : Recommendations.getExperienceCues(anime, activeIntent?.key);
-      const cueMarkup = cues.slice(0, 3)
-        .map(cue => `<span class="experience-cue">${this.escapeHtml(cue)}</span>`)
-        .join('');
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
       const decision = this.getCardDecisionData(anime);
@@ -4378,14 +4368,7 @@ const App = {
             </div>
             <div class="recommendation-meta">
               <span class="recommendation-stat has-tooltip" tabindex="0">
-                Finish Confidence ${safeRetention}
-                <div class="tooltip tooltip--bottom" role="tooltip">
-                  <div class="tooltip-title">${retentionTooltipTitle}</div>
-                  <div class="tooltip-text">${retentionTooltipText}</div>
-                </div>
-              </span>
-              <span class="recommendation-stat has-tooltip" tabindex="0">
-                MAL ${safeSatisfaction}
+                Community Score ${safeSatisfaction}
                 <div class="tooltip tooltip--bottom" role="tooltip">
                   <div class="tooltip-title">${satisfactionTooltipTitle}</div>
                   <div class="tooltip-text">${satisfactionTooltipText}</div>
@@ -4393,7 +4376,6 @@ const App = {
               </span>
               </div>
               <div class="recommendation-reason">${safeReason}</div>
-              ${cueMarkup ? `<div class="experience-cues" aria-label="Viewing experience">${cueMarkup}</div>` : ''}
               <div class="recommendation-quick-actions">
                 <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
               </div>
