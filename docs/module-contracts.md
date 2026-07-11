@@ -99,7 +99,7 @@
 - App handoff: `js/app.ts` keeps one Runtime Capabilities instance and provides product-specific close handlers
 - Inputs: idle callbacks, native dialog ids, focus targets, Escape key events
 - Outputs: idle task handles, modal open state, scroll lock state
-- Interface: schedules idle work and opens/closes native `<dialog>` elements; the browser owns focus trapping
+- Interface: schedules and cancels ordinary idle work and opens/closes native `<dialog>` elements; deferred boot, Shared Image Proxy, App Shell, and Airing Schedule adapters consume the same scheduling functions; the browser owns focus trapping
 - Side effects: dialog attributes/classes, initial focus, body scroll lock, scheduled callbacks
 
 ### Keyboard Shortcuts

@@ -1,14 +1,4 @@
-const queueIdleTask = (callback, timeoutMs = 2000) => {
-  if (typeof callback !== 'function') return null;
-  if (typeof window === 'undefined') {
-    callback();
-    return null;
-  }
-  if ('requestIdleCallback' in window) {
-    return window.requestIdleCallback(callback, { timeout: timeoutMs });
-  }
-  return window.setTimeout(callback, 0);
-};
+import { queueIdleTask } from '../runtime-capabilities.ts';
 
 const runAfterWindowLoad = (callback) => {
   if (typeof callback !== 'function') return;
@@ -40,13 +30,12 @@ const initDeferredRuntimeServices = ({
         onError(error);
       }
     }
-  }, timeoutMs);
+  }, { timeout: timeoutMs });
 
   runAfterWindowLoad(run);
 };
 
 export {
-  queueIdleTask,
   runAfterWindowLoad,
   initDeferredRuntimeServices
 };

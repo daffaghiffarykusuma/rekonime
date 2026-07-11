@@ -1,27 +1,27 @@
 // @ts-nocheck
 const DEFAULT_MODAL_ORDER = ['settings-modal', 'filter-modal', 'detail-modal', 'metric-help-modal'];
 
+const queueIdleTask = (callback, { timeout = 1500 } = {}) => {
+  if (typeof callback !== 'function') return null;
+  if (typeof window === 'undefined') {
+    callback();
+    return null;
+  }
+  return 'requestIdleCallback' in window
+    ? window.requestIdleCallback(callback, { timeout })
+    : window.setTimeout(callback, 0);
+};
+
+const cancelIdleTask = (handle) => {
+  if (typeof window === 'undefined' || handle == null) return;
+  if ('cancelIdleCallback' in window) window.cancelIdleCallback(handle);
+  else clearTimeout(handle);
+};
+
 const createRuntimeCapabilities = ({
   modalOrder = DEFAULT_MODAL_ORDER,
   closeModalById = () => false
 } = {}) => {
-  const queueIdleTask = (callback, { timeout = 1500 } = {}) => {
-    if (typeof callback !== 'function') return null;
-    if (typeof window === 'undefined') {
-      callback();
-      return null;
-    }
-    return 'requestIdleCallback' in window
-      ? window.requestIdleCallback(callback, { timeout })
-      : window.setTimeout(callback, 0);
-  };
-
-  const cancelIdleTask = (handle) => {
-    if (typeof window === 'undefined' || handle == null) return;
-    if ('cancelIdleCallback' in window) window.cancelIdleCallback(handle);
-    else clearTimeout(handle);
-  };
-
   const getModalElement = (modalId) => (
     modalId && typeof document !== 'undefined' ? document.getElementById(modalId) : null
   );
@@ -78,4 +78,4 @@ const createRuntimeCapabilities = ({
   };
 };
 
-export { createRuntimeCapabilities };
+export { cancelIdleTask, createRuntimeCapabilities, queueIdleTask };

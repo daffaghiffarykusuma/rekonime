@@ -1,13 +1,13 @@
 // @ts-nocheck
+import { cancelIdleTask, queueIdleTask } from './runtime-capabilities.ts';
 
 const createWatchlistAiringDashboardAdapter = ({
-  cancelTask = null,
+  cancelTask = cancelIdleTask,
   controllerOptions = {},
   logger = null,
   loadDashboardFactory = async () => import('./airing-dashboard.ts')
     .then((module) => module.createAiringDashboardController),
-  queueTask,
-  windowRef = typeof window !== 'undefined' ? window : null
+  queueTask = queueIdleTask
 }) => {
   let dashboardModulePromise = null;
   let dashboardControllerPromise = null;
@@ -15,17 +15,7 @@ const createWatchlistAiringDashboardAdapter = ({
 
   const cancelScheduledUpdate = () => {
     if (!dashboardUpdateHandle) return;
-    if (cancelTask) {
-      cancelTask(dashboardUpdateHandle);
-    } else if (
-      windowRef
-      && 'cancelIdleCallback' in windowRef
-      && typeof dashboardUpdateHandle === 'number'
-    ) {
-      windowRef.cancelIdleCallback(dashboardUpdateHandle);
-    } else {
-      clearTimeout(dashboardUpdateHandle);
-    }
+    cancelTask(dashboardUpdateHandle);
     dashboardUpdateHandle = null;
   };
 
@@ -76,7 +66,7 @@ const createWatchlistAiringDashboardAdapter = ({
       } catch (error) {
         logger?.warn?.('Failed to update airing dashboard', { error });
       }
-    }, timeout);
+    }, { timeout });
 
     return dashboardUpdateHandle;
   };

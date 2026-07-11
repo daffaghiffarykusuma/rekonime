@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRuntimeCapabilities } from '../../js/runtime-capabilities.ts';
+import { createRuntimeCapabilities, queueIdleTask } from '../../js/runtime-capabilities.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('Runtime Capabilities uses requestIdleCallback and cancellation when available', () => {
@@ -23,6 +23,21 @@ test('Runtime Capabilities uses requestIdleCallback and cancellation when availa
   assert.equal(handle, 42);
   assert.equal(queued.options.timeout, 2500);
   assert.equal(cancelled, 42);
+});
+
+test('Runtime Capabilities exposes idle scheduling without creating modal capabilities', () => {
+  setupDom(undefined, { url: 'https://example.com/' });
+
+  let timeout = null;
+  window.requestIdleCallback = (_callback, options) => {
+    timeout = options.timeout;
+    return 17;
+  };
+
+  const handle = queueIdleTask(() => {}, { timeout: 3200 });
+
+  assert.equal(handle, 17);
+  assert.equal(timeout, 3200);
 });
 
 test('Runtime Capabilities toggles modal visibility and body scroll lock', () => {

@@ -24,7 +24,7 @@ const createAdapter = ({ controllerOptions, factoryRejects = false, updateReject
         return controller;
       };
     },
-    queueTask: (callback, timeout) => {
+    queueTask: (callback, { timeout } = {}) => {
       const handle = nextHandle;
       nextHandle += 1;
       queued.push({ callback, handle, timeout });
@@ -122,7 +122,7 @@ test('Watchlist Airing Dashboard Adapter resets failed factory load for retry', 
       }
       return () => ({ update: async (payload) => calls.push(['update', payload]) });
     },
-    queueTask: (callback, timeout) => {
+    queueTask: (callback, { timeout } = {}) => {
       const handle = queued.length + 1;
       queued.push({ callback, timeout });
       calls.push(['queueTask', handle, timeout]);

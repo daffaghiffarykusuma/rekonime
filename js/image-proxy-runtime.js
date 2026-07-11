@@ -6,24 +6,13 @@ import {
   writeImageProxyStatus,
   probeImageProxyAvailability
 } from './image-proxy.js';
-
-const defaultQueueTask = (callback, { timeout = 2000 } = {}) => {
-  if (typeof callback !== 'function') return null;
-  if (typeof window === 'undefined') {
-    callback();
-    return null;
-  }
-  if ('requestIdleCallback' in window) {
-    return window.requestIdleCallback(callback, { timeout });
-  }
-  return window.setTimeout(callback, 0);
-};
+import { queueIdleTask } from './runtime-capabilities.ts';
 
 const createImageProxyRuntime = ({
   storageKey,
   ttlMs = 0,
   timeoutMs = 2500,
-  queueTask = defaultQueueTask,
+  queueTask = queueIdleTask,
   waitForLoad = true,
   enabled = true,
   smartLoading = true,
@@ -39,7 +28,7 @@ const createImageProxyRuntime = ({
     if (typeof queueTask === 'function') {
       return queueTask(callback, options);
     }
-    return defaultQueueTask(callback, options);
+    return queueIdleTask(callback, options);
   };
 
   const schedule = (callback, timeout) => {

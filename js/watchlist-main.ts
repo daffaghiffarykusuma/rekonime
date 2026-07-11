@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { ThemeManager } from './themeManager.js';
 import { Logger } from './services/logger.ts';
-import { initDeferredRuntimeServices, queueIdleTask } from './bootstrap/deferred-runtime.js';
+import { initDeferredRuntimeServices } from './bootstrap/deferred-runtime.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
 import { sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.ts';
 import { createWatchlistAiringDashboardAdapter } from './watchlist-airing-dashboard-adapter.ts';
@@ -44,7 +44,6 @@ const imageProxyRuntime = createImageProxyRuntime({
   storageKey: IMAGE_PROXY_STATUS_KEY,
   ttlMs: IMAGE_PROXY_STATUS_TTL_MS,
   timeoutMs: IMAGE_PROXY_CHECK_TIMEOUT_MS,
-  queueTask: (callback, options = {}) => queueIdleTask(callback, options.timeout ?? 2000),
   waitForLoad: false,
   sanitizeImageUrl: (value) => sanitizeImageUrl(value),
   dimensions: { card: CARD_DIMENSIONS }
@@ -183,8 +182,7 @@ const getWatchlistPageInteractions = () => {
 const getWatchlistAiringDashboardAdapter = () => {
   if (watchlistAiringDashboardAdapter) return watchlistAiringDashboardAdapter;
   watchlistAiringDashboardAdapter = createWatchlistAiringDashboardAdapter({
-    logger: Logger,
-    queueTask: queueIdleTask
+    logger: Logger
   });
   return watchlistAiringDashboardAdapter;
 };

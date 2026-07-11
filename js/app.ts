@@ -405,7 +405,6 @@ const App = {
         storageKey: this.imageProxyStatusKey,
         ttlMs: this.imageProxyStatusTtlMs,
         timeoutMs: this.imageProxyCheckTimeoutMs,
-        queueTask: (callback, options = {}) => this.queueIdleTask(callback, { timeout: options.timeout ?? 1500 }),
         waitForLoad: true,
         enabled: this.features.imageProxy,
         smartLoading: this.features.smartImageLoading,
@@ -720,9 +719,7 @@ const App = {
   getAiringDashboardAdapter() {
     if (!this.airingDashboardAdapter) {
       this.airingDashboardAdapter = createWatchlistAiringDashboardAdapter({
-        cancelTask: this.cancelIdleTask.bind(this),
-        logger: this.getLogger(),
-        queueTask: (callback, timeout) => this.queueIdleTask(callback, { timeout })
+        logger: this.getLogger()
       });
     }
     return this.airingDashboardAdapter;
@@ -3282,12 +3279,7 @@ const App = {
     if (this.prefetchQueue.size >= this.prefetchLimit) return;
     this.prefetchQueue.add(key);
 
-    const work = () => this.prefetchAnime(key);
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      window.requestIdleCallback(work, { timeout: 2000 });
-    } else {
-      setTimeout(work, 200);
-    }
+    this.queueIdleTask(() => this.prefetchAnime(key), { timeout: 2000 });
   },
 
   prefetchAnime(animeId) {
