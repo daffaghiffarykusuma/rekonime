@@ -64,7 +64,7 @@ test('Onboarding intent choice completes and dispatches selected intent', async 
   Onboarding.startTour();
   document.querySelector('[data-intent-key="energy"]').click();
 
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise(resolve => setTimeout(resolve, 150));
 
   assert.equal(cache.getRaw(Onboarding.storageKey), 'completed');
   assert.equal(selectedIntent, 'energy');

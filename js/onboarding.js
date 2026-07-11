@@ -116,15 +116,15 @@ const Onboarding = {
             Pick what you want to watch right now. Rekonime will start with recommendations and keep the deeper filters available when you need them.
           </p>
           <div class="onboarding-intent-options" role="group" aria-label="Choose a starting recommendation">
-            <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="unwind">
+            <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="unwind" aria-pressed="false">
               <span class="onboarding-intent-title">Help me unwind</span>
               <span class="onboarding-intent-copy">Comfortable picks with lower effort.</span>
             </button>
-            <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="energy">
+            <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="energy" aria-pressed="false">
               <span class="onboarding-intent-title">Give me energy</span>
               <span class="onboarding-intent-copy">Fast hooks and stronger momentum.</span>
             </button>
-            <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="surprise">
+            <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="surprise" aria-pressed="false">
               <span class="onboarding-intent-title">Surprise me</span>
               <span class="onboarding-intent-copy">A confident pick outside the obvious lane.</span>
             </button>
@@ -329,13 +329,18 @@ const Onboarding = {
 
     content.querySelectorAll('[data-action="onboarding-intent"]').forEach(btn => {
       btn.addEventListener('click', (event) => {
-        const intentKey = event.currentTarget.dataset.intentKey;
-        this.completeTour();
+        const selectedButton = event.currentTarget;
+        const intentKey = selectedButton.dataset.intentKey;
+        content.querySelectorAll('[data-action="onboarding-intent"]').forEach(button => {
+          button.setAttribute('aria-pressed', String(button === selectedButton));
+          button.disabled = true;
+        });
         if (intentKey && typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('rekonime:onboarding-intent', {
             detail: { intentKey }
           }));
         }
+        setTimeout(() => this.completeTour(), 120);
       });
     });
 

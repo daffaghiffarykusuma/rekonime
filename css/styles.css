@@ -5162,6 +5162,63 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
   margin-bottom: 1.5rem;
 }
 
+.onboarding-intent-options {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+}
+
+.onboarding-intent-card {
+  min-height: 4.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.onboarding-intent-card:hover,
+.onboarding-intent-card:focus-visible {
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+.onboarding-intent-card:active,
+.onboarding-intent-card[aria-pressed="true"] {
+  background: linear-gradient(135deg, rgba(246, 148, 193, 0.18), rgba(237, 231, 177, 0.1));
+  border-color: var(--accent-primary);
+}
+
+.onboarding-intent-card:disabled {
+  opacity: 0.72;
+  cursor: progress;
+  transform: none;
+}
+
+.onboarding-intent-card[aria-pressed="true"]:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.onboarding-intent-title,
+.onboarding-intent-copy {
+  display: block;
+}
+
+.onboarding-intent-title {
+  font-weight: 800;
+}
+
+.onboarding-intent-copy {
+  margin-top: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .onboarding-value-props {
   display: flex;
   flex-direction: column;
