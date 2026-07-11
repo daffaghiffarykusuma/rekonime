@@ -97,6 +97,10 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
   await expect(summary).toBeVisible();
   await expect(summary).toContainText('Help me unwind');
   await expect(page.locator('#recommendations-context')).toContainText('Help me unwind');
+  await expect(page.locator('#recommendations-grid .recommendation-card').first().locator('.recommendation-reason'))
+    .toContainText('gentler pick');
+  expect(await page.locator('#recommendations-grid .recommendation-card').first().locator('.experience-cue').count())
+    .toBeGreaterThanOrEqual(2);
   await expect(options.locator('.viewing-intent-option')).toHaveCount(0);
   await expect(page.locator('#quick-filters')).toBeVisible();
 
@@ -110,6 +114,11 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
   await expect(options.locator('.viewing-intent-option').first()).toBeFocused();
   await expect(options.getByRole('button', { name: /Help me unwind/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#recommendations-context')).toContainText('Help me unwind');
+
+  await options.getByRole('button', { name: /Give me energy/ }).click();
+  await expect(page.locator('#active-viewing-intent')).toContainText('Give me energy');
+  await expect(page.locator('#recommendations-grid .recommendation-card').first().locator('.recommendation-reason'))
+    .toContainText('higher-energy watch');
 });
 
 test('light-theme Airing Schedule keeps readable foreground contrast', async ({ page }) => {

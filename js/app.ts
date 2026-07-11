@@ -4329,7 +4329,7 @@ const App = {
       const cues = Array.isArray(anime.experienceCues)
         ? anime.experienceCues
         : Recommendations.getExperienceCues(anime, activeIntent?.key);
-      const cueMarkup = cues.slice(0, 2)
+      const cueMarkup = cues.slice(0, 3)
         .map(cue => `<span class="experience-cue">${this.escapeHtml(cue)}</span>`)
         .join('');
       const safeYear = this.escapeHtml(anime.year || 'Unknown');

@@ -113,7 +113,7 @@ test('getRecommendationsForIntent ranks outcomes without removing viable titles'
   assert.match(result[0].reason, /energy|momentum|hook/i);
 });
 
-test('getExperienceCues returns at most two decision cues for the active intent', () => {
+test('getExperienceCues returns two or three outcome cues for the active intent', () => {
   const anime = baseAnime({
     genres: ['Action', 'Suspense'],
     themes: ['Psychological'],
@@ -129,9 +129,24 @@ test('getExperienceCues returns at most two decision cues for the active intent'
 
   const cues = Recommendations.getExperienceCues(anime, 'energy');
 
-  assert.ok(cues.length <= 2);
+  assert.ok(cues.length >= 2 && cues.length <= 3);
   assert.equal(cues[0], 'High energy');
   assert.ok(cues.includes('Dark') || cues.includes('Fast hook'));
+  assert.equal(cues.some(cue => ['Action', 'Suspense', 'Psychological'].includes(cue)), false);
+});
+
+test('getExperienceCues changes priority with intent and uses a restrained fallback', () => {
+  const versatile = baseAnime({
+    genres: ['Drama', 'Fantasy'],
+    stats: { comfortScore: 90, emotionalStability: 88, worthFinishing: 90, flowState: 90 }
+  });
+
+  const unwind = Recommendations.getExperienceCues(versatile, 'unwind');
+  const immersive = Recommendations.getExperienceCues(versatile, 'immersive');
+  assert.equal(unwind[0], 'Gentle');
+  assert.equal(immersive[0], 'Immersive');
+  assert.notDeepEqual(unwind, immersive);
+  assert.deepEqual(Recommendations.getExperienceCues({ title: 'Unknown' }, 'energy'), ['Experience data is limited']);
 });
 
 test('getSimilarAnime prioritizes strict matches over higher-scoring relaxed matches', () => {

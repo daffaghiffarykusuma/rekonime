@@ -147,10 +147,15 @@ const Recommendations = {
     if (['Horror', 'Gore', 'Psychological', 'Suspense'].some(tag => tags.has(tag))) add('Dark', 95);
     if (['Psychological', 'Strategy Game', 'Time Travel'].some(tag => tags.has(tag))) add('Complex', 88);
 
-    return candidates
+    if ((stats.retentionScore ?? 0) >= 78) add('Easy to finish', 72);
+    if ((stats.worthFinishing ?? 0) >= 75) add('Strong payoff', intentKey === 'emotional' ? 105 : 70);
+    if ((anime?.communityScore ?? 0) >= 8.1) add('Viewer favorite', 68);
+
+    const cues = candidates
       .sort((a, b) => b.score - a.score)
-      .slice(0, 2)
+      .slice(0, 3)
       .map(candidate => candidate.label);
+    return cues.length > 0 ? cues : ['Experience data is limited'];
   },
 
   /**
