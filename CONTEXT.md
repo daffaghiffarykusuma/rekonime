@@ -20,6 +20,10 @@ _Avoid_: recommendation settings, preference cache, personalization blob
 The user's temporary viewing outcome for the current discovery session, including its definition, four-hour activity window, apply transition, and clear transition. A Viewing Intent guides recommendations without changing Browse View Filtering or the longer-lived Taste Profile.
 _Avoid_: mood filter, recommendation mode, session flag
 
+**Discovery**:
+The catalog exploration behavior that powers Surprise Me, seasonal choices, trending titles, and weekly popularity. Discovery consumes Taste Profile-prepared candidates for personalized selection; it does not interpret Watchlist Lifecycle evidence itself.
+_Avoid_: discovery helper, random picker utility, watchlist preference logic
+
 **Experience Cue**:
 A concise, curated label that sets expectations about a title's viewing experience or explains its fit for a viewing outcome. Experience Cues are derived through documented rules rather than displayed directly from raw catalog tags.
 _Avoid_: badge, raw theme, recommendation tag
@@ -62,6 +66,9 @@ Domain expert: "No. Romance is a cross-title preference in the Taste Profile. Th
 
 Dev: "Should choosing 'Help me unwind' change the active filters or the Taste Profile?"
 Domain expert: "No. That is a temporary Viewing Intent. It guides the current recommendation session without changing Browse View Filtering or the Taste Profile."
+
+Dev: "Should Surprise Me infer preferred genres directly from the watchlist?"
+Domain expert: "No. Taste Profile interprets Watchlist Lifecycle evidence. Discovery only applies quality rules and selects from the prepared candidates."
 
 Dev: "Can we show Psychological directly as an explanation?"
 Domain expert: "Not by default. Recommendation cards use Experience Cues with documented meaning; raw catalog tags remain available in details and advanced filters."

@@ -1427,9 +1427,6 @@ const App = {
       this.renderLoadingState();
       this.loadWatchlist();
       this.migrateLegacyBookmarksToWatchlist();
-      Discovery.setWatchlistProvider({
-        getWatchlistAnime: () => this.getWatchlistAnime({ statuses: ['planned', 'watching', 'completed'] })
-      });
       this.loadSettings();
       this.updateGridPageSize();
       this.applyPerformancePreferences();
@@ -2247,16 +2244,7 @@ const App = {
     const surpriseToggle = document.getElementById('surprise-toggle');
     if (surpriseToggle) {
       this.addTrackedListener(surpriseToggle, 'click', () => {
-        const excludeIds = this.getWatchlistIds();
-        const surprise = Discovery.getSurpriseMe(this.animeData, {
-          excludeIds,
-          useWatchlist: true
-        });
-
-        if (surprise) {
-          Discovery.trackSurpriseMe(surprise.id);
-          this.showAnimeDetail(surprise.id);
-        }
+        this.showSurpriseMe();
       });
     }
 
@@ -3143,6 +3131,17 @@ const App = {
     const result = this.getViewingIntentRuntime().clear({ announce });
     this.applyViewingIntentEffects(result);
     return result.changed;
+  },
+
+  showSurpriseMe() {
+    const source = this.getTasteProfileStore().prepareDiscoverySource(this.animeData, {
+      excludedIds: this.getWatchlistIds()
+    });
+    const surprise = Discovery.getSurpriseMe(source);
+    if (!surprise) return null;
+    Discovery.trackSurpriseMe(surprise.id);
+    this.showAnimeDetail(surprise.id);
+    return surprise;
   },
 
   /**
@@ -5000,16 +4999,7 @@ const App = {
       }
 
       if (action === 'surprise-me') {
-        const excludeIds = this.getWatchlistIds();
-        const surprise = Discovery.getSurpriseMe(this.animeData, {
-          excludeIds,
-          useWatchlist: true
-        });
-
-        if (surprise) {
-          Discovery.trackSurpriseMe(surprise.id);
-          this.showAnimeDetail(surprise.id);
-        }
+        this.showSurpriseMe();
         return;
       }
 

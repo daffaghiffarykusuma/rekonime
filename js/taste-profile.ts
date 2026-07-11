@@ -1,6 +1,7 @@
 // @ts-nocheck
 const TASTE_PROFILE_STORAGE_KEY = 'rekonime.tasteProfile';
 const TASTE_PROFILE_VERSION = 1;
+const DISCOVERY_TASTE_SCORE_SCALE = 10;
 
 const emptyProfile = () => ({
   version: TASTE_PROFILE_VERSION,
@@ -261,7 +262,7 @@ const createTasteProfileStore = ({
     return { changed: false, message: '' };
   };
 
-  const prepareRecommendationSource = (animeList, { excludedIds = [] } = {}) => {
+  const prepareTasteCandidates = (animeList, { excludedIds = [] } = {}) => {
     const excluded = new Set([
       ...excludedIds,
       ...normalizeProfile(profile).explicit.notForMeTitleIds
@@ -269,9 +270,19 @@ const createTasteProfileStore = ({
     return (Array.isArray(animeList) ? animeList : [])
       .filter(anime => !excluded.has(normalizeId(anime?.id)))
       .map((anime, index) => ({ anime, index, tasteScore: scoreAnimeForTaste(anime, profile) }))
-      .sort((left, right) => right.tasteScore - left.tasteScore || left.index - right.index)
-      .map(entry => entry.anime);
+      .sort((left, right) => right.tasteScore - left.tasteScore || left.index - right.index);
   };
+
+  const prepareRecommendationSource = (animeList, options = {}) => (
+    prepareTasteCandidates(animeList, options).map(entry => entry.anime)
+  );
+
+  const prepareDiscoverySource = (animeList, options = {}) => (
+    prepareTasteCandidates(animeList, options).map(entry => ({
+      anime: entry.anime,
+      weight: Math.max(0.1, 1 + (entry.tasteScore / DISCOVERY_TASTE_SCORE_SCALE))
+    }))
+  );
 
   const getSettingsSummary = () => {
     const normalized = normalizeProfile(profile);
@@ -319,6 +330,7 @@ const createTasteProfileStore = ({
     },
     applyRecommendationFeedback,
     prepareRecommendationSource,
+    prepareDiscoverySource,
     getSettingsSummary
   };
 

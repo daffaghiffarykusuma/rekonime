@@ -34,9 +34,16 @@
 ### Taste Profile
 - Runtime module: `js/taste-profile.ts`
 - Inputs: recommendation feedback, Watchlist Lifecycle entries, Catalog Payload anime records, and excluded Watchlist Entry ids
-- Outputs: persisted cross-title preferences, Watchlist-derived evidence, ranked recommendation source, feedback result, and settings summary
-- Interface: apply recommendation feedback, refresh inferred evidence, prepare recommendation candidates, reset while preserving Watchlist Lifecycle evidence, and import/export personal profile data
+- Outputs: persisted cross-title preferences, Watchlist-derived evidence, ranked recommendation source, weighted Discovery source, feedback result, and settings summary
+- Interface: apply recommendation feedback, refresh inferred evidence, prepare recommendation and Discovery candidates, reset while preserving Watchlist Lifecycle evidence, and import/export personal profile data
 - Side effects: Taste Profile storage writes only; App Shell owns DOM rendering, announcements, file download/upload, and Watchlist Lifecycle transitions such as Already seen
+
+### Discovery
+- Runtime module: `js/discovery.js`
+- Inputs: Taste Profile-prepared weighted candidates, quality requirements, Catalog Payload anime records, and current date
+- Outputs: Surprise Me selection, seasonal filter choices, trending titles, and weekly popularity
+- Interface: apply quality gates and weighted random selection to prepared candidates; calculate seasonal, trending, and weekly catalog exploration models
+- Side effects: Discovery analytics only; Taste Profile owns preference and Watchlist Lifecycle evidence interpretation
 
 ### Viewing Intent
 - Runtime module: `js/viewing-intent.ts`

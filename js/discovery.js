@@ -22,34 +22,21 @@ const Discovery = {
         return AnalyticsService;
     },
 
-    watchlistProvider: null,
-
-    setWatchlistProvider(provider) {
-        this.watchlistProvider = provider;
-    },
-
-    getWatchlistProvider() {
-        return this.watchlistProvider;
-    },
-
     /**
      * Get random anime with quality filtering
-     * @param {Array} animeList - Full anime catalog
+     * @param {Array} weightedCandidates - Taste Profile prepared candidates
      * @param {Object} options - Filter options
      * @returns {Object|null} Random anime meeting criteria
      */
-    getSurpriseMe(animeList, options = {}) {
+    getSurpriseMe(weightedCandidates, options = {}) {
         const {
-            excludeIds = [],
             requireRetention = true,
-            requireSatisfaction = false,
-            useWatchlist = true
+            requireSatisfaction = false
         } = options;
 
-        // Build candidate pool
-        let candidates = animeList.filter(anime => {
-            // Exclude already seen/watchlisted
-            if (excludeIds.includes(anime.id)) return false;
+        const candidates = weightedCandidates.filter(candidate => {
+            const anime = candidate?.anime;
+            if (!anime) return false;
 
             const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length >= this.qualityThresholds.minEpisodes;
 
@@ -67,56 +54,9 @@ const Discovery = {
             return true;
         });
 
-        // Weight by watchlist preferences if available
-        const provider = this.getWatchlistProvider();
-        if (useWatchlist && provider && typeof provider.getWatchlistAnime === 'function') {
-            const watchlistAnime = provider.getWatchlistAnime();
-            if (Array.isArray(watchlistAnime) && watchlistAnime.length > 0) {
-                candidates = this.weightByWatchlistPreferences(candidates);
-            }
-        }
-
         if (candidates.length === 0) return null;
 
-        // Weighted random selection
         return this.weightedRandomSelect(candidates);
-    },
-
-    /**
-     * Weight candidates based on watchlist genre/theme preferences
-     */
-    weightByWatchlistPreferences(candidates) {
-        const provider = this.getWatchlistProvider();
-        if (!provider || typeof provider.getWatchlistAnime !== 'function') {
-            return candidates.map(anime => ({ anime, weight: 1 }));
-        }
-
-        const watchlistAnime = provider.getWatchlistAnime();
-        if (watchlistAnime.length === 0) {
-            return candidates.map(anime => ({ anime, weight: 1 }));
-        }
-
-        // Extract preferred genres/themes from watchlist
-        const preferredGenres = new Set();
-        const preferredThemes = new Set();
-
-        watchlistAnime.forEach(anime => {
-            anime.genres?.forEach(g => preferredGenres.add(g.toLowerCase()));
-            anime.themes?.forEach(t => preferredThemes.add(t.toLowerCase()));
-        });
-
-        // Score each candidate by preference match
-        return candidates.map(anime => {
-            let weight = 1;
-
-            const genreMatches = anime.genres?.filter(g => preferredGenres.has(g.toLowerCase())).length ?? 0;
-            const themeMatches = anime.themes?.filter(t => preferredThemes.has(t.toLowerCase())).length ?? 0;
-
-            weight += genreMatches * 0.5;
-            weight += themeMatches * 0.3;
-
-            return { anime, weight };
-        });
     },
 
     /**

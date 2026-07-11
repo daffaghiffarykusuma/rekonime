@@ -7,24 +7,37 @@ test('Discovery getSurpriseMe filters by quality thresholds', () => {
   const high = createAnime({ id: 'high', stats: createStats({ retentionScore: 90 }), communityScore: 8.5 });
   const low = createAnime({ id: 'low', stats: createStats({ retentionScore: 50 }), communityScore: 6.0 });
 
-  const result = Discovery.getSurpriseMe([high, low], { requireRetention: true, requireSatisfaction: false });
+  const result = Discovery.getSurpriseMe([
+    { anime: high, weight: 1 },
+    { anime: low, weight: 1 }
+  ], { requireRetention: true, requireSatisfaction: false });
   assert.equal(result.id, 'high');
 });
 
-test('Discovery weightByWatchlistPreferences boosts matching tags', () => {
-  const candidates = [
-    createAnime({ id: 'a', genres: ['Action'], themes: ['Fantasy'] }),
-    createAnime({ id: 'b', genres: ['Drama'], themes: ['Music'] })
-  ];
+test('Discovery applies quality gates to Taste Profile weighted candidates', () => {
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0;
+    const lowQuality = createAnime({
+      id: 'low',
+      episodes: [{}, {}, {}],
+      stats: createStats({ retentionScore: 20 })
+    });
+    const qualified = createAnime({
+      id: 'qualified',
+      episodes: [{}, {}, {}],
+      stats: createStats({ retentionScore: 90 })
+    });
 
-  Discovery.setWatchlistProvider({
-    getWatchlistAnime: () => [createAnime({ genres: ['Action'], themes: ['Fantasy'] })]
-  });
+    const result = Discovery.getSurpriseMe([
+      { anime: lowQuality, weight: 100 },
+      { anime: qualified, weight: 1 }
+    ]);
 
-  const weighted = Discovery.weightByWatchlistPreferences(candidates);
-  const weightA = weighted.find(entry => entry.anime.id === 'a').weight;
-  const weightB = weighted.find(entry => entry.anime.id === 'b').weight;
-  assert.ok(weightA > weightB);
+    assert.equal(result.id, 'qualified');
+  } finally {
+    Math.random = originalRandom;
+  }
 });
 
 test('Discovery getSeasonalFilters returns only existing seasons', () => {

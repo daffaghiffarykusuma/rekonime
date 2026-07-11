@@ -91,6 +91,30 @@ test('taste profile owns feedback, recommendation preparation, and settings summ
   });
 });
 
+test('Taste Profile prepares weighted Discovery candidates from Watchlist Lifecycle evidence', () => {
+  const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 3500 });
+  store.load();
+  store.updateInferredFromWatchlist([{
+    id: 'completed',
+    status: 'completed',
+    snapshot: { genres: ['Action'], themes: ['Fantasy'] }
+  }]);
+  store.addNotForMe({ id: 'blocked', genres: ['Action'] });
+  store.reduceGenre('Drama');
+
+  const source = store.prepareDiscoverySource([
+    { id: 'neutral', genres: ['Drama'], themes: [] },
+    { id: 'preferred', genres: ['Action'], themes: ['Fantasy'] },
+    { id: 'blocked', genres: ['Action'], themes: [] },
+    { id: 'watched', genres: ['Action'], themes: ['Fantasy'] }
+  ], { excludedIds: ['watched'] });
+
+  assert.deepEqual(source.map(entry => ({ id: entry.anime.id, weight: entry.weight })), [
+    { id: 'preferred', weight: 1.6 },
+    { id: 'neutral', weight: 0.1 }
+  ]);
+});
+
 test('taste profile reset preserves evidence learned from Watchlist Lifecycle', () => {
   const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 4000 });
   store.load();
