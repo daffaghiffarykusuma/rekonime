@@ -306,6 +306,9 @@ h4 {
 }
 
 .filter-pill {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   padding: 0.375rem 0.875rem;
   border-radius: 999px;
   font-size: 0.8125rem;
@@ -1012,6 +1015,9 @@ h4 {
 }
 
 .filter-disclosure > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
   cursor: pointer;
 }
 
@@ -2416,7 +2422,7 @@ h4 {
   --text-primary: #F6F1FA;
   --text-secondary: #B8AEC4;
   --text-muted: #9F93AD;
-  --text-tertiary: #80768D;
+  --text-tertiary: #968AA3;
 
   /* Accent Application */
   --accent-primary: var(--sakura-pink);
@@ -4765,7 +4771,7 @@ h4 {
   }
 
   .filter-pill {
-    min-height: 2.5rem;
+    min-height: 44px;
     padding: 0.45rem 0.8rem;
     font-size: 0.8rem;
   }

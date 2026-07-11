@@ -97,12 +97,12 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
   await expect(summary).toContainText('Help me unwind');
   await expect(page.locator('#recommendations-context')).toContainText('Help me unwind');
   await expect(page.locator('#recommendations-grid .recommendation-card').first().locator('.recommendation-reason'))
-    .toContainText('gentler pick');
+    .toContainText('Gentle');
   const firstRecommendation = page.locator('#recommendations-grid .recommendation-card').first();
   await expect(firstRecommendation.locator('.recommendation-signal-value')).toHaveCount(1);
   await expect(firstRecommendation.locator('.recommendation-stat')).toHaveCount(1);
   await expect(firstRecommendation.locator('.recommendation-stat')).toContainText('Community Score');
-  await expect(firstRecommendation.locator('.experience-cues')).toHaveCount(0);
+  await expect(firstRecommendation.locator('.experience-cue')).toHaveCount(1);
   await expect(options.locator('.viewing-intent-option')).toHaveCount(0);
   await expect(page.locator('#quick-filters')).toBeVisible();
 
@@ -131,7 +131,7 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
   await options.getByRole('button', { name: /Give me energy/ }).click();
   await expect(page.locator('#active-viewing-intent')).toContainText('Give me energy');
   await expect(page.locator('#recommendations-grid .recommendation-card').first().locator('.recommendation-reason'))
-    .toContainText('higher-energy watch');
+    .toContainText('High energy');
 });
 
 test('recommendation quick-save persists without replacing detail access', async ({ page }) => {
@@ -152,6 +152,13 @@ test('recommendation quick-save persists without replacing detail access', async
   await expect(detailModal.locator('.detail-verdict-value')).toHaveCount(1);
   await expect(detailModal.locator('.detail-stat-label')).toHaveCount(2);
   await expect(detailModal.locator('.detail-stat-label', { hasText: 'Finish Confidence' })).toHaveCount(0);
+  for (const tab of await detailModal.locator('.detail-tab').all()) {
+    await tab.focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(tab).toBeFocused();
+    expect(await tab.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');
+  }
   const closeBox = await page.getByRole('button', { name: 'Close details' }).boundingBox();
   expect(closeBox.width).toBeGreaterThanOrEqual(44);
   expect(closeBox.height).toBeGreaterThanOrEqual(44);
@@ -193,8 +200,8 @@ test('complete discovery-to-watchlist journey', async ({ browser }) => {
 
   await expect(page.locator('#active-viewing-intent')).toContainText('Help me unwind');
   const card = page.locator('#recommendations-grid .recommendation-card').first();
-  await expect(card.locator('.recommendation-reason')).toContainText('gentler pick');
-  await expect(card.locator('.experience-cues')).toHaveCount(0);
+  await expect(card.locator('.recommendation-reason')).toContainText('Gentle');
+  await expect(card.locator('.experience-cue')).toHaveCount(1);
   await card.scrollIntoViewIfNeeded();
   await expect(card).toBeVisible();
   const cardBox = await card.boundingBox();
@@ -291,19 +298,32 @@ test('light-theme Airing Schedule keeps readable foreground contrast', async ({ 
   }
 });
 
-test('light-theme tertiary text token remains readable on elevated surfaces', async ({ page }) => {
+test('tertiary review attribution remains readable in both themes and narrow layouts', async ({ page }) => {
   await page.goto('/');
-  const colors = await page.evaluate(() => {
-    document.documentElement.dataset.theme = 'light';
-    const sample = document.createElement('span');
-    sample.style.cssText = 'color: var(--text-tertiary); background: var(--bg-secondary)';
-    document.body.append(sample);
-    const styles = getComputedStyle(sample);
-    const colors = { foreground: styles.color, background: styles.backgroundColor };
-    sample.remove();
-    return colors;
-  });
-  expect(contrastRatio(colors.foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  await page.locator('#anime-grid .anime-card').first().click();
+  await page.getByRole('tab', { name: 'Reviews' }).click();
+  const attribution = page.locator('.reviews-attribution');
+  await expect(attribution).toBeVisible();
+
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate((nextTheme) => { document.documentElement.dataset.theme = nextTheme; }, theme);
+      const colors = await attribution.evaluate((element) => {
+        const foreground = getComputedStyle(element).color;
+        let background = 'rgba(0, 0, 0, 0)';
+        for (let node = element; node && background === 'rgba(0, 0, 0, 0)'; node = node.parentElement) {
+          background = getComputedStyle(node).backgroundColor;
+        }
+        return { foreground, background };
+      });
+      expect(contrastRatio(colors.foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
+    }
+    const modalBox = await page.locator('.detail-modal-content').boundingBox();
+    expect(modalBox.x).toBeGreaterThanOrEqual(0);
+    expect(modalBox.x + modalBox.width).toBeLessThanOrEqual(width);
+  }
 });
 
 test('advanced filters stay actionable while long groups remain progressive', async ({ page }) => {
@@ -321,6 +341,33 @@ test('advanced filters stay actionable while long groups remain progressive', as
   await expect(sources).not.toHaveAttribute('open');
   await studios.locator('summary').click();
   await expect(studios).toHaveAttribute('open');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const interactiveControls = [
+    modal.locator('.preset-card').first(),
+    studios.locator('summary'),
+    modal.getByRole('button', { name: 'Add Action filter' }),
+    modal.getByRole('button', { name: 'Reset all' }),
+    modal.getByRole('button', { name: 'Show matches' })
+  ];
+  for (const control of interactiveControls) {
+    await control.focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(control).toBeFocused();
+    const styles = await control.evaluate((element) => ({
+      outline: getComputedStyle(element).outlineStyle,
+      shadow: getComputedStyle(element).boxShadow
+    }));
+    expect(styles.outline !== 'none' || styles.shadow !== 'none').toBe(true);
+  }
+  for (const control of [studios.locator('summary'), modal.getByRole('button', { name: 'Add Action filter' })]) {
+    const box = await control.boundingBox();
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+  const modalBox = await modal.locator('.filter-modal-content').boundingBox();
+  expect(modalBox.x).toBeGreaterThanOrEqual(0);
+  expect(modalBox.x + modalBox.width).toBeLessThanOrEqual(390);
 
   const body = modal.locator('.filter-modal-body');
   await body.evaluate(element => { element.scrollTop = element.scrollHeight; });

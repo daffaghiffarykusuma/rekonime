@@ -3088,12 +3088,21 @@ const App = {
     return definition ? { ...definition, activeAt: active.activeAt } : null;
   },
 
+  syncDiscoveryGardenVisibility() {
+    const shouldHide = Boolean(
+      this.getActiveViewingIntent()
+      || this.getActiveFilterCount()
+      || this.getCatalogSearchQuery()
+    );
+    document.getElementById('discovery-garden')?.classList.toggle('is-hidden', shouldHide);
+  },
+
   renderViewingIntents() {
     const container = document.getElementById('viewing-intent-options');
     if (!container) return;
 
     const active = this.getActiveViewingIntent();
-    document.getElementById('discovery-garden')?.classList.toggle('is-hidden', Boolean(active));
+    this.syncDiscoveryGardenVisibility();
     document.getElementById('viewing-intent-section')?.classList.toggle('is-complete', Boolean(active && !this.viewingIntentExpanded));
     if (active && !this.viewingIntentExpanded) {
       setHTML(container, `
@@ -4224,28 +4233,26 @@ const App = {
   renderActiveFilters() {
     const container = document.getElementById('active-filters');
     const list = document.getElementById('active-filters-list');
-    const emptyState = document.getElementById('discovery-garden');
     const label = document.getElementById('active-filters-label');
     const clearBtn = document.getElementById('active-filters-clear');
-    if (!container || !list || !emptyState || !label || !clearBtn) return;
+    if (!container || !list || !label || !clearBtn) return;
 
     const active = BrowseFiltering.buildActiveFilterItems({
       activeFilters: this.activeFilters,
       searchQuery: this.getCatalogSearchQuery(),
       filterTypeLabels: this.filterTypeLabels
     });
+    this.syncDiscoveryGardenVisibility();
 
     if (active.length === 0) {
       list.replaceChildren();
       label.textContent = 'Showing';
       clearBtn.classList.add('is-hidden');
       container.classList.add('is-empty');
-      emptyState.classList.toggle('is-hidden', Boolean(this.getActiveViewingIntent()));
       return;
     }
 
     container.classList.remove('is-empty');
-    emptyState.classList.add('is-hidden');
     label.textContent = `Showing (${active.length})`;
     clearBtn.classList.remove('is-hidden');
     setHTML(list, active.map(item => {
@@ -4328,7 +4335,10 @@ const App = {
       const safeSatisfaction = this.escapeHtml(malSatisfaction);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const safeReason = this.escapeHtml(anime.reason || '');
+      const cues = Array.isArray(anime.experienceCues)
+        ? anime.experienceCues
+        : Recommendations.getExperienceCues(anime, activeIntent?.key);
+      const safeReason = this.escapeHtml(cues[0] || anime.reason || '');
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
       const decision = this.getCardDecisionData(anime);
@@ -4375,7 +4385,7 @@ const App = {
                 </div>
               </span>
               </div>
-              <div class="recommendation-reason">${safeReason}</div>
+              <div class="recommendation-reason experience-cue">${safeReason}</div>
               <div class="recommendation-quick-actions">
                 <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
               </div>
