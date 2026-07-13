@@ -181,15 +181,16 @@ const injectCatalogStartupHints = () => {
   const filePath = path.join(dist, 'index.html');
   if (!fs.existsSync(filePath)) return;
   const source = fs.readFileSync(filePath, 'utf8');
-  if (source.includes('href="/js/app.ts"') && source.includes('href="/data/anime.full.index.json"')) return;
+  if (source.includes('href="/js/app.js"') && source.includes('href="/data/anime.full.index.json"')) return;
 
+  const newline = source.includes('\r\n') ? '\r\n' : '\n';
   const hints = [
-    source.includes('href="/js/app.ts"') ? '' : '  <link rel="modulepreload" href="/js/app.ts">\n',
-    source.includes('href="/data/anime.full.index.json"') ? '' : '  <link rel="preload" href="/data/anime.full.index.json" as="fetch" crossorigin>\n'
+    source.includes('href="/js/app.js"') ? '' : `${newline}  <link rel="modulepreload" href="/js/app.js">`,
+    source.includes('href="/data/anime.full.index.json"') ? '' : `${newline}  <link rel="preload" href="/data/anime.full.index.json" as="fetch" crossorigin>`
   ].join('');
   const next = source.replace(
-    '  <link rel="dns-prefetch" href="https://graphql.anilist.co">\n',
-    `  <link rel="dns-prefetch" href="https://graphql.anilist.co">\n${hints}`
+    '  <link rel="dns-prefetch" href="https://graphql.anilist.co">',
+    `  <link rel="dns-prefetch" href="https://graphql.anilist.co">${hints}`
   );
   if (next !== source) {
     fs.writeFileSync(filePath, next, 'utf8');
