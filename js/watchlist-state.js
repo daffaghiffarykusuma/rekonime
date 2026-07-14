@@ -34,6 +34,7 @@ const normalizeWatchTimestamp = (value) => {
 };
 
 const normalizeWatchLoved = (value) => value === true;
+const normalizeSnapshotStudio = (value) => Array.isArray(value) ? value.join(', ') : (value || '');
 
 const normalizeSnapshotStats = (stats) => {
   if (!stats || typeof stats !== 'object') return null;
@@ -66,7 +67,7 @@ const buildAnimeSnapshot = (anime, { placeholderCover = '', requireCover = true 
     cover,
     year: anime.year || null,
     season: anime.season || '',
-    studio: anime.studio || '',
+    studio: normalizeSnapshotStudio(anime.studio),
     type: anime.type || '',
     source: anime.source || '',
     demographic: anime.demographic || '',
@@ -93,7 +94,7 @@ const normalizeWatchlistSnapshot = (item, { fallbackId = '', placeholderCover = 
     cover,
     year: item.year || null,
     season: item.season || '',
-    studio: item.studio || '',
+    studio: normalizeSnapshotStudio(item.studio),
     type: item.type || '',
     source: item.source || '',
     demographic: item.demographic || '',
@@ -209,8 +210,7 @@ const writeStorageJSON = (storage, key, payload) => {
       return storage.setJSON(key, payload, { validate: true });
     }
     if (typeof storage.setItem === 'function') {
-      storage.setItem(key, JSON.stringify(payload));
-      return true;
+      return storage.setItem(key, JSON.stringify(payload)) !== false;
     }
   } catch (error) {
     return false;
@@ -359,10 +359,13 @@ const buildWatchlistUpdatePayload = (result = {}) => {
     payload.entry = entry;
     if (entry.snapshot) payload.snapshot = entry.snapshot;
   }
+  if (Array.isArray(result.changedIds)) payload.changedIds = [...result.changedIds];
+  if (result.summary && typeof result.summary === 'object') payload.summary = { ...result.summary };
   return payload;
 };
 
-const buildWatchlistFeedback = ({ changed, entry, removed, statusChanged }) => {
+const buildWatchlistFeedback = ({ changed, entry, operation, removed, statusChanged }) => {
+  if (operation === 'import') return null;
   if (!changed || !statusChanged) return null;
   if (removed || !entry) return { message: 'Removed from watchlist', action: null };
   const label = WATCH_STATUS_DISPLAY_OPTIONS.find(option => option.value === entry.status)?.label;
@@ -404,7 +407,7 @@ const buildWatchlistTransitionEnvelope = (result = {}, {
     previousEntry,
     statusChanged,
     progressChanged,
-    feedback: buildWatchlistFeedback({ changed, entry, removed, statusChanged }),
+    feedback: buildWatchlistFeedback({ changed, entry, operation, removed, statusChanged }),
     event: changed ? {
       name: eventName,
       payload: buildWatchlistUpdatePayload(result)
@@ -478,6 +481,25 @@ const createWatchlistLifecycle = ({
       return false;
     }
     return false;
+  };
+
+  const commitEntries = (nextEntries) => {
+    if (!(nextEntries instanceof Map)) return false;
+    const normalizedEntries = new Map();
+    for (const [id, entry] of nextEntries) {
+      const normalized = buildWatchlistEntry(entry, options());
+      if (!normalized || normalized.id !== normalizeWatchId(id) || normalizedEntries.has(normalized.id)) return false;
+      normalizedEntries.set(normalized.id, normalized);
+    }
+    const payload = {
+      version,
+      updatedAt: now(),
+      entries: [...normalizedEntries.values()]
+    };
+    if (!writeStorageJSON(storage, storageKey, payload)) return false;
+    watchlistEntries.clear();
+    normalizedEntries.forEach((entry, id) => watchlistEntries.set(id, entry));
+    return true;
   };
 
   const load = () => {
@@ -864,6 +886,7 @@ const createWatchlistLifecycle = ({
     setEntries,
     load,
     save,
+    commitEntries,
     getStoragePayload,
     getLegacyPayload,
     migrateLegacy,
@@ -910,6 +933,7 @@ export {
   normalizeWatchId,
   normalizeWatchTimestamp,
   normalizeWatchLoved,
+  normalizeSnapshotStudio,
   normalizeSnapshotStats,
   buildAnimeSnapshot,
   normalizeWatchlistSnapshot,

@@ -2,7 +2,7 @@ export type WatchStatus = 'planned' | 'watching' | 'completed' | 'dropped';
 
 export type WatchStatusControlValue = '' | WatchStatus;
 
-export type WatchlistOperation = 'ensure' | 'remove' | 'status' | 'progress' | 'unknown';
+export type WatchlistOperation = 'ensure' | 'remove' | 'status' | 'progress' | 'import' | 'unknown';
 
 export interface SnapshotStats {
   retentionScore: number | null;
@@ -112,6 +112,8 @@ export interface WatchlistUpdatedEventPayload {
   removed: boolean;
   entry?: WatchlistEntry;
   snapshot?: Snapshot;
+  changedIds?: string[];
+  summary?: Record<string, number>;
 }
 
 export interface WatchlistTransitionEnvelope {

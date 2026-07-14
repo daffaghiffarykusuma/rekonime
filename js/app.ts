@@ -46,6 +46,10 @@ import {
 import { createWatchlistLifecycleRuntime } from './watchlist-lifecycle-runtime.ts';
 import { createTasteProfileStore } from './taste-profile.ts';
 import { dismissToast as dismissToastNotification, showToast as showToastNotification } from './toast.ts';
+import {
+  parseMalWatchlistXml,
+  planMalWatchlistImport
+} from './mal-watchlist-import.ts';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -105,6 +109,7 @@ const App = {
   watchlistVersion: 1,
   settings: null,
   settingsRendered: false,
+  malImportState: { stage: 'choose', fileName: '', plan: null },
   watchlistEntries: new Map(),
   watchlistStatusOptions: WATCH_STATUS_VALUES,
   seoInitialized: false,
@@ -760,8 +765,14 @@ const App = {
     if (!result) return null;
     if (!result.changed) return result.compatibilityResult;
     this.applyWatchlistTransition(result.transition);
+    if (result.transition?.render?.watchlist?.shouldRender) {
+      this.renderWatchlist();
+    }
     if (result.effects?.refreshTasteProfile) {
       this.refreshTasteProfileEvidence();
+    }
+    if (result.effects?.updateTasteProfileUi) {
+      this.updateTasteProfileUi();
     }
     if (result.effects?.renderRecommendations) {
       this.renderRecommendations();
@@ -867,6 +878,105 @@ const App = {
     } catch (error) {
       this.showToast('Import failed. Use a Rekonime JSON export.');
     }
+  },
+
+  renderMalWatchlistImport() {
+    const state = this.malImportState || { stage: 'choose', fileName: '', plan: null };
+    const summary = state.plan?.summary;
+    const status = '<p class="visually-hidden" id="mal-import-status" role="status" aria-live="polite" aria-atomic="true"></p>';
+    if (state.stage === 'success' && summary) {
+      return `
+        <section class="mal-watchlist-import" aria-labelledby="mal-import-success-heading">
+          <span class="mal-import-eyebrow">Import complete</span>
+          <h3 id="mal-import-success-heading" tabindex="-1">${summary.creates} Watchlist entries imported</h3>
+          <p class="settings-description">Your Watchlist and Taste Profile now include the matched MyAnimeList progress.</p>
+          <button class="btn btn-outline btn-sm" type="button" data-action="cancel-mal-watchlist-import">Import another XML</button>
+          ${status}
+        </section>`;
+    }
+    if (state.stage === 'review' && summary) {
+      return `
+        <section class="mal-watchlist-import" aria-labelledby="mal-import-review-heading">
+          <span class="mal-import-eyebrow">Watchlist import · ${this.escapeHtml(state.fileName)}</span>
+          <h3 id="mal-import-review-heading" tabindex="-1">${summary.sourceRows} rows are ready to review</h3>
+          <p class="settings-description">Nothing changes until you confirm. Matches use exact MyAnimeList IDs from the full Rekonime catalog.</p>
+          <div class="mal-import-counts" aria-label="Import summary">
+            <div><strong>${summary.sourceRows}</strong><span>rows</span></div>
+            <div><strong data-mal-count="matched">${summary.matched}</strong><span>matched</span></div>
+            <div><strong>${summary.creates}</strong><span>new</span></div>
+            <div><strong data-mal-count="unmatched">${summary.unmatched}</strong><span>unmatched</span></div>
+            <div><strong data-mal-count="skipped">${summary.skipped}</strong><span>skipped</span></div>
+          </div>
+          <div class="mal-import-actions">
+            <button class="btn btn-outline" type="button" data-action="cancel-mal-watchlist-import">Cancel import</button>
+            <button class="btn btn-primary" type="button" data-action="confirm-mal-watchlist-import">Review ${summary.creates} Watchlist changes</button>
+          </div>
+          <dialog class="mal-import-dialog" id="mal-import-confirmation" aria-labelledby="mal-import-confirm-title" aria-describedby="mal-import-confirm-description">
+            <form method="dialog">
+              <h3 id="mal-import-confirm-title">Apply ${summary.creates} Watchlist changes?</h3>
+              <p id="mal-import-confirm-description">This adds ${summary.creates} matched entries, skips ${summary.skipped} rows, then refreshes your Taste Profile once.</p>
+              <p><strong>You cannot undo this as one action.</strong> Export a Rekonime backup first if you may need to restore the current state.</p>
+              <div class="mal-import-actions"><button class="btn btn-outline" value="cancel">Go back</button><button class="btn btn-primary" value="apply" data-action="apply-mal-watchlist-import">Apply Watchlist changes</button></div>
+            </form>
+          </dialog>
+          ${status}
+        </section>`;
+    }
+    return `
+      <section class="mal-watchlist-import" aria-labelledby="mal-import-heading">
+        <span class="mal-import-eyebrow">Watchlist import</span>
+        <h3 id="mal-import-heading" tabindex="-1">Bring progress in from MyAnimeList</h3>
+        <p class="settings-description">Choose your MyAnimeList XML export. Rekonime reads it locally and changes nothing until you confirm.</p>
+        <input id="mal-watchlist-import-file" class="mal-import-file" type="file" accept=".xml,application/xml,text/xml" data-action="mal-watchlist-file">
+        <p class="settings-description">This merges Watchlist progress only. Rekonime JSON backup and restore remains separate below.</p>
+        ${status}
+      </section>`;
+  },
+
+  rerenderMalWatchlistImport(focusId = '') {
+    const container = document.getElementById('settings-content');
+    if (!container) return;
+    setHTML(container, this.renderSettingsPanel({ includeTitle: false }));
+    this.updateSettingsUi();
+    this.settingsRendered = true;
+    if (focusId) requestAnimationFrame(() => document.getElementById(focusId)?.focus());
+  },
+
+  async importMalWatchlistFile(file) {
+    if (!file) return;
+    const text = await file.text();
+    const catalogReady = this.isFullDataLoaded || await this.loadFullCatalog();
+    if (!catalogReady || !this.isFullDataLoaded) return;
+    const plan = planMalWatchlistImport({
+      parseResult: parseMalWatchlistXml(text),
+      fullCatalog: this.animeData,
+      currentEntries: this.getWatchlistEntries()
+    });
+    if (!plan.ok) return;
+    this.malImportState = { stage: 'review', fileName: file.name || 'MyAnimeList XML', plan };
+    this.rerenderMalWatchlistImport('mal-import-review-heading');
+  },
+
+  cancelMalWatchlistImport() {
+    this.malImportState = { stage: 'choose', fileName: '', plan: null };
+    this.rerenderMalWatchlistImport('mal-import-heading');
+  },
+
+  openMalWatchlistConfirmation() {
+    const dialog = document.getElementById('mal-import-confirmation');
+    dialog?.showModal?.();
+    requestAnimationFrame(() => dialog?.querySelector('[value="cancel"]')?.focus());
+  },
+
+  applyMalWatchlistPlan() {
+    const result = this.getWatchlistLifecycleRuntime().applyImport(this.malImportState?.plan);
+    this.applyWatchlistRuntimeResult(result);
+    if (result.changed) {
+      const plan = this.malImportState.plan;
+      this.malImportState = { ...this.malImportState, stage: 'success', plan };
+      this.rerenderMalWatchlistImport('mal-import-success-heading');
+    }
+    return result;
   },
 
   applyWatchlistTransition(transition) {
@@ -2304,6 +2414,12 @@ const App = {
 
       if (action === 'personal-data-file') {
         void this.importPersonalDataFile(target.files?.[0] || null);
+        target.value = '';
+        return;
+      }
+
+      if (action === 'mal-watchlist-file') {
+        void this.importMalWatchlistFile(target.files?.[0] || null);
         target.value = '';
         return;
       }
@@ -4177,6 +4293,8 @@ const App = {
           </label>
         </div>
 
+        ${this.renderMalWatchlistImport()}
+
         <div class="filter-section-title filter-section-title--spaced">Taste Profile</div>
         <div class="taste-profile-panel">
           <p class="settings-description">Recommendation feedback and watchlist history stay editable here.</p>
@@ -4883,6 +5001,21 @@ const App = {
 
       if (action === 'import-personal-data') {
         document.getElementById('personal-data-import')?.click();
+        return;
+      }
+
+      if (action === 'cancel-mal-watchlist-import') {
+        this.cancelMalWatchlistImport();
+        return;
+      }
+
+      if (action === 'confirm-mal-watchlist-import') {
+        this.openMalWatchlistConfirmation();
+        return;
+      }
+
+      if (action === 'apply-mal-watchlist-import') {
+        this.applyMalWatchlistPlan();
         return;
       }
 

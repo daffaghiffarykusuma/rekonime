@@ -28,7 +28,8 @@ const createRuntimeHarness = ({ lastRecommendationIds = [] } = {}) => {
     getAnime: (animeId) => animeData.find(item => item.id === animeId) || null,
     getEpisodeLimit: (animeId) => animeData.find(item => item.id === animeId)?.episodeCount || null,
     getLifecycle: () => lifecycle,
-    isLastRecommendation: (animeId) => lastRecommendationIds.includes(animeId)
+    isLastRecommendation: (animeId) => lastRecommendationIds.includes(animeId),
+    now: () => 1000
   });
   return { lifecycle, runtime };
 };
@@ -93,5 +94,33 @@ test('Watchlist Lifecycle Runtime owns progress and loved transition effects', (
     clearViewingIntent: false,
     refreshTasteProfile: true,
     renderRecommendations: true
+  });
+});
+
+test('Watchlist Lifecycle Runtime applies one imported batch and returns one effect envelope', () => {
+  const { lifecycle, runtime } = createRuntimeHarness();
+  const result = runtime.applyImport({
+    ok: true,
+    catalogScope: 'full',
+    proposedEntries: [{
+      id: 'show-1',
+      status: 'watching',
+      progress: 3,
+      updatedAt: 'apply-time',
+      snapshot: { id: 'show-1', title: 'Show 1', cover: 'cover.jpg' }
+    }],
+    summary: { sourceRows: 1, matched: 1, creates: 1, skipped: 0, unmatched: 0 }
+  });
+
+  assert.equal(lifecycle.getEntry('show-1').updatedAt, 1000);
+  assert.equal(result.changed, true);
+  assert.equal(result.transition.operation, 'import');
+  assert.equal(result.transition.render.watchlist.shouldRender, true);
+  assert.deepEqual(result.transition.event.payload.changedIds, ['show-1']);
+  assert.deepEqual(result.effects, {
+    clearViewingIntent: false,
+    refreshTasteProfile: true,
+    renderRecommendations: true,
+    updateTasteProfileUi: true
   });
 });

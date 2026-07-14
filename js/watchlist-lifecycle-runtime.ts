@@ -12,6 +12,7 @@ const createWatchlistLifecycleRuntime = ({
   getLifecycle,
   isLastRecommendation = () => false,
   loadBeforeTransition = false,
+  now = Date.now,
   renderMode = 'controls',
   normalizeId = normalizeWatchId
 }) => {
@@ -47,20 +48,75 @@ const createWatchlistLifecycleRuntime = ({
     }
 
     const transition = buildWatchlistTransitionEnvelope(result, {
-      ...(renderMode ? { renderMode } : {}),
+      ...(effectOptions.renderMode || renderMode ? { renderMode: effectOptions.renderMode || renderMode } : {}),
       dashboardTimeout
     });
 
+    const effects = {
+      clearViewingIntent: Boolean(effectOptions.clearViewingIntent),
+      refreshTasteProfile: Boolean(effectOptions.refreshTasteProfile),
+      renderRecommendations: Boolean(effectOptions.renderRecommendations)
+    };
+    if (effectOptions.updateTasteProfileUi !== undefined) {
+      effects.updateTasteProfileUi = Boolean(effectOptions.updateTasteProfileUi);
+    }
     return {
       changed: true,
       compatibilityResult: transition.compatibilityResult,
-      effects: {
-        clearViewingIntent: Boolean(effectOptions.clearViewingIntent),
-        refreshTasteProfile: Boolean(effectOptions.refreshTasteProfile),
-        renderRecommendations: Boolean(effectOptions.renderRecommendations)
-      },
+      effects,
       transition
     };
+  };
+
+  const applyImport = (plan) => {
+    if (!plan?.ok || plan.catalogScope !== 'full' || !Array.isArray(plan.proposedEntries)) {
+      return { changed: false, compatibilityResult: { status: 'rejected', reason: 'invalid-plan' }, effects: {}, transition: null };
+    }
+    if (plan.proposedEntries.length === 0) {
+      return { changed: false, compatibilityResult: { status: 'no-changes', summary: plan.summary }, effects: {}, transition: null };
+    }
+
+    const lifecycle = getReadyLifecycle();
+    const appliedAt = now();
+    const nextEntries = new Map(lifecycle.getEntries().map((entry) => [entry.id, entry]));
+    const changedIds = [];
+    for (const proposed of plan.proposedEntries) {
+      const id = normalizeId(proposed?.id);
+      if (!id || nextEntries.has(id)) {
+        return { changed: false, compatibilityResult: { status: 'rejected', reason: 'invalid-plan' }, effects: {}, transition: null };
+      }
+      const resolveTime = (value) => value === 'apply-time' ? appliedAt : value;
+      nextEntries.set(id, {
+        ...proposed,
+        id,
+        updatedAt: resolveTime(proposed.updatedAt),
+        ...(proposed.startedAt ? { startedAt: resolveTime(proposed.startedAt) } : {}),
+        ...(proposed.completedAt ? { completedAt: resolveTime(proposed.completedAt) } : {})
+      });
+      changedIds.push(id);
+    }
+    if (!lifecycle.commitEntries(nextEntries)) {
+      return { changed: false, compatibilityResult: { status: 'rejected', reason: 'storage-failed' }, effects: {}, transition: null };
+    }
+
+    const entries = lifecycle.getEntries();
+    return buildChangedResult({
+      changed: true,
+      id: changedIds[0] || '',
+      entry: lifecycle.getEntry(changedIds[0]),
+      operation: 'import',
+      previousEntry: null,
+      statusChanged: true,
+      progressChanged: entries.some((entry) => changedIds.includes(entry.id) && entry.progress > 0),
+      changedIds,
+      summary: plan.summary,
+      entries
+    }, {
+      refreshTasteProfile: true,
+      renderRecommendations: true,
+      renderMode: 'watchlist',
+      updateTasteProfileUi: true
+    });
   };
 
   const setStatus = (animeId, status, options = {}) => {
@@ -115,6 +171,7 @@ const createWatchlistLifecycleRuntime = ({
 
   return {
     adjustProgress,
+    applyImport,
     setLoved,
     setProgress,
     setStatus

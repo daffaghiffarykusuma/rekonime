@@ -27,6 +27,64 @@ test('watchlist progress normalization floors and clamps to non-negative', () =>
   assert.equal(normalizeWatchProgress('not-a-number'), 0);
 });
 
+test('watchlist lifecycle commits an imported batch in one write', () => {
+  const values = new Map();
+  let writes = 0;
+  const storage = {
+    getItem: (key) => values.get(key) || null,
+    setItem: (key, value) => {
+      writes += 1;
+      values.set(key, String(value));
+    }
+  };
+  const lifecycle = createWatchlistLifecycle({ storage, now: () => 5000 });
+  const entries = new Map([
+    ['show-1', {
+      id: 'show-1',
+      status: 'watching',
+      progress: 3,
+      updatedAt: 5000,
+      snapshot: { id: 'show-1', title: 'Show 1', cover: 'cover.jpg' }
+    }],
+    ['show-2', {
+      id: 'show-2',
+      status: 'planned',
+      progress: 0,
+      updatedAt: 5000,
+      snapshot: { id: 'show-2', title: 'Show 2', cover: 'cover.jpg' }
+    }]
+  ]);
+
+  assert.equal(lifecycle.commitEntries(entries), true);
+  assert.equal(writes, 1);
+  assert.deepEqual(lifecycle.getEntries().map(entry => entry.id), ['show-1', 'show-2']);
+  assert.equal(JSON.parse(values.get('rekonime.watchlist')).entries.length, 2);
+});
+
+test('watchlist lifecycle keeps live entries unchanged when a batch write returns false', () => {
+  const lifecycle = createWatchlistLifecycle({
+    storage: { setItem: () => false },
+    entries: new Map([['existing', {
+      id: 'existing',
+      status: 'planned',
+      progress: 0,
+      updatedAt: 1000,
+      snapshot: { id: 'existing', title: 'Existing', cover: 'cover.jpg' }
+    }]]),
+    now: () => 5000
+  });
+  const nextEntries = new Map([['new', {
+    id: 'new',
+    status: 'planned',
+    progress: 0,
+    updatedAt: 5000,
+    snapshot: { id: 'new', title: 'New', cover: 'cover.jpg' }
+  }]]);
+
+  assert.equal(lifecycle.commitEntries(nextEntries), false);
+  assert.deepEqual(lifecycle.getEntries().map(entry => entry.id), ['existing']);
+});
+
 const createMemoryStorage = (initial = {}) => {
   const store = new Map(Object.entries(initial));
   return {
