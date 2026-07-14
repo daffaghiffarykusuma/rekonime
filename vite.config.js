@@ -8,8 +8,14 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   plugins: [
     {
-      name: 'strip-upgrade-insecure-requests',
+      name: 'development-runtime',
       apply: 'serve',
+      configureServer(server) {
+        server.middlewares.use((request, _response, next) => {
+          request.url = request.url?.replace(/^\/data\/anime\.full\.index\.json(?=\?|$)/, '/data/anime.full.json');
+          next();
+        });
+      },
       transformIndexHtml(html) {
         return html.replace(/upgrade-insecure-requests;?\s*/gi, '');
       }

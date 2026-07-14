@@ -1,7 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
-import { buildPrivacySafeMalExport } from '../helpers/mal-watchlist-fixture.js';
 
 const contrastRatio = (foreground, background) => {
   const luminance = (color) => {
@@ -442,23 +439,12 @@ test('watchlist flow persists to watchlist page', async ({ page }) => {
 });
 
 test('MAL XML first import previews exact matches before one confirmed batch', async ({ page }) => {
-  const fullCatalogPath = resolve('data/anime.full.json');
-  const fullCatalog = JSON.parse(readFileSync(fullCatalogPath, 'utf8'));
-  const xml = buildPrivacySafeMalExport(fullCatalog.anime);
-  await page.route('**/data/anime.full.index.json', route => route.fulfill({
-    path: fullCatalogPath,
-    contentType: 'application/json'
-  }));
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
   await page.getByLabel('Open secondary navigation').click();
   await page.getByRole('button', { name: 'Open viewing preferences' }).click();
 
-  await page.locator('#mal-watchlist-import-file').setInputFiles({
-    name: 'myanimelist.xml',
-    mimeType: 'application/xml',
-    buffer: Buffer.from(xml)
-  });
+  await page.locator('#mal-watchlist-import-file').setInputFiles('plans/animelist_1784001772_-_10574948.xml');
   await expect(page.getByRole('heading', { name: '415 rows are ready to review' })).toBeVisible();
   await expect(page.locator('[data-mal-count="matched"]')).toHaveText('339');
   await expect(page.locator('[data-mal-count="unmatched"]')).toHaveText('76');
