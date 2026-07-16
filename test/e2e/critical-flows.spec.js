@@ -121,7 +121,7 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
   const intentSectionBox = await page.locator('#viewing-intent-section').boundingBox();
   expect(intentSectionBox.height).toBeLessThanOrEqual(140);
   await expect(page.locator('#discovery-garden')).toBeHidden();
-  await expect(page.locator('#surprise-toggle .surprise-label')).toBeVisible();
+  await expect(page.locator('.header-more-toggle')).toBeVisible();
   const firstRecommendationBox = await page.locator('#recommendations-grid .recommendation-card').first().boundingBox();
   expect(firstRecommendationBox.y).toBeLessThan(844);
 
@@ -416,8 +416,7 @@ test('header search shows dropdown state', async ({ page }) => {
 test('surprise me opens detail modal', async ({ page }) => {
   await page.goto('/');
   await page.waitForSelector('#anime-grid .anime-card');
-  await page.waitForSelector('#surprise-toggle');
-  await page.click('#surprise-toggle');
+  await page.getByRole('button', { name: 'Pick for Me' }).first().click();
   await page.waitForSelector('#detail-modal.visible', { timeout: 15000 });
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
 });

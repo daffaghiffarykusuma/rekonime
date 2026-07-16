@@ -1113,28 +1113,40 @@
         width: 100%;
       }
 
-      .surprise-btn {
-        grid-column: 1 / 2;
-        grid-row: 2;
-        order: 2 !important;
-      }
-
       .filter-btn {
-        grid-column: 2 / 3;
+        grid-column: 1 / 2;
         grid-row: 2;
         order: 2 !important;
       }
 
       .mobile-watchlist-link {
         display: inline-flex;
-        grid-column: 3 / 4;
+        grid-column: 2 / 3;
         grid-row: 2;
         align-items: center;
         justify-content: center;
       }
 
       .header-more {
-        display: none;
+        display: block;
+        grid-column: 3 / 4;
+        grid-row: 2;
+        min-width: 0;
+        order: 2 !important;
+      }
+
+      .header-more-toggle {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .header-more .header-actions {
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        right: 0;
+        width: min(18rem, calc(100vw - 2rem));
+        margin-top: 0;
+        grid-template-columns: minmax(0, 1fr) 2.75rem 2.75rem;
       }
     }
   </style>
@@ -1179,12 +1191,8 @@
             <!-- Search results populated by JS -->
           </div>
         </div>
-        <button class="btn btn-sm btn-primary surprise-btn" id="surprise-toggle" type="button"
-          aria-label="Show me a surprise anime pick" title="Pick for Me">
-          <span class="surprise-icon" aria-hidden="true">&#127922;</span>
-          <span class="surprise-label">Pick for Me</span>
-        </button>
-        <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button">Filters</button>
+        <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button"
+          aria-haspopup="dialog" aria-controls="filter-modal">Filters</button>
         <a class="btn btn-sm btn-outline mobile-watchlist-link" href="/watchlist.html">Watchlist</a>
         <div class="header-sort">
           <label class="sort-label" for="sort-select">Sort</label>
@@ -1193,28 +1201,26 @@
           </div>
         </div>
         <details class="header-more">
-          <summary class="btn btn-sm btn-outline header-more-toggle" aria-label="Open secondary navigation">More</summary>
-          <div class="header-actions">
-          <a class="btn btn-sm btn-outline catalog-jump-link" href="#catalog-section"
-            aria-label="Jump to the anime catalog">Browse Catalog</a>
-          <a class="btn btn-sm btn-outline watchlist-link" href="/watchlist.html" aria-label="Open my watchlist">My Watchlist
-            <span aria-hidden="true">&#9733;</span></a>
-          <button class="btn btn-sm btn-outline help-btn" id="help-toggle" type="button" aria-label="Open the quick tour and help"
-            title="Quick Tour">
-            <span class="help-icon" aria-hidden="true">?</span>
-            <span class="help-label">Quick Tour</span>
-          </button>
-          <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button"
-            aria-label="Open viewing preferences" title="Viewing Preferences">
-            <span class="settings-icon" aria-hidden="true">&#9881;</span>
-            <span class="settings-label">Preferences</span>
-          </button>
-          </div>
+          <summary class="btn btn-sm btn-outline header-more-toggle">Menu</summary>
+          <nav class="header-actions" aria-label="Secondary navigation">
+            <a class="btn btn-sm btn-outline watchlist-link" href="/watchlist.html" aria-label="Open my watchlist">My Watchlist
+              <span aria-hidden="true">&#9733;</span></a>
+            <button class="btn btn-sm btn-outline help-btn" id="help-toggle" type="button" aria-label="Open the quick tour and help"
+              title="Quick Tour">
+              <span class="help-icon" aria-hidden="true">?</span>
+              <span class="help-label">Quick Tour</span>
+            </button>
+            <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button"
+              aria-label="Open viewing preferences" title="Viewing Preferences">
+              <span class="settings-icon" aria-hidden="true">&#9881;</span>
+              <span class="settings-label">Preferences</span>
+            </button>
+          </nav>
         </details>
       </div>
     </header>
 
-    <div class="active-filters is-empty" id="active-filters">
+    <div class="active-filters is-empty" id="active-filters" role="region" aria-label="Active filters">
       <div class="active-filters-content">
         <span class="active-filters-label" id="active-filters-label" aria-live="polite" aria-atomic="true">Showing</span>
         <div class="active-filters-list" id="active-filters-list"></div>
@@ -1231,7 +1237,7 @@
         <p class="discovery-subtitle">
           Pick the categories you already like, then use Rekonime's finish and satisfaction signals to narrow the list.
         </p>
-        <div class="discovery-actions" aria-label="Primary discovery actions">
+        <div class="discovery-actions" role="group" aria-label="Primary discovery actions">
           <button class="btn btn-primary" type="button" data-action="scroll-to-filters">Choose genres</button>
           <button class="btn btn-outline" type="button" data-action="surprise-me">Pick for Me</button>
           <button class="btn btn-outline" type="button" data-action="learn-scores">How scoring works</button>
@@ -1247,7 +1253,7 @@
         </div>
         <p class="mood-filter-note">This changes the ranking, not your saved taste or manual filters.</p>
       </div>
-      <div class="mood-filter-clusters" id="viewing-intent-options" aria-label="Viewing goals" aria-busy="true">
+      <div class="mood-filter-clusters" id="viewing-intent-options" role="group" aria-label="Viewing goals" aria-busy="true">
         <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Help me unwind</button>
         <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Give me energy</button>
         <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Surprise me</button>

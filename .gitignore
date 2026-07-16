@@ -2,6 +2,8 @@ node_modules/
 dist/
 coverage/
 test-results/
+.playwright-cli/
+output/playwright/
 .build-state.json
 package-lock.json
 

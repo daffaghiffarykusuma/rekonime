@@ -2350,13 +2350,6 @@ const App = {
       });
     }
 
-    const surpriseToggle = document.getElementById('surprise-toggle');
-    if (surpriseToggle) {
-      this.addTrackedListener(surpriseToggle, 'click', () => {
-        this.showSurpriseMe();
-      });
-    }
-
     const closeMetricHelp = document.getElementById('close-metric-help');
     if (closeMetricHelp) {
       this.addTrackedListener(closeMetricHelp, 'click', () => {

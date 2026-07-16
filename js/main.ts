@@ -52,7 +52,7 @@ const initNonCriticalServices = (app) => {
           closeModal: () => app?.handleGlobalEscape?.({ key: 'Escape' }),
           openFilters: () => app?.toggleFilterPanel?.(),
           toggleSettings: () => app?.toggleSettingsModal?.(),
-          surpriseMe: () => document.getElementById('surprise-toggle')?.click(),
+          surpriseMe: () => app?.showSurpriseMe?.(),
           goHome: () => app?.clearAllFilters?.(),
           openAnime: (animeId) => app?.showAnimeDetail?.(animeId)
         },

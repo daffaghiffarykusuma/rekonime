@@ -3865,34 +3865,6 @@ summary:focus-visible,
   }
 }
 
-/* ==========================================
-   Category C: Discovery & Navigation Features
-   ========================================== */
-
-/* Surprise Me Button */
-@keyframes dice-roll {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  25% {
-    transform: rotate(90deg);
-  }
-
-  50% {
-    transform: rotate(180deg);
-  }
-
-  75% {
-    transform: rotate(270deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-/* Seasonal Filters */
 /* Recommendation Modes */
 .modes-label {
   font-size: 0.8rem;

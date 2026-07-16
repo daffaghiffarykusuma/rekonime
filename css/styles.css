@@ -2654,12 +2654,6 @@ h4 {
   justify-content: center;
 }
 
-.surprise-btn {
-  flex: 0 0 auto;
-  padding: 0.55rem 1rem;
-  height: 44px;
-}
-
 .settings-icon {
   font-size: 1.1rem;
   line-height: 1;
@@ -6043,51 +6037,6 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
    Category C: Discovery & Navigation Features
    ========================================== */
 
-/* Surprise Me Button */
-.surprise-btn {
-  background: linear-gradient(135deg, var(--sakura-pink) 0%, var(--twilight-purple) 100%);
-  color: var(--bg-primary);
-  border: none;
-  font-weight: 600;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  white-space: nowrap;
-}
-
-.surprise-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(246, 148, 193, 0.4);
-}
-
-.surprise-icon {
-  display: inline-block;
-}
-
-.surprise-btn:active .surprise-icon {
-  animation: dice-roll 0.5s ease-out;
-}
-
-@keyframes dice-roll {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  25% {
-    transform: rotate(90deg);
-  }
-
-  50% {
-    transform: rotate(180deg);
-  }
-
-  75% {
-    transform: rotate(270deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
 /* Seasonal Filters */
 .seasonal-filters {
   display: flex;
@@ -6414,18 +6363,6 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
 .search-form,
 .header-search-input {
   width: 100%;
-}
-
-.surprise-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.85rem;
-  height: 1.85rem;
-  border-radius: 999px;
-  background: rgba(26, 20, 24, 0.18);
-  font-size: 1rem;
-  line-height: 1;
 }
 
 .header-more {
@@ -6932,11 +6869,6 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
     margin: 1rem 0 0;
     border-radius: var(--radius);
     box-shadow: none;
-  }
-
-  .surprise-btn {
-    padding: 0.55rem 0.75rem;
-    min-width: 44px;
   }
 
   .seasonal-filters {
@@ -7989,10 +7921,6 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
 }
 
 /* UX refinements: mobile task flow and compact controls */
-.catalog-jump-link {
-  display: none;
-}
-
 .watchlist-empty {
   display: none;
 }
@@ -8121,12 +8049,6 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
     min-width: 0;
   }
 
-  .surprise-btn {
-    grid-column: 2 / 3;
-    order: 3;
-    min-width: 2.75rem;
-  }
-
   .header-actions {
     grid-column: 1 / -1;
     display: grid;
@@ -8151,12 +8073,7 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
     display: none;
   }
 
-  .catalog-jump-link {
-    display: inline-flex;
-  }
-
   .watchlist-link,
-  .catalog-jump-link,
   .filter-btn {
     line-height: 1.15;
     text-align: center;
@@ -8234,7 +8151,7 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
 
   .header-controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.55rem;
     width: 100%;
     flex: 1 1 auto;
@@ -8256,27 +8173,39 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
     width: 100%;
   }
 
-  .surprise-btn {
-    grid-column: 1 / 2;
-    grid-row: 2;
-    order: 2 !important;
-  }
-
   .filter-btn {
-    grid-column: 2 / 3;
+    grid-column: 1 / 2;
     grid-row: 2;
     order: 2 !important;
   }
 
   .mobile-watchlist-link {
     display: inline-flex;
-    grid-column: 3 / 4;
+    grid-column: 2 / 3;
     grid-row: 2;
     align-items: center;
     justify-content: center;
   }
 
   .header-more {
-    display: none;
+    display: block;
+    grid-column: 3 / 4;
+    grid-row: 2;
+    min-width: 0;
+    order: 2 !important;
+  }
+
+  .header-more-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .header-more .header-actions {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    width: min(18rem, calc(100vw - 2rem));
+    margin-top: 0;
+    grid-template-columns: minmax(0, 1fr) 2.75rem 2.75rem;
   }
 }
