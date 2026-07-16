@@ -7,7 +7,9 @@ const createInteractions = (overrides = {}) => {
   const calls = [];
   const app = {
     showAnimeDetail: (id) => calls.push(['showAnimeDetail', id]),
-    toggleSettingsModal: () => calls.push(['toggleSettingsModal'])
+    toggleSettingsModal: () => calls.push(['toggleSettingsModal']),
+    ensureSettingsRendered: () => calls.push(['ensureSettingsRendered']),
+    setModalVisibility: (...args) => calls.push(['setModalVisibility', ...args])
   };
   const interactions = createWatchlistPageInteractions({
     documentRef: document,
@@ -65,6 +67,7 @@ test('Watchlist Page Interactions opens cards and forwards filter changes', asyn
         <button data-filter="watching"><span>Watching</span></button>
       </div>
       <button id="settings-toggle" type="button">Settings</button>
+      <button id="mal-import-toggle" type="button">Import from MAL</button>
     </section>
   `);
   const { calls, interactions } = createInteractions();
@@ -73,6 +76,7 @@ test('Watchlist Page Interactions opens cards and forwards filter changes', asyn
   document.querySelector('.anime-card').click();
   document.querySelector('[data-filter] span').click();
   document.getElementById('settings-toggle').click();
+  document.getElementById('mal-import-toggle').click();
   window.dispatchEvent(new CustomEvent('rekonime:watchlist-updated'));
   await Promise.resolve();
 
@@ -81,7 +85,9 @@ test('Watchlist Page Interactions opens cards and forwards filter changes', asyn
     ['onFilterChange', 'watching'],
     ['renderWatchlist'],
     ['showAnimeDetail', 'show-1'],
-    ['toggleSettingsModal']
+    ['toggleSettingsModal'],
+    ['ensureSettingsRendered'],
+    ['setModalVisibility', 'settings-modal', true, { initialFocusSelector: '#mal-watchlist-import-file' }]
   ]);
 });
 

@@ -35,7 +35,8 @@ test('App createAnimeCardElement strips injected badge and stat classes', () => 
     { label: 'Hooked', class: 'badge-retention" data-pwned="1' }
   ];
   Recommendations.getCardStats = () => [
-    { label: 'Retention', value: '99', suffix: '%', class: 'score-high" onclick="alert(1)', tooltip: null }
+    { label: 'Finish Confidence', value: '99', suffix: '%', class: 'score-high', tooltip: null },
+    { label: 'Community Score', value: '9.9', suffix: '/10', class: 'score-high" onclick="alert(1)', tooltip: null }
   ];
 
   try {
@@ -49,6 +50,9 @@ test('App createAnimeCardElement strips injected badge and stat classes', () => 
     assert.equal(card.querySelector('[onclick]'), null);
     assert.equal(badge.className, 'card-badge');
     assert.equal(statValue.className, 'stat-value');
+    assert.equal(card.querySelectorAll('.stat').length, 1);
+    assert.equal(card.querySelector('.retention-meter'), null);
+    assert.equal(card.querySelector('.card-reason'), null);
   } finally {
     Recommendations.getBadges = originalGetBadges;
     Recommendations.getCardStats = originalGetCardStats;

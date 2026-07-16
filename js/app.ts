@@ -1833,10 +1833,7 @@ const App = {
           <div class="card-stats">
             <span class="skeleton-line"></span>
             <span class="skeleton-line"></span>
-            <span class="skeleton-line"></span>
           </div>
-          <span class="skeleton-meter"></span>
-          <span class="skeleton-line skeleton-copy"></span>
         </div>
       </div>
     `;
@@ -2340,6 +2337,7 @@ const App = {
     const settingsToggle = document.getElementById('settings-toggle');
     if (settingsToggle) {
       this.addTrackedListener(settingsToggle, 'click', () => {
+        settingsToggle.closest('details')?.removeAttribute('open');
         this.toggleSettingsModal();
       });
     }
@@ -2347,6 +2345,7 @@ const App = {
     const helpToggle = document.getElementById('help-toggle');
     if (helpToggle) {
       this.addTrackedListener(helpToggle, 'click', () => {
+        helpToggle.closest('details')?.removeAttribute('open');
         Onboarding.reopenTour();
       });
     }
@@ -3321,6 +3320,7 @@ const App = {
   scrollToFiltersSection() {
     const target = document.getElementById('quick-filters');
     if (!target) return;
+    target.open = true;
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     target.scrollIntoView({
       behavior: prefersReducedMotion ? 'auto' : 'smooth',
@@ -3896,10 +3896,6 @@ const App = {
           </div>
           <div class="card-badges"></div>
           <div class="card-stats"></div>
-          <div class="retention-meter">
-            <progress class="retention-progress" value="0" max="100" aria-label="Finish Confidence"></progress>
-          </div>
-          <div class="card-reason"></div>
         </div>
       </div>
     `);
@@ -3920,11 +3916,9 @@ const App = {
     card.dataset.animeId = rawId;
 
     const badges = Recommendations.getBadges(anime);
-    const cardStats = Recommendations.getCardStats(anime);
-    const episodeCount = this.getEpisodeCount(anime);
-    const hasEpisodes = episodeCount > 0;
-    const retentionLevel = hasEpisodes ? Math.round(anime.stats?.retentionScore ?? 0) : 0;
-    const reason = Recommendations.getRecommendationReason(anime);
+    const decision = this.getCardDecisionData(anime);
+    const cardStats = Recommendations.getCardStats(anime)
+      .filter(stat => stat.label.toLowerCase() !== decision.label.toLowerCase());
     const safeTitle = this.escapeHtml(anime.title);
     const safeYear = this.escapeHtml(anime.year || 'Unknown');
     const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
@@ -4002,7 +3996,6 @@ const App = {
       setHTML(yearEl, `${safeYear} &bull; ${safeStudio}`);
     }
 
-    const decision = this.getCardDecisionData(anime);
     const primarySignal = card.querySelector('.card-primary-signal');
     const primaryValue = card.querySelector('.card-primary-value');
     const primaryLabel = card.querySelector('.card-primary-label');
@@ -4060,19 +4053,6 @@ const App = {
       }).join(''));
     }
 
-    const meter = card.querySelector('.retention-meter');
-    const progress = card.querySelector('.retention-progress');
-    if (progress) {
-      progress.value = retentionLevel;
-    }
-    if (meter) {
-      meter.classList.toggle('is-muted', !hasEpisodes);
-    }
-
-    const reasonEl = card.querySelector('.card-reason');
-    if (reasonEl) {
-      reasonEl.textContent = reason || '';
-    }
   },
 
   renderAnimeCardsDom(animeList, { startIndex = 0 } = {}) {
@@ -4119,20 +4099,16 @@ const App = {
     const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
     return animeList.map((anime, localIndex) => {
       const badges = Recommendations.getBadges(anime);
-      const cardStats = Recommendations.getCardStats(anime);
-      const episodeCount = this.getEpisodeCount(anime);
-      const hasEpisodes = episodeCount > 0;
-      const retentionLevel = hasEpisodes ? Math.round(anime.stats?.retentionScore ?? 0) : 0;
-      const reason = Recommendations.getRecommendationReason(anime);
+      const decision = this.getCardDecisionData(anime);
+      const cardStats = Recommendations.getCardStats(anime)
+        .filter(stat => stat.label.toLowerCase() !== decision.label.toLowerCase());
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
-      const safeReason = this.escapeHtml(reason);
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
-      const decision = this.getCardDecisionData(anime);
       const decisionClass = this.sanitizeClassList('card-primary-signal', decision.className);
 
       // Build responsive image attributes
@@ -4199,10 +4175,6 @@ const App = {
               `;
       }).join('')}
             </div>
-            <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-              <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Finish Confidence"></progress>
-            </div>
-            <div class="card-reason">${safeReason}</div>
           </div>
         </div>
       `;
@@ -4356,7 +4328,8 @@ const App = {
     }
 
     container.classList.remove('is-empty');
-    label.textContent = `Showing (${active.length})`;
+    const matchCount = Array.isArray(this.filteredData) ? this.filteredData.length : 0;
+    label.textContent = `${matchCount.toLocaleString('en-US')} ${matchCount === 1 ? 'match' : 'matches'}`;
     clearBtn.classList.remove('is-hidden');
     setHTML(list, active.map(item => {
       const displayValue = String(item.value);

@@ -1216,11 +1216,11 @@
 
     <div class="active-filters is-empty" id="active-filters">
       <div class="active-filters-content">
-        <span class="active-filters-label" id="active-filters-label">Showing</span>
+        <span class="active-filters-label" id="active-filters-label" aria-live="polite" aria-atomic="true">Showing</span>
         <div class="active-filters-list" id="active-filters-list"></div>
       </div>
       <button class="btn btn-sm btn-outline active-filters-clear is-hidden" id="active-filters-clear" type="button">
-        Reset filters
+        Clear filters
       </button>
     </div>
 
@@ -1254,14 +1254,12 @@
       </div>
     </section>
 
-    <div class="quick-filters" id="quick-filters">
-      <div class="mood-filter-header">
-        <div>
-          <p class="mood-filter-kicker">Optional precision</p>
-          <h2 class="mood-filter-title">More filters</h2>
-        </div>
-        <p class="mood-filter-note">Choose exact genres and themes when you already know what you want.</p>
-      </div>
+    <details class="quick-filters" id="quick-filters">
+      <summary class="quick-filters-summary">
+        <span class="mood-filter-kicker">Optional precision</span>
+        <span class="mood-filter-title">More filters</span>
+      </summary>
+      <p class="mood-filter-note">Choose exact genres and themes when you already know what you want.</p>
       <div class="quick-filters-tabs" role="tablist" aria-label="Quick filters">
         <button class="quick-tab is-active" type="button" data-action="quick-tab" data-tab="genres" role="tab"
           id="quick-tab-genres" aria-selected="true" aria-controls="genre-chips" tabindex="0">Genres</button>
@@ -1286,7 +1284,7 @@
           <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Music</button>
         </div>
       </div>
-    </div>
+    </details>
 
     <div class="seasonal-filters" id="seasonal-filters">
       <div class="seasonal-filters-label">Seasonal picks:</div>
@@ -1369,21 +1367,6 @@
       </div>
       <div class="trending-grid" id="trending-grid">
         <!-- Populated by JS -->
-      </div>
-    </section>
-
-    <section class="rankings-section" id="rankings-section">
-      <div class="ranking-card" id="ranking-card-1">
-        <h3 id="ranking-title-1">Best Finish Confidence</h3>
-        <div id="best-ranking-1">
-          <div class="skeleton-card skeleton-ranking"></div>
-        </div>
-      </div>
-      <div class="ranking-card" id="ranking-card-2">
-        <h3 id="ranking-title-2">Most Loved by Viewers</h3>
-        <div id="best-ranking-2">
-          <div class="skeleton-card skeleton-ranking"></div>
-        </div>
       </div>
     </section>
 
@@ -1477,12 +1460,27 @@
             </div>
           </div>
         </noscript>
-        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><span class="skeleton-meter"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span></div></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span></div></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span></div></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span></div></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span></div></div></div>
+        <div class="anime-card skeleton-card skeleton-grid"><div class="card-media"></div><div class="card-body"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-signal"></span><div class="card-badges"><span class="skeleton-pill"></span><span class="skeleton-pill"></span></div><div class="card-stats"><span class="skeleton-line"></span><span class="skeleton-line"></span></div></div></div>
+      </div>
+    </section>
+
+    <section class="rankings-section" id="rankings-section">
+      <div class="ranking-card" id="ranking-card-1">
+        <h3 id="ranking-title-1">Best Finish Confidence</h3>
+        <div id="best-ranking-1">
+          <div class="skeleton-card skeleton-ranking"></div>
+        </div>
+      </div>
+      <div class="ranking-card" id="ranking-card-2">
+        <h3 id="ranking-title-2">Most Loved by Viewers</h3>
+        <div id="best-ranking-2">
+          <div class="skeleton-card skeleton-ranking"></div>
+        </div>
       </div>
     </section>
   </div>

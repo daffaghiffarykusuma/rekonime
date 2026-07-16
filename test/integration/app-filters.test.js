@@ -144,6 +144,42 @@ test('App refreshes recommendations immediately when filters change during secon
   }
 });
 
+test('App active filter summary reports matches and keeps clear available', () => {
+  setupDom(`<!doctype html>
+    <div class="active-filters is-empty" id="active-filters">
+      <div class="active-filters-content">
+        <span id="active-filters-label"></span>
+        <div id="active-filters-list"></div>
+      </div>
+      <button class="is-hidden" id="active-filters-clear" type="button">Reset filters</button>
+    </div>`);
+  const originals = {
+    activeFilters: App.activeFilters,
+    filteredData: App.filteredData
+  };
+
+  try {
+    App.activeFilters = {
+      seasonYear: [],
+      year: [],
+      studio: [],
+      source: [],
+      genres: ['Action'],
+      themes: [],
+      demographic: []
+    };
+    App.filteredData = [{ id: 'a' }, { id: 'b' }];
+
+    App.renderActiveFilters();
+
+    assert.equal(document.getElementById('active-filters-label').textContent, '2 matches');
+    assert.equal(document.getElementById('active-filters-clear').classList.contains('is-hidden'), false);
+    assert.equal(document.getElementById('active-filters').classList.contains('is-empty'), false);
+  } finally {
+    Object.assign(App, originals);
+  }
+});
+
 test('App shows four recommendations on desktop and three on mobile', () => {
   setupDom();
   window.matchMedia = query => ({

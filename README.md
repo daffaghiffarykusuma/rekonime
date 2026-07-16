@@ -76,7 +76,7 @@ Reference docs:
 ## Project map (high level)
 - `index.html`, `watchlist.html`: pages and static markup (watchlist lives in `watchlist.html`).
 - `css/styles.css`: styles, layout, and responsive rules.
-- `css/mal-watchlist-import.css`: shared MyAnimeList import and confirmation styles.
+- `css/mal-watchlist-import.css`: MyAnimeList import styles and the shared surface, label, control, and empty-state language used across the catalog and watchlist.
 - `css/themes.css`: theme system with light/dark modes and accessibility features.
 - `js/app.ts` with `js/app.ts` wrapper: app state, rendering, filters, modal, watchlist, SEO.
 - `js/stats.ts` with `js/stats.ts` wrapper: retention and scoring metrics.

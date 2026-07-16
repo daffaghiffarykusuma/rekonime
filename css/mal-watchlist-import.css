@@ -76,6 +76,132 @@
   gap: .65rem;
 }
 
+/* Shared interface language: promote the import flow's quiet, compact surfaces. */
+:is(
+  .quick-filters,
+  .seasonal-filters,
+  .ranking-card,
+  .taste-profile-panel,
+  .watchlist-filters,
+  .modal-content
+) {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  box-shadow: none;
+}
+
+:is(
+  .mood-cluster,
+  .settings-row,
+  .review-card,
+  .airing-summary-card
+) {
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  box-shadow: none;
+}
+
+:is(
+  .filter-section-title,
+  .ranking-card h3,
+  .seasonal-filters-label,
+  .watchlist-filters-label,
+  .airing-summary-label,
+  .stat-label
+) {
+  color: var(--accent-primary);
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+:is(
+  .btn,
+  .quick-tab,
+  .filter-pill,
+  .seasonal-chip,
+  .watchlist-filter-chip,
+  .review-tab,
+  .trailer-control-btn
+) {
+  font-weight: 800;
+}
+
+.btn-outline {
+  background: var(--bg-tertiary);
+}
+
+.watchlist-filters {
+  padding: .85rem 1rem;
+}
+
+.quick-filters-summary {
+  cursor: pointer;
+}
+
+.quick-filters-summary::marker {
+  color: var(--accent-primary);
+}
+
+.quick-filters-summary .mood-filter-kicker,
+.quick-filters-summary .mood-filter-title {
+  display: block;
+}
+
+.quick-filters:not([open]) {
+  min-height: 0;
+}
+
+.active-filters {
+  position: sticky;
+  top: .5rem;
+  z-index: 30;
+  flex-wrap: nowrap;
+  gap: .5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.active-filters-content {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.active-filters-label,
+.active-filters-clear,
+.active-filter-pill {
+  flex: 0 0 auto;
+}
+
+.active-filters-label {
+  color: var(--accent-primary);
+}
+
+.active-filters-list {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.anime-card .card-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-section .anime-grid {
+  align-items: start;
+}
+
+:is(.watchlist-empty, .no-results) {
+  padding: 1.25rem;
+  border: 1px dashed var(--accent-primary);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  text-align: center;
+}
+
 .mal-import-dialog {
   inset: 0;
   width: min(32rem, calc(100vw - 2rem));
@@ -121,5 +247,25 @@
 
   .mal-import-actions .btn {
     width: 100%;
+  }
+
+  :is(.seasonal-filters, .watchlist-filters) {
+    align-items: flex-start;
+    padding: .85rem;
+  }
+
+  .filter-fab {
+    display: none;
+  }
+
+  .active-filters,
+  .active-filters-content {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .active-filters-list,
+  .active-filters-clear {
+    width: auto;
   }
 }
