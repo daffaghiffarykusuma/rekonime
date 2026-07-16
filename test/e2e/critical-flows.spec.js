@@ -439,9 +439,17 @@ test('watchlist flow persists to watchlist page', async ({ page }) => {
 });
 
 test('MAL XML first import previews exact matches before one confirmed batch', async ({ page }) => {
-  await page.goto('/');
-  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-  await page.getByLabel('Open secondary navigation').click();
+  await page.route('**/watchlist.html', async route => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      headers: {
+        ...response.headers(),
+        'content-security-policy': "trusted-types rekonime-html; require-trusted-types-for 'script'"
+      }
+    });
+  });
+  await page.goto('/watchlist.html');
   await page.getByRole('button', { name: 'Open viewing preferences' }).click();
 
   await page.locator('#mal-watchlist-import-file').setInputFiles('plans/animelist_1784001772_-_10574948.xml');
@@ -457,4 +465,5 @@ test('MAL XML first import previews exact matches before one confirmed batch', a
 
   await expect(page.getByRole('heading', { name: '339 Watchlist entries imported' })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')).entries.length)).toBe(339);
+  await expect(page.locator('#watchlist-grid .anime-card')).toHaveCount(339);
 });

@@ -56,3 +56,33 @@ test('supplied MAL export plans exact full-catalog Watchlist creates', {
   assert.ok(plan.proposedEntries.every(entry => entry.updatedAt === 'apply-time'));
   assert.ok(plan.unmatchedRows.every(row => row.reason === 'catalog-miss'));
 });
+
+test('MAL XML parsing uses the Trusted Types policy when Chrome requires it', () => {
+  const runtime = globalThis as any;
+  const windowRef = runtime.window;
+  const originalParser = runtime.DOMParser;
+  const NativeParser = windowRef.DOMParser;
+  const originalTrustedTypes = windowRef.trustedTypes;
+  Object.defineProperty(windowRef, 'trustedTypes', {
+    configurable: true,
+    value: {
+      createPolicy: (_name: string, rules: any) => ({
+        createHTML: (value: unknown) => ({ toString: () => rules.createHTML(value) })
+      })
+    }
+  });
+  runtime.DOMParser = class {
+    parseFromString(source: unknown, type: string) {
+      assert.equal(typeof source, 'object');
+      return new NativeParser().parseFromString(String(source), type);
+    }
+  };
+
+  try {
+    assert.equal(parseMalWatchlistXml('<myanimelist><anime><series_animedb_id>1</series_animedb_id><series_title>One</series_title><my_watched_episodes>0</my_watched_episodes><my_status>Plan to Watch</my_status></anime></myanimelist>').ok, true);
+  } finally {
+    if (originalParser) runtime.DOMParser = originalParser;
+    else delete runtime.DOMParser;
+    Object.defineProperty(windowRef, 'trustedTypes', { configurable: true, value: originalTrustedTypes });
+  }
+});

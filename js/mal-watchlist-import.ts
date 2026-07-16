@@ -1,4 +1,5 @@
 import { buildAnimeSnapshot } from './watchlist-state.js';
+import { toTrustedHTML } from './security/trusted-types.js';
 import type { Snapshot, WatchStatus, WatchlistEntry } from './contracts/watchlist-lifecycle.ts';
 
 type ParsedMalRow = {
@@ -55,7 +56,7 @@ const parseMalWatchlistXml = (text: string): MalParseResult => {
   const Parser = runtime.DOMParser || runtime.window?.DOMParser;
   if (!Parser) return { ok: false, rows: [], errors: ['xml-parser-unavailable'] };
 
-  const document = new Parser().parseFromString(text, 'application/xml');
+  const document = new Parser().parseFromString(toTrustedHTML(text), 'application/xml');
   if (document.querySelector('parsererror') || document.documentElement?.localName !== 'myanimelist') {
     return { ok: false, rows: [], errors: ['malformed-xml'] };
   }
