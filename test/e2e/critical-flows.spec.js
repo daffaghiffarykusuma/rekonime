@@ -15,6 +15,14 @@ const contrastRatio = (foreground, background) => {
   return (values[0] + 0.05) / (values[1] + 0.05);
 };
 
+const expectBoxWithinViewport = (box, { width, height }, inset = 16) => {
+  expect(box).not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(inset);
+  expect(box.y).toBeGreaterThanOrEqual(inset);
+  expect(box.x + box.width).toBeLessThanOrEqual(width - inset);
+  expect(box.y + box.height).toBeLessThanOrEqual(height - inset);
+};
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('rekonime.onboarding', 'completed');
@@ -456,11 +464,34 @@ test('MAL XML first import previews exact matches before one confirmed batch', a
   await expect(page.getByRole('heading', { name: '415 rows are ready to review' })).toBeVisible();
   await expect(page.locator('[data-mal-count="matched"]')).toHaveText('339');
   await expect(page.locator('[data-mal-count="unmatched"]')).toHaveText('76');
+  await expect(page.locator('.mal-import-counts')).toHaveCSS('display', 'grid');
 
   await page.getByRole('button', { name: 'Review 339 Watchlist changes' }).click();
   const dialog = page.locator('#mal-import-confirmation');
   await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveCSS('width', '512px');
+  await expect(dialog).toHaveCSS('border-top-left-radius', '20px');
+  await expect(dialog).not.toHaveCSS('box-shadow', 'none');
   await expect(dialog.getByRole('button', { name: 'Go back' })).toBeFocused();
+
+  const desktopBox = await dialog.boundingBox();
+  expect(desktopBox).not.toBeNull();
+  expect(Math.abs(desktopBox.x + desktopBox.width / 2 - 640)).toBeLessThanOrEqual(1);
+  expect(Math.abs(desktopBox.y + desktopBox.height / 2 - 360)).toBeLessThanOrEqual(1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(dialog.locator('.mal-import-actions')).toHaveCSS('flex-direction', 'column');
+  const mobileBox = await dialog.boundingBox();
+  expectBoxWithinViewport(mobileBox, { width: 390, height: 844 });
+
+  // A 1280 × 720 desktop viewport at 200% zoom exposes a 640 × 360 CSS viewport.
+  await page.setViewportSize({ width: 640, height: 360 });
+  const zoomBox = await dialog.boundingBox();
+  expectBoxWithinViewport(zoomBox, { width: 640, height: 360 });
+  await dialog.getByRole('button', { name: 'Apply Watchlist changes' }).scrollIntoViewIfNeeded();
+  await expect(dialog.getByRole('button', { name: 'Go back' })).toBeInViewport();
+  await expect(dialog.getByRole('button', { name: 'Apply Watchlist changes' })).toBeInViewport();
+
   await dialog.getByRole('button', { name: 'Apply Watchlist changes' }).click();
 
   await expect(page.getByRole('heading', { name: '339 Watchlist entries imported' })).toBeVisible();

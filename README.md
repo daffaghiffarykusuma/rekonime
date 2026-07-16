@@ -76,6 +76,7 @@ Reference docs:
 ## Project map (high level)
 - `index.html`, `watchlist.html`: pages and static markup (watchlist lives in `watchlist.html`).
 - `css/styles.css`: styles, layout, and responsive rules.
+- `css/mal-watchlist-import.css`: shared MyAnimeList import and confirmation styles.
 - `css/themes.css`: theme system with light/dark modes and accessibility features.
 - `js/app.ts` with `js/app.ts` wrapper: app state, rendering, filters, modal, watchlist, SEO.
 - `js/stats.ts` with `js/stats.ts` wrapper: retention and scoring metrics.
@@ -109,6 +110,7 @@ flowchart TD
   app --> keyboardShortcuts[js/keyboardShortcuts.ts]
   app --> serviceWorkerManager[js/serviceWorker.ts]
   app --> css[css/styles.css]
+  app --> malImportCss[css/mal-watchlist-import.css]
   app --> themes[css/themes.css]
   app --> preview[data/anime.preview.json]
   app --> full[data/anime.full.json]
