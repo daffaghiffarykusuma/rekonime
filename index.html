@@ -8,7 +8,7 @@
   <title>Rekonime | Discover Anime You'll Want to Finish</title>
   <meta name="description"
     content="Discover anime worth starting and satisfying to finish. Rekonime blends finish-rate insights with community ratings to surface shows that stay rewarding from episode one to the finale.">
-  <meta name="theme-color" content="#111018">
+  <meta name="theme-color" content="#000000">
   <link rel="canonical" href="">
   <meta property="og:site_name" content="Rekonime">
   <meta property="og:title" content="Rekonime | Discover Anime You'll Want to Finish">
@@ -1157,6 +1157,8 @@
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="stylesheet" href="/css/mal-watchlist-import.css">
   <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/phosphor-icons.css">
+  <link rel="stylesheet" href="/css/core-ui.css">
   <script src="/js/onboarding-gate.js"></script>
   <noscript>
     <link rel="stylesheet" href="/css/fonts.css">
@@ -1166,7 +1168,40 @@
   </noscript>
 </head>
 
-<body>
+<body class="catalog-page">
+  <button class="sidebar-edge-trigger" type="button" aria-label="Show navigation" aria-controls="app-sidebar">
+    <i class="ph ph-caret-right" aria-hidden="true"></i>
+  </button>
+  <aside class="app-sidebar" id="app-sidebar" aria-label="Rekonime navigation">
+    <div class="sidebar-header">
+      <a class="sidebar-brand" href="/" data-home-link data-action="home-shortcut" aria-label="Rekonime home">
+        <img src="/favicon.svg" alt="" width="32" height="32">
+        <span class="sidebar-label sidebar-brand-name">Rekonime</span>
+      </a>
+      <button class="sidebar-collapse" type="button" data-sidebar-action="cycle" aria-label="Use compact sidebar">
+        <i class="ph ph-caret-left" aria-hidden="true"></i>
+      </button>
+    </div>
+    <nav class="sidebar-nav" aria-label="Primary navigation">
+      <a class="sidebar-item is-active" href="/" data-home-link data-action="home-shortcut" aria-current="page" title="Discover">
+        <i class="ph ph-compass" aria-hidden="true"></i><span class="sidebar-label">Discover</span>
+      </a>
+      <a class="sidebar-item" href="/#catalog-section" title="Browse">
+        <i class="ph ph-squares-four" aria-hidden="true"></i><span class="sidebar-label">Browse</span>
+      </a>
+      <a class="sidebar-item" href="/#recommendations-section" title="For you">
+        <i class="ph ph-flask" aria-hidden="true"></i><span class="sidebar-label">For you</span>
+      </a>
+      <a class="sidebar-item" href="/watchlist.html" title="Watchlist">
+        <i class="ph ph-bookmark-simple" aria-hidden="true"></i><span class="sidebar-label">Watchlist</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-item" id="settings-toggle" type="button" title="Viewing preferences">
+        <i class="ph ph-gear" aria-hidden="true"></i><span class="sidebar-label">Preferences</span>
+      </button>
+    </div>
+  </aside>
   <main class="app-container" id="app-container">
     <header class="header">
       <a class="logo logo-link" href="/" data-home-link data-action="home-shortcut"
@@ -1210,11 +1245,6 @@
               <span class="help-icon" aria-hidden="true">?</span>
               <span class="help-label">Quick Tour</span>
             </button>
-            <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button"
-              aria-label="Open viewing preferences" title="Viewing Preferences">
-              <span class="settings-icon" aria-hidden="true">&#9881;</span>
-              <span class="settings-label">Preferences</span>
-            </button>
           </nav>
         </details>
       </div>
@@ -1233,30 +1263,15 @@
     <section class="discovery-garden" id="discovery-garden" aria-labelledby="discovery-title">
       <div class="discovery-garden-content">
         <p class="discovery-eyebrow">Start here</p>
-        <h1 class="discovery-title" id="discovery-title">Discover by genre, theme, or finish confidence</h1>
+        <h1 class="discovery-title" id="discovery-title">Find your next great anime.</h1>
         <p class="discovery-subtitle">
-          Pick the categories you already like, then use Rekonime's finish and satisfaction signals to narrow the list.
+          Search by title, genre, mood, or theme. Rekonime will help you find something worth finishing.
         </p>
         <div class="discovery-actions" role="group" aria-label="Primary discovery actions">
           <button class="btn btn-primary" type="button" data-action="scroll-to-filters">Choose genres</button>
           <button class="btn btn-outline" type="button" data-action="surprise-me">Pick for Me</button>
           <button class="btn btn-outline" type="button" data-action="learn-scores">How scoring works</button>
         </div>
-      </div>
-    </section>
-
-    <section class="viewing-intent-section" id="viewing-intent-section" aria-labelledby="viewing-intent-title">
-      <div class="mood-filter-header">
-        <div>
-          <p class="mood-filter-kicker">For this session</p>
-          <h2 class="mood-filter-title" id="viewing-intent-title">What do you want from your next watch?</h2>
-        </div>
-        <p class="mood-filter-note">This changes the ranking, not your saved taste or manual filters.</p>
-      </div>
-      <div class="mood-filter-clusters" id="viewing-intent-options" role="group" aria-label="Viewing goals" aria-busy="true">
-        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Help me unwind</button>
-        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Give me energy</button>
-        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Surprise me</button>
       </div>
     </section>
 
@@ -1349,6 +1364,21 @@
       <div class="recommendations-footer">
         <button class="btn btn-outline" type="button" data-action="scroll-to-results">See more matches</button>
         <span class="visually-hidden" id="recommendations-status" role="status" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section class="viewing-intent-section" id="viewing-intent-section" aria-labelledby="viewing-intent-title">
+      <div class="mood-filter-header">
+        <div>
+          <p class="mood-filter-kicker">For this session</p>
+          <h2 class="mood-filter-title" id="viewing-intent-title">What do you want from your next watch?</h2>
+        </div>
+        <p class="mood-filter-note">This changes the ranking, not your saved taste or manual filters.</p>
+      </div>
+      <div class="mood-filter-clusters" id="viewing-intent-options" role="group" aria-label="Viewing goals" aria-busy="true">
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Help me unwind</button>
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Give me energy</button>
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Surprise me</button>
       </div>
     </section>
 

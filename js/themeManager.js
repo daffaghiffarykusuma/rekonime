@@ -113,7 +113,7 @@ const ThemeManager = {
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
         if (metaThemeColor) {
             const themeColors = {
-                dark: '#111018',
+                dark: '#000000',
                 light: '#F6F1FA'
             };
             metaThemeColor.setAttribute('content', themeColors[theme] || themeColors.dark);
@@ -156,9 +156,9 @@ const ThemeManager = {
      */
     renderThemeSelector() {
         const options = [
-            { value: 'dark', label: 'Dark', icon: '🌙' },
-            { value: 'light', label: 'Light', icon: '☀️' },
-            { value: 'auto', label: 'Auto', icon: '🔄' }
+            { value: 'dark', label: 'Dark', icon: 'ph-moon' },
+            { value: 'light', label: 'Light', icon: 'ph-sun' },
+            { value: 'auto', label: 'Auto', icon: 'ph-desktop' }
         ];
 
         return `
@@ -175,7 +175,7 @@ const ThemeManager = {
                 type="button"
                 aria-pressed="${isActive ? 'true' : 'false'}"
               >
-                <span class="theme-option-icon" aria-hidden="true">${opt.icon}</span>
+                <i class="ph ${opt.icon} theme-option-icon" aria-hidden="true"></i>
                 <span class="theme-option-label">${opt.label}</span>
               </button>
             `;

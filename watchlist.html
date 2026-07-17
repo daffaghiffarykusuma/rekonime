@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Watchlist | Rekonime</title>
   <meta name="description" content="Keep your next anime lined up, track what you are watching now, and revisit completed favorites on Rekonime.">
-  <meta name="theme-color" content="#111018">
+  <meta name="theme-color" content="#000000">
   <link rel="canonical" href="">
   <meta property="og:site_name" content="Rekonime">
   <meta property="og:title" content="My Watchlist | Rekonime">
@@ -253,6 +253,8 @@
   <link rel="stylesheet" href="/css/watchlist.css">
   <link rel="stylesheet" href="/css/mal-watchlist-import.css">
   <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/phosphor-icons.css">
+  <link rel="stylesheet" href="/css/core-ui.css">
   <noscript>
     <link rel="stylesheet" href="/css/fonts.css">
     <link rel="stylesheet" href="/css/watchlist.css">
@@ -261,7 +263,40 @@
   </noscript>
 </head>
 
-<body>
+<body class="watchlist-page">
+  <button class="sidebar-edge-trigger" type="button" aria-label="Show navigation" aria-controls="app-sidebar">
+    <i class="ph ph-caret-right" aria-hidden="true"></i>
+  </button>
+  <aside class="app-sidebar" id="app-sidebar" aria-label="Rekonime navigation">
+    <div class="sidebar-header">
+      <a class="sidebar-brand" href="/" data-home-link data-action="home-shortcut" aria-label="Rekonime home">
+        <img src="/favicon.svg" alt="" width="32" height="32">
+        <span class="sidebar-label sidebar-brand-name">Rekonime</span>
+      </a>
+      <button class="sidebar-collapse" type="button" data-sidebar-action="cycle" aria-label="Use compact sidebar">
+        <i class="ph ph-caret-left" aria-hidden="true"></i>
+      </button>
+    </div>
+    <nav class="sidebar-nav" aria-label="Primary navigation">
+      <a class="sidebar-item" href="/" data-home-link data-action="home-shortcut" title="Discover">
+        <i class="ph ph-compass" aria-hidden="true"></i><span class="sidebar-label">Discover</span>
+      </a>
+      <a class="sidebar-item" href="/#catalog-section" title="Browse">
+        <i class="ph ph-squares-four" aria-hidden="true"></i><span class="sidebar-label">Browse</span>
+      </a>
+      <a class="sidebar-item" href="/#recommendations-section" title="For you">
+        <i class="ph ph-flask" aria-hidden="true"></i><span class="sidebar-label">For you</span>
+      </a>
+      <a class="sidebar-item is-active" href="/watchlist.html" aria-current="page" title="Watchlist">
+        <i class="ph ph-bookmark-simple" aria-hidden="true"></i><span class="sidebar-label">Watchlist</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-item" id="settings-toggle" type="button" title="Viewing preferences">
+        <i class="ph ph-gear" aria-hidden="true"></i><span class="sidebar-label">Preferences</span>
+      </button>
+    </div>
+  </aside>
   <main class="app-container" id="app-container">
     <header class="header">
       <a class="logo logo-link" href="/" data-home-link data-action="home-shortcut"
@@ -274,11 +309,6 @@
       </a>
       <div class="header-actions">
         <a class="btn btn-sm btn-outline" href="/" data-home-link aria-label="Go back to the anime catalog">Return to discoveries</a>
-        <button class="btn btn-sm btn-outline settings-btn" id="settings-toggle" type="button"
-          aria-label="Open viewing preferences" title="Viewing Preferences">
-          <span class="settings-icon" aria-hidden="true">&#9881;</span>
-          <span class="settings-label">Preferences</span>
-        </button>
       </div>
     </header>
 

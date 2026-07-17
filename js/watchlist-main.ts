@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { ThemeManager } from './themeManager.js';
+import { SidebarPreference } from './sidebar-preference.ts';
 import { Logger } from './services/logger.ts';
 import { initDeferredRuntimeServices } from './bootstrap/deferred-runtime.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
@@ -220,6 +221,7 @@ const handleWatchlistClick = (target) => {
 const bootstrap = () => {
   Logger.init({ level: 'info', captureGlobalErrors: true });
   ThemeManager.init();
+  SidebarPreference.init();
   initNonCriticalServices();
   scheduleImageProxyCheck();
   const watchlistSection = document.getElementById('watchlist-section');

@@ -25,10 +25,14 @@ test('HTML entrypoints load app CSS before first paint', () => {
   assertBlockingStylesheet(indexLinks, '/css/styles.css');
   assertBlockingStylesheet(indexLinks, '/css/mal-watchlist-import.css');
   assertBlockingStylesheet(indexLinks, '/css/themes.css');
+  assertBlockingStylesheet(indexLinks, '/css/phosphor-icons.css');
+  assertBlockingStylesheet(indexLinks, '/css/core-ui.css');
   assertBlockingStylesheet(watchlistLinks, '/css/fonts.css');
   assertBlockingStylesheet(watchlistLinks, '/css/watchlist.css');
   assertBlockingStylesheet(watchlistLinks, '/css/mal-watchlist-import.css');
   assertBlockingStylesheet(watchlistLinks, '/css/themes.css');
+  assertBlockingStylesheet(watchlistLinks, '/css/phosphor-icons.css');
+  assertBlockingStylesheet(watchlistLinks, '/css/core-ui.css');
 });
 
 test('HTML entrypoints preload local self-hosted fonts', () => {

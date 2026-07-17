@@ -6,6 +6,7 @@ import { BrowseFiltering } from './browse-filtering.ts';
 import { MetricGlossary } from './metricGlossary.js';
 import { Onboarding } from './onboarding.js';
 import { ThemeManager } from './themeManager.js';
+import { SidebarPreference } from './sidebar-preference.ts';
 import { CacheManager } from './services/cache-manager.ts';
 import { CatalogLoader } from './services/catalog-loader.ts';
 import { CatalogPayload } from './services/catalog-payload.ts';
@@ -1800,9 +1801,11 @@ const App = {
     if (typeof document === 'undefined') return;
     const intentSection = document.getElementById('viewing-intent-section');
     const recommendations = document.getElementById('recommendations-section');
-    if (intentSection && recommendations && intentSection.nextElementSibling !== recommendations) {
-      intentSection.after(recommendations);
-    }
+    const activeFilters = document.getElementById('active-filters');
+    const header = document.querySelector('.header');
+    const anchor = activeFilters || header;
+    if (recommendations && anchor && anchor.nextElementSibling !== recommendations) anchor.after(recommendations);
+    if (intentSection && recommendations && recommendations.nextElementSibling !== intentSection) recommendations.after(intentSection);
   },
 
   renderCardSkeleton(type = 'catalog') {
@@ -4190,6 +4193,7 @@ const App = {
       : '';
 
     const themeSelector = ThemeManager.renderThemeSelector();
+    const sidebarSelector = SidebarPreference.renderSelector();
 
     return `
       <div class="filter-section settings-section">
@@ -4197,6 +4201,7 @@ const App = {
         
         <!-- Theme Selection -->
         ${themeSelector}
+        ${sidebarSelector}
         
         <!-- Playback Settings -->
         <div class="filter-section-title filter-section-title--spaced">Playback</div>
@@ -5048,6 +5053,12 @@ const App = {
         if (animeId) {
           this.adjustWatchProgress(animeId, -1);
         }
+        return;
+      }
+
+      if (action === 'set-sidebar-mode') {
+        const mode = actionEl.dataset.sidebarOption;
+        if (mode) SidebarPreference.applyMode(mode);
         return;
       }
 

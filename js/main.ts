@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { ThemeManager } from './themeManager.js';
+import { SidebarPreference } from './sidebar-preference.ts';
 import { Logger } from './services/logger.ts';
 import { initDeferredRuntimeServices } from './bootstrap/deferred-runtime.js';
 
@@ -77,6 +78,7 @@ const bootstrap = () => {
   }
   Logger.init({ level: 'info', captureGlobalErrors: true });
   ThemeManager.init();
+  SidebarPreference.init();
 
   const runApp = async () => {
     try {
