@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const assetVersion = (process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString(36)).slice(0, 12);
 
 export default defineConfig({
   plugins: [
@@ -37,6 +38,9 @@ export default defineConfig({
           const rawName = assetInfo.name ? String(assetInfo.name) : '';
           const normalized = rawName.replace(/\\/g, '/');
           if (normalized.endsWith('.css')) {
+            if (normalized.endsWith('main.css')) {
+              return `css/[name]-${assetVersion}[extname]`;
+            }
             return 'css/[name][extname]';
           }
           if (normalized.endsWith('favicon.svg')) {

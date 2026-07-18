@@ -77,6 +77,23 @@ test('getRecommendations returns limited results with reasons', () => {
   });
 });
 
+test('prepared taste fit outranks a generic quality lead', () => {
+  const tasteFit = baseAnime({
+    id: 'taste-fit',
+    tasteScore: 12,
+    communityScore: 7,
+    stats: { retentionScore: 70 }
+  });
+  const genericLead = baseAnime({
+    id: 'generic-lead',
+    tasteScore: 0,
+    communityScore: 8,
+    stats: { retentionScore: 80 }
+  });
+
+  assert.equal(Recommendations.getRecommendationsWithMode([genericLead, tasteFit], 'balanced', 2)[0].id, 'taste-fit');
+});
+
 test('getRecommendationsForIntent ranks outcomes without removing viable titles', () => {
   const energetic = baseAnime({
     id: 'energetic',

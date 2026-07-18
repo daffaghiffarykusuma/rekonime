@@ -274,7 +274,10 @@ const createTasteProfileStore = ({
   };
 
   const prepareRecommendationSource = (animeList, options = {}) => (
-    prepareTasteCandidates(animeList, options).map(entry => entry.anime)
+    prepareTasteCandidates(animeList, options).map(entry => ({
+      ...entry.anime,
+      tasteScore: entry.tasteScore
+    }))
   );
 
   const prepareDiscoverySource = (animeList, options = {}) => (

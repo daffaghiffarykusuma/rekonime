@@ -34,6 +34,16 @@ const main = () => {
     return;
   }
 
+  const homePath = path.join(dist, 'index.html');
+  const homeHtml = fs.existsSync(homePath) ? fs.readFileSync(homePath, 'utf8') : '';
+  const mainStyleMatch = homeHtml.match(/href="\/css\/(main-[A-Za-z0-9_-]+\.css)"/);
+  if (!mainStyleMatch || !fs.existsSync(path.join(dist, 'css', mainStyleMatch[1]))) {
+    console.error('Distribution asset check failed:');
+    console.error('- index.html must reference an existing versioned main stylesheet');
+    process.exitCode = 1;
+    return;
+  }
+
   const watchlistPath = path.join(dist, 'watchlist.html');
   const watchlistHtml = fs.existsSync(watchlistPath)
     ? fs.readFileSync(watchlistPath, 'utf8')

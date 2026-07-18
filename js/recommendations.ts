@@ -119,7 +119,9 @@ const Recommendations = {
     const top = this.selectTopByScore(
       animeList,
       limit,
-      anime => (intent.score(anime) * 0.7) + (this.scoreAnimeWithMode(anime, modeKey) * 0.3),
+      anime => (intent.score(anime) * 0.7) +
+        (this.scoreAnimeWithMode(anime, modeKey) * 0.3) +
+        ((Number.isFinite(anime?.tasteScore) ? anime.tasteScore : 0) * 1.4),
       { minScore: 0.0001 }
     );
 
@@ -334,6 +336,7 @@ const Recommendations = {
    */
   getSortOptions() {
     return [
+      { value: 'taste', label: 'Best fit for your taste' },
       { value: 'retention', label: 'Best chance you will finish' },
       { value: 'satisfaction', label: 'Highest community rating' }
     ];
@@ -668,6 +671,7 @@ const Recommendations = {
     // Base score from weights
     let score = (retentionScore * mode.weights.retention) +
       (malSatisfactionScaled * mode.weights.satisfaction);
+    score += (Number.isFinite(anime?.tasteScore) ? anime.tasteScore : 0) * 2;
 
     // Apply boosters
     if (mode.boosters) {

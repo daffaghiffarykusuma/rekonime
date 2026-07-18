@@ -79,10 +79,9 @@ test('taste profile owns feedback, recommendation preparation, and settings summ
   store.applyRecommendationFeedback('rec-not-for-me', blocked);
   store.applyRecommendationFeedback('rec-less-tag', neutral, { genre: 'Drama' });
 
-  assert.deepEqual(
-    store.prepareRecommendationSource([neutral, blocked, liked], { excludedIds: ['watched'] }).map(item => item.id),
-    ['liked', 'neutral']
-  );
+  const source = store.prepareRecommendationSource([neutral, blocked, liked], { excludedIds: ['watched'] });
+  assert.deepEqual(source.map(item => item.id), ['liked', 'neutral']);
+  assert.equal(source[0].tasteScore > source[1].tasteScore, true);
   assert.deepEqual(store.getSettingsSummary(), {
     preferredTags: ['Action', 'School'],
     reducedTags: ['Drama'],

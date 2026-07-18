@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { App } from '../../js/app.ts';
+import { createTasteProfileStore } from '../../js/taste-profile.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('App URL filter parsing and normalization', () => {
@@ -180,17 +181,46 @@ test('App active filter summary reports matches and keeps clear available', () =
   }
 });
 
-test('App shows four recommendations on desktop and three on mobile', () => {
+test('App shows six recommendations on desktop and three on mobile', () => {
   setupDom();
   window.matchMedia = query => ({
     matches: query.includes('max-width: 640px') ? false : false
   });
-  assert.equal(App.getRecommendationDisplayLimit(), 4);
+  assert.equal(App.getRecommendationDisplayLimit(), 6);
+  assert.equal(App.initialGridBatchSize, 6);
 
   window.matchMedia = query => ({
     matches: query.includes('max-width: 640px')
   });
   assert.equal(App.getRecommendationDisplayLimit(), 3);
+  assert.equal(App.initialGridBatchSizeMobile, 3);
+});
+
+test('App initially ranks Explore Every Title by Taste Profile fit', () => {
+  const originals = {
+    currentSort: App.currentSort,
+    tasteProfileStore: App.tasteProfileStore
+  };
+  const storage = {
+    getItem: () => null,
+    setItem: () => {}
+  };
+
+  try {
+    App.currentSort = 'taste';
+    App.tasteProfileStore = createTasteProfileStore({ storage });
+    App.tasteProfileStore.load();
+    App.tasteProfileStore.addMoreLike({ id: 'seed', genres: ['Drama'] });
+
+    const sorted = App.sortAnimeByMetric([
+      { id: 'generic', genres: ['Action'], stats: { retentionScore: 95 } },
+      { id: 'taste-fit', genres: ['Drama'], stats: { retentionScore: 70 } }
+    ], App.currentSort);
+
+    assert.deepEqual(sorted.map(item => item.id), ['taste-fit', 'generic']);
+  } finally {
+    Object.assign(App, originals);
+  }
 });
 
 test('App applies a Viewing Intent without changing explicit filters', () => {

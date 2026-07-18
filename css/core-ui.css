@@ -202,7 +202,7 @@ html:not([data-theme="light"]) .recommendation-card::after {
   padding-top: 16px;
   border: 0;
   border-radius: 0;
-  background: #000;
+  background: transparent;
 }
 
 .sidebar-edge-trigger:hover {
@@ -213,6 +213,7 @@ html:not([data-theme="light"]) .recommendation-card::after {
 html[data-sidebar-mode="expanded"] .app-container {
   margin-left: 248px;
   width: calc(100% - 248px);
+  max-width: none;
 }
 
 html[data-sidebar-mode="compact"] .app-sidebar {
@@ -222,6 +223,7 @@ html[data-sidebar-mode="compact"] .app-sidebar {
 html[data-sidebar-mode="compact"] .app-container {
   margin-left: 72px;
   width: calc(100% - 72px);
+  max-width: none;
 }
 
 html[data-sidebar-mode="compact"] .sidebar-label {
@@ -254,6 +256,7 @@ html[data-sidebar-mode="auto-hide"] .app-sidebar {
 html[data-sidebar-mode="auto-hide"] .app-container {
   margin-left: 0;
   width: 100%;
+  max-width: none;
 }
 
 html[data-sidebar-mode="auto-hide"] .sidebar-edge-trigger {

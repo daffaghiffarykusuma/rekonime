@@ -59,7 +59,7 @@ import {
 const App = {
   animeData: [],
   filteredData: [],
-  currentSort: 'retention',
+  currentSort: 'taste',
   filterPanelOpen: false,
   filterPanelRendered: false,
   filterPanelRenderHandle: null,
@@ -1514,7 +1514,7 @@ const App = {
   gridRenderedCount: 0,
   gridInitialBatchRendered: false,
   gridDeferredRenderHandle: null,
-  initialGridBatchSize: 4,
+  initialGridBatchSize: 6,
   initialGridBatchSizeMobile: 3,
   gridSortedCache: null,
   gridSortedKey: '',
@@ -1607,7 +1607,7 @@ const App = {
     ).join(''));
 
     if (!options.some(option => option.value === this.currentSort)) {
-      this.currentSort = options[0]?.value || 'retention';
+      this.currentSort = options[0]?.value || 'taste';
     }
     select.value = this.currentSort;
   },
@@ -1779,6 +1779,7 @@ const App = {
 
     await this.ensureStats();
     this.refreshWatchlistSnapshotsFromCatalog(intent.refreshWatchlistSnapshots);
+    this.refreshTasteProfileEvidence();
     this.scheduleAiringDashboardRender(intent.scheduleAiringDashboard);
     this.extractFilterOptions();
 
@@ -4364,7 +4365,7 @@ const App = {
     if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)')?.matches) {
       return 3;
     }
-    return 4;
+    return 6;
   },
 
   getCardDecisionData(anime) {
@@ -4795,6 +4796,12 @@ const App = {
    * @returns {Array} Sorted array
    */
   sortAnimeByMetric(animeList, metricKey) {
+    if (metricKey === 'taste') {
+      return this.getTasteProfileStore().prepareRecommendationSource(animeList).sort((a, b) =>
+        b.tasteScore - a.tasteScore ||
+        (b.stats?.retentionScore ?? 0) - (a.stats?.retentionScore ?? 0)
+      );
+    }
     const list = [...animeList];
     const key = metricKey === 'satisfaction' ? 'satisfaction' : 'retention';
 
@@ -4814,6 +4821,7 @@ const App = {
   selectTopAnimeByMetric(animeList, metricKey, limit) {
     if (!Array.isArray(animeList) || animeList.length === 0) return [];
     const maxItems = Math.max(1, limit || 1);
+    if (metricKey === 'taste') return this.sortAnimeByMetric(animeList, metricKey).slice(0, maxItems);
     const key = metricKey === 'satisfaction' ? 'satisfaction' : 'retention';
     const top = [];
 

@@ -17,7 +17,7 @@ const fileBudgets = new Map([
   ['data/franchise-map.json', 2.5 * mib],
   ['js/app.ts', 225 * kib],
   ['css/styles.css', 170 * kib],
-  ['css/main.css', 125 * kib],
+  [/^css\/main-[A-Za-z0-9_-]+\.css$/, 125 * kib],
   ['css/watchlist.css', 100 * kib]
 ]);
 
@@ -57,11 +57,15 @@ const main = () => {
     failures.push(`Total dist size ${formatBytes(totalBytes)} exceeds budget ${formatBytes(totalBudgetBytes)}.`);
   }
 
-  for (const [relativePath, budgetBytes] of fileBudgets) {
-    const file = files.find((entry) => entry.relativePath === relativePath);
+  for (const [fileMatcher, budgetBytes] of fileBudgets) {
+    const file = files.find((entry) => (
+      fileMatcher instanceof RegExp
+        ? fileMatcher.test(entry.relativePath)
+        : entry.relativePath === fileMatcher
+    ));
     if (!file) continue;
     if (file.size > budgetBytes) {
-      failures.push(`${relativePath} is ${formatBytes(file.size)}, above budget ${formatBytes(budgetBytes)}.`);
+      failures.push(`${file.relativePath} is ${formatBytes(file.size)}, above budget ${formatBytes(budgetBytes)}.`);
     }
   }
 
