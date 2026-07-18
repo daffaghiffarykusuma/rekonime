@@ -169,11 +169,6 @@
       enum: ['completed', 'skipped']
     });
 
-    this.register('rekonime.tourStep', {
-      type: 'string',
-      pattern: '^\\d+$'
-    });
-
     this.register('rekonime.shortcutsAcknowledged', {
       type: 'string',
       enum: ['true']

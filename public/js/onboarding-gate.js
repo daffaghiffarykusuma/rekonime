@@ -20,13 +20,14 @@
 
     shell.querySelectorAll('[data-shell-dismiss]').forEach((element) => {
       element.addEventListener('click', () => {
+        if (!shell.classList.contains('onboarding-shell')) return;
         try {
           localStorage.setItem('rekonime.onboarding', 'skipped');
         } catch {
           // Hiding the shell still works when storage is unavailable.
         }
         root.removeAttribute('data-onboarding-pending');
-        shell.remove();
+        shell.setAttribute('aria-hidden', 'true');
       });
     });
   };

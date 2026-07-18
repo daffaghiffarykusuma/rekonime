@@ -24,7 +24,6 @@ const installFailureCollectors = (page) => {
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('rekonime.onboarding', 'completed');
-    localStorage.setItem('rekonime.tourStep', '0');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
 });

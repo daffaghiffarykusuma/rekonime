@@ -85,8 +85,7 @@ Reference docs:
 - `js/discovery.js`: Surprise Me, seasonal discovery, trending, and personalized recommendations.
 - `js/filterPresets.ts` with `js/filterPresets.ts` wrapper: quick filter presets (Binge-Worthy, Critical Darlings, etc.).
 - `js/keyboardShortcuts.ts` with `js/keyboardShortcuts.ts` wrapper: keyboard navigation system.
-- `js/metricGlossary.js`: metric definitions and educational tooltips.
-- `js/onboarding.js`: first-time user guided tour.
+- `js/onboarding.js`: one-step Viewing Intent onboarding journey.
 - `js/themeManager.js`: light/dark/auto theme switching.
 - `js/serviceWorker.ts` with `js/serviceWorker.ts` wrapper: PWA service worker registration.
 - `sw.js`: service worker for offline caching.
@@ -104,7 +103,6 @@ flowchart TD
   app --> reviews[js/reviews.js]
   app --> discovery[js/discovery.js]
   app --> filterPresets[js/filterPresets.ts]
-  app --> metricGlossary[js/metricGlossary.js]
   app --> onboarding[js/onboarding.js]
   app --> themeManager[js/themeManager.js]
   app --> keyboardShortcuts[js/keyboardShortcuts.ts]

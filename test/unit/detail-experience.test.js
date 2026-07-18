@@ -11,21 +11,13 @@ const createAppHarness = (overrides = {}) => {
     currentAnimeId: null,
     animeData: [],
     isFullDataLoaded: false,
-    trailerCleanup: null,
     getPerformanceNow: () => 100,
     emitAppEvent: (...args) => calls.push(['emitAppEvent', ...args]),
     getAnimeIdFromUrl: () => '',
     showAnimeDetail: (...args) => calls.push(['showAnimeDetail', ...args]),
     closeDetailModal: (...args) => calls.push(['closeDetailModal', ...args]),
-    cleanupDetailMedia: () => calls.push(['cleanupDetailMedia']),
-    refreshDetailMedia: (...args) => calls.push(['refreshDetailMedia', ...args]),
-    setupDetailMedia: () => calls.push(['setupDetailMedia']),
-    stopDetailMedia: () => calls.push(['stopDetailMedia']),
-    stopTrailerPlayback: () => calls.push(['stopTrailerPlayback']),
-    teardownTrailerObserver: () => calls.push(['teardownTrailerObserver']),
-    teardownTrailerScrollListener: () => calls.push(['teardownTrailerScrollListener']),
-    setupTrailerAutoplay: (...args) => calls.push(['setupTrailerAutoplay', ...args]),
-    renderTrailerSection: () => '<section id="detail-trailer"></section>',
+    shouldEmbedTrailers: () => true,
+    shouldAutoplayTrailers: () => false,
     renderSynopsis: (value) => `<p>${value}</p>`,
     loadReviewsService: async () => ({
       fetchReviews: async (...args) => {
@@ -134,26 +126,26 @@ test('Detail Experience syncs URL anime state to open or close actions', () => {
   assert.deepEqual(closeHarness.calls[0], ['closeDetailModal', { updateUrl: true }]);
 });
 
-test('Detail Experience delegates trailer refresh to Detail Media', () => {
+test('Detail Experience refreshes trailer behavior through its private media module', () => {
   setupDom(`
     <div id="detail-modal"><div class="modal-content"></div></div>
     <div id="community-reviews-section"></div>
   `);
-  const animeData = [{ id: 'show-1', title: 'Show One' }];
-  const { detail, calls } = createAppHarness({
+  const animeData = [{
+    id: 'show-1',
+    title: 'Show One',
+    trailer: { id: 'abc123' }
+  }];
+  const { detail } = createAppHarness({
     currentAnimeId: 'show-1',
     animeData
   });
 
   detail.refreshTrailerSection();
 
-  assert.deepEqual(calls.slice(0, 4).map(([name]) => name), [
-    'stopTrailerPlayback',
-    'teardownTrailerObserver',
-    'teardownTrailerScrollListener',
-    'setupTrailerAutoplay'
-  ]);
-  assert.match(document.body.innerHTML, /detail-trailer/);
+  const iframe = document.querySelector('#detail-trailer iframe');
+  assert.equal(iframe?.dataset.paused, '1');
+  assert.equal(iframe?.dataset.embedSrc, 'https://www.youtube.com/embed/abc123');
 });
 
 test('Detail Experience delegates community review loading to Detail Reviews', async () => {

@@ -8,14 +8,18 @@ import {
   renderReviewsLoading,
   renderSynopsisLoading
 } from './detail-presentation.ts';
-import { createDetailMediaAdapter } from './detail-media.ts';
+import { createDetailMedia } from './detail-media.ts';
 import { createDetailReviewsAdapter } from './detail-reviews.ts';
 import { renderDetailErrorState } from './detail-error-state.ts';
 
 const normalizeDetailKey = (animeId) => String(animeId ?? '').trim();
 
 const createDetailExperience = (app) => {
-  const media = createDetailMediaAdapter(app);
+  const media = createDetailMedia({
+    escapeAttr: app.escapeAttr.bind(app),
+    shouldEmbedTrailers: app.shouldEmbedTrailers.bind(app),
+    shouldAutoplayTrailers: app.shouldAutoplayTrailers.bind(app)
+  });
   const reviews = createDetailReviewsAdapter({
     getCurrentAnimeId: () => app.currentAnimeId,
     getLogger: app.getLogger.bind(app),
@@ -80,7 +84,7 @@ const createDetailExperience = (app) => {
         renderSynopsis: app.renderSynopsis.bind(app),
         renderSynopsisLoading,
         renderFranchiseHubSection: app.renderFranchiseHubSection.bind(app),
-        renderTrailerSection: app.renderTrailerSection.bind(app),
+        renderTrailerSection: media.render,
         renderReviewsLoading,
         renderSimilarAnimeSection: app.renderSimilarAnimeSection.bind(app),
         renderWatchlistControls: app.renderWatchlistControls.bind(app)
@@ -194,7 +198,7 @@ const createDetailExperience = (app) => {
 
   const open = (animeId, { updateUrl = true, skipModalOpen = false } = {}) => {
     const renderStart = port.clock.now();
-    port.media.stop();
+    port.media.cleanup();
 
     const { modal, content, modalContent } = port.modal.getDetailElements();
 
@@ -289,6 +293,7 @@ const createDetailExperience = (app) => {
     cache,
     syncWithUrl,
     refreshTrailerSection,
+    toggleTrailerPlayback: port.media.toggle,
     loadCommunityReviews,
     open,
     close,

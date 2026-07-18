@@ -23,7 +23,7 @@ The HTML script URLs now point directly at `/js/main.ts` and `/js/watchlist-main
 This slice does not rewrite the large shell internals into fully typed implementation code. The converted shell files use `// @ts-nocheck` as a migration bridge so runtime behavior remains the controlling acceptance criterion.
 
 Remaining JavaScript runtime surfaces:
-- `js/reviews.js`, `js/themeManager.js`, `js/discovery.js`, `js/onboarding.js`, `js/charts.js`, `js/metricGlossary.js`, `js/image-proxy*.js`, and small bootstrap helpers remain JavaScript.
+- `js/reviews.js`, `js/themeManager.js`, `js/discovery.js`, `js/onboarding.js`, `js/image-proxy*.js`, and small bootstrap helpers remain JavaScript.
 - Owner: Runtime team.
 - Removal condition: convert after the app shell is stable on direct TypeScript entrypoints and after each module has focused behavior tests or is proven to be pure side-effect bootstrap code.
 

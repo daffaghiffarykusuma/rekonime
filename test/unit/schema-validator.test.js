@@ -14,12 +14,6 @@ test('SchemaValidator validates legacy watchlist schema', () => {
   assert.equal(SchemaValidator.validate('rekonime.bookmarks', 'nope'), false);
 });
 
-test('SchemaValidator validates pattern schemas', () => {
-  assert.equal(SchemaValidator.validate('rekonime.tourStep', '3'), true);
-  assert.equal(SchemaValidator.validate('rekonime.tourStep', '03'), true);
-  assert.equal(SchemaValidator.validate('rekonime.tourStep', 'abc'), false);
-});
-
 test('SchemaValidator validates object schemas', () => {
   const ok = { trailerAutoplay: true, dataSaver: false };
   const bad = { trailerAutoplay: 'yes' };

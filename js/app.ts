@@ -3,7 +3,6 @@ import { Recommendations } from './recommendations.ts';
 import { Discovery } from './discovery.js';
 import { FilterPresets } from './filterPresets.ts';
 import { BrowseFiltering } from './browse-filtering.ts';
-import { MetricGlossary } from './metricGlossary.js';
 import { Onboarding } from './onboarding.js';
 import { ThemeManager } from './themeManager.js';
 import { SidebarPreference } from './sidebar-preference.ts';
@@ -25,12 +24,6 @@ import {
 } from './watchlist-entry-presentation.ts';
 import { createWatchlistAiringDashboardAdapter } from './watchlist-airing-dashboard-adapter.ts';
 import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.ts';
-import {
-  buildTrailerUrls as buildTrustedTrailerUrls,
-  sanitizeTrailerUrl as sanitizeTrustedTrailerUrl,
-  sanitizeTrailerEmbedUrl as sanitizeTrustedTrailerEmbedUrl,
-  resolveTrustedTrailerMessageOrigin
-} from './security/trailer-url-policy.ts';
 import {
   setHTML,
   insertHTML,
@@ -99,10 +92,6 @@ const App = {
     image: '',
     url: ''
   },
-  trailerObserver: null,
-  trailerScrollHandler: null,
-  trailerScrollRoot: null,
-  trailerCleanup: null,
   legacyWatchlistStorageKey: 'rekonime.bookmarks',
   watchlistStorageKey: 'rekonime.watchlist',
   settingsStorageKey: 'rekonime.settings',
@@ -1412,18 +1401,6 @@ const App = {
   shouldAutoplayTrailers() {
     const settings = this.getSettings();
     return settings.trailerAutoplay && !settings.dataSaver;
-  },
-
-  loadTrailerEmbed(iframe) {
-    if (!iframe || iframe.dataset.embedLoaded === '1') return;
-    const embedSrc = iframe.dataset.embedSrc;
-    if (!embedSrc) return;
-    const safeEmbedSrc = this.buildEmbedUrlWithApi(embedSrc);
-    if (!safeEmbedSrc) return;
-    iframe.dataset.embedLoaded = '1';
-    iframe.removeAttribute('loading');
-    iframe.src = safeEmbedSrc;
-    this.setTrailerPaused(iframe, true);
   },
 
   getModalElement(modalId) {
@@ -5008,21 +4985,13 @@ const App = {
         return;
       }
 
-      if (action === 'learn-scores') {
+      if (action === 'reopen-onboarding') {
         Onboarding.reopenTour();
         return;
       }
 
       if (action === 'explain-recommendations') {
         this.showRecommendationsHelp();
-        return;
-      }
-
-      if (action === 'metric-help') {
-        const metricKey = actionEl.dataset.metric;
-        if (metricKey) {
-          this.showMetricHelp(metricKey);
-        }
         return;
       }
 
@@ -5096,7 +5065,7 @@ const App = {
       }
 
       if (action === 'toggle-trailer') {
-        this.toggleTrailerPlayback();
+        this.getDetailExperience().toggleTrailerPlayback();
         return;
       }
 
@@ -5390,310 +5359,6 @@ const App = {
   },
 
   /**
-   * Build sanitized trailer URLs from stored metadata.
-   */
-  buildTrailerUrls(trailer) {
-    return buildTrustedTrailerUrls(trailer);
-  },
-
-  /**
-   * Ensure trailer URLs only point to trusted YouTube hosts.
-   */
-  sanitizeTrailerUrl(rawUrl) {
-    return sanitizeTrustedTrailerUrl(rawUrl);
-  },
-
-  sanitizeTrailerEmbedUrl(rawUrl) {
-    return sanitizeTrustedTrailerEmbedUrl(rawUrl);
-  },
-
-  resolveTrailerMessageOrigin(iframe) {
-    if (!iframe) return '';
-    const rawUrl = iframe.dataset?.embedSrc || iframe.getAttribute('src') || '';
-    return resolveTrustedTrailerMessageOrigin(rawUrl, window.location.href);
-  },
-
-  /**
-   * Render the trailer section for the detail modal.
-   */
-  renderTrailerSection(anime) {
-    const trailer = anime?.trailer;
-    if (!trailer) return '';
-
-    const { url, embedUrl } = this.buildTrailerUrls(trailer);
-    if (!url && !embedUrl) return '';
-
-    const title = anime?.title ? `Trailer for ${anime.title}` : 'Anime trailer';
-    const safeTitle = this.escapeAttr(title);
-    const safeUrl = this.escapeAttr(url);
-    const safeEmbedUrl = this.escapeAttr(embedUrl);
-    const allowEmbed = this.shouldEmbedTrailers();
-    const showEmbed = Boolean(allowEmbed && embedUrl);
-
-    return `
-      <div class="detail-trailer" id="detail-trailer">
-        <div class="detail-section-header">
-          <h3>Trailer</h3>
-          <div class="trailer-controls">
-            ${showEmbed ? `
-              <button class="trailer-control-btn" id="trailer-toggle" type="button" data-action="toggle-trailer" aria-pressed="false" aria-label="Pause trailer" title="Pause trailer">
-                <span class="trailer-control-label">Pause</span>
-              </button>
-            ` : ''}
-            ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">Watch on YouTube</a>` : ''}
-          </div>
-        </div>
-        ${allowEmbed && embedUrl
-        ? `<div class="trailer-embed">
-              <iframe
-                src="about:blank"
-                data-embed-src="${safeEmbedUrl}"
-                title="${safeTitle}"
-                loading="lazy"
-                sandbox="allow-scripts allow-same-origin allow-presentation"
-                allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen>
-              </iframe>
-            </div>`
-        : `<div class="trailer-fallback">
-              ${allowEmbed ? '' : '<p class="trailer-note">Data Saver is on, so the embedded trailer is hidden.</p>'}
-              ${url ? `<a class="trailer-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">Watch on YouTube</a>` : ''}
-            </div>`
-      }
-      </div>
-    `;
-  },
-
-  buildAutoplayEmbedUrl(embedUrl) {
-    const safeEmbedUrl = this.buildEmbedUrlWithApi(embedUrl);
-    if (!safeEmbedUrl) return '';
-
-    try {
-      const url = new URL(safeEmbedUrl);
-      url.searchParams.set('autoplay', '1');
-      url.searchParams.set('mute', '1');
-      return url.toString();
-    } catch (error) {
-      return '';
-    }
-  },
-
-  buildEmbedUrlWithApi(embedUrl) {
-    const safeEmbedUrl = this.sanitizeTrailerEmbedUrl(embedUrl);
-    if (!safeEmbedUrl) return '';
-
-    try {
-      const url = new URL(safeEmbedUrl);
-      url.searchParams.set('enablejsapi', '1');
-      url.searchParams.set('playsinline', '1');
-      return url.toString();
-    } catch (error) {
-      return '';
-    }
-  },
-
-  isElementInScrollView(element, root, threshold = 0.4) {
-    if (!element) return false;
-    const targetRect = element.getBoundingClientRect();
-    if (!root) {
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-      const visibleHeight = Math.max(0, Math.min(targetRect.bottom, viewportHeight) - Math.max(targetRect.top, 0));
-      return targetRect.height > 0 && (visibleHeight / targetRect.height) >= threshold;
-    }
-
-    const rootRect = root.getBoundingClientRect();
-    const visibleTop = Math.max(targetRect.top, rootRect.top);
-    const visibleBottom = Math.min(targetRect.bottom, rootRect.bottom);
-    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-    return targetRect.height > 0 && (visibleHeight / targetRect.height) >= threshold;
-  },
-
-  setTrailerControlState(isPaused) {
-    const button = document.getElementById('trailer-toggle');
-    if (!button) return;
-    const label = isPaused ? 'Play trailer' : 'Pause trailer';
-    button.setAttribute('aria-pressed', isPaused ? 'true' : 'false');
-    button.setAttribute('aria-label', label);
-    button.setAttribute('title', label);
-    const text = button.querySelector('.trailer-control-label');
-    if (text) {
-      text.textContent = isPaused ? 'Play' : 'Pause';
-    }
-  },
-
-  setTrailerPaused(iframe, isPaused) {
-    if (!iframe) return;
-    iframe.dataset.paused = isPaused ? '1' : '';
-    this.setTrailerControlState(isPaused);
-  },
-
-  sendTrailerCommand(iframe, command) {
-    if (!iframe || !iframe.contentWindow) return;
-    const targetOrigin = this.resolveTrailerMessageOrigin(iframe);
-    if (!targetOrigin) return;
-    iframe.contentWindow.postMessage(JSON.stringify({
-      event: 'command',
-      func: command,
-      args: []
-    }), targetOrigin);
-  },
-
-  toggleTrailerPlayback() {
-    const iframe = document.querySelector('.detail-trailer iframe');
-    if (!iframe) return;
-    const isPaused = iframe.dataset.paused === '1';
-    if (isPaused) {
-      this.resumeTrailerPlayback(iframe);
-    } else {
-      this.pauseTrailerPlayback(iframe);
-    }
-  },
-
-  pauseTrailerPlayback(iframe) {
-    if (!iframe) return;
-    const embedSrc = iframe.dataset.embedSrc;
-    if (!embedSrc) return;
-
-    this.sendTrailerCommand(iframe, 'pauseVideo');
-    const safeEmbedSrc = this.buildEmbedUrlWithApi(embedSrc);
-    if (safeEmbedSrc) {
-      iframe.dataset.embedLoaded = '1';
-      iframe.removeAttribute('loading');
-      iframe.src = safeEmbedSrc;
-    }
-    iframe.dataset.autoplayStarted = '';
-    this.setTrailerPaused(iframe, true);
-  },
-
-  resumeTrailerPlayback(iframe) {
-    if (!iframe) return;
-    const embedSrc = iframe.dataset.embedSrc;
-    if (!embedSrc) return;
-
-    const autoplaySrc = this.buildAutoplayEmbedUrl(embedSrc);
-    const safeEmbedSrc = autoplaySrc || this.buildEmbedUrlWithApi(embedSrc);
-    if (!safeEmbedSrc) return;
-
-    iframe.dataset.autoplayStarted = '1';
-    iframe.dataset.embedLoaded = '1';
-    iframe.removeAttribute('loading');
-    iframe.src = safeEmbedSrc;
-    this.setTrailerPaused(iframe, false);
-  },
-
-  setupTrailerAutoplay(modalContent) {
-    this.teardownTrailerObserver();
-    this.teardownTrailerScrollListener();
-    this.trailerCleanup = null;
-    const trailerEmbed = document.querySelector('.detail-trailer .trailer-embed');
-    if (!trailerEmbed) return;
-
-    const iframe = trailerEmbed.querySelector('iframe');
-    if (!iframe || !iframe.dataset.embedSrc) return;
-    this.setTrailerPaused(iframe, !this.shouldAutoplayTrailers());
-
-    const root = modalContent || document.querySelector('#detail-modal .modal-content');
-    const activateTrailer = () => {
-      if (iframe.dataset.paused === '1') {
-        this.loadTrailerEmbed(iframe);
-        return;
-      }
-      if (this.shouldAutoplayTrailers()) {
-        this.startTrailerAutoplay(iframe);
-      } else {
-        this.loadTrailerEmbed(iframe);
-      }
-    };
-
-    if (!('IntersectionObserver' in window)) {
-      activateTrailer();
-      return;
-    }
-
-    const observer = new IntersectionObserver((entries, activeObserver) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          activateTrailer();
-          activeObserver.disconnect();
-          this.trailerObserver = null;
-          this.teardownTrailerScrollListener();
-          break;
-        }
-      }
-    }, {
-      root: root || null,
-      threshold: 0.4
-    });
-
-    observer.observe(trailerEmbed);
-    this.trailerObserver = observer;
-
-    const scrollRoot = root || window;
-    const handler = () => {
-      if (this.isElementInScrollView(trailerEmbed, root || null, 0.35)) {
-        activateTrailer();
-        this.teardownTrailerObserver();
-        this.teardownTrailerScrollListener();
-      }
-    };
-
-    this.trailerScrollRoot = scrollRoot;
-    this.trailerScrollHandler = handler;
-    scrollRoot.addEventListener('scroll', handler, { passive: true });
-    requestAnimationFrame(handler);
-
-    this.trailerCleanup = () => {
-      this.teardownTrailerObserver();
-      this.teardownTrailerScrollListener();
-      this.stopTrailerPlayback();
-    };
-  },
-
-  startTrailerAutoplay(iframe) {
-    if (!this.shouldAutoplayTrailers()) return;
-    if (!iframe || iframe.dataset.autoplayStarted === '1') return;
-    if (iframe.dataset.paused === '1') {
-      this.loadTrailerEmbed(iframe);
-      return;
-    }
-    const embedSrc = iframe.dataset.embedSrc;
-    if (!embedSrc) return;
-
-    const autoplaySrc = this.buildAutoplayEmbedUrl(embedSrc);
-    if (!autoplaySrc) return;
-
-    iframe.dataset.autoplayStarted = '1';
-    iframe.dataset.embedLoaded = '1';
-    iframe.removeAttribute('loading');
-    iframe.src = autoplaySrc;
-    this.setTrailerPaused(iframe, false);
-  },
-
-  stopTrailerPlayback() {
-    const iframe = document.querySelector('.detail-trailer iframe');
-    if (!iframe) return;
-    iframe.dataset.autoplayStarted = '';
-    iframe.dataset.embedLoaded = '';
-    iframe.src = 'about:blank';
-    this.setTrailerPaused(iframe, true);
-  },
-
-  teardownTrailerObserver() {
-    if (this.trailerObserver) {
-      this.trailerObserver.disconnect();
-      this.trailerObserver = null;
-    }
-  },
-
-  teardownTrailerScrollListener() {
-    if (this.trailerScrollRoot && this.trailerScrollHandler) {
-      this.trailerScrollRoot.removeEventListener('scroll', this.trailerScrollHandler);
-    }
-    this.trailerScrollRoot = null;
-    this.trailerScrollHandler = null;
-  },
-
-  /**
    * Close detail modal
    */
   closeDetailModal({ updateUrl = true } = {}) {
@@ -5722,27 +5387,6 @@ const App = {
 
   dismissToast(toastId) {
     dismissToastNotification(toastId);
-  },
-
-  /**
-   * Show metric help modal
-   */
-  showMetricHelp(metricKey) {
-    const content = MetricGlossary.getDetailedContent(metricKey);
-    if (!content) return;
-
-    const body = document.getElementById('metric-help-body');
-    const modal = document.getElementById('metric-help-modal');
-
-    if (body && modal) {
-      setHTML(body, content);
-      this.setModalVisibility('metric-help-modal', true, { initialFocusSelector: '#close-metric-help' });
-
-      const analytics = this.getAnalytics();
-      if (analytics) {
-        analytics.track('metric_help_opened', { metric: metricKey });
-      }
-    }
   },
 
   /**

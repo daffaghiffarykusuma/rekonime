@@ -28,10 +28,10 @@ test('onboarding shell visibility is storage-gated and controller-adopted', () =
 
   assert.match(gate, /rekonime\.onboarding/);
   assert.match(gate, /data-onboarding-pending/);
+  assert.doesNotMatch(gate, /shell\.remove\(\)/);
   assert.match(css, /html\[data-onboarding-pending\] \.onboarding-overlay\.onboarding-shell/);
   assert.match(controller, /classList\.remove\('onboarding-shell'\)/);
-  assert.match(controller, /dataset\.onboardingStep !== stepName/);
-  assert.match(controller, /button:disabled\[data-action\]/);
   assert.match(controller, /closeModal\(\)[\s\S]*removeAttribute\('data-onboarding-pending'\)/);
-  assert.match(controller, /attachModalListeners\(\)/);
+  assert.match(controller, /attachModalListeners\(modal\)/);
+  assert.doesNotMatch(controller, /tourStep|onboarding-next|onboarding-goto|onboarding-restart/);
 });

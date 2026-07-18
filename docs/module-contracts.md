@@ -70,14 +70,14 @@
 ### Detail Experience
 - Stable TypeScript entry point: `js/detail-experience.ts`
 - Error state module: `js/detail-error-state.ts`
-- Media adapter: `js/detail-media.ts`
+- Media module: `js/detail-media.ts`
 - Reviews adapter: `js/detail-reviews.ts`
 - Presentation module: `js/detail-presentation.ts`
-- App handoff: `js/app.ts` (`showAnimeDetail`, detail markup builders, image helpers, trailer control methods)
-- Inputs: anime id, cached detail, review payload, detail URL state (`?anime=...`)
-- Outputs: modal visibility, refreshed synopsis/reviews, cached detail HTML, detail URL synchronization
-- Side effects: history state, metadata updates, trailer cleanup/replacement, full-catalog deep-link fallback, modal-open telemetry
-- Interface rule: `js/detail-experience.ts` privately wires the single App Shell integration and exports only the Detail Experience factory; `js/detail-presentation.ts` owns modal body and loading markup, `js/detail-media.ts` owns trailer behavior, `js/detail-reviews.ts` owns review loading, and `js/detail-error-state.ts` owns unavailable-title messaging.
+- App handoff: `js/app.ts` (`showAnimeDetail`, detail markup builders, image helpers, trailer settings policy)
+- Inputs: anime id, cached detail, review payload, trailer metadata and settings policy, detail URL state (`?anime=...`)
+- Outputs: modal visibility, refreshed synopsis/reviews, trailer presentation and playback state, cached detail HTML, detail URL synchronization
+- Side effects: history state, metadata updates, trailer rendering/playback/cleanup, full-catalog deep-link fallback, modal-open telemetry
+- Interface rule: `js/detail-experience.ts` privately wires the single App Shell integration and exports only the Detail Experience factory; `js/detail-presentation.ts` owns modal body and loading markup, `js/detail-media.ts` owns trailer URL policy use, rendering, player messaging, autoplay, replacement, and cleanup, `js/detail-reviews.ts` owns review loading, and `js/detail-error-state.ts` owns unavailable-title messaging. The App Shell supplies trailer settings policy and invokes only experience-level commands.
 
 ### Airing Schedule
 - Stable TypeScript entry points: `js/airing-schedule.ts`, `js/airing-dashboard.ts`
@@ -115,6 +115,15 @@
 - Outputs: idle task handles, modal open state, scroll lock state
 - Interface: schedules and cancels ordinary idle work and opens/closes native `<dialog>` elements; deferred boot, Shared Image Proxy, App Shell, and Airing Schedule adapters consume the same scheduling functions; the browser owns focus trapping
 - Side effects: dialog attributes/classes, initial focus, body scroll lock, scheduled callbacks
+
+### Onboarding Journey
+- Runtime module: `js/onboarding.js`
+- First-paint adapter: `public/js/onboarding-gate.js`
+- Static shell: `index.html`
+- Inputs: persisted onboarding status, Viewing Intent choice, skip, and Escape
+- Outputs: selected Viewing Intent event and completed/skipped status
+- Interface: check completion, start or reopen the single welcome journey, and close it through completion or skip
+- Side effects: onboarding storage writes, shell visibility, analytics, and `rekonime:onboarding-intent` dispatch; the gate and runtime are the two adapters at the same static-shell seam
 
 ### Keyboard Shortcuts
 - Stable TypeScript entry point: `js/keyboardShortcuts.ts`

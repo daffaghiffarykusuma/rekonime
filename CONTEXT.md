@@ -49,12 +49,16 @@ Live episode release metadata for watchlist entries, including AniList fetch/cac
 _Avoid_: airing widget helper, countdown utility, schedule glue
 
 **Detail Experience**:
-The lifecycle of opening, refreshing, deep-linking, enriching, and closing an anime detail view, including review refresh and trailer section replacement.
+The lifecycle of opening, refreshing, deep-linking, enriching, and closing an anime detail view, including review refresh and trailer rendering, playback, and cleanup.
 _Avoid_: modal helper, details popup, anime page glue
 
 **Runtime Capabilities**:
 Browser-level capabilities shared by product flows, including idle scheduling, modal visibility, focus trapping, and page scroll locking.
 _Avoid_: browser utilities, app helpers, UI plumbing
+
+**Onboarding Journey**:
+The one-step welcome that lets a first-time user choose an initial Viewing Intent or skip into Discovery. The first-paint gate decides whether to reveal the static shell before App Shell boot; the runtime module adopts that same shell and owns intent selection, completion, skip, and reopen behavior.
+_Avoid_: onboarding wizard, tour step system, scoring tutorial
 
 ## Example Dialogue
 
