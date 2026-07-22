@@ -12,7 +12,6 @@
 | Data validation | `bun run data:validate` | Yes |
 | Coverage | `bun run test:coverage` | Yes |
 | Coverage thresholds | `bun run check:coverage-thresholds` | Yes |
-| Entrypoint dedup | `bun run check:entrypoints` | Yes |
 | Build verification | `bun run build:verify` | Yes |
 | Distribution asset allowlist | `bun run check:dist-assets` | Yes |
 | Runtime catalog budget | `bun run check:runtime-preview` | Yes |

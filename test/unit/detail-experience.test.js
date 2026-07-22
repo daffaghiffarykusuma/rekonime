@@ -113,17 +113,23 @@ test('Detail Experience opens and renders a title lifecycle', () => {
 });
 
 test('Detail Experience syncs URL anime state to open or close actions', () => {
-  const { detail, calls } = createAppHarness({
+  setupDom(`
+    <div id="detail-modal"><div class="modal-content"></div></div>
+    <div id="detail-content"></div>
+  `);
+  const { app, detail } = createAppHarness({
     currentAnimeId: 'current',
-    getAnimeIdFromUrl: () => 'next'
+    getAnimeIdFromUrl: () => 'next',
+    animeData: [{ id: 'next', title: 'Next' }]
   });
 
   detail.syncWithUrl({ updateUrl: false });
-  assert.deepEqual(calls[0], ['showAnimeDetail', 'next', { updateUrl: false }]);
+  assert.equal(app.currentAnimeId, 'next');
 
   const closeHarness = createAppHarness({ currentAnimeId: 'current' });
   closeHarness.detail.syncWithUrl({ updateUrl: true });
-  assert.deepEqual(closeHarness.calls[0], ['closeDetailModal', { updateUrl: true }]);
+  assert.equal(closeHarness.app.currentAnimeId, null);
+  assert.deepEqual(closeHarness.calls.find(([name]) => name === 'updateUrlForAnime'), ['updateUrlForAnime', null]);
 });
 
 test('Detail Experience refreshes trailer behavior through its private media module', () => {
@@ -191,5 +197,7 @@ test('Detail Experience deep link loads full catalog before showing a title', as
   const loaded = await detail.handleDeepLink('deep-link-title');
 
   assert.equal(loaded, true);
-  assert.deepEqual(calls.at(-1), ['showAnimeDetail', 'deep-link-title', { updateUrl: false, skipModalOpen: true }]);
+  assert.equal(app.currentAnimeId, 'deep-link-title');
+  assert.match(document.getElementById('detail-content').innerHTML, /Deep Link Title/);
+  assert.equal(calls.some(([name]) => name === 'showAnimeDetail'), false);
 });

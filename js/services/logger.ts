@@ -238,4 +238,3 @@ const Logger = {
 };
 
 export { Logger };
-export default Logger;

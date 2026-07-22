@@ -98,4 +98,3 @@ const SidebarPreference = {
 };
 
 export { SidebarPreference };
-export default SidebarPreference;

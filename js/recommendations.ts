@@ -871,4 +871,3 @@ const Recommendations = {
 };
 
 export { Recommendations };
-export default Recommendations;

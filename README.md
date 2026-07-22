@@ -78,16 +78,16 @@ Reference docs:
 - `css/styles.css`: styles, layout, and responsive rules.
 - `css/mal-watchlist-import.css`: MyAnimeList import styles and the shared surface, label, control, and empty-state language used across the catalog and watchlist.
 - `css/themes.css`: theme system with light/dark modes and accessibility features.
-- `js/app.ts` with `js/app.ts` wrapper: app state, rendering, filters, modal, watchlist, SEO.
-- `js/stats.ts` with `js/stats.ts` wrapper: retention and scoring metrics.
-- `js/recommendations.ts` with `js/recommendations.ts` wrapper: recommendation + similarity scoring logic.
+- `js/app.ts`: app state, rendering, filters, modal, watchlist, SEO.
+- `js/stats.ts`: retention and scoring metrics.
+- `js/recommendations.ts`: recommendation + similarity scoring logic.
 - `js/reviews.js`: MyAnimeList (via Jikan API) review fetching and rendering.
 - `js/discovery.js`: Surprise Me, seasonal discovery, trending, and personalized recommendations.
-- `js/filterPresets.ts` with `js/filterPresets.ts` wrapper: quick filter presets (Binge-Worthy, Critical Darlings, etc.).
-- `js/keyboardShortcuts.ts` with `js/keyboardShortcuts.ts` wrapper: keyboard navigation system.
+- `js/filterPresets.ts`: quick filter presets (Binge-Worthy, Critical Darlings, etc.).
+- `js/keyboardShortcuts.ts`: keyboard navigation system.
 - `js/onboarding.js`: one-step Viewing Intent onboarding journey.
 - `js/themeManager.js`: light/dark/auto theme switching.
-- `js/serviceWorker.ts` with `js/serviceWorker.ts` wrapper: PWA service worker registration.
+- `js/serviceWorker.ts`: PWA service worker registration.
 - `sw.js`: service worker for offline caching.
 - `data/`: JSON catalogs (source, preview, full).
 - `dist/data/anime.full.index.json`, `dist/data/anime.detail/*.json`: production runtime catalog index and on-demand detail chunks.

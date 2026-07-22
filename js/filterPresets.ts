@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { AnalyticsService } from './services/analytics-service.js';
 
 /**
  * Filter Presets - Quick starting points for discovering anime
@@ -7,9 +6,6 @@ import { AnalyticsService } from './services/analytics-service.js';
  */
 
 const FilterPresets = {
-    getAnalytics() {
-        return AnalyticsService;
-    },
     /**
      * Preset definitions with labels, descriptions, and configurations
      */
@@ -212,18 +208,7 @@ const FilterPresets = {
      */
     getMatchingPresets(anime) {
         return this.getKeys().filter(key => this.matchesPreset(key, anime));
-    },
-
-    /**
-     * Track preset usage
-     */
-    trackUsage(key) {
-        const analytics = this.getAnalytics();
-        if (analytics) {
-            analytics.track('filter_preset_used', { preset: key });
-        }
     }
 };
 
 export { FilterPresets };
-export default FilterPresets;

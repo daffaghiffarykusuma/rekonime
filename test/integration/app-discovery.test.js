@@ -10,7 +10,7 @@ test('App routes Surprise Me candidates through Taste Profile before Discovery',
     getWatchlistIds: App.getWatchlistIds,
     showAnimeDetail: App.showAnimeDetail,
     getSurpriseMe: Discovery.getSurpriseMe,
-    trackSurpriseMe: Discovery.trackSurpriseMe
+    recordSurprise: Discovery.recordSurprise
   };
   const calls = [];
   const candidate = { id: 'preferred', title: 'Preferred' };
@@ -28,7 +28,7 @@ test('App routes Surprise Me candidates through Taste Profile before Discovery',
       calls.push(['discover', source]);
       return candidate;
     };
-    Discovery.trackSurpriseMe = (id) => calls.push(['track', id]);
+    Discovery.recordSurprise = (id) => calls.push(['track', id]);
     App.showAnimeDetail = (id) => calls.push(['show', id]);
 
     App.showSurpriseMe();
@@ -41,6 +41,6 @@ test('App routes Surprise Me candidates through Taste Profile before Discovery',
     App.getWatchlistIds = original.getWatchlistIds;
     App.showAnimeDetail = original.showAnimeDetail;
     Discovery.getSurpriseMe = original.getSurpriseMe;
-    Discovery.trackSurpriseMe = original.trackSurpriseMe;
+    Discovery.recordSurprise = original.recordSurprise;
   }
 });

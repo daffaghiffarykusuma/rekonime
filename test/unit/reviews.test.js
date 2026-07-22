@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ReviewsService } from '../../js/reviews.js';
-import { CircuitBreaker } from '../../js/circuitBreaker.js';
 
 test('ReviewsService sanitizeReviewText removes markup', () => {
   const raw = '<p>Hello<br>World</p> ~!spoiler!~ [img]http://x/y.png[/img]';
@@ -60,15 +59,12 @@ test('ReviewsService categorizeReviews dedupes and limits', () => {
 });
 
 test('ReviewsService fetchReviews returns cached result when available', async () => {
-  CircuitBreaker.reset('jikan-api');
-  const originalApi = ReviewsService.getApiClient;
+  const originalRequestJson = ReviewsService.requestJson;
   let apiCalled = false;
-  ReviewsService.getApiClient = () => ({
-    getServiceJson: async () => {
-      apiCalled = true;
-      return { data: [] };
-    }
-  });
+  ReviewsService.requestJson = async () => {
+    apiCalled = true;
+    return { data: [] };
+  };
 
   ReviewsService.setCacheEntry(100, { positive: [], neutral: [], negative: [], description: '' });
   const result = await ReviewsService.fetchReviews(100, 'Title');
@@ -76,5 +72,5 @@ test('ReviewsService fetchReviews returns cached result when available', async (
   assert.equal(apiCalled, false);
   assert.equal(Array.isArray(result.positive), true);
 
-  ReviewsService.getApiClient = originalApi;
+  ReviewsService.requestJson = originalRequestJson;
 });

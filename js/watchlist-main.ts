@@ -57,18 +57,10 @@ const getWatchlistLifecycle = () => createWatchlistLifecycle({
 const initNonCriticalServices = () => {
   initDeferredRuntimeServices({
     timeoutMs: DEFERRED_SERVICES_TIMEOUT_MS,
-    loadModules: async () => Promise.all([
-      import('./serviceWorker.ts'),
-      import('./services/analytics-service.js'),
-      import('./performanceMonitor.js')
-    ]),
-    onReady: async ([swModule, analyticsModule, perfModule]) => {
+    loadModules: async () => Promise.all([import('./serviceWorker.ts')]),
+    onReady: async ([swModule]) => {
       const { ServiceWorkerManager } = swModule;
-      const { AnalyticsService } = analyticsModule;
-      const { PerformanceMonitor } = perfModule;
 
-      AnalyticsService.init();
-      PerformanceMonitor.init();
       ServiceWorkerManager.register();
       ServiceWorkerManager.initConnectivityListeners();
     },

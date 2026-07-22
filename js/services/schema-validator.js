@@ -174,21 +174,6 @@
       enum: ['true']
     });
 
-    this.register('rekonime.analyticsQueue', {
-      type: 'array',
-      maxItems: 200,
-      items: {
-        type: 'object',
-        required: ['name', 'params'],
-        properties: {
-          name: { type: 'string', minLength: 1 },
-          params: { type: 'object', additionalProperties: true },
-          queuedAt: { type: 'string', minLength: 1 }
-        },
-        additionalProperties: true
-      }
-    });
-
     this.register('rekonime.logs', {
       type: 'array',
       maxItems: 200,
@@ -230,14 +215,6 @@
       return schema.anyOf.some((option) => this.validateSchema(option, value));
     }
 
-    if (Array.isArray(schema.oneOf)) {
-      let matches = 0;
-      schema.oneOf.forEach((option) => {
-        if (this.validateSchema(option, value)) matches += 1;
-      });
-      return matches === 1;
-    }
-
     if (schema.enum && !schema.enum.includes(value)) return false;
 
     const types = this.normalizeTypes(schema.type);
@@ -263,11 +240,6 @@
       case 'string':
         if (typeof value !== 'string') return false;
         if (schema.minLength && value.length < schema.minLength) return false;
-        if (schema.maxLength && value.length > schema.maxLength) return false;
-        if (schema.pattern) {
-          const regex = new RegExp(schema.pattern);
-          if (!regex.test(value)) return false;
-        }
         return true;
       case 'boolean':
         return typeof value === 'boolean';
@@ -288,7 +260,6 @@
 
   validateArray(schema, value) {
     if (!Array.isArray(value)) return false;
-    if (schema.minItems && value.length < schema.minItems) return false;
     if (schema.maxItems && value.length > schema.maxItems) return false;
     if (schema.items) {
       for (const item of value) {
@@ -313,21 +284,6 @@
       }
     }
 
-    if (schema.additionalProperties === false && schema.properties) {
-      const allowed = new Set(Object.keys(schema.properties));
-      for (const key of Object.keys(value)) {
-        if (!allowed.has(key)) return false;
-      }
-    }
-
-    if (schema.additionalProperties && typeof schema.additionalProperties === 'object' && schema.properties) {
-      const defined = new Set(Object.keys(schema.properties));
-      for (const [key, entryValue] of Object.entries(value)) {
-        if (defined.has(key)) continue;
-        if (!this.validateSchema(schema.additionalProperties, entryValue)) return false;
-      }
-    }
-
     return true;
   },
 
@@ -339,4 +295,3 @@
 SchemaValidator.registerDefaults();
 
 export { SchemaValidator };
-export default SchemaValidator;

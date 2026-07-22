@@ -1,5 +1,4 @@
 import { CacheManager } from './services/cache-manager.ts';
-import { AnalyticsService } from './services/analytics-service.js';
 
 const Onboarding = {
   storageKey: 'rekonime.onboarding',
@@ -7,10 +6,6 @@ const Onboarding = {
 
   getCache() {
     return CacheManager;
-  },
-
-  getAnalytics() {
-    return AnalyticsService;
   },
 
   hasCompleted() {
@@ -41,7 +36,6 @@ const Onboarding = {
       button.setAttribute('aria-pressed', 'false');
     });
     this.attachModalListeners(modal);
-    this.trackEvent('onboarding_started');
     return true;
   },
 
@@ -92,13 +86,11 @@ const Onboarding = {
   },
 
   skipTour() {
-    this.trackEvent('onboarding_skipped');
     this.markSkipped();
     this.closeModal();
   },
 
   completeTour() {
-    this.trackEvent('onboarding_completed');
     this.markCompleted();
     this.closeModal();
   },
@@ -115,12 +107,7 @@ const Onboarding = {
 
   reopenTour() {
     return this.startTour();
-  },
-
-  trackEvent(eventName, data = {}) {
-    this.getAnalytics()?.track(eventName, data);
   }
 };
 
 export { Onboarding };
-export default Onboarding;

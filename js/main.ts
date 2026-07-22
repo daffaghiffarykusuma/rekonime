@@ -34,19 +34,13 @@ const initNonCriticalServices = (app) => {
     loadModules: async () => Promise.all([
         import('./keyboardShortcuts.ts'),
         import('./serviceWorker.ts'),
-        import('./services/analytics-service.js'),
-        import('./performanceMonitor.js'),
         import('./recommendations.ts')
       ]),
-    onReady: async ([keyboardModule, swModule, analyticsModule, perfModule, recsModule]) => {
+    onReady: async ([keyboardModule, swModule, recsModule]) => {
       const { KeyboardShortcuts } = keyboardModule;
       const { ServiceWorkerManager } = swModule;
-      const { AnalyticsService } = analyticsModule;
-      const { PerformanceMonitor } = perfModule;
       const { Recommendations } = recsModule;
 
-      AnalyticsService.init();
-      PerformanceMonitor.init();
       Recommendations.loadModePreference();
       KeyboardShortcuts.configure({
         commands: {

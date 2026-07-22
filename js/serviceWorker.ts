@@ -329,5 +329,4 @@ const ServiceWorkerManager = {
 };
 
 export { ServiceWorkerManager };
-export default ServiceWorkerManager;
 

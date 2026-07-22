@@ -1,5 +1,4 @@
 import { CacheManager } from './services/cache-manager.ts';
-import { AnalyticsService } from './services/analytics-service.js';
 
 /**
  * Discovery module - Surprise Me, Seasonal Discovery, and Trending features
@@ -16,10 +15,6 @@ const Discovery = {
 
     getCache() {
         return CacheManager;
-    },
-
-    getAnalytics() {
-        return AnalyticsService;
     },
 
     /**
@@ -77,18 +72,7 @@ const Discovery = {
         return last?.anime || last;
     },
 
-    /**
-     * Track surprise me usage for analytics
-     */
-    trackSurpriseMe(animeId, source = 'random') {
-        const analytics = this.getAnalytics();
-        if (analytics) {
-            analytics.track('surprise_me_used', {
-                anime_id: animeId,
-                source: source
-            });
-        }
-
+    recordSurprise(animeId) {
         // Store surprise history for this session
         try {
             const history = this.getSurpriseHistory();
@@ -375,4 +359,3 @@ const Discovery = {
 };
 
 export { Discovery };
-export default Discovery;

@@ -175,4 +175,3 @@ const CacheManager = {
 };
 
 export { CacheManager };
-export default CacheManager;

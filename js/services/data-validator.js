@@ -1,4 +1,3 @@
-import { AnalyticsService } from './analytics-service.js';
 import { Logger } from './logger.ts';
 import { SchemaValidator } from './schema-validator.js';
 
@@ -74,11 +73,7 @@ const DataValidator = {
     if (Logger?.warn) {
       Logger.warn('Data validation issue', { type, ...context });
     }
-    if (AnalyticsService?.track) {
-      AnalyticsService.track('data_validation_issue', { issue_type: type, ...context });
-    }
   }
 };
 
 export { DataValidator };
-export default DataValidator;

@@ -1224,4 +1224,3 @@ const Stats = {
 };
 
 export { Stats, StatsCalculationError };
-export default Stats;

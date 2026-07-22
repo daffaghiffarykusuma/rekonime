@@ -143,4 +143,3 @@ export {
   FULL_CATALOG_KEY,
   isValidCatalogPayload
 };
-export default CatalogCache;

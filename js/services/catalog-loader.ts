@@ -138,9 +138,8 @@ const createCatalogSession = ({
 const createCatalogRuntime = ({
   dataSources = DEFAULT_DATA_SOURCES,
   fetchConfig = DEFAULT_FETCH_CONFIG,
-  features = {},
+  fetchFn = (...args) => fetch(...args),
   getAssetPath = (path) => path,
-  getApiClient = () => null,
   getLogger = () => null,
   getPerformanceNow = () => Date.now(),
   getLocationProtocol = () => (typeof window !== 'undefined' ? window.location.protocol : 'https:'),
@@ -192,19 +191,14 @@ const createCatalogRuntime = ({
           cache: attempt === 0 ? 'force-cache' : 'no-cache',
           signal: controller.signal
         };
-        const apiClient = getApiClient();
-        const data = apiClient
-          ? await apiClient.getJson(url, fetchOptions)
-          : await (async () => {
-            const response = await fetch(url, fetchOptions);
-            if (!response.ok) {
-              const error = new Error(`HTTP ${response.status}`);
-              error.status = response.status;
-              error.response = response;
-              throw error;
-            }
-            return response.json();
-          })();
+        const response = await fetchFn(url, fetchOptions);
+        if (!response.ok) {
+          const error = new Error(`HTTP ${response.status}`);
+          error.status = response.status;
+          error.response = response;
+          throw error;
+        }
+        const data = await response.json();
 
         if (!isValidCatalogPayload(data)) {
           throw new Error('Invalid catalog payload');
@@ -270,9 +264,7 @@ const createCatalogRuntime = ({
   };
 
   const loadInitialData = async () => {
-    if (features.parallelLoading) {
-      addPreloadHints();
-    }
+    addPreloadHints();
 
     if (getLocationProtocol() === 'file:') {
       const source = 'embedded';
@@ -330,18 +322,7 @@ const createCatalogRuntime = ({
           return true;
         }
 
-        let fullPayload = null;
-        if (features.parallelLoading) {
-          const [fullResult] = await Promise.allSettled([
-            fetchCatalog(dataSources.full, { signal: controller.signal })
-          ]);
-          if (controller.signal.aborted) return session.isFullLoaded();
-          if (fullResult.status === 'fulfilled' && fullResult.value) {
-            fullPayload = fullResult.value;
-          }
-        } else {
-          fullPayload = await fetchCatalog(dataSources.full, { signal: controller.signal });
-        }
+        const fullPayload = await fetchCatalog(dataSources.full, { signal: controller.signal });
 
         if (controller.signal.aborted) return session.isFullLoaded();
 
@@ -466,9 +447,7 @@ const createCatalogRuntime = ({
 const createAppCatalogRuntime = (app) => createCatalogRuntime({
   dataSources: app.dataSources,
   fetchConfig: app.fetchConfig,
-  features: app.features,
   getAssetPath: (path) => (typeof app.getAssetPath === 'function' ? app.getAssetPath(path) : path),
-  getApiClient: () => app.getApiClient(),
   getLogger: () => app.getLogger(),
   getPerformanceNow: () => app.getPerformanceNow(),
   getCurrentAnimeData: () => app.animeData,
@@ -525,4 +504,3 @@ export {
   shouldRetryCatalog,
   getCatalogRetryDelay
 };
-export default CatalogLoader;

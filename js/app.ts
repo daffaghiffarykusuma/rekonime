@@ -9,8 +9,6 @@ import { SidebarPreference } from './sidebar-preference.ts';
 import { CacheManager } from './services/cache-manager.ts';
 import { CatalogLoader } from './services/catalog-loader.ts';
 import { CatalogPayload } from './services/catalog-payload.ts';
-import { AnalyticsService } from './services/analytics-service.js';
-import { ApiClient } from './services/api-client.ts';
 import { Logger } from './services/logger.ts';
 import { HealthMonitor } from './healthMonitor.js';
 import { createImageProxyRuntime } from './image-proxy-runtime.js';
@@ -141,16 +139,7 @@ const App = {
   deferFilterUiOnce: false,
   deferFilterUiHandle: null,
   deferFilterUiUsed: false,
-  features: {
-    diffRendering: true,
-    templatePooling: true,
-    virtualScrolling: true,
-    parallelLoading: true,
-    smartImageLoading: true,
-    intelligentPrefetching: true,
-    lazyGridSort: true,
-    imageProxy: true
-  },
+  virtualScrollingEnabled: true,
   imageDimensions: {
     card: { width: 240, height: 360 },
     recommendation: { width: 320, height: 190 },
@@ -251,10 +240,6 @@ const App = {
     return this.watchlistLifecycleRuntime;
   },
 
-  getAnalytics() {
-    return AnalyticsService;
-  },
-
   getLogger() {
     return Logger;
   },
@@ -277,10 +262,6 @@ const App = {
         HealthMonitor.performHealthChecks();
       }
     }
-  },
-
-  getApiClient() {
-    return ApiClient;
   },
 
   async loadStatsModule() {
@@ -366,7 +347,7 @@ const App = {
     } else {
       root.removeAttribute('data-low-motion');
     }
-    this.features.virtualScrolling = !enableLowMotion;
+    this.virtualScrollingEnabled = !enableLowMotion;
   },
 
   updateGridPageSize() {
@@ -398,8 +379,6 @@ const App = {
         ttlMs: this.imageProxyStatusTtlMs,
         timeoutMs: this.imageProxyCheckTimeoutMs,
         waitForLoad: true,
-        enabled: this.features.imageProxy,
-        smartLoading: this.features.smartImageLoading,
         sanitizeImageUrl: (value) => this.sanitizeImageUrl(value),
         dimensions: this.imageDimensions
       });
@@ -428,7 +407,6 @@ const App = {
   },
 
   shouldUseImageProxy() {
-    if (!this.features.imageProxy) return false;
     return this.getImageProxyRuntime().shouldUseProxy();
   },
 
@@ -1478,11 +1456,7 @@ const App = {
     }
 
     section.classList.remove('is-empty');
-    if (this.features.templatePooling) {
-      grid.replaceChildren(this.renderAnimeCardsDom(items, { startIndex: 0 }));
-    } else {
-      setHTML(grid, this.renderAnimeCards(items, { startIndex: 0 }));
-    }
+    grid.replaceChildren(this.renderAnimeCardsDom(items, { startIndex: 0 }));
   },
 
   // Pagination state
@@ -3228,7 +3202,7 @@ const App = {
     });
     const surprise = Discovery.getSurpriseMe(source);
     if (!surprise) return null;
-    Discovery.trackSurpriseMe(surprise.id);
+    Discovery.recordSurprise(surprise.id);
     this.showAnimeDetail(surprise.id);
     return surprise;
   },
@@ -3326,7 +3300,6 @@ const App = {
   },
 
   setupIntelligentPrefetching() {
-    if (!this.features.intelligentPrefetching) return;
     if (this.prefetchObserver || typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
 
     this.prefetchObserver = new IntersectionObserver((entries) => {
@@ -3792,7 +3765,7 @@ const App = {
       return this.gridSortedCache;
     }
 
-    const wantsPartial = this.features.lazyGridSort && Number.isFinite(requiredCount) && requiredCount > 0;
+    const wantsPartial = Number.isFinite(requiredCount) && requiredCount > 0;
     if (wantsPartial) {
       const top = this.selectTopAnimeByMetric(source, sortKey, requiredCount);
       this.gridSortedCache = top;
@@ -3812,7 +3785,7 @@ const App = {
   },
 
   scheduleFullGridSort() {
-    if (this.gridSortHandle || !this.features.lazyGridSort) return;
+    if (this.gridSortHandle) return;
     const sortKey = this.currentSort;
     const source = this.filteredData;
     this.gridSortHandle = this.queueIdleTask(() => {
@@ -4623,21 +4596,13 @@ const App = {
     const hasMore = requestedEndIndex < countForMore;
 
     if (!shouldAppend) {
-      if (this.features.templatePooling && this.features.diffRendering) {
-        this.diffRenderAnimeGrid(container, visibleAnime, { startIndex });
-      } else {
-        setHTML(container, this.renderAnimeCards(visibleAnime, { startIndex }));
-      }
+      this.diffRenderAnimeGrid(container, visibleAnime, { startIndex });
     } else if (visibleAnime.length > 0) {
       const loadMoreEl = container.querySelector('.load-more-container');
       if (loadMoreEl) {
         loadMoreEl.remove();
       }
-      if (this.features.templatePooling) {
-        container.appendChild(this.renderAnimeCardsDom(visibleAnime, { startIndex }));
-      } else {
-        insertHTML(container, 'beforeend', this.renderAnimeCards(visibleAnime, { startIndex }));
-      }
+      container.appendChild(this.renderAnimeCardsDom(visibleAnime, { startIndex }));
     }
 
     if (!shouldAppend && visibleAnime.length > 0) {
@@ -4688,7 +4653,7 @@ const App = {
   },
 
   setupVirtualScrolling(container) {
-    if (!this.features.virtualScrolling) return;
+    if (!this.virtualScrollingEnabled) return;
     if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
     if (!this.gridObserver) {
       this.gridObserver = new IntersectionObserver((entries) => {
@@ -5432,8 +5397,6 @@ const App = {
     const preset = FilterPresets.get(presetKey);
     if (!preset) return;
 
-    FilterPresets.trackUsage(presetKey);
-
     const filtered = FilterPresets.applyPreset(presetKey, this.animeData);
     this.filteredData = filtered;
 
@@ -5569,6 +5532,5 @@ const App = {
 };
 
 export { App };
-export default App;
 
 

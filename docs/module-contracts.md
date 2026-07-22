@@ -15,7 +15,7 @@
 - Runtime TypeScript entrypoint: `js/services/catalog-loader.ts`
 - Payload module: `js/services/catalog-payload.ts`
 - Payload TypeScript entrypoint: `js/services/catalog-payload.ts`
-- Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/api-client.ts`, `js/services/cache-manager.ts`, `js/services/error-handler.ts`, `js/services/logger.ts`
+- Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/cache-manager.ts`, `js/services/logger.ts`
 - Shared TypeScript contracts: `js/contracts/catalog-runtime.ts`
 - App handoff: `js/app.ts` (`applyCatalogPayload`, render/filter/meta refresh)
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)

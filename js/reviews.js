@@ -1,10 +1,6 @@
-import { ApiClient } from './services/api-client.ts';
 import { CacheManager } from './services/cache-manager.ts';
-import { ErrorHandler } from './services/error-handler.ts';
 import { Logger } from './services/logger.ts';
-import { RateLimiter } from './services/rate-limiter.js';
 import { SchemaValidator } from './services/schema-validator.js';
-import { CircuitBreaker } from './circuitBreaker.js';
 import { HealthMonitor } from './healthMonitor.js';
 import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.ts';
 import { setHTML } from './security/trusted-types.js';
@@ -26,21 +22,11 @@ const ReviewsService = {
   baseRetryDelay: 1000, // 1 second
   maxRetryDelay: 8000, // 8 seconds
   retryAttempts: new Map(), // Track retry attempts per anime
-
-  getApiClient() {
-    return ApiClient;
-  },
+  jikanQueue: Promise.resolve(),
+  nextJikanRequestAt: 0,
 
   getCache() {
     return CacheManager;
-  },
-
-  getErrorHandler() {
-    return ErrorHandler;
-  },
-
-  getRateLimiter() {
-    return RateLimiter;
   },
 
   getSchemaValidator() {
@@ -67,23 +53,32 @@ const ReviewsService = {
     if (!validator || typeof validator.validate !== 'function') return true;
     const isValid = validator.validate(schemaKey, payload);
     if (!isValid) {
-      const errorHandler = this.getErrorHandler();
       const error = new Error('Unexpected API response schema: ' + schemaKey);
-      if (errorHandler?.report) {
-        errorHandler.report(error, { source: 'ReviewsService', schemaKey, ...context });
-      } else if (typeof console !== 'undefined' && console.warn) {
-        console.warn('[ReviewsService] Schema validation failed', schemaKey, context);
-      }
+      Logger?.warn?.('Reviews response schema invalid', { error, schemaKey, ...context });
     }
     return isValid;
   },
 
   async withJikanRateLimit(fn) {
-    const limiter = this.getRateLimiter();
-    if (limiter?.execute) {
-      return limiter.execute('jikan', fn);
+    const run = async () => {
+      const waitMs = Math.max(0, this.nextJikanRequestAt - Date.now());
+      if (waitMs) await new Promise(resolve => setTimeout(resolve, waitMs));
+      this.nextJikanRequestAt = Date.now() + 500;
+      return fn();
+    };
+    const scheduled = this.jikanQueue.then(run, run);
+    this.jikanQueue = scheduled.catch(() => undefined);
+    return scheduled;
+  },
+
+  async requestJson(url) {
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!response.ok) {
+      const error = new Error('API request failed: ' + response.status);
+      error.status = response.status;
+      throw error;
     }
-    return fn();
+    return response.json();
   },
 
   escapeHtml(value) {
@@ -245,11 +240,6 @@ const ReviewsService = {
       params.preliminary = 'true';
     }
 
-    const apiClient = this.getApiClient();
-    if (apiClient?.getServiceUrl) {
-      return apiClient.getServiceUrl('jikan', 'anime/' + parsedId + '/reviews', params);
-    }
-
     const url = new URL(this.API_URL + '/anime/' + parsedId + '/reviews');
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -263,10 +253,6 @@ const ReviewsService = {
     if (!malId) return '';
     const parsedId = Number.parseInt(malId, 10);
     if (!Number.isFinite(parsedId)) return '';
-    const apiClient = this.getApiClient();
-    if (apiClient?.getServiceUrl) {
-      return apiClient.getServiceUrl('jikan', 'anime/' + parsedId);
-    }
     return this.API_URL + '/anime/' + parsedId;
   },
 
@@ -275,20 +261,7 @@ const ReviewsService = {
     if (!Number.isFinite(parsedId)) return '';
 
     try {
-      const apiClient = this.getApiClient();
-      const data = apiClient?.getServiceJson
-        ? await this.withJikanRateLimit(() => apiClient.getServiceJson('jikan', 'anime/' + parsedId))
-        : await this.withJikanRateLimit(async () => {
-            const url = this.buildAnimeUrl(parsedId);
-            if (!url) return null;
-            const response = await fetch(url, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json'
-              }
-            });
-            return response.ok ? response.json() : null;
-          });
+      const data = await this.withJikanRateLimit(() => this.requestJson(this.buildAnimeUrl(parsedId)));
       if (!this.validateApiResponse('api.jikan.anime', data, { endpoint: 'anime', malId: parsedId })) {
         return '';
       }
@@ -403,7 +376,6 @@ const ReviewsService = {
     // Reset retry count on manual retry
     if (isManualRetry) {
       this.resetRetryCount(cacheKey);
-      CircuitBreaker.reset('jikan-api');
     }
 
     const cached = this.getCacheEntry(cacheKey);
@@ -411,63 +383,14 @@ const ReviewsService = {
       return cached;
     }
 
-    const circuitCheck = CircuitBreaker.canExecute('jikan-api');
-    if (!circuitCheck.allowed) {
-      const cachedDescription = this.getCachedDescription(cacheKey);
-      const retryAfter =
-        Number.isFinite(circuitCheck.retryAfterMs) ? Math.ceil(circuitCheck.retryAfterMs / 1000) : null;
-      return {
-        positive: [],
-        neutral: [],
-        negative: [],
-        description: cachedDescription || '',
-        error: true,
-        errorMessage: 'Reviews are temporarily unavailable. Please try again shortly.',
-        circuitOpen: true,
-        retryAfter,
-        retryAttempt: this.getRetryCount(cacheKey),
-        maxRetries: this.maxRetries,
-        canRetry: false
-      };
-    }
-
     const cachedDescription = this.getCachedDescription(cacheKey);
 
     try {
-      const apiClient = this.getApiClient();
       const parsedId = Number.parseInt(malId, 10);
       if (!Number.isFinite(parsedId)) {
         throw new Error('Missing MAL id for reviews');
       }
-      const params = {};
-      if (Number.isFinite(this.reviewsPage) && this.reviewsPage > 0) {
-        params.page = String(this.reviewsPage);
-      }
-      if (this.includeSpoilers) {
-        params.spoiler = 'true';
-      }
-      if (this.includePreliminary) {
-        params.preliminary = 'true';
-      }
-
-      const data = apiClient?.getServiceJson
-        ? await this.withJikanRateLimit(() => apiClient.getServiceJson('jikan', 'anime/' + parsedId + '/reviews', { params }))
-        : await this.withJikanRateLimit(async () => {
-            const url = this.buildReviewsUrl(parsedId);
-            if (!url) {
-              throw new Error('Missing MAL id for reviews');
-            }
-            const response = await fetch(url, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json'
-              }
-            });
-            if (!response.ok) {
-              throw new Error('API request failed: ' + response.status);
-            }
-            return response.json();
-          });
+      const data = await this.withJikanRateLimit(() => this.requestJson(this.buildReviewsUrl(parsedId)));
       if (!this.validateApiResponse('api.jikan.reviews', data, { endpoint: 'anime/reviews', malId: parsedId })) {
         throw new Error('Unexpected reviews response');
       }
@@ -490,7 +413,6 @@ const ReviewsService = {
       };
 
       // Reset retry count on success
-      CircuitBreaker.recordSuccess('jikan-api');
       this.resetRetryCount(cacheKey);
       this.setCacheEntry(cacheKey, result);
       this.recordReviewLatency(this.getPerformanceNow() - requestStart, { success: true });
@@ -524,9 +446,6 @@ const ReviewsService = {
       }
 
       // Max retries reached or non-retryable error
-      CircuitBreaker.recordFailure('jikan-api');
-      const circuitStatus = CircuitBreaker.getStatus('jikan-api');
-      const circuitOpen = circuitStatus.state === CircuitBreaker.states.OPEN;
       return {
         positive: [],
         neutral: [],
@@ -534,10 +453,10 @@ const ReviewsService = {
         description: cachedDescription || '',
         error: true,
         errorMessage: error.message,
-        circuitOpen,
+        circuitOpen: false,
         retryAttempt: this.getRetryCount(cacheKey),
         maxRetries: this.maxRetries,
-        canRetry: !circuitOpen && this.getRetryCount(cacheKey) < this.maxRetries
+        canRetry: this.getRetryCount(cacheKey) < this.maxRetries
       };
     }
   },
@@ -1031,7 +950,6 @@ const ReviewsService = {
 };
 
 export { ReviewsService };
-export default ReviewsService;
 
 
 

@@ -8,6 +8,10 @@ const fullIndexPayload = {
     { id: 'full-entry', title: 'Full Entry', detailPath: 'data/anime.detail/full-entry.json' }
   ]
 };
+const jsonResponse = (payload, status = 200) => new Response(JSON.stringify(payload), {
+  status,
+  headers: { 'Content-Type': 'application/json' }
+});
 
 const createRuntimeHarness = (overrides = {}) => {
   const events = [];
@@ -17,7 +21,6 @@ const createRuntimeHarness = (overrides = {}) => {
   };
   const session = createCatalogSession();
   const runtime = createCatalogRuntime({
-    features: { parallelLoading: false },
     dataSources: {
       full: 'data/anime.full.index.json'
     },
@@ -27,9 +30,7 @@ const createRuntimeHarness = (overrides = {}) => {
     emitAppEvent: (name, detail = {}) => events.push({ name, ...detail }),
     emitCatalogEvent: (type, detail = {}) => events.push({ name: 'catalog', type, ...detail }),
     getPerformanceNow: () => 0,
-    getApiClient: () => ({
-      getJson: async () => null
-    }),
+    fetchFn: async () => jsonResponse(null),
     loadEmbeddedData: async () => false,
     applyCatalogPayload: async (payload, options) => {
       applied.push({ payload, options });
@@ -49,9 +50,7 @@ const createRuntimeHarness = (overrides = {}) => {
 test('CatalogLoader loadInitialData applies the full index directly', async () => {
   setupDom(undefined, { url: 'https://example.com/' });
   const { runtime, events, applied } = createRuntimeHarness({
-    getApiClient: () => ({
-      getJson: async (path) => (path === 'data/anime.full.index.json' ? fullIndexPayload : null)
-    })
+    fetchFn: async (path) => jsonResponse(path === 'data/anime.full.index.json' ? fullIndexPayload : null)
   });
 
   const loaded = await runtime.loadInitialData();
@@ -67,7 +66,7 @@ test('CatalogLoader loadInitialData falls back to cached full index when network
   setupDom(undefined, { url: 'https://example.com/' });
   let cacheRead = false;
   const { runtime } = createRuntimeHarness({
-    getApiClient: () => ({ getJson: async () => null }),
+    fetchFn: async () => jsonResponse(null),
     catalogCache: {
       getFullCatalog: async () => {
         cacheRead = true;

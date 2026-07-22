@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { ApiClient } from './services/api-client.ts';
 import { CacheManager } from './services/cache-manager.ts';
 import { Logger } from './services/logger.ts';
 import { sanitizeImageUrl as sanitizeSafeImageUrl } from './urlSanitizer.ts';
@@ -136,7 +135,7 @@ const chunk = (items, size) => {
 
 const fetchScheduleBatch = async (malIds) => {
   if (!Array.isArray(malIds) || malIds.length === 0) return new Map();
-  const response = await ApiClient.request(AIRING_SOURCE_URL, {
+  const response = await fetch(AIRING_SOURCE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -147,6 +146,7 @@ const fetchScheduleBatch = async (malIds) => {
       variables: { ids: malIds }
     })
   });
+  if (!response.ok) throw new Error(`AniList schedule request failed: ${response.status}`);
   const payload = await response.json();
   if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
     const error = new Error('AniList schedule query failed');

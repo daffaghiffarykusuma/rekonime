@@ -309,4 +309,3 @@ export {
   getEpisodeCount,
   isValidScoreProfile
 };
-export default CatalogPayload;

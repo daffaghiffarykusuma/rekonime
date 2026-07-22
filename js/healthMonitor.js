@@ -1,4 +1,3 @@
-import { CircuitBreaker } from './circuitBreaker.js';
 import { Logger } from './services/logger.ts';
 
 /**
@@ -29,7 +28,7 @@ const HealthMonitor = {
     },
     reviews: {
       healthy: true,
-      state: CircuitBreaker.states.CLOSED,
+      state: 'UNKNOWN',
       failures: 0,
       lastFailureTime: null,
       lastCheck: null,
@@ -99,13 +98,13 @@ const HealthMonitor = {
   },
 
   updateReviewService() {
-    const status = CircuitBreaker.getStatus('jikan-api');
     const metrics = this.serviceMetrics.get('reviews') || {};
+    const healthy = !metrics.lastError;
     this.services.reviews = {
-      healthy: status.healthy,
-      state: status.state,
-      failures: status.failures,
-      lastFailureTime: status.lastFailureTime,
+      healthy,
+      state: healthy ? 'HEALTHY' : 'DEGRADED',
+      failures: healthy ? 0 : 1,
+      lastFailureTime: healthy ? null : metrics.lastLatencyAt || null,
       lastCheck: Date.now(),
       latencyMs: Number.isFinite(metrics.latencyMs) ? metrics.latencyMs : null,
       lastLatencyAt: metrics.lastLatencyAt || null,
@@ -174,4 +173,3 @@ const HealthMonitor = {
 };
 
 export { HealthMonitor };
-export default HealthMonitor;

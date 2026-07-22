@@ -16,6 +16,10 @@ const fullPayload = {
     }
   ]
 };
+const jsonResponse = (payload) => new Response(JSON.stringify(payload), {
+  status: 200,
+  headers: { 'Content-Type': 'application/json' }
+});
 
 const createFullCatalogHarness = (overrides = {}) => {
   const catalogEvents = [];
@@ -24,10 +28,9 @@ const createFullCatalogHarness = (overrides = {}) => {
   const session = createCatalogSession();
 
   const runtime = createCatalogRuntime({
-    features: { parallelLoading: false },
     dataSources: { full: 'data/anime.full.index.json' },
     getPerformanceNow: () => 0,
-    getApiClient: () => ({ getJson: async () => null }),
+    fetchFn: async () => jsonResponse(null),
     getCurrentAnimeData: () => [],
     session,
     teardownFullCatalogInteractionTriggers: () => {},
@@ -65,9 +68,7 @@ test('Catalog runtime caches a successful network full catalog', async () => {
   setupDom(undefined, { url: 'https://example.com/' });
 
   const harness = createFullCatalogHarness({
-    getApiClient: () => ({
-      getJson: async (path) => (path === 'data/anime.full.index.json' ? fullPayload : null)
-    })
+    fetchFn: async (path) => jsonResponse(path === 'data/anime.full.index.json' ? fullPayload : null)
   });
 
   const loaded = await harness.runtime.loadFullCatalog();

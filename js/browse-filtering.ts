@@ -415,4 +415,3 @@ const BrowseFiltering = {
 };
 
 export { BrowseFiltering };
-export default BrowseFiltering;

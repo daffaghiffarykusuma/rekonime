@@ -460,4 +460,3 @@ const KeyboardShortcuts = {
 };
 
 export { KeyboardShortcuts };
-export default KeyboardShortcuts;

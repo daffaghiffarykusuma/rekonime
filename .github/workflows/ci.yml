@@ -58,9 +58,6 @@ jobs:
       - name: Coverage thresholds
         run: bun --silent run check:coverage-thresholds
 
-      - name: Entrypoint dedup
-        run: bun --silent run check:entrypoints
-
       - name: Build verification
         run: bun --silent run build:verify
 

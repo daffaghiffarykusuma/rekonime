@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { HealthMonitor } from '../../js/healthMonitor.js';
-import { CircuitBreaker } from '../../js/circuitBreaker.js';
 
 test('HealthMonitor marks data fresh and detects staleness', () => {
   const originalNow = Date.now;
@@ -19,7 +18,6 @@ test('HealthMonitor marks data fresh and detects staleness', () => {
 });
 
 test('HealthMonitor performHealthChecks returns status', async () => {
-  CircuitBreaker.reset('jikan-api');
   HealthMonitor.dataFreshness.clear();
 
   const status = await HealthMonitor.performHealthChecks();
