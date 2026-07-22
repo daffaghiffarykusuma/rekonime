@@ -6,10 +6,30 @@ import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUr
 import { setHTML } from './security/trusted-types.js';
 
 /**
- * Reviews Service - Fetches and categorizes reviews from MyAnimeList (via Jikan)
+ * Reviews Service - Fetches MyAnimeList reviews via Jikan, with an AniList fallback.
  */
 const ReviewsService = {
   API_URL: 'https://api.jikan.moe/v4',
+  ANILIST_API_URL: 'https://graphql.anilist.co',
+  ANILIST_REVIEWS_QUERY: `
+    query ($idMal: Int) {
+      Media(idMal: $idMal, type: ANIME) {
+        description(asHtml: false)
+        reviews(page: 1, perPage: 9, sort: RATING_DESC) {
+          nodes {
+            id
+            summary
+            body
+            score
+            rating
+            user { name avatar { medium } }
+            siteUrl
+            createdAt
+          }
+        }
+      }
+    }
+  `,
   maxReviewsTotal: 9,
   maxReviewsPerSentiment: 3,
   minReviewLength: 120,
@@ -81,6 +101,20 @@ const ReviewsService = {
     return response.json();
   },
 
+  async requestAniListJson(malId) {
+    const response = await fetch(this.ANILIST_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: this.ANILIST_REVIEWS_QUERY, variables: { idMal: malId } })
+    });
+    if (!response.ok) {
+      const error = new Error('AniList request failed: ' + response.status);
+      error.status = response.status;
+      throw error;
+    }
+    return response.json();
+  },
+
   escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
       switch (char) {
@@ -102,7 +136,7 @@ const ReviewsService = {
     return sanitizeSafeUrl(rawUrl, {
       allowRelative: false,
       allowedProtocols: ['https:'],
-      allowedHosts: ['myanimelist.net', 'www.myanimelist.net'],
+      allowedHosts: ['myanimelist.net', 'www.myanimelist.net', 'anilist.co', 'www.anilist.co'],
       allowSubdomains: false
     });
   },
@@ -113,6 +147,7 @@ const ReviewsService = {
       allowedHosts: [
         'cdn.myanimelist.net',
         'myanimelist.cdn-dena.com',
+        's4.anilist.co',
         'via.placeholder.com',
         'i.ytimg.com'
       ]
@@ -362,6 +397,32 @@ const ReviewsService = {
     return false;
   },
 
+  async fetchAniListFallback(malId, cachedDescription = '') {
+    const payload = await this.requestAniListJson(malId);
+    if (payload?.errors?.length) throw new Error(payload.errors[0]?.message || 'AniList GraphQL error');
+
+    const media = payload?.data?.Media;
+    if (!media) throw new Error('Anime unavailable from AniList');
+
+    const reviews = (media.reviews?.nodes || []).map(review => ({
+      mal_id: review.id,
+      review: [review.summary, review.body].filter(Boolean).join('\n\n'),
+      score: Number.isFinite(review.score) ? review.score / 10 : null,
+      reactions: { overall: review.rating },
+      user: { username: review.user?.name, images: { jpg: { image_url: review.user?.avatar?.medium } } },
+      url: review.siteUrl,
+      date: Number.isFinite(review.createdAt) ? new Date(review.createdAt * 1000).toISOString() : null
+    }));
+
+    return {
+      ...this.categorizeReviews(reviews),
+      description: media.description || cachedDescription,
+      source: 'AniList',
+      retryAttempt: this.getRetryCount(malId),
+      maxRetries: this.maxRetries
+    };
+  },
+
   /**
    * Fetch reviews from MyAnimeList via the Jikan API with retry logic.
    * @param {number|null} malId - MyAnimeList media ID
@@ -384,9 +445,9 @@ const ReviewsService = {
     }
 
     const cachedDescription = this.getCachedDescription(cacheKey);
+    const parsedId = Number.parseInt(malId, 10);
 
     try {
-      const parsedId = Number.parseInt(malId, 10);
       if (!Number.isFinite(parsedId)) {
         throw new Error('Missing MAL id for reviews');
       }
@@ -408,6 +469,7 @@ const ReviewsService = {
       const result = {
         ...categorized,
         description,
+        source: 'MyAnimeList',
         retryAttempt: this.getRetryCount(cacheKey),
         maxRetries: this.maxRetries
       };
@@ -428,6 +490,17 @@ const ReviewsService = {
 
       // Check if we should retry
       if (this.shouldRetry(cacheKey, error)) {
+        try {
+          const fallback = await this.fetchAniListFallback(parsedId, cachedDescription);
+          if (fallback.description) this.setCachedDescription(cacheKey, fallback.description);
+          this.resetRetryCount(cacheKey);
+          this.setCacheEntry(cacheKey, fallback);
+          this.recordReviewLatency(this.getPerformanceNow() - requestStart, { success: true });
+          return fallback;
+        } catch (fallbackError) {
+          Logger?.warn?.('AniList reviews fallback failed', { error: fallbackError, malId: parsedId });
+        }
+
         this.incrementRetryCount(cacheKey);
         const delay = this.getRetryDelay(this.getRetryCount(cacheKey) - 1);
         if (Logger?.info) {
@@ -760,6 +833,8 @@ const ReviewsService = {
     const canRetry = categorizedReviews.canRetry === true;
     const retryAttempt = categorizedReviews.retryAttempt || 0;
     const maxRetries = categorizedReviews.maxRetries || this.maxRetries;
+    const sourceName = categorizedReviews.source === 'AniList' ? 'AniList' : 'MyAnimeList';
+    const sourceUrl = sourceName === 'AniList' ? 'https://anilist.co' : 'https://myanimelist.net';
 
     // Build error message if needed
     let errorContent = '';
@@ -804,12 +879,12 @@ const ReviewsService = {
           <div class="reviews-container" id="reviews-container">
             ${activeReviews.length > 0
           ? activeReviews.map(r => this.renderReviewCard(r)).join('')
-          : '<p class="no-reviews">No community reviews yet—be the first on MyAnimeList!</p>'
+          : `<p class="no-reviews">No community reviews yet&mdash;be the first on ${sourceName}!</p>`
         }
           </div>
         `}
         <p class="reviews-attribution">
-          Reviews from <a href="https://myanimelist.net" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">MyAnimeList</a>
+          Reviews from <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">${sourceName}</a>
         </p>
       </div>
     `;
@@ -916,6 +991,7 @@ const ReviewsService = {
     const tabsWrap = document.querySelector('.review-tabs');
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     const scrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+    const sourceName = categorizedReviews.source === 'AniList' ? 'AniList' : 'MyAnimeList';
 
     if (!container || tabs.length === 0) return;
 
@@ -942,7 +1018,7 @@ const ReviewsService = {
         const reviews = categorizedReviews[sentiment] || [];
         setHTML(container, reviews.length > 0
           ? reviews.map(r => this.renderReviewCard(r)).join('')
-          : '<p class="no-reviews">No community reviews yetâ€”be the first on MyAnimeList!</p>');
+          : `<p class="no-reviews">No community reviews yet&mdash;be the first on ${sourceName}!</p>`);
         scrollTabIntoView(tab);
       });
     });

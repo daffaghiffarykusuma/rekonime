@@ -26,6 +26,7 @@ test('ReviewsService review links stay on MyAnimeList hosts', () => {
   );
   assert.equal(ReviewsService.sanitizeUrl('https://evil.example/reviews.php?id=123'), '');
   assert.equal(ReviewsService.sanitizeUrl('https://reviews.myanimelist.net/reviews.php?id=123'), '');
+  assert.equal(ReviewsService.sanitizeUrl('https://anilist.co/review/7'), 'https://anilist.co/review/7');
 });
 
 test('ReviewsService buildReviewSummary trims long text', () => {
@@ -73,4 +74,51 @@ test('ReviewsService fetchReviews returns cached result when available', async (
   assert.equal(Array.isArray(result.positive), true);
 
   ReviewsService.requestJson = originalRequestJson;
+});
+
+test('ReviewsService falls back to AniList when Jikan reviews time out', async () => {
+  const originalRequestJson = ReviewsService.requestJson;
+  const originalRequestAniListJson = ReviewsService.requestAniListJson;
+  ReviewsService.cache.clear();
+  ReviewsService.retryAttempts.clear();
+  ReviewsService.nextJikanRequestAt = 0;
+
+  ReviewsService.requestJson = async () => {
+    const error = new Error('API request failed: 504');
+    error.status = 504;
+    throw error;
+  };
+  ReviewsService.requestAniListJson = async () => ({
+    data: {
+      Media: {
+        description: 'AniList synopsis',
+        reviews: {
+          nodes: [{
+            id: 7,
+            summary: 'Worth watching.',
+            body: 'Strong characters and thoughtful pacing. '.repeat(5),
+            score: 90,
+            rating: 12,
+            user: { name: 'Reviewer', avatar: { medium: 'https://s4.anilist.co/avatar.jpg' } },
+            siteUrl: 'https://anilist.co/review/7',
+            createdAt: 1_700_000_000
+          }]
+        }
+      }
+    }
+  });
+
+  try {
+    const result = await ReviewsService.fetchReviews(5114, 'Fullmetal Alchemist: Brotherhood');
+    assert.equal(result.error, undefined);
+    assert.equal(result.source, 'AniList');
+    assert.equal(result.positive.length, 1);
+    assert.equal(result.description, 'AniList synopsis');
+    assert.match(ReviewsService.renderReviewsSection(result), /Reviews from <a[^>]+>AniList<\/a>/);
+  } finally {
+    ReviewsService.requestJson = originalRequestJson;
+    ReviewsService.requestAniListJson = originalRequestAniListJson;
+    ReviewsService.cache.clear();
+    ReviewsService.retryAttempts.clear();
+  }
 });
