@@ -160,6 +160,30 @@ const Recommendations = {
     return cues.length > 0 ? cues : ['Experience data is limited'];
   },
 
+  getRecommendationDecision(animeList, {
+    viewingIntent = null,
+    modeKey = this.currentMode,
+    limit = 6
+  } = {}) {
+    const intentKey = String(viewingIntent?.key || '');
+    const intent = this.getIntentDefinition(intentKey);
+    const recommendations = intent
+      ? this.getRecommendationsForIntent(animeList, intentKey, { limit, modeKey })
+      : this.getRecommendationsWithMode(animeList, modeKey, limit);
+
+    return {
+      context: intent && viewingIntent?.label && viewingIntent?.description
+        ? `${viewingIntent.label}: ${viewingIntent.description}`
+        : this.getModeContext(modeKey),
+      items: recommendations.map(anime => ({
+        ...anime,
+        experienceCues: Array.isArray(anime.experienceCues)
+          ? anime.experienceCues
+          : this.getExperienceCues(anime, intentKey)
+      }))
+    };
+  },
+
   /**
    * Get similar anime based on shared genres + themes and score alignment
    * @param {Array} animeList - Array of anime objects

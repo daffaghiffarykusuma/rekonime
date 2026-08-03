@@ -18,9 +18,14 @@ test('taste profile stores explicit positive, negative, and reduced preferences'
   const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 1000 });
   store.load();
 
-  store.addMoreLike({ id: 'show-1', genres: ['Action'], themes: ['Super Power'] });
-  store.addNotForMe({ id: 'show-2', genres: ['Horror'] });
-  store.reduceGenre('Horror');
+  store.applyRecommendationFeedback('rec-more-like', {
+    id: 'show-1',
+    title: 'Show 1',
+    genres: ['Action'],
+    themes: ['Super Power']
+  });
+  store.applyRecommendationFeedback('rec-not-for-me', { id: 'show-2', title: 'Show 2', genres: ['Horror'] });
+  store.applyRecommendationFeedback('rec-less-tag', { id: 'show-3', title: 'Show 3' }, { genre: 'Horror' });
 
   const profile = store.getProfile();
   assert.deepEqual(profile.explicit.moreLikeTitleIds, ['show-1']);
@@ -57,8 +62,13 @@ test('taste profile infers weighted evidence without treating completed as loved
 test('taste score rewards matching preferences and strongly suppresses not-for-me titles', () => {
   const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 2000 });
   store.load();
-  store.addMoreLike({ id: 'liked', genres: ['Adventure'], themes: ['Found Family'] });
-  store.addNotForMe({ id: 'blocked', genres: ['Adventure'] });
+  store.applyRecommendationFeedback('rec-more-like', {
+    id: 'liked',
+    title: 'Liked',
+    genres: ['Adventure'],
+    themes: ['Found Family']
+  });
+  store.applyRecommendationFeedback('rec-not-for-me', { id: 'blocked', title: 'Blocked', genres: ['Adventure'] });
   const profile = store.getProfile();
 
   assert.equal(scoreAnimeForTaste({ id: 'candidate', genres: ['Adventure'], themes: ['Found Family'] }, profile) > 0, true);
@@ -98,8 +108,8 @@ test('Taste Profile prepares weighted Discovery candidates from Watchlist Lifecy
     status: 'completed',
     snapshot: { genres: ['Action'], themes: ['Fantasy'] }
   }]);
-  store.addNotForMe({ id: 'blocked', genres: ['Action'] });
-  store.reduceGenre('Drama');
+  store.applyRecommendationFeedback('rec-not-for-me', { id: 'blocked', title: 'Blocked', genres: ['Action'] });
+  store.applyRecommendationFeedback('rec-less-tag', { id: 'drama', title: 'Drama' }, { genre: 'Drama' });
 
   const source = store.prepareDiscoverySource([
     { id: 'neutral', genres: ['Drama'], themes: [] },
@@ -117,7 +127,7 @@ test('Taste Profile prepares weighted Discovery candidates from Watchlist Lifecy
 test('taste profile reset preserves evidence learned from Watchlist Lifecycle', () => {
   const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 4000 });
   store.load();
-  store.addMoreLike({ id: 'liked', genres: ['Action'] });
+  store.applyRecommendationFeedback('rec-more-like', { id: 'liked', title: 'Liked', genres: ['Action'] });
   store.reset([{
     id: 'completed',
     status: 'completed',

@@ -82,12 +82,37 @@ const readStorageJSON = (storage, key) => {
   return null;
 };
 
+const readStorageRaw = (storage, key) => {
+  try {
+    if (typeof storage?.getRaw === 'function') {
+      return storage.getRaw(key, { fallback: '', allowMemory: false, validate: false }) || null;
+    }
+    if (typeof storage?.getItem === 'function') return storage.getItem(key) || null;
+  } catch (error) {
+    return null;
+  }
+  return null;
+};
+
+const restoreStorageRaw = (storage, key, raw) => {
+  try {
+    if (raw === null) {
+      storage?.removeItem?.(key);
+      return readStorageRaw(storage, key) === null;
+    }
+    if (typeof storage?.setRaw === 'function') return storage.setRaw(key, raw, { validate: false });
+    if (typeof storage?.setItem === 'function') return storage.setItem(key, raw) !== false;
+  } catch (error) {
+    return false;
+  }
+  return false;
+};
+
 const writeStorageJSON = (storage, key, payload) => {
   try {
     if (typeof storage?.setJSON === 'function') return storage.setJSON(key, payload, { validate: true });
     if (typeof storage?.setItem === 'function') {
-      storage.setItem(key, JSON.stringify(payload));
-      return true;
+      return storage.setItem(key, JSON.stringify(payload)) !== false;
     }
   } catch (error) {
     return false;
@@ -99,7 +124,8 @@ const createLocalStorageAdapter = () => ({
   getItem: (key) => typeof localStorage === 'undefined' ? null : localStorage.getItem(key),
   setItem: (key, value) => {
     if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
-  }
+  },
+  removeItem: (key) => typeof localStorage === 'undefined' ? undefined : localStorage.removeItem(key)
 });
 
 const addUnique = (values, value) => unique([...values, value]);
@@ -123,7 +149,7 @@ const topEvidence = (map) => [...map.values()]
   .sort((a, b) => b.weight - a.weight || a.label.localeCompare(b.label))
   .slice(0, 6);
 
-const buildTasteProfileFromWatchlist = (entries = []) => {
+const buildTasteProfileFromWatchlist = (entries: unknown[] = []) => {
   const positiveGenres = new Map();
   const positiveThemes = new Map();
   const negativeGenres = new Map();
@@ -189,6 +215,22 @@ const createTasteProfileStore = ({
     profile = normalizeProfile({ ...nextProfile, updatedAt: now() });
     writeStorageJSON(storage, storageKey, profile);
     return profile;
+  };
+
+  const commitProfile = (nextProfile) => {
+    const normalized = normalizeProfile({ ...nextProfile, updatedAt: now() });
+    if (!writeStorageJSON(storage, storageKey, normalized)) {
+      writeStorageJSON(storage, storageKey, profile);
+      return false;
+    }
+    profile = normalized;
+    return true;
+  };
+
+  const restorePersistedRaw = (raw) => {
+    if (!restoreStorageRaw(storage, storageKey, raw)) return false;
+    load();
+    return true;
   };
 
   const load = () => {
@@ -308,29 +350,21 @@ const createTasteProfileStore = ({
 
   const store = {
     load,
-    save,
+    commitProfile,
+    getPersistedRaw: () => readStorageRaw(storage, storageKey),
+    restorePersistedRaw,
     reset,
     getProfile: () => normalizeProfile(profile),
-    replaceProfile: (nextProfile) => save(nextProfile),
-    addMoreLike,
-    addNotForMe,
-    reduceGenre,
-    reduceTheme,
     updateInferredFromWatchlist: (entries) => update((current) => ({
       ...current,
       inferred: buildTasteProfileFromWatchlist(entries)
     })),
-    getExcludedIds: () => new Set(normalizeProfile(profile).explicit.notForMeTitleIds),
     exportData: (watchlistEntries = []) => ({
       version: 1,
       generatedAt: new Date(now()).toISOString(),
       tasteProfile: normalizeProfile(profile),
       watchlist: Array.isArray(watchlistEntries) ? watchlistEntries : []
     }),
-    importData: (payload) => {
-      const nextProfile = payload?.tasteProfile || payload;
-      return save(nextProfile);
-    },
     applyRecommendationFeedback,
     prepareRecommendationSource,
     prepareDiscoverySource,

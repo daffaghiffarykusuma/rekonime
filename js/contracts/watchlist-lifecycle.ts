@@ -41,6 +41,8 @@ export interface WatchlistEntry {
   updatedAt: number;
   startedAt?: number;
   completedAt?: number;
+  loved?: boolean;
+  lovedAt?: number;
   snapshot?: Snapshot;
 }
 

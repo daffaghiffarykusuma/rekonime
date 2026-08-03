@@ -1,17 +1,11 @@
 // @ts-nocheck
+import { isValidCatalogPayload } from './catalog-payload.ts';
+
 const DB_NAME = 'rekonime-catalog-cache';
 const DB_VERSION = 1;
 const STORE_NAME = 'catalogs';
 const FULL_CATALOG_KEY = 'full';
 const DEFAULT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
-
-const isValidCatalogPayload = (payload) => {
-  if (!payload || typeof payload !== 'object') return false;
-  if (!Array.isArray(payload.anime)) return false;
-  if (payload.anime.length === 0) return true;
-  const firstItem = payload.anime[0];
-  return Boolean(firstItem && typeof firstItem.id !== 'undefined' && typeof firstItem.title === 'string');
-};
 
 const resolveIndexedDB = (indexedDBImpl, hasOverride = false) => {
   if (hasOverride) return indexedDBImpl || null;
@@ -140,6 +134,5 @@ const CatalogCache = {
 export {
   CatalogCache,
   DEFAULT_MAX_AGE_MS,
-  FULL_CATALOG_KEY,
-  isValidCatalogPayload
+  FULL_CATALOG_KEY
 };

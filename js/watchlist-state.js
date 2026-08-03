@@ -218,6 +218,17 @@ const writeStorageJSON = (storage, key, payload) => {
   return false;
 };
 
+const writeStorageRaw = (storage, key, raw) => {
+  if (!storage) return false;
+  try {
+    if (typeof storage.setRaw === 'function') return storage.setRaw(key, raw, { validate: false });
+    if (typeof storage.setItem === 'function') return storage.setItem(key, raw) !== false;
+  } catch (error) {
+    return false;
+  }
+  return false;
+};
+
 const removeStorageItem = (storage, key) => {
   if (!storage) return false;
   try {
@@ -503,7 +514,7 @@ const createWatchlistLifecycle = ({
   };
 
   const load = () => {
-    watchlistEntries = new Map();
+    watchlistEntries.clear();
     const parsed = readStorageJSON(storage, storageKey, { validate: true });
     if (!parsed) {
       const raw = readStorageRaw(storage, storageKey);
@@ -521,6 +532,15 @@ const createWatchlistLifecycle = ({
       watchlistEntries.set(normalized.id, normalized);
     });
     return watchlistEntries;
+  };
+
+  const restorePersistedRaw = (raw) => {
+    const restored = raw === null
+      ? removeStorageItem(storage, storageKey) && !readStorageRaw(storage, storageKey)
+      : writeStorageRaw(storage, storageKey, raw);
+    if (!restored) return false;
+    load();
+    return true;
   };
 
   const setEntries = (nextEntries) => {
@@ -885,6 +905,8 @@ const createWatchlistLifecycle = ({
     },
     setEntries,
     load,
+    getPersistedRaw: () => readStorageRaw(storage, storageKey) || null,
+    restorePersistedRaw,
     save,
     commitEntries,
     getStoragePayload,

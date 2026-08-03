@@ -9,23 +9,44 @@ import {
   renderSynopsisLoading
 } from './detail-presentation.ts';
 import { createDetailMedia } from './detail-media.ts';
-import { createDetailReviewsAdapter } from './detail-reviews.ts';
 import { renderDetailErrorState } from './detail-error-state.ts';
 
 const normalizeDetailKey = (animeId) => String(animeId ?? '').trim();
 
-const createDetailExperience = (app) => {
+const renderUnavailableReviews = () => `
+  <div class="community-reviews">
+    <h3>Community Reviews</h3>
+    <p class="no-reviews">Reviews are unavailable for this title.</p>
+  </div>
+`;
+
+const renderFailedReviews = () => `
+  <div class="community-reviews">
+    <h3>Community Reviews</h3>
+    <p class="no-reviews">Failed to load community reviews.</p>
+  </div>
+`;
+
+const createDetailExperience = (app, dependencies = {}) => {
+  const catalogRuntime = dependencies.catalogRuntime;
   const media = createDetailMedia({
     escapeAttr: app.escapeAttr.bind(app),
     shouldEmbedTrailers: app.shouldEmbedTrailers.bind(app),
     shouldAutoplayTrailers: app.shouldAutoplayTrailers.bind(app)
   });
-  const reviews = createDetailReviewsAdapter({
-    getCurrentAnimeId: () => app.currentAnimeId,
-    getLogger: app.getLogger.bind(app),
-    loadReviewsService: app.loadReviewsService.bind(app),
-    renderSynopsis: app.renderSynopsis.bind(app),
-    updateMetaForAnime: app.updateMetaForAnime.bind(app)
+  let reviewsServicePromise = null;
+  let activeAnime = null;
+  let activeSynopsis = '';
+  const loadReviewsService = dependencies.loadReviewsService || (() => {
+    if (!reviewsServicePromise) {
+      reviewsServicePromise = import('./reviews.js')
+        .then(module => module.ReviewsService)
+        .catch((error) => {
+          reviewsServicePromise = null;
+          throw error;
+        });
+    }
+    return reviewsServicePromise;
   });
   const getDetailElements = () => {
     const modal = document.getElementById('detail-modal');
@@ -109,13 +130,81 @@ const createDetailExperience = (app) => {
   };
 
   const loadCommunityReviews = async (anime, fallbackSynopsis = '') => {
-    return reviews.load(anime, fallbackSynopsis);
+    const reviewsSection = document.getElementById('community-reviews-section');
+    const synopsisSection = document.getElementById('synopsis-section');
+    const parsedMalId = Number.parseInt(anime?.malId, 10);
+
+    if (!Number.isFinite(parsedMalId)) {
+      if (synopsisSection) {
+        if (fallbackSynopsis) {
+          setHTML(synopsisSection, app.renderSynopsis(fallbackSynopsis));
+        } else {
+          synopsisSection.replaceChildren();
+        }
+      }
+      if (reviewsSection) setHTML(reviewsSection, renderUnavailableReviews());
+      return { status: 'unavailable' };
+    }
+
+    try {
+      const reviewsService = await loadReviewsService();
+      const data = await reviewsService.fetchReviews(parsedMalId, anime.title);
+      if (app.currentAnimeId !== anime.id) return { status: 'stale' };
+
+      if (synopsisSection) {
+        const synopsis = data.description || fallbackSynopsis;
+        if (synopsis) {
+          setHTML(synopsisSection, reviewsService.renderSynopsis(synopsis));
+        } else {
+          synopsisSection.replaceChildren();
+        }
+      }
+      if (reviewsSection) {
+        setHTML(reviewsSection, reviewsService.renderReviewsSection(data, 'positive'));
+        reviewsService.initTabSwitching(data);
+      }
+      if (data.description) app.updateMetaForAnime(anime, data.description);
+      return { status: 'loaded' };
+    } catch (error) {
+      if (app.currentAnimeId !== anime.id) return { status: 'stale' };
+      const logger = app.getLogger();
+      if (logger?.error) {
+        logger.error('Failed to load reviews', { error });
+      } else {
+        console.error('Failed to load reviews:', error);
+      }
+      if (synopsisSection && !fallbackSynopsis) synopsisSection.replaceChildren();
+      if (reviewsSection) {
+        let errorMarkup = renderFailedReviews();
+        try {
+          const reviewsService = await loadReviewsService();
+          errorMarkup = reviewsService.renderReviewsSection(
+            { positive: [], neutral: [], negative: [], description: '', error: true },
+            'positive'
+          );
+        } catch {
+          // Keep generic markup when the Reviews implementation cannot load.
+        }
+        setHTML(reviewsSection, errorMarkup);
+      }
+      return { status: 'failed' };
+    }
+  };
+
+  const refreshCommunityReviews = () => {
+    const anime = activeAnime?.id === app.currentAnimeId
+      ? activeAnime
+      : app.animeData.find(entry => entry?.id === app.currentAnimeId) || null;
+    if (!anime) return Promise.resolve({ status: 'unavailable' });
+    return loadCommunityReviews(anime, activeSynopsis || app.getSynopsisForAnime(anime));
   };
 
   const close = ({ updateUrl = true } = {}) => {
     app.setModalVisibility('detail-modal', false);
     media.cleanup();
     app.currentAnimeId = null;
+    activeAnime = null;
+    activeSynopsis = '';
 
     if (updateUrl) {
       app.updateUrlForAnime(null);
@@ -134,7 +223,7 @@ const createDetailExperience = (app) => {
     let anime = app.animeData.find(anime => anime?.id === animeId) || null;
 
     if (!anime && !app.isFullDataLoaded) {
-      const fullLoaded = await app.loadFullCatalog();
+      const fullLoaded = await catalogRuntime.loadFullCatalog();
       if (fullLoaded) {
         anime = app.animeData.find(entry => entry?.id === animeId) || null;
       }
@@ -196,19 +285,21 @@ const createDetailExperience = (app) => {
     }
 
     app.currentAnimeId = anime.id;
+    activeAnime = anime;
 
     if (updateUrl) {
       app.updateUrlForAnime(anime.id);
     }
 
     if (!app.hasFullAnimeDetail(anime)) {
-      app.loadAnimeDetailChunk(anime.id).then((detailAnime) => {
+      catalogRuntime.loadAnimeDetailChunk(anime.id).then((detailAnime) => {
         if (!detailAnime || app.currentAnimeId !== anime.id) return;
         open(anime.id, { updateUrl: false, skipModalOpen: true });
       });
     }
 
     const synopsis = app.getSynopsisForAnime(anime);
+    activeSynopsis = synopsis;
     if (hasCachedDetail) {
       app.updateWatchlistControls(anime.id);
       if (modalContent) {
@@ -217,7 +308,7 @@ const createDetailExperience = (app) => {
       content.scrollTop = 0;
       app.updateMetaForAnime(anime, synopsis);
       media.setup(modalContent);
-      loadCommunityReviews(anime, synopsis);
+      void refreshCommunityReviews();
       app.updatePrefetchObserving();
       reportModalOpened({ status: 'ok' });
       return;
@@ -236,7 +327,7 @@ const createDetailExperience = (app) => {
     app.updateMetaForAnime(anime, synopsis);
     media.setup(modalContent);
 
-    loadCommunityReviews(anime, synopsis);
+    void refreshCommunityReviews();
     app.updatePrefetchObserving();
     reportModalOpened({ status: 'ok' });
   };
@@ -248,7 +339,7 @@ const createDetailExperience = (app) => {
     syncWithUrl,
     refreshTrailerSection,
     toggleTrailerPlayback: media.toggle,
-    loadCommunityReviews,
+    refreshCommunityReviews,
     open,
     close,
     handleDeepLink

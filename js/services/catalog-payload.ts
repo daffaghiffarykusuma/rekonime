@@ -1,6 +1,13 @@
 // @ts-nocheck
 import { DataValidator } from './data-validator.js';
 
+const isValidCatalogPayload = (payload) => {
+  if (!payload || typeof payload !== 'object' || !Array.isArray(payload.anime)) return false;
+  if (payload.anime.length === 0) return true;
+  const firstItem = payload.anime[0];
+  return Boolean(firstItem && typeof firstItem.id !== 'undefined' && typeof firstItem.title === 'string');
+};
+
 const DEFAULT_ACTIVE_FILTERS = Object.freeze({
   seasonYear: Object.freeze([]),
   year: Object.freeze([]),
@@ -282,6 +289,7 @@ const prepareCatalogPayloadApplication = (payload, {
 };
 
 const CatalogPayload = {
+  isValid: isValidCatalogPayload,
   prepareApplication: prepareCatalogPayloadApplication,
   prepareState: prepareCatalogPayloadState,
   normalizeAnimeData,
@@ -297,6 +305,7 @@ const CatalogPayload = {
 
 export {
   CatalogPayload,
+  isValidCatalogPayload,
   prepareCatalogPayloadApplication,
   prepareCatalogPayloadState,
   normalizeAnimeData,

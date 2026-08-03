@@ -7,7 +7,7 @@ import { Onboarding } from './onboarding.js';
 import { ThemeManager } from './themeManager.js';
 import { SidebarPreference } from './sidebar-preference.ts';
 import { CacheManager } from './services/cache-manager.ts';
-import { CatalogLoader } from './services/catalog-loader.ts';
+import { createAppCatalogRuntime } from './services/catalog-loader.ts';
 import { CatalogPayload } from './services/catalog-payload.ts';
 import { Logger } from './services/logger.ts';
 import { HealthMonitor } from './healthMonitor.js';
@@ -32,11 +32,14 @@ import {
   WATCH_STATUS_VALUES,
   buildAnimeSnapshot as buildWatchlistAnimeSnapshot,
   normalizeWatchlistSnapshot,
-  buildWatchlistEntry as buildLifecycleWatchlistEntry,
   createWatchlistLifecycle
 } from './watchlist-state.js';
 import { createWatchlistLifecycleRuntime } from './watchlist-lifecycle-runtime.ts';
 import { createTasteProfileStore } from './taste-profile.ts';
+import {
+  recoverPendingPersonalDataRestore,
+  restorePersonalData
+} from './personal-data-restore.ts';
 import { dismissToast as dismissToastNotification, showToast as showToastNotification } from './toast.ts';
 import {
   parseMalWatchlistXml,
@@ -61,8 +64,6 @@ const App = {
   embeddedDataPromise: null,
   statsModule: null,
   statsModulePromise: null,
-  reviewsService: null,
-  reviewsServicePromise: null,
   dataSources: {
     full: 'data/anime.full.index.json',
     detailBase: 'data/anime.detail'
@@ -176,14 +177,16 @@ const App = {
 
   getCatalogRuntime() {
     if (!this.catalogRuntime) {
-      this.catalogRuntime = CatalogLoader.createRuntime(this);
+      this.catalogRuntime = createAppCatalogRuntime(this);
     }
     return this.catalogRuntime;
   },
 
   getDetailExperience() {
     if (!this.detailExperience) {
-      this.detailExperience = createDetailExperience(this);
+      this.detailExperience = createDetailExperience(this, {
+        catalogRuntime: this.getCatalogRuntime()
+      });
     }
     return this.detailExperience;
   },
@@ -277,21 +280,6 @@ const App = {
         throw error;
       });
     return this.statsModulePromise;
-  },
-
-  async loadReviewsService() {
-    if (this.reviewsService) return this.reviewsService;
-    if (this.reviewsServicePromise) return this.reviewsServicePromise;
-    this.reviewsServicePromise = import('./reviews.js')
-      .then((module) => {
-        this.reviewsService = module.ReviewsService;
-        return this.reviewsService;
-      })
-      .catch((error) => {
-        this.reviewsServicePromise = null;
-        throw error;
-      });
-    return this.reviewsServicePromise;
   },
 
   getPerformanceNow() {
@@ -467,7 +455,7 @@ const App = {
     this.fullCatalogInteractionCaptured = true;
     this.teardownFullCatalogInteractionTriggers();
     this.queueIdleTask(() => {
-      this.loadFullCatalog();
+      this.getCatalogRuntime().loadFullCatalog();
     }, { timeout: 2000 });
   },
 
@@ -640,21 +628,6 @@ const App = {
     return normalizeWatchlistSnapshot(entry.snapshot) || null;
   },
 
-  normalizeWatchlistEntry(entry) {
-    if (!entry || typeof entry !== 'object') return null;
-    return buildLifecycleWatchlistEntry({
-      id: entry.id,
-      status: entry.status,
-      progress: entry.progress,
-      updatedAt: entry.updatedAt,
-      startedAt: entry.startedAt,
-      completedAt: entry.completedAt,
-      loved: entry.loved,
-      lovedAt: entry.lovedAt,
-      snapshot: entry.snapshot
-    });
-  },
-
   loadWatchlist() {
     if (typeof window === 'undefined') return;
     const lifecycle = this.getWatchlistLifecycle();
@@ -824,27 +797,39 @@ const App = {
     this.showToast('Personal data export started.');
   },
 
-  async importPersonalDataFile(file) {
+  async restorePersonalDataFile(file) {
     if (!file) return;
     try {
       const text = await file.text();
       const payload = JSON.parse(text);
-      this.getTasteProfileStore().importData(payload);
-      if (Array.isArray(payload.watchlist)) {
-        const nextEntries = new Map();
-        payload.watchlist.forEach((entry) => {
-          const normalized = this.normalizeWatchlistEntry(entry);
-          if (normalized) nextEntries.set(normalized.id, normalized);
-        });
-        this.getWatchlistLifecycle().setEntries(nextEntries);
-        this.saveWatchlist();
+      const result = restorePersonalData(payload, {
+        tasteProfileStore: this.getTasteProfileStore(),
+        watchlistLifecycle: this.getWatchlistLifecycle(),
+        storage: this.getCache()
+      });
+      if (!result.ok) {
+        const message = result.reason === 'unsupported_version'
+          ? 'Restore failed. This Rekonime export version is not supported.'
+          : result.reason === 'storage_failure'
+            ? 'Restore failed. Your existing personal data was kept.'
+            : result.reason === 'rollback_failure'
+              ? 'Restore failed and the previous Watchlist could not be restored.'
+              : 'Restore failed. Use a compatible Rekonime JSON export.';
+        this.showToast(message);
+        return result;
       }
-      this.refreshTasteProfileEvidence();
       this.updateTasteProfileUi();
       this.renderRecommendations();
-      this.showToast('Personal data imported.');
+      if (result.mode === 'full') {
+        this.renderWatchlist();
+        if (this.currentAnimeId) this.updateWatchlistControls(this.currentAnimeId);
+        this.scheduleAiringDashboardRender();
+      }
+      this.showToast('Personal data restored.');
+      return result;
     } catch (error) {
-      this.showToast('Import failed. Use a Rekonime JSON export.');
+      this.showToast('Restore failed. Use a Rekonime JSON export.');
+      return { ok: false, reason: 'invalid_file' };
     }
   },
 
@@ -913,7 +898,7 @@ const App = {
   async importMalWatchlistFile(file) {
     if (!file) return;
     const text = await file.text();
-    const catalogReady = this.isFullDataLoaded || await this.loadFullCatalog();
+    const catalogReady = this.isFullDataLoaded || await this.getCatalogRuntime().loadFullCatalog();
     if (!catalogReady || !this.isFullDataLoaded) return;
     const plan = planMalWatchlistImport({
       parseResult: parseMalWatchlistXml(text),
@@ -1487,6 +1472,11 @@ const App = {
       this.syncHomePath();
       this.prioritizeHomeDecisionFlow();
       this.renderLoadingState();
+      const restoreRecovery = recoverPendingPersonalDataRestore(this.getCache(), {
+        tasteProfileStore: this.getTasteProfileStore(),
+        watchlistLifecycle: this.getWatchlistLifecycle()
+      });
+      if (!restoreRecovery.ok) throw new Error('Personal Data Restore recovery failed');
       this.loadWatchlist();
       this.migrateLegacyBookmarksToWatchlist();
       this.loadSettings();
@@ -1509,7 +1499,7 @@ const App = {
           this.showAnimeDetail(requestedAnimeId);
         }
       } else {
-        const loaded = await this.loadInitialData();
+        const loaded = await this.getCatalogRuntime().loadInitialData();
         if (!loaded) {
           throw new Error('Failed to load catalog');
         }
@@ -1607,7 +1597,7 @@ const App = {
       await new Promise(resolve => {
         this.queueIdleTask(resolve, { timeout: 2000 });
       });
-      await this.loadFullCatalog();
+      await this.getCatalogRuntime().loadFullCatalog();
     })()
       .catch(() => null)
       .finally(() => {
@@ -1618,14 +1608,14 @@ const App = {
   scheduleFullCatalogLoad() {
     if (this.fullCatalogScheduleHandle || this.isFullDataLoaded) return;
     if (typeof window === 'undefined') {
-      this.loadFullCatalog();
+      this.getCatalogRuntime().loadFullCatalog();
       return;
     }
     const delayMs = this.shouldPrefetchFullCatalog() ? 0 : 8000;
     const schedule = () => {
       this.fullCatalogScheduleHandle = this.queueIdleTask(() => {
         this.fullCatalogScheduleHandle = null;
-        this.loadFullCatalog();
+        this.getCatalogRuntime().loadFullCatalog();
       }, { timeout: 2000 });
       this.getCatalogRuntime().setScheduledFullLoadHandle(this.fullCatalogScheduleHandle);
     };
@@ -1636,30 +1626,6 @@ const App = {
       return;
     }
     schedule();
-  },
-
-  async loadInitialData() {
-    return this.getCatalogRuntime().loadInitialData();
-  },
-
-  async loadFullCatalog(options = {}) {
-    return this.getCatalogRuntime().loadFullCatalog(options);
-  },
-
-  async cacheFullCatalog(payload) {
-    return this.getCatalogRuntime().cacheFullCatalog(payload);
-  },
-
-  async loadCachedFullCatalog() {
-    return this.getCatalogRuntime().loadCachedFullCatalog();
-  },
-
-  async fetchCatalog(path, options = {}) {
-    return this.getCatalogRuntime().fetchCatalog(path, options);
-  },
-
-  getAnimeDetailChunkPath(animeId) {
-    return this.getCatalogRuntime().getAnimeDetailChunkPath(animeId);
   },
 
   hasFullAnimeDetail(anime) {
@@ -1688,10 +1654,6 @@ const App = {
     this.gridSortedSource = null;
     this.refreshWatchlistSnapshotsFromCatalog({ persist: true });
     return normalized;
-  },
-
-  async loadAnimeDetailChunk(animeId) {
-    return this.getCatalogRuntime().loadAnimeDetailChunk(animeId);
   },
 
   async applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
@@ -2360,7 +2322,7 @@ const App = {
       }
 
       if (action === 'personal-data-file') {
-        void this.importPersonalDataFile(target.files?.[0] || null);
+        void this.restorePersonalDataFile(target.files?.[0] || null);
         target.value = '';
         return;
       }
@@ -3586,7 +3548,6 @@ const App = {
 
     const modes = Recommendations.modes;
     const currentMode = Recommendations.currentMode;
-    const contextEl = document.getElementById('recommendations-context');
 
     setHTML(container, Object.entries(modes).map(([key, mode]) => {
       const isActive = key === currentMode;
@@ -3602,16 +3563,6 @@ const App = {
       `;
     }).join(''));
     container.removeAttribute('aria-busy');
-
-    if (contextEl) {
-      const activeIntent = this.getActiveViewingIntent();
-      const nextContext = activeIntent
-        ? `${activeIntent.label}: ${activeIntent.description}`
-        : Recommendations.getModeContext(currentMode);
-      if (contextEl.textContent.trim() !== nextContext) {
-        contextEl.textContent = nextContext;
-      }
-    }
   },
 
   /**
@@ -4234,8 +4185,8 @@ const App = {
           <div class="taste-profile-actions">
             <button class="btn btn-outline btn-sm" type="button" data-action="reset-taste-profile">Reset profile</button>
             <button class="btn btn-outline btn-sm" type="button" data-action="export-personal-data">Export data</button>
-            <button class="btn btn-outline btn-sm" type="button" data-action="import-personal-data">Import data</button>
-            <input class="visually-hidden" id="personal-data-import" type="file" accept="application/json" data-action="personal-data-file">
+            <button class="btn btn-outline btn-sm" type="button" data-action="restore-personal-data">Restore data</button>
+            <input class="visually-hidden" id="personal-data-restore" type="file" accept="application/json" data-action="personal-data-file">
           </div>
           <p class="settings-description">${this.escapeHtml(tasteProfile.hiddenCount)} hidden recommendation ${tasteProfile.hiddenCount === 1 ? 'title' : 'titles'}.</p>
         </div>
@@ -4339,12 +4290,16 @@ const App = {
     const recommendationSource = this.getTasteProfileStore().prepareRecommendationSource(this.filteredData, {
       excludedIds: this.getWatchlistIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] })
     });
-    const recommendations = activeIntent
-      ? Recommendations.getRecommendationsForIntent(recommendationSource, activeIntent.key, {
-        limit: recommendationLimit,
-        modeKey: Recommendations.currentMode
-      })
-      : Recommendations.getRecommendationsWithMode(recommendationSource, Recommendations.currentMode, recommendationLimit);
+    const decision = Recommendations.getRecommendationDecision(recommendationSource, {
+      viewingIntent: activeIntent,
+      modeKey: Recommendations.currentMode,
+      limit: recommendationLimit
+    });
+    const recommendations = decision.items;
+    const contextEl = document.getElementById('recommendations-context');
+    if (contextEl && contextEl.textContent.trim() !== decision.context) {
+      contextEl.textContent = decision.context;
+    }
     this.lastRecommendationIds = new Set(recommendations.map(anime => String(anime.id)));
 
 
@@ -4360,9 +4315,7 @@ const App = {
       const safeSatisfaction = this.escapeHtml(malSatisfaction);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const cues = Array.isArray(anime.experienceCues)
-        ? anime.experienceCues
-        : Recommendations.getExperienceCues(anime, activeIntent?.key);
+      const cues = anime.experienceCues;
       const safeReason = this.escapeHtml(cues[0] || anime.reason || '');
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
@@ -4920,8 +4873,8 @@ const App = {
         return;
       }
 
-      if (action === 'import-personal-data') {
-        document.getElementById('personal-data-import')?.click();
+      if (action === 'restore-personal-data') {
+        document.getElementById('personal-data-restore')?.click();
         return;
       }
 
@@ -5078,10 +5031,7 @@ const App = {
       }
 
       if (action === 'retry-reviews') {
-        const anime = this.animeData.find(a => a.id === this.currentAnimeId);
-        if (anime) {
-          this.getDetailExperience().loadCommunityReviews(anime, anime.synopsis);
-        }
+        void this.getDetailExperience().refreshCommunityReviews();
         return;
       }
     });

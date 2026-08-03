@@ -65,7 +65,7 @@ test('Viewing Intent clear transition owns follow-up effects and optional announ
       collapseOptions: false,
       renderViewingIntents: true,
       renderRecommendationModes: true,
-      renderRecommendations: false,
+      renderRecommendations: true,
       announcement: 'Added to Watching now. Choose another viewing goal when you are ready.'
     }
   });

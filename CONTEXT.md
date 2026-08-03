@@ -16,6 +16,10 @@ _Avoid_: bookmark, saved card, list item
 The user's editable, cross-title recommendation preferences and exclusions, derived from explicit feedback and supported by Watchlist Lifecycle evidence. Title-specific status, progress, and affinity remain on the Watchlist Entry.
 _Avoid_: recommendation settings, preference cache, personalization blob
 
+**Personal Data Restore**:
+The user-initiated replacement of saved Taste Profile data and, for a complete compatible export, Watchlist Lifecycle data. A complete restore changes both together or changes neither; a legacy profile-only restore leaves the Watchlist Lifecycle unchanged. Invalid Watchlist Entries and unsupported export versions change nothing.
+_Avoid_: JSON merge, import helper, settings upload
+
 **Viewing Intent**:
 The user's temporary viewing outcome for the current discovery session, including its definition, four-hour activity window, apply transition, and clear transition. A Viewing Intent guides recommendations without changing Browse View Filtering or the longer-lived Taste Profile.
 _Avoid_: mood filter, recommendation mode, session flag

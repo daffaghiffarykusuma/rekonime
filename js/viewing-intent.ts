@@ -127,7 +127,7 @@ const createViewingIntentRuntime = (options = {}) => {
           collapseOptions: false,
           renderViewingIntents: true,
           renderRecommendationModes: true,
-          renderRecommendations: false,
+          renderRecommendations: true,
           announcement: announce ? VIEWING_INTENT_COMPLETE_ANNOUNCEMENT : ''
         }
       };

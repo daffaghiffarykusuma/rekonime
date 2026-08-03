@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { CatalogCache } from './catalog-cache.ts';
+import { isValidCatalogPayload } from './catalog-payload.ts';
 
 const DEFAULT_FETCH_CONFIG = {
   maxRetries: 3,
@@ -11,14 +12,6 @@ const DEFAULT_FETCH_CONFIG = {
 const DEFAULT_DATA_SOURCES = {
   full: 'data/anime.full.index.json',
   detailBase: 'data/anime.detail'
-};
-
-const isValidCatalogPayload = (payload) => {
-  if (!payload || typeof payload !== 'object') return false;
-  if (!Array.isArray(payload.anime)) return false;
-  if (payload.anime.length === 0) return true;
-  const firstItem = payload.anime[0];
-  return Boolean(firstItem && typeof firstItem.id !== 'undefined' && typeof firstItem.title === 'string');
 };
 
 const getErrorStatus = (error) => {
@@ -436,10 +429,6 @@ const createCatalogRuntime = ({
     loadInitialData,
     loadFullCatalog,
     setScheduledFullLoadHandle: (handle) => session.setScheduledHandle(handle),
-    fetchCatalog,
-    cacheFullCatalog,
-    loadCachedFullCatalog,
-    getAnimeDetailChunkPath,
     loadAnimeDetailChunk
   };
 };
@@ -483,23 +472,10 @@ const createAppCatalogRuntime = (app) => createCatalogRuntime({
   fullCatalogTimeoutMs: app.fullCatalogTimeoutMs
 });
 
-const CatalogLoader = {
-  createRuntime: createAppCatalogRuntime,
-
-  loadInitialData(app) {
-    return createAppCatalogRuntime(app).loadInitialData();
-  },
-
-  loadFullCatalog(app, options = {}) {
-    return createAppCatalogRuntime(app).loadFullCatalog(options);
-  }
-};
-
 export {
-  CatalogLoader,
+  createAppCatalogRuntime,
   createCatalogRuntime,
   createCatalogSession,
-  isValidCatalogPayload,
   getErrorStatus,
   shouldRetryCatalog,
   getCatalogRetryDelay

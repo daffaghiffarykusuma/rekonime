@@ -91,10 +91,17 @@ test('prepared taste fit outranks a generic quality lead', () => {
     stats: { retentionScore: 80 }
   });
 
-  assert.equal(Recommendations.getRecommendationsWithMode([genericLead, tasteFit], 'balanced', 2)[0].id, 'taste-fit');
+  const decision = Recommendations.getRecommendationDecision([genericLead, tasteFit], {
+    modeKey: 'balanced',
+    limit: 2
+  });
+
+  assert.equal(decision.items[0].id, 'taste-fit');
+  assert.equal(decision.context, 'Balanced picks that combine strong staying power with trusted audience approval.');
+  assert.ok(Array.isArray(decision.items[0].experienceCues));
 });
 
-test('getRecommendationsForIntent ranks outcomes without removing viable titles', () => {
+test('recommendation decision ranks the active Viewing Intent without removing viable titles', () => {
   const energetic = baseAnime({
     id: 'energetic',
     stats: {
@@ -119,18 +126,23 @@ test('getRecommendationsForIntent ranks outcomes without removing viable titles'
     }
   });
 
-  const result = Recommendations.getRecommendationsForIntent(
-    [gentle, energetic],
-    'energy',
-    { limit: 4 }
-  );
+  const decision = Recommendations.getRecommendationDecision([gentle, energetic], {
+    viewingIntent: {
+      key: 'energy',
+      label: 'Bring the energy',
+      description: 'Prioritize momentum and a fast hook.'
+    },
+    modeKey: 'balanced',
+    limit: 4
+  });
 
-  assert.equal(result.length, 2);
-  assert.equal(result[0].id, 'energetic');
-  assert.match(result[0].reason, /energy|momentum|hook/i);
+  assert.equal(decision.items.length, 2);
+  assert.equal(decision.items[0].id, 'energetic');
+  assert.match(decision.items[0].reason, /energy|momentum|hook/i);
+  assert.equal(decision.context, 'Bring the energy: Prioritize momentum and a fast hook.');
 });
 
-test('getExperienceCues returns two or three outcome cues for the active intent', () => {
+test('recommendation decision returns two or three Experience Cues for the active intent', () => {
   const anime = baseAnime({
     genres: ['Action', 'Suspense'],
     themes: ['Psychological'],
@@ -144,7 +156,11 @@ test('getExperienceCues returns two or three outcome cues for the active intent'
     }
   });
 
-  const cues = Recommendations.getExperienceCues(anime, 'energy');
+  const decision = Recommendations.getRecommendationDecision([anime], {
+    viewingIntent: { key: 'energy', label: 'Energy', description: 'Fast and propulsive.' },
+    limit: 1
+  });
+  const cues = decision.items[0].experienceCues;
 
   assert.ok(cues.length >= 2 && cues.length <= 3);
   assert.equal(cues[0], 'High energy');
@@ -152,18 +168,32 @@ test('getExperienceCues returns two or three outcome cues for the active intent'
   assert.equal(cues.some(cue => ['Action', 'Suspense', 'Psychological'].includes(cue)), false);
 });
 
-test('getExperienceCues changes priority with intent and uses a restrained fallback', () => {
+test('recommendation decision changes cue priority with intent and uses a restrained fallback', () => {
   const versatile = baseAnime({
     genres: ['Drama', 'Fantasy'],
     stats: { comfortScore: 90, emotionalStability: 88, worthFinishing: 90, flowState: 90 }
   });
 
-  const unwind = Recommendations.getExperienceCues(versatile, 'unwind');
-  const immersive = Recommendations.getExperienceCues(versatile, 'immersive');
+  const unwind = Recommendations.getRecommendationDecision([versatile], {
+    viewingIntent: { key: 'unwind', label: 'Unwind', description: 'Gentler viewing.' },
+    limit: 1
+  }).items[0].experienceCues;
+  const immersive = Recommendations.getRecommendationDecision([versatile], {
+    viewingIntent: { key: 'immersive', label: 'Immersive', description: 'World-rich viewing.' },
+    limit: 1
+  }).items[0].experienceCues;
   assert.equal(unwind[0], 'Gentle');
   assert.equal(immersive[0], 'Immersive');
   assert.notDeepEqual(unwind, immersive);
-  assert.deepEqual(Recommendations.getExperienceCues({ title: 'Unknown' }, 'energy'), ['Experience data is limited']);
+
+  const fallback = Recommendations.getRecommendationDecision([baseAnime({
+    id: 'unknown',
+    genres: [],
+    themes: [],
+    communityScore: 1,
+    stats: { retentionScore: 10 }
+  })], { limit: 1 });
+  assert.deepEqual(fallback.items[0].experienceCues, ['Experience data is limited']);
 });
 
 test('getSimilarAnime prioritizes strict matches over higher-scoring relaxed matches', () => {

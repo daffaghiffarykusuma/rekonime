@@ -17,11 +17,11 @@
 - Payload TypeScript entrypoint: `js/services/catalog-payload.ts`
 - Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/cache-manager.ts`, `js/services/logger.ts`
 - Shared TypeScript contracts: `js/contracts/catalog-runtime.ts`
-- App handoff: `js/app.ts` (`applyCatalogPayload`, render/filter/meta refresh)
+- App handoff: `js/app.ts` (`applyCatalogPayload`, render/filter/meta refresh); App and Detail Experience call Catalog Runtime directly rather than mirroring its commands
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
-- Interface: load the full catalog index, fetch catalog payloads, read/write full catalog cache, use embedded fallback, and merge detail chunks
-- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns normalization, score-profile validation, validation handoff, render-ready catalog state, and downstream refresh intent; the App Shell applies document, cache, Snapshot, Airing Schedule, and filter effects from that intent
+- Interface: load the initial/full catalog, track scheduled and active loads, and load detail chunks; network fetching and full-catalog cache access stay private to the runtime
+- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns payload acceptance, normalization, score-profile validation, validation handoff, render-ready catalog state, and downstream refresh intent; the App Shell applies document, cache, Snapshot, Airing Schedule, and filter effects from that intent
 - Contract surface: `CatalogPayload`, `PreviewCatalogPayload`, `FullCatalogPayload`, `DetailChunkPayload`, `ScoreProfile`, `CatalogValidationIssue`, and `CatalogRuntimeEventMap`
 
 ### Browse View Filtering
@@ -35,8 +35,16 @@
 - Runtime module: `js/taste-profile.ts`
 - Inputs: recommendation feedback, Watchlist Lifecycle entries, Catalog Payload anime records, and excluded Watchlist Entry ids
 - Outputs: persisted cross-title preferences, Watchlist-derived evidence, ranked recommendation source, weighted Discovery source, feedback result, and settings summary
-- Interface: apply recommendation feedback, refresh inferred evidence, prepare recommendation and Discovery candidates, reset while preserving Watchlist Lifecycle evidence, and import/export personal profile data
+- Interface: apply recommendation feedback, refresh inferred evidence, prepare recommendation and Discovery candidates, reset while preserving Watchlist Lifecycle evidence, commit a validated profile, and export personal data
 - Side effects: Taste Profile storage writes only; App Shell owns DOM rendering, announcements, file download/upload, and Watchlist Lifecycle transitions such as Already seen
+
+### Personal Data Restore
+- Runtime module: `js/personal-data-restore.ts`
+- Inputs: version 1 full exports or legacy profile-only data, current Taste Profile, and current Watchlist Lifecycle entries
+- Outputs: one restore outcome with the applied mode and restored Watchlist Entry count, or a validation/storage failure reason
+- Interface: restore compatible personal data; a full restore commits Taste Profile and Watchlist Lifecycle together or rolls back, while a profile-only restore leaves Watchlist Lifecycle unchanged
+- Side effects: delegates storage writes to Taste Profile and Watchlist Lifecycle and keeps a short-lived recovery journal across the two writes; App Shell owns file reading, rendering, and user feedback
+- Contract rules: reject unsupported versions, invalid Watchlist Entries, and duplicate Watchlist Entry ids before writing; recompute inferred Taste Profile evidence from the restored or retained Watchlist Lifecycle
 
 ### Discovery
 - Runtime module: `js/discovery.js`
@@ -71,13 +79,13 @@
 - Stable TypeScript entry point: `js/detail-experience.ts`
 - Error state module: `js/detail-error-state.ts`
 - Media module: `js/detail-media.ts`
-- Reviews adapter: `js/detail-reviews.ts`
+- Private Reviews implementation: `js/reviews.js`, lazy-loaded by Detail Experience with Jikan and AniList as external adapters
 - Presentation module: `js/detail-presentation.ts`
 - App handoff: `js/app.ts` (`showAnimeDetail`, detail markup builders, image helpers, trailer settings policy)
-- Inputs: anime id, cached detail, review payload, trailer metadata and settings policy, detail URL state (`?anime=...`)
-- Outputs: modal visibility, refreshed synopsis/reviews, trailer presentation and playback state, cached detail HTML, detail URL synchronization
-- Side effects: history state, metadata updates, trailer rendering/playback/cleanup, full-catalog deep-link fallback, modal-open telemetry
-- Interface rule: `js/detail-experience.ts` privately wires the single App Shell integration and exports only the Detail Experience factory; `js/detail-presentation.ts` owns modal body and loading markup, `js/detail-media.ts` owns trailer URL policy use, rendering, player messaging, autoplay, replacement, and cleanup, `js/detail-reviews.ts` owns review loading, and `js/detail-error-state.ts` owns unavailable-title messaging. The App Shell supplies trailer settings policy and invokes only experience-level commands.
+- Inputs: anime id, cached detail, review provider results, trailer metadata and settings policy, detail URL state (`?anime=...`)
+- Outputs: modal visibility, one visible review refresh outcome, refreshed synopsis/reviews, trailer presentation and playback state, cached detail HTML, detail URL synchronization
+- Side effects: history state, metadata updates, review provider/cache access and rendering, trailer rendering/playback/cleanup, full-catalog deep-link fallback, modal-open telemetry
+- Interface rule: `js/detail-experience.ts` owns review loading, stale-title protection, unavailable/failure rendering, synopsis/metadata updates, and retry through `refreshCommunityReviews`; the Jikan/AniList variation and lazy implementation stay private and tests use the injected mock adapter. `js/detail-presentation.ts` owns modal body and loading markup, `js/detail-media.ts` owns trailer URL policy use, rendering, player messaging, autoplay, replacement, and cleanup, and `js/detail-error-state.ts` owns unavailable-title messaging. App Shell invokes only experience-level commands.
 
 ### Airing Schedule
 - Stable TypeScript entry points: `js/airing-schedule.ts`, `js/airing-dashboard.ts`
@@ -104,8 +112,9 @@
 ### Runtime Calculations
 - Stable TypeScript entry points: `js/stats.ts`, `js/recommendations.ts`, `js/filterPresets.ts`
 - Shared TypeScript contracts: `js/contracts/calculations.ts`
-- Inputs: episode score lists, Catalog Payload anime records, score profiles, active recommendation mode, and filter preset keys
-- Outputs: calculated stats, ranking/recommendation models, card stat models, badges, similar-title matches, and filter preset view models
+- Inputs: episode score lists, Catalog Payload anime records, score profiles, Taste Profile-prepared recommendation candidates, active Viewing Intent and recommendation mode facts, and filter preset keys
+- Outputs: calculated stats, one render-ready recommendation decision with context, reasons, and Experience Cues, card stat models, badges, similar-title matches, and filter preset view models
+- Interface: calculate statistics and display models; turn prepared candidates plus current intent/mode facts into one complete recommendation decision
 - Side effects: recommendations mode preference may use `CacheManager`; scoring and filter predicates are pure
 
 ### Runtime Capabilities

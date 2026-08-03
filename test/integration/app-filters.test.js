@@ -210,7 +210,11 @@ test('App initially ranks Explore Every Title by Taste Profile fit', () => {
     App.currentSort = 'taste';
     App.tasteProfileStore = createTasteProfileStore({ storage });
     App.tasteProfileStore.load();
-    App.tasteProfileStore.addMoreLike({ id: 'seed', genres: ['Drama'] });
+    App.tasteProfileStore.applyRecommendationFeedback('rec-more-like', {
+      id: 'seed',
+      title: 'Seed',
+      genres: ['Drama']
+    });
 
     const sorted = App.sortAnimeByMetric([
       { id: 'generic', genres: ['Action'], stats: { retentionScore: 95 } },
