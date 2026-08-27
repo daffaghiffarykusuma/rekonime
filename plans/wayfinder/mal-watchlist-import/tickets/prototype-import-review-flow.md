@@ -19,7 +19,7 @@ What is the smallest understandable settings flow for choosing an MAL XML file, 
 
 - Create a cheap linked prototype using existing settings styles and native file input/dialog behavior.
 - Cover keyboard operation, focus movement, screen-reader status announcements, destructive-action wording, cancel, and retry.
-- Test the flow with the supplied XML's realistic scale; do not require rendering every row at once if summary plus exceptions is sufficient.
+- Test the flow with the privacy-safe fixture's realistic 415-row scale; do not require rendering every row at once if summary plus exceptions is sufficient.
 - Resolve where the existing Rekonime profile JSON import remains distinct from MAL import.
 
 ## Prototype asset

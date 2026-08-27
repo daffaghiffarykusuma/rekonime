@@ -1,297 +1,109 @@
-﻿const SchemaValidator = {
-  defaultsRegistered: false,
-  schemas: new Map(),
+const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+const isNonEmptyString = (value) => typeof value === 'string' && value.length > 0;
+const isFiniteNumber = (value) => Number.isFinite(value);
+const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+const optional = (value, key, validate) => !hasOwn(value, key) || validate(value[key]);
 
-  register(key, schema) {
-    if (!key || !schema) return;
-    this.schemas.set(key, schema);
-  },
+const isStringArray = (value, maxItems) => (
+  Array.isArray(value)
+  && value.length <= maxItems
+  && value.every(isNonEmptyString)
+);
 
-  registerDefaults() {
-    if (this.defaultsRegistered) return;
-    this.defaultsRegistered = true;
+const isSnapshot = (value) => (
+  isPlainObject(value)
+  && isNonEmptyString(value.id)
+  && isNonEmptyString(value.title)
+  && isNonEmptyString(value.cover)
+  && optional(value, 'year', year => year === null || typeof year === 'string' || isFiniteNumber(year))
+  && optional(value, 'studio', studio => typeof studio === 'string')
+);
 
-    this.register('rekonime.settings', {
-      type: 'object',
-      properties: {
-        trailerAutoplay: { type: 'boolean' },
-        dataSaver: { type: 'boolean' },
-        reducedMotion: { type: 'boolean' },
-        highContrast: { type: 'boolean' },
-        largeText: { type: 'boolean' }
-      },
-      additionalProperties: true
-    });
+const isWatchlistEntry = (value) => (
+  isPlainObject(value)
+  && isNonEmptyString(value.id)
+  && ['planned', 'watching', 'completed', 'dropped'].includes(value.status)
+  && Number.isInteger(value.progress)
+  && isFiniteNumber(value.updatedAt)
+  && optional(value, 'startedAt', isFiniteNumber)
+  && optional(value, 'completedAt', isFiniteNumber)
+  && optional(value, 'snapshot', isSnapshot)
+);
 
-    this.register('rekonime.bookmarks', {
-      anyOf: [
-        {
-          type: 'array',
-          items: { type: 'string', minLength: 1 },
-          maxItems: 1000
-        },
-        {
-          type: 'object',
-          required: ['ids'],
-          properties: {
-            version: { type: 'integer' },
-            ids: {
-              type: 'array',
-              items: { type: 'string', minLength: 1 },
-              maxItems: 1000
-            },
-            items: {
-              type: 'array',
-              maxItems: 1000,
-              items: {
-                type: 'object',
-                required: ['id', 'title', 'cover'],
-                properties: {
-                  id: { type: 'string', minLength: 1 },
-                  title: { type: 'string', minLength: 1 },
-                  cover: { type: 'string', minLength: 1 }
-                },
-                additionalProperties: true
-              }
-            }
-          },
-          additionalProperties: true
-        }
-      ]
-    });
+const isBookmarkItem = (value) => (
+  isPlainObject(value)
+  && isNonEmptyString(value.id)
+  && isNonEmptyString(value.title)
+  && isNonEmptyString(value.cover)
+);
 
-    this.register('rekonime.watchlist', {
-      type: 'object',
-      required: ['version', 'entries'],
-      properties: {
-        version: { type: 'integer' },
-        updatedAt: { type: 'number' },
-        entries: {
-          type: 'array',
-          maxItems: 5000,
-          items: {
-            type: 'object',
-            required: ['id', 'status', 'progress', 'updatedAt'],
-            properties: {
-              id: { type: 'string', minLength: 1 },
-              status: { type: 'string', enum: ['planned', 'watching', 'completed', 'dropped'] },
-              progress: { type: 'integer' },
-              updatedAt: { type: 'number' },
-              startedAt: { type: 'number' },
-              completedAt: { type: 'number' },
-              snapshot: {
-                type: 'object',
-                required: ['id', 'title', 'cover'],
-                properties: {
-                  id: { type: 'string', minLength: 1 },
-                  title: { type: 'string', minLength: 1 },
-                  cover: { type: 'string', minLength: 1 },
-                  year: { type: ['string', 'number', 'null'] },
-                  studio: { type: 'string' }
-                },
-                additionalProperties: true
-              }
-            },
-            additionalProperties: true
-          }
-        }
-      },
-      additionalProperties: true
-    });
-
-    this.register('rekonime.recMode', {
-      type: 'string',
-      minLength: 1
-    });
-
-    this.register('rekonime.surpriseHistory', {
-      type: 'array',
-      maxItems: 40,
-      items: {
-        type: 'object',
-        required: ['animeId', 'timestamp'],
-        properties: {
-          animeId: { type: 'string', minLength: 1 },
-          timestamp: { type: 'number' }
-        },
-        additionalProperties: true
-      }
-    });
-
-    this.register('rekonime:description:index', {
-      type: 'array',
-      maxItems: 200,
-      items: {
-        type: 'object',
-        required: ['key', 'lastAccess'],
-        properties: {
-          key: { type: 'string', minLength: 1 },
-          lastAccess: { type: 'number' }
-        },
-        additionalProperties: true
-      }
-    });
-
-    this.register('api.jikan.anime', {
-      type: 'object',
-      required: ['data'],
-      properties: {
-        data: {
-          type: 'object',
-          additionalProperties: true
-        }
-      },
-      additionalProperties: true
-    });
-
-    this.register('api.jikan.reviews', {
-      type: 'object',
-      required: ['data'],
-      properties: {
-        data: {
-          type: 'array',
-          items: {
-            type: 'object',
-            additionalProperties: true
-          }
-        }
-      },
-      additionalProperties: true
-    });
-
-    this.register('rekonime.theme', {
-      type: 'string',
-      enum: ['dark', 'light', 'auto']
-    });
-
-    this.register('rekonime.onboarding', {
-      type: 'string',
-      enum: ['completed', 'skipped']
-    });
-
-    this.register('rekonime.shortcutsAcknowledged', {
-      type: 'string',
-      enum: ['true']
-    });
-
-    this.register('rekonime.logs', {
-      type: 'array',
-      maxItems: 200,
-      items: {
-        type: 'object',
-        required: ['timestamp', 'level', 'message'],
-        properties: {
-          timestamp: { type: 'string', minLength: 1 },
-          level: { type: 'string', minLength: 1 },
-          message: { type: 'string', minLength: 1 },
-          context: { type: 'object', additionalProperties: true }
-        },
-        additionalProperties: true
-      }
-    });
-
-    this.register('rekonime.anime', {
-      type: 'object',
-      required: ['id', 'title', 'cover'],
-      properties: {
-        id: { type: 'string', minLength: 1 },
-        title: { type: 'string', minLength: 1 },
-        cover: { type: 'string', minLength: 1 }
-      },
-      additionalProperties: true
-    });
-  },
-
-  validate(key, value) {
-    const schema = this.schemas.get(key);
-    if (!schema) return true;
-    return this.validateSchema(schema, value);
-  },
-
-  validateSchema(schema, value) {
-    if (!schema || typeof schema !== 'object') return true;
-
-    if (Array.isArray(schema.anyOf)) {
-      return schema.anyOf.some((option) => this.validateSchema(option, value));
-    }
-
-    if (schema.enum && !schema.enum.includes(value)) return false;
-
-    const types = this.normalizeTypes(schema.type);
-    if (types.length > 0) {
-      return types.some((type) => this.validateTypedSchema(type, schema, value));
-    }
-
-    return true;
-  },
-
-  normalizeTypes(type) {
-    if (Array.isArray(type)) {
-      return type.filter((entry) => typeof entry === 'string' && entry.length > 0);
-    }
-    if (typeof type === 'string' && type.length > 0) {
-      return [type];
-    }
-    return [];
-  },
-
-  validateTypedSchema(type, schema, value) {
-    switch (type) {
-      case 'string':
-        if (typeof value !== 'string') return false;
-        if (schema.minLength && value.length < schema.minLength) return false;
-        return true;
-      case 'boolean':
-        return typeof value === 'boolean';
-      case 'number':
-        return Number.isFinite(value);
-      case 'integer':
-        return Number.isInteger(value);
-      case 'null':
-        return value === null;
-      case 'array':
-        return this.validateArray(schema, value);
-      case 'object':
-        return this.validateObject(schema, value);
-      default:
-        return true;
-    }
-  },
-
-  validateArray(schema, value) {
-    if (!Array.isArray(value)) return false;
-    if (schema.maxItems && value.length > schema.maxItems) return false;
-    if (schema.items) {
-      for (const item of value) {
-        if (!this.validateSchema(schema.items, item)) return false;
-      }
-    }
-    return true;
-  },
-
-  validateObject(schema, value) {
-    if (!this.isPlainObject(value)) return false;
-
-    const required = Array.isArray(schema.required) ? schema.required : [];
-    for (const key of required) {
-      if (!Object.prototype.hasOwnProperty.call(value, key)) return false;
-    }
-
-    if (schema.properties) {
-      for (const [key, propertySchema] of Object.entries(schema.properties)) {
-        if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
-        if (!this.validateSchema(propertySchema, value[key])) return false;
-      }
-    }
-
-    return true;
-  },
-
-  isPlainObject(value) {
-    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-  }
+const validators = {
+  'rekonime.settings': value => (
+    isPlainObject(value)
+    && ['trailerAutoplay', 'dataSaver', 'reducedMotion', 'highContrast', 'largeText']
+      .every(key => optional(value, key, setting => typeof setting === 'boolean'))
+  ),
+  'rekonime.bookmarks': value => (
+    isStringArray(value, 1000)
+    || (
+      isPlainObject(value)
+      && isStringArray(value.ids, 1000)
+      && optional(value, 'version', Number.isInteger)
+      && optional(value, 'items', items => (
+        Array.isArray(items)
+        && items.length <= 1000
+        && items.every(isBookmarkItem)
+      ))
+    )
+  ),
+  'rekonime.watchlist': value => (
+    isPlainObject(value)
+    && Number.isInteger(value.version)
+    && optional(value, 'updatedAt', isFiniteNumber)
+    && Array.isArray(value.entries)
+    && value.entries.length <= 5000
+    && value.entries.every(isWatchlistEntry)
+  ),
+  'rekonime.recMode': isNonEmptyString,
+  'rekonime.surpriseHistory': value => (
+    Array.isArray(value)
+    && value.length <= 40
+    && value.every(entry => (
+      isPlainObject(entry)
+      && isNonEmptyString(entry.animeId)
+      && isFiniteNumber(entry.timestamp)
+    ))
+  ),
+  'rekonime:description:index': value => (
+    Array.isArray(value)
+    && value.length <= 200
+    && value.every(entry => (
+      isPlainObject(entry)
+      && isNonEmptyString(entry.key)
+      && isFiniteNumber(entry.lastAccess)
+    ))
+  ),
+  'api.jikan.anime': value => isPlainObject(value) && isPlainObject(value.data),
+  'api.jikan.reviews': value => (
+    isPlainObject(value)
+    && Array.isArray(value.data)
+    && value.data.every(isPlainObject)
+  ),
+  'rekonime.theme': value => ['dark', 'light', 'auto'].includes(value),
+  'rekonime.onboarding': value => ['completed', 'skipped'].includes(value),
+  'rekonime.shortcutsAcknowledged': value => value === 'true',
+  'rekonime.anime': value => (
+    isPlainObject(value)
+    && isNonEmptyString(value.id)
+    && isNonEmptyString(value.title)
+    && isNonEmptyString(value.cover)
+  )
 };
 
-SchemaValidator.registerDefaults();
+const SchemaValidator = {
+  validate(key, value) {
+    return validators[key]?.(value) ?? true;
+  }
+};
 
 export { SchemaValidator };

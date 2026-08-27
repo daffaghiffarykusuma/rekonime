@@ -2,29 +2,29 @@
 
 ## Answer
 
-Support the supplied MyAnimeList export shape directly and match rows only by numeric `series_animedb_id === CatalogAnimeBase.malId` after the full Catalog Payload is available. On the supplied export, that matches **339 of 415 rows (81.69%)**. Do not use title fallback: the current catalog omits every non-TV row in this export, and normalization incorrectly maps at least two distinct MAL entries to a base series. Unmatched rows should remain explicit import results and must not create Watchlist Entries.
+Support the privately reviewed MyAnimeList export shape directly and match rows only by numeric `series_animedb_id === malId` after the full Catalog Payload is available. In that export, **339 of 415 rows (81.69%)** matched. Do not use title fallback: the current catalog omitted every non-TV row in the reviewed export, and normalization incorrectly mapped at least two distinct MAL entries to a base series. Unmatched rows should remain explicit import results and must not create Watchlist Entries.
 
 ## Sources and method
 
 Primary local sources:
 
-- Supplied MAL export: `plans/animelist_1784001772_-_10574948.xml:1-46` (XML declaration, export comment, user totals, and first complete row).
+- Original private MAL export: reviewed locally for this audit, then removed from version control. Only aggregate, non-identifying findings are retained below.
+- Privacy-safe regression fixture: `test/helpers/mal-watchlist-fixture.js` preserves the 415-row, 339-match, 76-unmatched acceptance case without user data.
 - Current full catalog: `data/anime.full.json:1`, generated `2026-07-13T07:03:08.000Z` with 3,578 anime records.
-- Catalog contract: `js/contracts/catalog-runtime.ts:97-118` defines the runtime entry and optional numeric `malId`; `js/contracts/catalog-runtime.ts:139-151` defines Catalog Payloads as `anime` arrays.
-- Catalog normalization: `js/services/catalog-payload.ts:126-190`, especially `:168`, normalizes source `malId`/`mal_id` into runtime `malId`.
+- Catalog normalization: `js/services/catalog-payload.ts` normalizes source `malId`/`mal_id` into runtime `malId` and validates Catalog Payloads as `anime` arrays.
 - Existing repository MAL parser precedent: `tools/scraper/convert_mal_export.py:24-51` parses direct `anime` children and reads `series_animedb_id`, title, type, episode count, status, and score.
 - Watchlist contract: `js/contracts/watchlist-lifecycle.ts:1-5` permits `planned`, `watching`, `completed`, and `dropped`; `js/contracts/watchlist-lifecycle.ts:37-40` stores status and numeric progress. It has no `on-hold` status.
 
-All counts below were recomputed with Python's standard-library `xml.etree.ElementTree` and `json` modules; no fuzzy matcher or external dataset was used.
+The aggregate counts below were computed from the original private export with Python's standard-library `xml.etree.ElementTree` and `json` modules; no fuzzy matcher or external dataset was used. The original file is no longer retained, so only the privacy-safe 339/415 regression case remains reproducible in this repository.
 
 ## Observed export facts
 
 ### File and document shape
 
-- The file is 401,169 bytes, has no UTF-8 BOM, uses LF newlines, declares `<?xml version="1.0" encoding="UTF-8" ?>`, and decodes strictly as UTF-8 (`plans/animelist_1784001772_-_10574948.xml:1`).
-- The root is `myanimelist`, with one direct `myinfo` child and 415 direct `anime` children. The comment identifies the producer as MAL's XML Export feature, version `1.1.0` (`plans/animelist_1784001772_-_10574948.xml:2-5`).
-- `myinfo` declares 415 total anime: 13 watching, 338 completed, 1 on hold, 2 dropped, and 61 planned. These categories sum to 415 and exactly equal the row-level status counts (`plans/animelist_1784001772_-_10574948.xml:8-18`).
-- All 415 `anime` elements have the same 23 children, in this order: `series_animedb_id`, `series_title`, `series_type`, `series_episodes`, `my_id`, `my_watched_episodes`, `my_start_date`, `my_finish_date`, `my_rated`, `my_score`, `my_storage`, `my_storage_value`, `my_status`, `my_comments`, `my_times_watched`, `my_rewatch_value`, `my_priority`, `my_tags`, `my_rewatching`, `my_rewatching_ep`, `my_discuss`, `my_sns`, and `update_on_import` (`plans/animelist_1784001772_-_10574948.xml:22-44`). Titles, comments, and tags use CDATA in the sample (`:23`, `:36`, `:40`).
+- The file was 401,169 bytes, had no UTF-8 BOM, used LF newlines, declared XML 1.0 with UTF-8 encoding, and decoded strictly as UTF-8.
+- The root was `myanimelist`, with one direct `myinfo` child and 415 direct `anime` children. Its comment identified MAL XML Export version `1.1.0`.
+- `myinfo` declared 415 total anime: 13 watching, 338 completed, 1 on hold, 2 dropped, and 61 planned. These categories summed to 415 and matched the row-level counts.
+- All 415 `anime` elements had the same 23-child MAL export structure. Titles, comments, and tags used CDATA in the reviewed sample.
 
 ### Values relevant to import
 
@@ -39,7 +39,7 @@ All counts below were recomputed with Python's standard-library `xml.etree.Eleme
 | `my_score` | Integer 0-10; 76 rows are `0` (unscored) |
 | dates | `0000-00-00` is the missing-value sentinel: 394 start dates and 290 finish dates use it |
 
-The sample demonstrates all five statuses (`Completed` at `:35`, `Plan to Watch` at `:139`, `On-Hold` at `:529`, `Watching` at `:919`, and `Dropped` at `:1595`). It also demonstrates that `TV Special` is a distinct source type (`:155`) and that zero episode totals are valid source data rather than malformed rows (`:858`, `:2132`, `:8736`).
+The reviewed sample demonstrated all five statuses: `Completed`, `Plan to Watch`, `On-Hold`, `Watching`, and `Dropped`. It also demonstrated that `TV Special` is a distinct source type and that zero episode totals are valid source data rather than malformed rows.
 
 Fields not needed to create/update progress are uniform or empty in this sample: `my_priority=LOW`, `my_sns=default`, `update_on_import=0`, `my_rewatching=0`, `my_times_watched=0`, `my_discuss=1`; all comments, tags, rating labels, storage labels, and rewatch values are empty. They should not expand the initial product contract.
 
@@ -73,14 +73,14 @@ Representative unmatched rows:
 
 Applying the repository's broad search-style normalization (case folding, Unicode normalization, punctuation removal, and whitespace collapse; see `js/services/catalog-payload.ts:42-99`) to the 76 unmatched titles finds two apparent unique matches, but both are wrong:
 
-- MAL 58755, `5-toubun no Hanayome*` (TV Special), collapses to catalog MAL 38101, `5-toubun no Hanayome` (TV). The distinct source entry begins at `plans/animelist_1784001772_-_10574948.xml:153`.
-- MAL 37773, `Yuru Yuri,` (OVA), collapses to catalog MAL 10495, `Yuru Yuri` (TV). The distinct source entry begins at `plans/animelist_1784001772_-_10574948.xml:10631`.
+- MAL 58755, `5-toubun no Hanayome*` (TV Special), collapsed to catalog MAL 38101, `5-toubun no Hanayome` (TV) in the reviewed sample.
+- MAL 37773, `Yuru Yuri,` (OVA), collapsed to catalog MAL 10495, `Yuru Yuri` (TV) in the reviewed sample.
 
 Thus title normalization adds **zero verified matches** and two demonstrated false positives. Exact MAL ID is the only supported deterministic key.
 
 ## Malformed-input and variant concerns
 
-These are **validation concerns**, not defects observed in the supplied file:
+These are **validation concerns**, not defects observed in the privately reviewed file:
 
 - Reject a document that cannot be decoded as UTF-8 or parsed as well-formed XML, has a root other than `myanimelist`, or has no direct `anime` rows. Do not try to recover with regex.
 - Reject `DOCTYPE`/entity declarations. They are absent from the sample and unnecessary for this contract.
@@ -114,7 +114,7 @@ This is deliberately MAL-specific. Do not add a provider interface, title matche
 
 ## Facts, assumptions, and open decisions
 
-**Facts:** the supplied file is a consistent MAL XML Export v1.1.0 sample; exact full-catalog MAL ID coverage is 339/415; preview-only coverage is 25/415; the current full catalog is TV-only; title normalization creates two demonstrated cross-entry false positives; the Watchlist contract has no on-hold status.
+**Facts:** the privately reviewed file was a consistent MAL XML Export v1.1.0 sample; exact full-catalog MAL ID coverage was 339/415; preview-only coverage was 25/415; the current full catalog was TV-only; title normalization created two demonstrated cross-entry false positives; the Watchlist contract has no on-hold status.
 
 **Assumptions:** other MAL exports may omit, add, reorder, or vary fields; may contain duplicate IDs or malformed values; and may use the same five statuses and UTF-8 document shape. None of those variants is proven by this single fixture.
 
@@ -122,34 +122,8 @@ This is deliberately MAL-specific. Do not add a provider interface, title matche
 
 ## Reproduction
 
-Run from the repository root. This command verifies row totals, per-status counts, catalog type scope, and exact full/preview match coverage without creating files:
+Run from the repository root. This verifies the privacy-safe 415-row, 339-match, 76-unmatched regression case without retaining personal export data:
 
 ```powershell
-$env:PYTHONIOENCODING='utf-8'
-@'
-from collections import Counter
-from pathlib import Path
-from xml.etree import ElementTree as ET
-import json
-
-rows = ET.parse('plans/animelist_1784001772_-_10574948.xml').getroot().findall('anime')
-ids = [int(row.findtext('series_animedb_id')) for row in rows]
-statuses = [row.findtext('my_status') for row in rows]
-types = [row.findtext('series_type') for row in rows]
-
-print('rows', len(rows), 'unique_ids', len(set(ids)))
-print('statuses', Counter(statuses))
-print('source_types', Counter(types))
-
-for path in ('data/anime.full.json', 'data/anime.preview.json', 'data/anime.json'):
-    anime = json.loads(Path(path).read_text(encoding='utf-8'))['anime']
-    mal_ids = {
-        int(item.get('malId') or item.get('mal_id') or (item.get('metadata') or {}).get('malId'))
-        for item in anime
-    }
-    print(path, 'rows', len(anime), 'matches', sum(mal_id in mal_ids for mal_id in ids))
-
-full = json.loads(Path('data/anime.full.json').read_text(encoding='utf-8'))['anime']
-print('catalog_types', Counter(item.get('type') for item in full))
-'@ | python -
+bun test test/unit/mal-watchlist-import.test.ts
 ```

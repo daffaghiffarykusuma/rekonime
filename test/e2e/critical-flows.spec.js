@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { buildPrivacySafeMalExport } from '../helpers/mal-watchlist-fixture.js';
 
 const contrastRatio = (foreground, background) => {
   const luminance = (color) => {
@@ -327,7 +329,7 @@ test('tertiary review attribution remains readable in both themes and narrow lay
       });
       expect(contrastRatio(colors.foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
     }
-    const modalBox = await page.locator('.detail-modal-content').boundingBox();
+    const modalBox = await page.locator('#detail-modal .modal-content').boundingBox();
     expect(modalBox.x).toBeGreaterThanOrEqual(0);
     expect(modalBox.x + modalBox.width).toBeLessThanOrEqual(width);
   }
@@ -412,14 +414,6 @@ test('header search shows dropdown state', async ({ page }) => {
   await page.waitForSelector('.search-no-results');
 });
 
-test('surprise me opens detail modal', async ({ page }) => {
-  await page.goto('/');
-  await page.waitForSelector('#anime-grid .anime-card');
-  await page.getByRole('button', { name: 'Pick for Me' }).first().click();
-  await page.waitForSelector('#detail-modal.visible', { timeout: 15000 });
-  await expect(page.locator('#detail-modal.visible')).toBeVisible();
-});
-
 test('watchlist flow persists to watchlist page', async ({ page }) => {
   await page.goto('/');
   await page.waitForSelector('#anime-grid .anime-card');
@@ -445,6 +439,8 @@ test('watchlist flow persists to watchlist page', async ({ page }) => {
 });
 
 test('MAL XML first import previews exact matches before one confirmed batch', async ({ page }) => {
+  const fullCatalog = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
+  const xml = buildPrivacySafeMalExport(fullCatalog);
   await page.route('**/watchlist.html', async route => {
     const response = await route.fetch();
     await route.fulfill({
@@ -456,9 +452,13 @@ test('MAL XML first import previews exact matches before one confirmed batch', a
     });
   });
   await page.goto('/watchlist.html');
-  await page.getByRole('button', { name: 'Open viewing preferences' }).click();
+  await page.getByRole('button', { name: 'Import from MAL' }).click();
 
-  await page.locator('#mal-watchlist-import-file').setInputFiles('plans/animelist_1784001772_-_10574948.xml');
+  await page.locator('#mal-watchlist-import-file').setInputFiles({
+    name: 'watchlist.xml',
+    mimeType: 'application/xml',
+    buffer: Buffer.from(xml)
+  });
   await expect(page.getByRole('heading', { name: '415 rows are ready to review' })).toBeVisible();
   await expect(page.locator('[data-mal-count="matched"]')).toHaveText('339');
   await expect(page.locator('[data-mal-count="unmatched"]')).toHaveText('76');

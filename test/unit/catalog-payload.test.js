@@ -58,7 +58,6 @@ test('CatalogPayload preserves existing search text and search index', () => {
 });
 
 test('CatalogPayload prepares application state for a full payload', () => {
-  const validationCalls = [];
   const defaultActiveFilters = {
     seasonYear: ['Spring 2026'],
     year: [],
@@ -76,13 +75,7 @@ test('CatalogPayload prepares application state for a full payload', () => {
     {
       isFull: true,
       preserveFilters: false,
-      defaultActiveFilters,
-      validator: {
-        validateCatalog: (animeData, context) => {
-          validationCalls.push({ animeData, context });
-          return { total: animeData.length };
-        }
-      }
+      defaultActiveFilters
     }
   );
 
@@ -98,8 +91,6 @@ test('CatalogPayload prepares application state for a full payload', () => {
   });
   assert.deepEqual(state.activeFilters.genres, ['Action']);
   assert.notEqual(state.activeFilters.genres, defaultActiveFilters.genres);
-  assert.equal(validationCalls.length, 1);
-  assert.deepEqual(validationCalls[0].context, { source: 'full' });
 });
 
 test('CatalogPayload keeps filters untouched and drops invalid score profiles', () => {
@@ -110,8 +101,7 @@ test('CatalogPayload keeps filters untouched and drops invalid score profiles', 
     },
     {
       isFull: false,
-      preserveFilters: true,
-      validator: null
+      preserveFilters: true
     }
   );
 

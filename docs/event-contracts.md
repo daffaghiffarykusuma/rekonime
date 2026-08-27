@@ -2,14 +2,12 @@
 
 ## `rekonime:data-load-start`
 - Emitter: `js/app.ts`
-- TypeScript contract: `CatalogRuntimeEventMap['rekonime:data-load-start']` in `js/contracts/catalog-runtime.ts`
 - Payload:
   - `source`: `preview | full | embedded`
   - `timestamp`: ISO string, optional
 
 ## `rekonime:data-load-end`
 - Emitter: `js/services/catalog-loader.ts` through `js/app.ts`
-- TypeScript contract: `CatalogRuntimeEventMap['rekonime:data-load-end']` in `js/contracts/catalog-runtime.ts`
 - Payload:
   - `source`: `preview | full | embedded`
   - `count`: number of anime entries, optional
@@ -18,7 +16,6 @@
 
 ## `rekonime:catalog-cache`
 - Emitter: `js/app.ts`
-- TypeScript contract: `CatalogRuntimeEventMap['rekonime:catalog-cache']` in `js/contracts/catalog-runtime.ts`
 - Payload:
   - `type`: `network-full-loaded | indexeddb-full-hit | indexeddb-full-miss | indexeddb-full-used | indexeddb-full-read-failed | embedded-fallback-used | cache-write-ok | cache-write-failed | full-load-timeout | detail-chunk-loaded`
   - `at`: ISO string

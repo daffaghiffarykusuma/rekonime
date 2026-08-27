@@ -99,7 +99,7 @@ New exact matches are selected for creation. Differences from existing Watchlist
 - Watchlist Lifecycle Runtime unit tests cover invalid-plan, non-full-catalog, and stale-plan rejection; the no-change path; one batch transition and one effect set on success; and zero downstream effects after rejection.
 - Taste Profile unit tests cover one derivation from the committed Watchlist, omission of inferred evidence from persistence, startup reconstruction, and rejection of legacy persisted inference.
 - App Shell integration tests cover full-catalog readiness, file-read failure, cancel and retry, effect ordering, post-commit Taste Profile recovery, and the absence of import-data network or logging calls.
-- The critical browser-flow test uses the supplied XML to cover review totals, one conflict override, live count updates, confirmation focus, keyboard cancellation, success announcement, malformed-file retry focus, partial-success messaging, 200% zoom, and the 390 by 844 viewport.
+- The critical browser-flow test uses the privacy-safe generated XML fixture to cover review totals, one conflict override, live count updates, confirmation focus, keyboard cancellation, success announcement, malformed-file retry focus, partial-success messaging, 200% zoom, and the 390 by 844 viewport.
 - Accessibility checks assert programmatic conflict names, visible comparison text, non-color-dependent state, logical heading and reading order, deliberate focus movement, and one concise live-region announcement per transition.
 - Privacy checks assert that the import introduces no request containing source data and does not send source or result data to analytics, logging, URLs, or unrelated storage.
 - Repository acceptance requires type checking, the full Bun test suite, verified production build, catalog validation, security checks, and end-to-end tests. Any unrelated baseline failure must be recorded with its exact command and output rather than silently waived.
@@ -121,7 +121,7 @@ New exact matches are selected for creation. Differences from existing Watchlist
 
 ## Further Notes
 
-- Evidence is limited to one supplied MAL XML export: 415 rows, 339 exact full-catalog matches, and 76 unmatched rows. This fixture proves the required compatibility case but not every MAL export variant.
+- Evidence is limited to one privately reviewed MAL XML export: 415 rows, 339 exact full-catalog matches, and 76 unmatched rows. The source file was removed after analysis; a privacy-safe generated fixture preserves this regression case but does not prove every MAL export variant.
 - The current Catalog Payload's TV-only coverage explains all 69 unmatched non-TV rows and seven unmatched TV rows. Two attempted normalized-title matches were demonstrated false positives, supporting exact-ID-only matching.
 - The selected human-reviewed prototype is the summary-first settings flow with conflicts as the primary task and safely skipped results summarized alongside it.
 - The feature is ready for implementation with no unresolved product or transaction decisions. Implementation should reuse the existing Watchlist Lifecycle, Catalog Runtime, Taste Profile, Runtime Capabilities, App Shell, and critical-flow test patterns.

@@ -7,7 +7,7 @@ test('App routes Surprise Me candidates through Taste Profile before Discovery',
   const original = {
     animeData: App.animeData,
     getTasteProfileStore: App.getTasteProfileStore,
-    getWatchlistIds: App.getWatchlistIds,
+    getWatchlistLifecycle: App.getWatchlistLifecycle,
     showAnimeDetail: App.showAnimeDetail,
     getSurpriseMe: Discovery.getSurpriseMe,
     recordSurprise: Discovery.recordSurprise
@@ -17,7 +17,7 @@ test('App routes Surprise Me candidates through Taste Profile before Discovery',
 
   try {
     App.animeData = [candidate];
-    App.getWatchlistIds = () => ['watched'];
+    App.getWatchlistLifecycle = () => ({ getIds: () => ['watched'] });
     App.getTasteProfileStore = () => ({
       prepareDiscoverySource: (anime, options) => {
         calls.push(['prepare', anime, options]);
@@ -38,7 +38,7 @@ test('App routes Surprise Me candidates through Taste Profile before Discovery',
   } finally {
     App.animeData = original.animeData;
     App.getTasteProfileStore = original.getTasteProfileStore;
-    App.getWatchlistIds = original.getWatchlistIds;
+    App.getWatchlistLifecycle = original.getWatchlistLifecycle;
     App.showAnimeDetail = original.showAnimeDetail;
     Discovery.getSurpriseMe = original.getSurpriseMe;
     Discovery.recordSurprise = original.recordSurprise;

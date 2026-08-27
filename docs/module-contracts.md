@@ -16,13 +16,11 @@
 - Payload module: `js/services/catalog-payload.ts`
 - Payload TypeScript entrypoint: `js/services/catalog-payload.ts`
 - Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/cache-manager.ts`, `js/services/logger.ts`
-- Shared TypeScript contracts: `js/contracts/catalog-runtime.ts`
 - App handoff: `js/app.ts` (`applyCatalogPayload`, render/filter/meta refresh); App and Detail Experience call Catalog Runtime directly rather than mirroring its commands
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
 - Interface: load the initial/full catalog, track scheduled and active loads, and load detail chunks; network fetching and full-catalog cache access stay private to the runtime
 - Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns payload acceptance, normalization, score-profile validation, validation handoff, render-ready catalog state, and downstream refresh intent; the App Shell applies document, cache, Snapshot, Airing Schedule, and filter effects from that intent
-- Contract surface: `CatalogPayload`, `PreviewCatalogPayload`, `FullCatalogPayload`, `DetailChunkPayload`, `ScoreProfile`, `CatalogValidationIssue`, and `CatalogRuntimeEventMap`
 
 ### Browse View Filtering
 - Runtime module: `js/browse-filtering.ts`
@@ -77,7 +75,6 @@
 
 ### Detail Experience
 - Stable TypeScript entry point: `js/detail-experience.ts`
-- Error state module: `js/detail-error-state.ts`
 - Media module: `js/detail-media.ts`
 - Private Reviews implementation: `js/reviews.js`, lazy-loaded by Detail Experience with Jikan and AniList as external adapters
 - Presentation module: `js/detail-presentation.ts`
@@ -85,7 +82,7 @@
 - Inputs: anime id, cached detail, review provider results, trailer metadata and settings policy, detail URL state (`?anime=...`)
 - Outputs: modal visibility, one visible review refresh outcome, refreshed synopsis/reviews, trailer presentation and playback state, cached detail HTML, detail URL synchronization
 - Side effects: history state, metadata updates, review provider/cache access and rendering, trailer rendering/playback/cleanup, full-catalog deep-link fallback, modal-open telemetry
-- Interface rule: `js/detail-experience.ts` owns review loading, stale-title protection, unavailable/failure rendering, synopsis/metadata updates, and retry through `refreshCommunityReviews`; the Jikan/AniList variation and lazy implementation stay private and tests use the injected mock adapter. `js/detail-presentation.ts` owns modal body and loading markup, `js/detail-media.ts` owns trailer URL policy use, rendering, player messaging, autoplay, replacement, and cleanup, and `js/detail-error-state.ts` owns unavailable-title messaging. App Shell invokes only experience-level commands.
+- Interface rule: `js/detail-experience.ts` owns review loading, stale-title protection, unavailable/failure rendering, synopsis/metadata updates, and retry through `refreshCommunityReviews`; the Jikan/AniList variation and lazy implementation stay private and tests use the injected mock adapter. `js/detail-presentation.ts` owns modal body and loading markup, while `js/detail-media.ts` owns trailer URL policy use, rendering, player messaging, autoplay, replacement, and cleanup. App Shell invokes only experience-level commands.
 
 ### Airing Schedule
 - Stable TypeScript entry points: `js/airing-schedule.ts`, `js/airing-dashboard.ts`
@@ -111,7 +108,6 @@
 
 ### Runtime Calculations
 - Stable TypeScript entry points: `js/stats.ts`, `js/recommendations.ts`, `js/filterPresets.ts`
-- Shared TypeScript contracts: `js/contracts/calculations.ts`
 - Inputs: episode score lists, Catalog Payload anime records, score profiles, Taste Profile-prepared recommendation candidates, active Viewing Intent and recommendation mode facts, and filter preset keys
 - Outputs: calculated stats, one render-ready recommendation decision with context, reasons, and Experience Cues, card stat models, badges, similar-title matches, and filter preset view models
 - Interface: calculate statistics and display models; turn prepared candidates plus current intent/mode facts into one complete recommendation decision
@@ -172,7 +168,7 @@
 ### Data Operations
 - Stable Bun commands: `bun run data:regenerate`, `bun run data:backup`, `bun run data:rollback`, `bun run test:scraper`
 - Python entry points: `tools/regenerate_data.py`, `tools/deploy_data.py`, existing `tools/scraper/*.py`
-- Launchers: `tools/run-python.js`; scraper tests retain `tools/run-scraper-tests.js`
+- Launcher: `tools/run-python.js`
 - Inputs: preview catalog, source/full/preview data files, backup ids, scraper fixtures
 - Outputs: embedded `js/data.js`, data backups, restored data files, scraper test status
 - Safety gates: embedded payload shape validation, backup id allowlist, backup directory containment, scraper host-policy tests

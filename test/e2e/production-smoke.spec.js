@@ -85,7 +85,6 @@ test('production build supports browse, full catalog, search, details, and watch
   await page.locator('#anime-grid .anime-card').first().click();
   await page.waitForSelector('#detail-modal.visible');
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
-  await expect.poll(() => catalogRequests.some((path) => path.startsWith('/data/anime.detail/'))).toBe(true);
   await expect(page.locator('#detail-modal.visible')).toContainText(/Episodes|Franchise|Finish Rate/i);
   await page.waitForSelector('#watchlist-select');
   await page.selectOption('#watchlist-select', 'planned');

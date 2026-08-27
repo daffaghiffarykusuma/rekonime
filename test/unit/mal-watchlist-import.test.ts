@@ -1,13 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import {
   parseMalWatchlistXml,
   planMalWatchlistImport
 } from '../../js/mal-watchlist-import.ts';
 import { buildPrivacySafeMalExport } from '../helpers/mal-watchlist-fixture.js';
-
-const suppliedExport = 'plans/animelist_1784001772_-_10574948.xml';
 
 test('privacy-safe fixture preserves the 415 row and 339 exact-match regression', () => {
   const fullCatalog = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
@@ -26,31 +24,7 @@ test('privacy-safe fixture preserves the 415 row and 339 exact-match regression'
     skipped: 76,
     unmatched: 76
   });
-});
-
-test('supplied MAL export plans exact full-catalog Watchlist creates', {
-  skip: !existsSync(suppliedExport)
-}, () => {
-  const xml = readFileSync(suppliedExport, 'utf8');
-  const fullCatalog = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
-
-  const parsed = parseMalWatchlistXml(xml);
-  const plan = planMalWatchlistImport({
-    parseResult: parsed,
-    fullCatalog,
-    currentEntries: []
-  });
-
-  assert.equal(parsed.ok, true);
-  assert.equal(parsed.rows.length, 415);
   assert.equal(plan.ok, true);
-  assert.deepEqual(plan.summary, {
-    sourceRows: 415,
-    matched: 339,
-    creates: 339,
-    skipped: 76,
-    unmatched: 76
-  });
   assert.equal(plan.proposedEntries.length, 339);
   assert.ok(plan.proposedEntries.every(entry => entry.snapshot?.malId));
   assert.ok(plan.proposedEntries.every(entry => entry.updatedAt === 'apply-time'));

@@ -22,7 +22,9 @@ const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
     updateMetaForAnime: (...args) => calls.push(['updateMetaForAnime', ...args]),
     updateMetaForFilters: () => calls.push(['updateMetaForFilters']),
     getLogger: () => null,
-    setModalVisibility: (...args) => calls.push(['setModalVisibility', ...args]),
+    getRuntimeCapabilities: () => ({
+      setModalVisibility: (...args) => calls.push(['setModalVisibility', ...args])
+    }),
     updateUrlForAnime: (...args) => calls.push(['updateUrlForAnime', ...args]),
     resetMetaToDefault: () => calls.push(['resetMetaToDefault']),
     normalizeBookmarkId: (value) => String(value ?? '').trim(),
@@ -31,7 +33,6 @@ const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
     loadAnimeDetailChunk: async () => null,
     getSynopsisForAnime: (anime) => anime.synopsis || '',
     renderFranchiseHubSection: () => '',
-    getEpisodeCount: (anime) => anime.episodes?.length || anime.episodeCount || 0,
     sanitizeClassList: (...classes) => classes.filter(Boolean).join(' '),
     buildImageSrcset: (cover) => ({ src: cover || '', srcset: '', sizes: '', fallback: '' }),
     sanitizeImageUrl: (value) => value || '',
@@ -42,7 +43,9 @@ const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;'),
-    getImageDimensions: () => ({ width: 150, height: 210 }),
+    getImageProxyRuntime: () => ({
+      getDimensions: () => ({ width: 150, height: 210 })
+    }),
     getImageFallbackAttrs: () => '',
     renderSimilarAnimeSection: () => '<div class="similar-empty"></div>',
     renderWatchlistControls: () => '<div class="watchlist-controls"></div>',
@@ -256,7 +259,7 @@ test('Detail Experience owns failed review rendering and retry outcome', async (
   assert.match(document.getElementById('community-reviews-section').innerHTML, /Error/);
 });
 
-test('Detail Experience delegates missing catalog title markup to Detail Error State', () => {
+test('Detail Experience renders missing catalog title markup', () => {
   setupDom(`
     <div id="detail-modal"><div class="modal-content"></div></div>
     <div id="detail-content"></div>

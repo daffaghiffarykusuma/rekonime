@@ -28,7 +28,7 @@ Catalog generation:
 The catalog refresh flow uses `bun run data:build` and `bun run data:regenerate`.
 
 Data operations:
-- `bun run test:scraper` now runs `tools/run-scraper-tests.js` through Bun.
+- `bun run test:scraper` runs Python's native `unittest` discovery through `tools/run-python.js`.
 - `bun run data:backup` and `bun run data:rollback` run `tools/deploy_data.py`.
 
 Golden files live in `test/fixtures/python-golden/`.

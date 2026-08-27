@@ -19,11 +19,11 @@ test('App Shell keeps Runtime Capabilities as one stable instance', () => {
 
   assert.equal(first, second);
 
-  App.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+  first.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
 
   assert.equal(first.isModalVisible('detail-modal'), true);
   assert.equal(first.getOpenModalId(), 'detail-modal');
 
-  App.setModalVisibility('detail-modal', false);
+  first.setModalVisibility('detail-modal', false);
   App.runtimeCapabilities = null;
 });

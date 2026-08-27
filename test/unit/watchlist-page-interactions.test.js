@@ -9,7 +9,9 @@ const createInteractions = (overrides = {}) => {
     showAnimeDetail: (id) => calls.push(['showAnimeDetail', id]),
     toggleSettingsModal: () => calls.push(['toggleSettingsModal']),
     ensureSettingsRendered: () => calls.push(['ensureSettingsRendered']),
-    setModalVisibility: (...args) => calls.push(['setModalVisibility', ...args])
+    getRuntimeCapabilities: () => ({
+      setModalVisibility: (...args) => calls.push(['setModalVisibility', ...args])
+    })
   };
   const interactions = createWatchlistPageInteractions({
     documentRef: document,

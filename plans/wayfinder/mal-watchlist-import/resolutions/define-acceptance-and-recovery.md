@@ -40,7 +40,7 @@ Summary-count invariants from **Define the Watchlist Lifecycle import contract**
 - `test/unit/watchlist-lifecycle-runtime.test.js`: invalid/full-catalog/stale-plan guards; `no-changes`; one batch event and effect set on success; zero effects on rejection.
 - `test/unit/taste-profile.test.js`: imported inference is derived once, omitted from persistence, rebuilt on startup, and legacy persisted inference is ignored.
 - `test/integration/app-mal-watchlist-import.test.js`: full-catalog readiness, local file-read failure, cancel/retry, effect ordering, post-commit Taste Profile partial-success recovery, and absence of import-data network or logging calls.
-- `test/e2e/critical-flows.spec.js`: supplied XML review, one conflict override, confirmation focus, keyboard cancel, successful announcement, malformed-file retry focus, partial-success message, 200% zoom, and 390 x 844 layout.
+- `test/e2e/critical-flows.spec.js`: privacy-safe XML review, one conflict override, confirmation focus, keyboard cancel, successful announcement, malformed-file retry focus, partial-success message, 200% zoom, and 390 x 844 layout.
 
 The implementation handoff is green only after the focused tests and the repository gates pass:
 

@@ -11,4 +11,7 @@ tools/scraper/__pycache__/
 *.pyc
 
 data/*.bak-*
+data/backups/
+data/build-report.json
 plans/*.tmp
+tools/scraper/output/*.json

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { App } from '../../js/app.ts';
+import { BrowseFiltering } from '../../js/browse-filtering.ts';
 import { createTasteProfileStore } from '../../js/taste-profile.ts';
 import { setupDom } from '../helpers/dom.js';
 
@@ -17,7 +18,10 @@ test('App URL filter parsing and normalization', () => {
     demographic: []
   };
 
-  const filters = App.getFiltersFromUrl();
+  const filters = BrowseFiltering.getFiltersFromUrl(undefined, {
+    filterOptions: App.filterOptions,
+    fallbackHref: window.location.href
+  });
   assert.deepEqual(filters.genres, ['Action', 'Drama']);
   assert.deepEqual(filters.themes, ['Fantasy']);
   assert.deepEqual(filters.year, ['2024']);
@@ -36,7 +40,7 @@ test('App setFiltersOnUrl builds query params', () => {
     demographic: []
   };
 
-  App.setFiltersOnUrl(url, filters);
+  BrowseFiltering.setFiltersOnUrl(url, filters, { filterOptions: App.filterOptions });
   assert.equal(url.searchParams.getAll('genre')[0], 'Action');
   assert.equal(url.searchParams.getAll('theme')[0], 'Fantasy');
   assert.equal(url.searchParams.getAll('season')[0], 'Spring 2024');
@@ -91,8 +95,7 @@ test('App refreshes recommendations immediately when filters change during secon
     resetGridPagination: App.resetGridPagination,
     updateUrlForFilters: App.updateUrlForFilters,
     updateMetaForFilters: App.updateMetaForFilters,
-    queueIdleTask: App.queueIdleTask,
-    cancelIdleTask: App.cancelIdleTask,
+    runtimeCapabilities: App.runtimeCapabilities,
     shouldDeferHeavyContent: App.shouldDeferHeavyContent
   };
 
@@ -129,8 +132,10 @@ test('App refreshes recommendations immediately when filters change during secon
     App.updateUrlForFilters = () => {};
     App.updateMetaForFilters = () => {};
     App.shouldDeferHeavyContent = () => false;
-    App.cancelIdleTask = () => {};
-    App.queueIdleTask = () => 99;
+    App.runtimeCapabilities = {
+      cancelIdleTask: () => {},
+      queueIdleTask: () => 99
+    };
     App.renderRecommendations = () => {
       recommendationRenderCount += 1;
       recommendationDataLength = App.filteredData.length;

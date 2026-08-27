@@ -13,7 +13,6 @@
 - [ ] `bun run test:integration`
 - [ ] `bun run data:validate`
 - [ ] `bun run test:coverage`
-- [ ] `bun run check:coverage-thresholds`
 - [ ] `bun run check:security`
 
 ## Rollout Notes

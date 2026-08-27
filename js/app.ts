@@ -159,18 +159,6 @@ const App = {
   catalogRuntime: null,
   watchlistLifecycleRuntime: null,
 
-  getDefaultActiveFilters() {
-    return BrowseFiltering.getDefaultActiveFilters();
-  },
-
-  getDefaultFilterOptions() {
-    return BrowseFiltering.getDefaultFilterOptions();
-  },
-
-  cloneFilterMap(map, fallback) {
-    return BrowseFiltering.cloneFilterMap(map, fallback || this.getDefaultActiveFilters());
-  },
-
   getCache() {
     return CacheManager;
   },
@@ -289,14 +277,6 @@ const App = {
     return Date.now();
   },
 
-  queueIdleTask(callback, { timeout = 1500 } = {}) {
-    return this.getRuntimeCapabilities().queueIdleTask(callback, { timeout });
-  },
-
-  cancelIdleTask(handle) {
-    return this.getRuntimeCapabilities().cancelIdleTask(handle);
-  },
-
   getConnectionInfo() {
     if (typeof navigator === 'undefined') return null;
     return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
@@ -374,42 +354,6 @@ const App = {
     return this.imageProxyRuntime;
   },
 
-  loadImageProxyStatus() {
-    this.getImageProxyRuntime().loadStatus();
-  },
-
-  getImageProxyStatus() {
-    return this.getImageProxyRuntime().getStatus();
-  },
-
-  storeImageProxyStatus(ok) {
-    this.getImageProxyRuntime().storeStatus(ok);
-  },
-
-  scheduleImageProxyCheck() {
-    this.getImageProxyRuntime().scheduleCheck({ timeout: 5000 });
-  },
-
-  checkImageProxyAvailability() {
-    return this.getImageProxyRuntime().checkAvailability();
-  },
-
-  shouldUseImageProxy() {
-    return this.getImageProxyRuntime().shouldUseProxy();
-  },
-
-  isProxyImageUrl(url) {
-    return this.getImageProxyRuntime().isProxyImageUrl(url);
-  },
-
-  markImageProxyFailed() {
-    this.getImageProxyRuntime().markFailed();
-  },
-
-  getImageDimensions(kind) {
-    return this.getImageProxyRuntime().getDimensions(kind);
-  },
-
   shouldPrefetchFullCatalog() {
     const connection = this.getConnectionInfo();
     if (!connection) return true;
@@ -454,7 +398,7 @@ const App = {
     if (this.fullCatalogInteractionCaptured || this.isFullDataLoaded) return;
     this.fullCatalogInteractionCaptured = true;
     this.teardownFullCatalogInteractionTriggers();
-    this.queueIdleTask(() => {
+    this.getRuntimeCapabilities().queueIdleTask(() => {
       this.getCatalogRuntime().loadFullCatalog();
     }, { timeout: 2000 });
   },
@@ -612,9 +556,9 @@ const App = {
 
   renderWatchlistControls(anime) {
     if (!anime) return '';
-    return renderWatchlistControlsHtml(this.getWatchlistEntry(anime.id), {
+    return renderWatchlistControlsHtml(this.getWatchlistLifecycle().getEntry(anime.id), {
       anime,
-      episodeCount: this.getEpisodeCount(anime),
+      episodeCount: CatalogPayload.getEpisodeCount(anime),
       escapeHtml: (value) => this.escapeHtml(value),
       escapeAttr: (value) => this.escapeAttr(value)
     });
@@ -639,18 +583,6 @@ const App = {
     return this.getWatchlistLifecycle().save();
   },
 
-  getWatchlistEntry(animeId) {
-    return this.getWatchlistLifecycle().getEntry(animeId);
-  },
-
-  getWatchlistIds({ statuses } = {}) {
-    return this.getWatchlistLifecycle().getIds({ statuses });
-  },
-
-  getWatchlistEntries({ statuses } = {}) {
-    return this.getWatchlistLifecycle().getEntries({ statuses });
-  },
-
   getWatchlistAnime({ statuses } = {}) {
     return this.getWatchlistLifecycle().getAnimeItems(this.animeData, { statuses });
   },
@@ -672,7 +604,7 @@ const App = {
     if (typeof document === 'undefined') return;
     const statuses = ['planned', 'watching'];
     this.getAiringDashboardAdapter().scheduleUpdate(
-      () => this.getWatchlistEntries({ statuses }),
+      () => this.getWatchlistLifecycle().getEntries({ statuses }),
       () => this.getAiringDashboardAnimeItems({ statuses }),
       { timeout }
     );
@@ -684,20 +616,15 @@ const App = {
     const adapter = this.getAiringDashboardAdapter();
     const controller = await adapter.getAiringDashboardController();
     await controller.update({
-      entries: this.getWatchlistEntries({ statuses }),
+      entries: this.getWatchlistLifecycle().getEntries({ statuses }),
       animeItems: this.getAiringDashboardAnimeItems({ statuses })
     });
-  },
-
-  migrateLegacyBookmarksToWatchlist() {
-    if (typeof window === 'undefined') return;
-    this.getWatchlistLifecycle().migrateLegacy();
   },
 
   getEpisodeLimitForAnime(animeId) {
     const anime = this.animeData.find(item => item?.id === animeId);
     if (!anime) return null;
-    const total = this.getEpisodeCount(anime);
+    const total = CatalogPayload.getEpisodeCount(anime);
     if (!Number.isFinite(total) || total <= 0) return null;
     return total;
   },
@@ -749,7 +676,7 @@ const App = {
   },
 
   refreshTasteProfileEvidence() {
-    this.getTasteProfileStore().updateInferredFromWatchlist(this.getWatchlistEntries());
+    this.getTasteProfileStore().updateInferredFromWatchlist(this.getWatchlistLifecycle().getEntries());
   },
 
   updateTasteProfileUi() {
@@ -763,7 +690,7 @@ const App = {
     const anime = this.animeData.find(item => item?.id === animeId);
     if (!anime) return;
     if (action === 'rec-already-seen') {
-      this.setWatchStatus(anime.id, 'completed', { episodeCount: this.getEpisodeCount(anime) });
+      this.setWatchStatus(anime.id, 'completed', { episodeCount: CatalogPayload.getEpisodeCount(anime) });
     } else {
       const result = this.getTasteProfileStore().applyRecommendationFeedback(action, anime, {
         genre: actionEl?.dataset?.genre || '',
@@ -777,14 +704,14 @@ const App = {
   },
 
   resetTasteProfile() {
-    this.getTasteProfileStore().reset(this.getWatchlistEntries());
+    this.getTasteProfileStore().reset(this.getWatchlistLifecycle().getEntries());
     this.updateTasteProfileUi();
     this.renderRecommendations();
     this.showToast('Taste Profile reset.');
   },
 
   exportPersonalData() {
-    const payload = this.getTasteProfileStore().exportData(this.getWatchlistEntries());
+    const payload = this.getTasteProfileStore().exportData(this.getWatchlistLifecycle().getEntries());
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -903,7 +830,7 @@ const App = {
     const plan = planMalWatchlistImport({
       parseResult: parseMalWatchlistXml(text),
       fullCatalog: this.animeData,
-      currentEntries: this.getWatchlistEntries()
+      currentEntries: this.getWatchlistLifecycle().getEntries()
     });
     if (!plan.ok) return;
     this.malImportState = { stage: 'review', fileName: file.name || 'MyAnimeList XML', plan };
@@ -956,7 +883,7 @@ const App = {
     if (typeof document === 'undefined') return;
     if (!animeId || this.currentAnimeId !== animeId) return;
     const focusedAction = document.activeElement?.closest?.('[data-action]')?.dataset?.action || '';
-    updateWatchlistControlsElement(document, this.getWatchlistEntry(animeId), {
+    updateWatchlistControlsElement(document, this.getWatchlistLifecycle().getEntry(animeId), {
       anime: this.animeData.find(item => item?.id === animeId),
       episodeCount: this.getEpisodeLimitForAnime(animeId)
     });
@@ -1064,29 +991,6 @@ const App = {
     });
   },
 
-  getFilterParamMap() {
-    return BrowseFiltering.filterParamMap;
-  },
-
-  getFilterParamNames() {
-    return Object.values(BrowseFiltering.filterParamMap);
-  },
-
-  parseFilterParamValues(values) {
-    return BrowseFiltering.parseFilterParamValues(values);
-  },
-
-  normalizeFilterValues(type, values) {
-    return BrowseFiltering.normalizeFilterValues(type, values, this.filterOptions);
-  },
-
-  getFiltersFromUrl(sourceUrl) {
-    return BrowseFiltering.getFiltersFromUrl(sourceUrl, {
-      filterOptions: this.filterOptions,
-      fallbackHref: window.location.href
-    });
-  },
-
   getSearchQueryFromUrl(sourceUrl) {
     try {
       const url = new URL(sourceUrl || window.location.href);
@@ -1096,17 +1000,16 @@ const App = {
     }
   },
 
-  hasFilterParamsInUrl(sourceUrl) {
-    return BrowseFiltering.hasFilterParamsInUrl(sourceUrl, { fallbackHref: window.location.href });
-  },
-
-  areFiltersEqual(left, right) {
-    return BrowseFiltering.areFiltersEqual(left, right, Object.keys(this.activeFilters));
-  },
-
   setActiveFiltersFromUrl({ updateUi = false } = {}) {
-    const nextFilters = this.getFiltersFromUrl();
-    const changed = !this.areFiltersEqual(this.activeFilters, nextFilters);
+    const nextFilters = BrowseFiltering.getFiltersFromUrl(undefined, {
+      filterOptions: this.filterOptions,
+      fallbackHref: window.location.href
+    });
+    const changed = !BrowseFiltering.areFiltersEqual(
+      this.activeFilters,
+      nextFilters,
+      Object.keys(this.activeFilters)
+    );
     this.activeFilters = nextFilters;
     if (updateUi) {
       this.renderFilterPanel();
@@ -1115,19 +1018,11 @@ const App = {
     return changed;
   },
 
-  getSortedFilterValues(type, values) {
-    return BrowseFiltering.getSortedFilterValues(type, values, this.filterOptions);
-  },
-
-  setFiltersOnUrl(url, filters) {
-    BrowseFiltering.setFiltersOnUrl(url, filters, { filterOptions: this.filterOptions });
-  },
-
   buildFilterStateUrl(sourceUrl) {
     try {
       const url = new URL(sourceUrl || window.location.href);
       this.normalizeHomePath(url);
-      this.setFiltersOnUrl(url, this.activeFilters);
+      BrowseFiltering.setFiltersOnUrl(url, this.activeFilters, { filterOptions: this.filterOptions });
       return url.toString();
     } catch (error) {
       return '';
@@ -1163,7 +1058,7 @@ const App = {
     try {
       const url = new URL(window.location.href);
       this.normalizeHomePath(url);
-      this.setFiltersOnUrl(url, this.activeFilters);
+      BrowseFiltering.setFiltersOnUrl(url, this.activeFilters, { filterOptions: this.filterOptions });
       const nextUrl = url.toString();
       if (nextUrl === window.location.href) {
         return nextUrl;
@@ -1221,10 +1116,6 @@ const App = {
 
   isCatalogPage() {
     return Boolean(document.getElementById('catalog-section'));
-  },
-
-  getEpisodeCount(anime) {
-    return CatalogPayload.getEpisodeCount(anime);
   },
 
   isMobileViewport() {
@@ -1366,30 +1257,6 @@ const App = {
     return settings.trailerAutoplay && !settings.dataSaver;
   },
 
-  getModalElement(modalId) {
-    return this.getRuntimeCapabilities().getModalElement(modalId);
-  },
-
-  isModalVisible(modalId) {
-    return this.getRuntimeCapabilities().isModalVisible(modalId);
-  },
-
-  getOpenModalId() {
-    return this.getRuntimeCapabilities().getOpenModalId();
-  },
-
-  updateBodyScrollLock() {
-    return this.getRuntimeCapabilities().updateBodyScrollLock();
-  },
-
-  setModalVisibility(modalId, isOpen, { initialFocusSelector, returnFocus = true } = {}) {
-    return this.getRuntimeCapabilities().setModalVisibility(modalId, isOpen, { initialFocusSelector, returnFocus });
-  },
-
-  handleGlobalEscape(event) {
-    return this.getRuntimeCapabilities().handleGlobalEscape(event);
-  },
-
   toggleSettingsModal() {
     const modal = document.getElementById('settings-modal');
     if (!modal) return;
@@ -1397,11 +1264,13 @@ const App = {
     if (!isOpen) {
       this.ensureSettingsRendered();
     }
-    this.setModalVisibility('settings-modal', !isOpen, { initialFocusSelector: '#close-settings' });
+    this.getRuntimeCapabilities().setModalVisibility('settings-modal', !isOpen, {
+      initialFocusSelector: '#close-settings'
+    });
   },
 
   closeSettingsModal() {
-    this.setModalVisibility('settings-modal', false);
+    this.getRuntimeCapabilities().setModalVisibility('settings-modal', false);
   },
 
   ensureSettingsRendered() {
@@ -1478,11 +1347,11 @@ const App = {
       });
       if (!restoreRecovery.ok) throw new Error('Personal Data Restore recovery failed');
       this.loadWatchlist();
-      this.migrateLegacyBookmarksToWatchlist();
+      this.getWatchlistLifecycle().migrateLegacy();
       this.loadSettings();
       this.updateGridPageSize();
       this.applyPerformancePreferences();
-      this.scheduleImageProxyCheck();
+      this.getImageProxyRuntime().scheduleCheck({ timeout: 5000 });
 
       // Check and trigger onboarding for first-time users
       if (!Onboarding.hasCompleted()) {
@@ -1510,8 +1379,8 @@ const App = {
 
       this.setupEventListeners();
       this.setupFullCatalogInteractionTriggers();
-      this.queueIdleTask(() => this.setupHealthMonitoring(), { timeout: 2000 });
-      this.queueIdleTask(() => this.setupIntelligentPrefetching(), { timeout: 2000 });
+      this.getRuntimeCapabilities().queueIdleTask(() => this.setupHealthMonitoring(), { timeout: 2000 });
+      this.getRuntimeCapabilities().queueIdleTask(() => this.setupIntelligentPrefetching(), { timeout: 2000 });
       this.initSeo();
       this.updateHomeLinks();
 
@@ -1595,7 +1464,7 @@ const App = {
     if (!this.shouldPrefetchFullCatalog()) return;
     this.fullCatalogPreloadPromise = (async () => {
       await new Promise(resolve => {
-        this.queueIdleTask(resolve, { timeout: 2000 });
+        this.getRuntimeCapabilities().queueIdleTask(resolve, { timeout: 2000 });
       });
       await this.getCatalogRuntime().loadFullCatalog();
     })()
@@ -1613,7 +1482,7 @@ const App = {
     }
     const delayMs = this.shouldPrefetchFullCatalog() ? 0 : 8000;
     const schedule = () => {
-      this.fullCatalogScheduleHandle = this.queueIdleTask(() => {
+      this.fullCatalogScheduleHandle = this.getRuntimeCapabilities().queueIdleTask(() => {
         this.fullCatalogScheduleHandle = null;
         this.getCatalogRuntime().loadFullCatalog();
       }, { timeout: 2000 });
@@ -1636,7 +1505,7 @@ const App = {
   mergeAnimeDetail(detailAnime) {
     const existingIndex = this.animeData.findIndex((anime) => String(anime.id) === String(detailAnime?.id));
     const existingAnime = existingIndex >= 0 ? this.animeData[existingIndex] : {};
-    const normalized = this.normalizeAnimeData([{ ...existingAnime, ...detailAnime }])[0];
+    const normalized = CatalogPayload.normalizeAnimeData([{ ...existingAnime, ...detailAnime }])[0];
     if (!normalized?.id) return null;
 
     if (existingIndex >= 0) {
@@ -1660,11 +1529,11 @@ const App = {
     const { state, intent } = CatalogPayload.prepareApplication(payload, {
       isFull,
       preserveFilters,
-      defaultActiveFilters: this.getDefaultActiveFilters(),
+      defaultActiveFilters: BrowseFiltering.getDefaultActiveFilters(),
       filterUi: {
         catalogPage: this.isCatalogPage(),
         deferUsed: this.deferFilterUiUsed,
-        hasFilterParams: this.hasFilterParamsInUrl(),
+        hasFilterParams: BrowseFiltering.hasFilterParamsInUrl(undefined, { fallbackHref: window.location.href }),
         lowMotion: this.shouldEnableLowMotionMode(),
         panelVisible: this.filterPanelRendered || this.filterPanelOpen,
         urlFiltersApplied: this.urlFiltersApplied
@@ -1682,7 +1551,7 @@ const App = {
     this.gridSortedKey = state.gridState.sortedKey;
     this.gridSortedSource = state.gridState.sortedSource;
     this.gridSortedIsPartial = state.gridState.sortedIsPartial;
-    if (this.gridSortHandle) this.cancelIdleTask(this.gridSortHandle);
+    if (this.gridSortHandle) this.getRuntimeCapabilities().cancelIdleTask(this.gridSortHandle);
     this.gridSortHandle = null;
     this.gridDomCache.clear();
     this.detailCache.clear();
@@ -1928,7 +1797,7 @@ const App = {
       }
       return;
     }
-    const scoreProfile = this.isValidScoreProfile(this.scoreProfile)
+    const scoreProfile = CatalogPayload.isValidScoreProfile(this.scoreProfile)
       ? this.scoreProfile
       : Stats.buildScoreProfile(this.animeData);
 
@@ -1944,18 +1813,14 @@ const App = {
     });
   },
 
-  isValidScoreProfile(profile) {
-    return CatalogPayload.isValidScoreProfile(profile);
-  },
-
   /**
    * Load embedded data only when fetch fails (keeps initial load light).
    */
   async loadEmbeddedData() {
     if (typeof ANIME_DATA !== 'undefined') {
-      const validation = this.validateAnimeData(ANIME_DATA.anime);
+      const validation = CatalogPayload.validateAnimeData(ANIME_DATA.anime);
       if (validation.isValid) {
-        this.animeData = this.normalizeAnimeData(ANIME_DATA.anime || []);
+        this.animeData = CatalogPayload.normalizeAnimeData(ANIME_DATA.anime || []);
         return true;
       }
       console.warn('[loadEmbeddedData] Existing embedded data invalid:', validation.errors);
@@ -1983,7 +1848,7 @@ const App = {
       return false;
     }
 
-    const validation = this.validateAnimeData(ANIME_DATA.anime);
+    const validation = CatalogPayload.validateAnimeData(ANIME_DATA.anime);
     if (!validation.isValid) {
       const logger = this.getLogger();
       if (logger?.error) {
@@ -1994,7 +1859,7 @@ const App = {
       return false;
     }
 
-    this.animeData = this.normalizeAnimeData(ANIME_DATA.anime || []);
+    this.animeData = CatalogPayload.normalizeAnimeData(ANIME_DATA.anime || []);
     return true;
   },
 
@@ -2033,27 +1898,6 @@ const App = {
         this.embeddedDataPromise = null;
         throw error;
       });
-  },
-
-  validateAnimeData(animeList) {
-    return CatalogPayload.validateAnimeData(animeList);
-  },
-
-  /**
-   * Normalize anime data to handle both flat and nested (metadata) structures
-   * This ensures compatibility with both old format and new scraper output
-   */
-  normalizeAnimeData(animeList) {
-    return CatalogPayload.normalizeAnimeData(animeList);
-  },
-
-  /**
-   * Normalize tag arrays to avoid empty or undefined labels
-   * @param {Array} tags - Raw tag list
-   * @returns {Array} Cleaned tag list
-   */
-  sanitizeTagList(tags) {
-    return CatalogPayload.sanitizeTagList(tags);
   },
 
   findSearchMatches(query) {
@@ -2340,7 +2184,7 @@ const App = {
     });
 
     this.addTrackedListener(document, 'keydown', (event) => {
-      if (this.handleGlobalEscape(event)) {
+      if (this.getRuntimeCapabilities().handleGlobalEscape(event)) {
         event.preventDefault();
       }
     });
@@ -2545,7 +2389,7 @@ const App = {
     try {
       const url = new URL(sourceUrl || window.location.href);
       url.searchParams.delete('anime');
-      this.getFilterParamNames().forEach(param => url.searchParams.delete(param));
+      Object.values(BrowseFiltering.filterParamMap).forEach(param => url.searchParams.delete(param));
       return this.buildCanonicalUrl(url.toString());
     } catch (error) {
       return '';
@@ -2796,7 +2640,7 @@ const App = {
     const dropdown = document.getElementById('header-search-dropdown');
     const input = document.getElementById('header-search');
     if (!dropdown || !input) return;
-    const searchDims = this.getImageDimensions('search');
+    const searchDims = this.getImageProxyRuntime().getDimensions('search');
     const searchDimAttrs = searchDims ? `width="${searchDims.width}" height="${searchDims.height}"` : '';
 
     const trimmedQuery = String(query || '').trim();
@@ -2926,7 +2770,9 @@ const App = {
     const modal = document.getElementById('filter-modal');
     if (modal) {
       this.filterPanelOpen = !this.filterPanelOpen;
-      this.setModalVisibility('filter-modal', this.filterPanelOpen, { initialFocusSelector: '#close-filter-modal' });
+      this.getRuntimeCapabilities().setModalVisibility('filter-modal', this.filterPanelOpen, {
+        initialFocusSelector: '#close-filter-modal'
+      });
       if (this.filterPanelOpen) {
         this.ensureFilterPanelRendered();
         const content = modal.querySelector('.filter-modal-content');
@@ -2939,7 +2785,7 @@ const App = {
 
   closeFilterModal() {
     this.filterPanelOpen = false;
-    this.setModalVisibility('filter-modal', false);
+    this.getRuntimeCapabilities().setModalVisibility('filter-modal', false);
   },
 
   /**
@@ -3003,7 +2849,7 @@ const App = {
 
   scheduleFilterPanelRender() {
     if (this.filterPanelRendered || this.filterPanelRenderHandle) return;
-    this.filterPanelRenderHandle = this.queueIdleTask(() => {
+    this.filterPanelRenderHandle = this.getRuntimeCapabilities().queueIdleTask(() => {
       this.filterPanelRenderHandle = null;
       this.renderFilterPanel({ force: true });
     }, { timeout: 2000 });
@@ -3012,7 +2858,7 @@ const App = {
   ensureFilterPanelRendered() {
     if (this.filterPanelRendered) return;
     if (this.filterPanelRenderHandle) {
-      this.cancelIdleTask(this.filterPanelRenderHandle);
+      this.getRuntimeCapabilities().cancelIdleTask(this.filterPanelRenderHandle);
       this.filterPanelRenderHandle = null;
     }
     this.renderFilterPanel({ force: true });
@@ -3160,7 +3006,7 @@ const App = {
 
   showSurpriseMe() {
     const source = this.getTasteProfileStore().prepareDiscoverySource(this.animeData, {
-      excludedIds: this.getWatchlistIds()
+      excludedIds: this.getWatchlistLifecycle().getIds()
     });
     const surprise = Discovery.getSurpriseMe(source);
     if (!surprise) return null;
@@ -3297,7 +3143,7 @@ const App = {
     if (this.prefetchQueue.size >= this.prefetchLimit) return;
     this.prefetchQueue.add(key);
 
-    this.queueIdleTask(() => this.prefetchAnime(key), { timeout: 2000 });
+    this.getRuntimeCapabilities().queueIdleTask(() => this.prefetchAnime(key), { timeout: 2000 });
   },
 
   prefetchAnime(animeId) {
@@ -3323,7 +3169,7 @@ const App = {
    * Clear all active filters
    */
   clearAllFilters() {
-    this.activeFilters = this.getDefaultActiveFilters();
+    this.activeFilters = BrowseFiltering.getDefaultActiveFilters();
 
     // Update all pills and quick chips
     document.querySelectorAll('.filter-pill.active, .quick-chip.active').forEach(el => {
@@ -3383,7 +3229,7 @@ const App = {
       this.secondaryDeferredTimeoutId = null;
     }
     if (force && this.secondaryRenderHandle) {
-      this.cancelIdleTask(this.secondaryRenderHandle);
+      this.getRuntimeCapabilities().cancelIdleTask(this.secondaryRenderHandle);
       this.secondaryRenderHandle = null;
     }
     if (force) {
@@ -3413,7 +3259,7 @@ const App = {
           task();
         }
         if (queue.length > 0) {
-          this.queueIdleTask(runNext, { timeout: constrained ? 2000 : 1200 });
+          this.getRuntimeCapabilities().queueIdleTask(runNext, { timeout: constrained ? 2000 : 1200 });
           return;
         }
         if (typeof onComplete === 'function') {
@@ -3426,7 +3272,7 @@ const App = {
     if (constrained && typeof window !== 'undefined') {
       this.secondaryDeferredTimeoutId = window.setTimeout(() => {
         this.secondaryDeferredTimeoutId = null;
-        this.secondaryRenderHandle = this.queueIdleTask(() => {
+        this.secondaryRenderHandle = this.getRuntimeCapabilities().queueIdleTask(() => {
           this.secondaryRenderHandle = null;
           runQueue(deferredTasks, () => {
             this.secondaryRenderInFlight = false;
@@ -3436,7 +3282,7 @@ const App = {
       return;
     }
 
-    this.secondaryRenderHandle = this.queueIdleTask(() => {
+    this.secondaryRenderHandle = this.getRuntimeCapabilities().queueIdleTask(() => {
       this.secondaryRenderHandle = null;
       runQueue(immediateTasks, () => {
         this.secondaryRenderInFlight = false;
@@ -3474,7 +3320,7 @@ const App = {
 
   scheduleDeferredFilterUi() {
     if (this.deferFilterUiHandle) return;
-    this.deferFilterUiHandle = this.queueIdleTask(() => {
+    this.deferFilterUiHandle = this.getRuntimeCapabilities().queueIdleTask(() => {
       this.deferFilterUiHandle = null;
       this.deferFilterUiOnce = false;
       this.deferFilterUiUsed = true;
@@ -3574,15 +3420,15 @@ const App = {
     const seedContainer = document.getElementById('byw-seed');
 
     if (!section || !grid || !seedContainer) return;
-    const seedDims = this.getImageDimensions('seed');
+    const seedDims = this.getImageProxyRuntime().getDimensions('seed');
     const seedDimAttrs = seedDims ? `width="${seedDims.width}" height="${seedDims.height}"` : '';
-    const recDims = this.getImageDimensions('recommendation');
+    const recDims = this.getImageProxyRuntime().getDimensions('recommendation');
     const recDimAttrs = recDims ? `width="${recDims.width}" height="${recDims.height}"` : '';
 
-    const watchedIds = this.getWatchlistIds({ statuses: ['watching', 'completed'] });
+    const watchedIds = this.getWatchlistLifecycle().getIds({ statuses: ['watching', 'completed'] });
     const seedIds = watchedIds.length > 0
       ? watchedIds
-      : this.getWatchlistIds({ statuses: ['planned', 'watching', 'completed'] });
+      : this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed'] });
 
     const { recommendations, basedOn } = Recommendations.getBecauseYouWatched(
       this.animeData,
@@ -3617,7 +3463,7 @@ const App = {
 
     // Render recommendations
     setHTML(grid, recommendations.map((anime, index) => {
-      const episodeCount = this.getEpisodeCount(anime);
+      const episodeCount = CatalogPayload.getEpisodeCount(anime);
       const hasEpisodes = episodeCount > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
@@ -3659,7 +3505,7 @@ const App = {
   renderTrending() {
     const grid = document.getElementById('trending-grid');
     if (!grid) return;
-    const trendDims = this.getImageDimensions('trending');
+    const trendDims = this.getImageProxyRuntime().getDimensions('trending');
     const trendDimAttrs = trendDims ? `width="${trendDims.width}" height="${trendDims.height}"` : '';
 
     const trending = Discovery.getTrending(this.animeData, 6);
@@ -3667,7 +3513,7 @@ const App = {
     setHTML(grid, trending.map((anime, index) => {
       const rank = index + 1;
       const rankClass = rank <= 3 ? 'top-3' : '';
-      const episodeCount = this.getEpisodeCount(anime);
+      const episodeCount = CatalogPayload.getEpisodeCount(anime);
       const hasEpisodes = episodeCount > 0;
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
@@ -3739,7 +3585,7 @@ const App = {
     if (this.gridSortHandle) return;
     const sortKey = this.currentSort;
     const source = this.filteredData;
-    this.gridSortHandle = this.queueIdleTask(() => {
+    this.gridSortHandle = this.getRuntimeCapabilities().queueIdleTask(() => {
       this.gridSortHandle = null;
       if (this.gridSortedKey !== sortKey || this.gridSortedSource !== source) return;
       const sorted = this.sortAnimeByMetric(source, sortKey);
@@ -3753,7 +3599,7 @@ const App = {
       return this.gridSortedCache || [];
     }
     if (this.gridSortHandle) {
-      this.cancelIdleTask(this.gridSortHandle);
+      this.getRuntimeCapabilities().cancelIdleTask(this.gridSortHandle);
       this.gridSortHandle = null;
     }
     const sortKey = this.currentSort;
@@ -3772,7 +3618,7 @@ const App = {
 
   initCardTemplate() {
     if (this.animeCardTemplate || typeof document === 'undefined') return;
-    const cardDims = this.getImageDimensions('card');
+    const cardDims = this.getImageProxyRuntime().getDimensions('card');
     const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
     const template = document.createElement('template');
     setHTML(template, `
@@ -3836,7 +3682,7 @@ const App = {
     });
 
     const img = card.querySelector('.card-cover');
-    const cardDims = this.getImageDimensions('card');
+    const cardDims = this.getImageProxyRuntime().getDimensions('card');
     if (img) {
       if (coverUrl) {
         img.src = coverUrl;
@@ -3993,7 +3839,7 @@ const App = {
    * Render anime cards HTML
    */
   renderAnimeCards(animeList, { startIndex = 0 } = {}) {
-    const cardDims = this.getImageDimensions('card');
+    const cardDims = this.getImageProxyRuntime().getDimensions('card');
     const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
     return animeList.map((anime, localIndex) => {
       const badges = Recommendations.getBadges(anime);
@@ -4270,7 +4116,7 @@ const App = {
   },
 
   getCardDecisionData(anime) {
-    return buildDetailDecisionData(anime, { episodeCount: this.getEpisodeCount(anime) });
+    return buildDetailDecisionData(anime, { episodeCount: CatalogPayload.getEpisodeCount(anime) });
   },
 
   /**
@@ -4281,14 +4127,14 @@ const App = {
     if (!container) return;
     container.classList.remove('is-loading');
     container.removeAttribute('aria-busy');
-    const recDims = this.getImageDimensions('recommendation');
+    const recDims = this.getImageProxyRuntime().getDimensions('recommendation');
     const recDimAttrs = recDims ? `width="${recDims.width}" height="${recDims.height}"` : '';
 
     // Get recommendations with current mode
     const recommendationLimit = this.getRecommendationDisplayLimit();
     const activeIntent = this.getActiveViewingIntent();
     const recommendationSource = this.getTasteProfileStore().prepareRecommendationSource(this.filteredData, {
-      excludedIds: this.getWatchlistIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] })
+      excludedIds: this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] })
     });
     const decision = Recommendations.getRecommendationDecision(recommendationSource, {
       viewingIntent: activeIntent,
@@ -4459,7 +4305,7 @@ const App = {
     let valueClass = '';
 
     if (metric === 'retention') {
-      const episodeCount = this.getEpisodeCount(anime);
+      const episodeCount = CatalogPayload.getEpisodeCount(anime);
       const hasEpisodes = episodeCount > 0;
       if (hasEpisodes) {
         const score = Math.round(anime.stats?.retentionScore ?? 0);
@@ -4489,7 +4335,7 @@ const App = {
     });
     const loadAttrs = this.getImageLoadingAttrs(0, { eagerCount: 1, priorityCount: 1 });
     const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
-    const rankingDims = this.getImageDimensions('ranking');
+    const rankingDims = this.getImageProxyRuntime().getDimensions('ranking');
     const rankingDimAttrs = rankingDims ? `width="${rankingDims.width}" height="${rankingDims.height}"` : '';
     const safeValueClass = this.sanitizeClassList('ranking-score', valueClass);
     const safeValueDisplay = this.escapeHtml(valueDisplay);
@@ -4576,9 +4422,9 @@ const App = {
 
     if (shouldDeferInitialBatch && endIndex < targetEndIndex && !this.shouldDeferHeavyContent()) {
       if (this.gridDeferredRenderHandle) {
-        this.cancelIdleTask(this.gridDeferredRenderHandle);
+        this.getRuntimeCapabilities().cancelIdleTask(this.gridDeferredRenderHandle);
       }
-      this.gridDeferredRenderHandle = this.queueIdleTask(() => {
+      this.gridDeferredRenderHandle = this.getRuntimeCapabilities().queueIdleTask(() => {
         this.gridDeferredRenderHandle = null;
         if (this.gridRenderedCount >= targetEndIndex) return;
         this.renderAnimeGrid({ append: true });
@@ -4597,9 +4443,9 @@ const App = {
     }
 
     if (this.gridVirtualScrollHandle) {
-      this.cancelIdleTask(this.gridVirtualScrollHandle);
+      this.getRuntimeCapabilities().cancelIdleTask(this.gridVirtualScrollHandle);
     }
-    this.gridVirtualScrollHandle = this.queueIdleTask(() => {
+    this.gridVirtualScrollHandle = this.getRuntimeCapabilities().queueIdleTask(() => {
       this.gridVirtualScrollHandle = null;
       this.setupVirtualScrolling(container);
     }, { timeout: 1500 });
@@ -4671,15 +4517,15 @@ const App = {
     this.gridSortedIsPartial = false;
     this.gridInitialBatchRendered = false;
     if (this.gridSortHandle) {
-      this.cancelIdleTask(this.gridSortHandle);
+      this.getRuntimeCapabilities().cancelIdleTask(this.gridSortHandle);
       this.gridSortHandle = null;
     }
     if (this.gridDeferredRenderHandle) {
-      this.cancelIdleTask(this.gridDeferredRenderHandle);
+      this.getRuntimeCapabilities().cancelIdleTask(this.gridDeferredRenderHandle);
       this.gridDeferredRenderHandle = null;
     }
     if (this.gridVirtualScrollHandle) {
-      this.cancelIdleTask(this.gridVirtualScrollHandle);
+      this.getRuntimeCapabilities().cancelIdleTask(this.gridVirtualScrollHandle);
       this.gridVirtualScrollHandle = null;
     }
   },
@@ -4848,7 +4694,7 @@ const App = {
         const animeId = actionEl.dataset.animeId;
         const anime = this.animeData.find(item => String(item?.id) === String(animeId));
         if (anime) {
-          this.setWatchStatus(anime.id, 'planned', { episodeCount: this.getEpisodeCount(anime) });
+          this.setWatchStatus(anime.id, 'planned', { episodeCount: CatalogPayload.getEpisodeCount(anime) });
         }
         return;
       }
@@ -5191,7 +5037,7 @@ const App = {
     const hasGenres = Array.isArray(anime?.genres) && anime.genres.length > 0;
     const hasThemes = Array.isArray(anime?.themes) && anime.themes.length > 0;
     const canMatch = hasGenres && hasThemes;
-    const simDims = this.getImageDimensions('similar');
+    const simDims = this.getImageProxyRuntime().getDimensions('similar');
     const simDimAttrs = simDims ? `width="${simDims.width}" height="${simDims.height}"` : '';
 
     const formatTags = (tags, max = 2) => {
@@ -5215,7 +5061,7 @@ const App = {
           <div class="similar-grid">
             ${similarResults.map(result => {
       const similar = result.anime;
-      const episodeCount = this.getEpisodeCount(similar);
+      const episodeCount = CatalogPayload.getEpisodeCount(similar);
       const hasEpisodes = episodeCount > 0;
       const rawRetention = similar?.stats?.retentionScore;
       const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
@@ -5308,7 +5154,7 @@ const App = {
    * Close metric help modal
    */
   closeMetricHelpModal() {
-    this.setModalVisibility('metric-help-modal', false);
+    this.getRuntimeCapabilities().setModalVisibility('metric-help-modal', false);
   },
 
   /**
@@ -5336,7 +5182,9 @@ const App = {
 
     if (body && modal) {
       setHTML(body, content);
-      this.setModalVisibility('metric-help-modal', true, { initialFocusSelector: '#close-metric-help' });
+      this.getRuntimeCapabilities().setModalVisibility('metric-help-modal', true, {
+        initialFocusSelector: '#close-metric-help'
+      });
     }
   },
 
@@ -5400,7 +5248,7 @@ const App = {
     const { index = 0 } = options;
     const badges = Recommendations.getBadges(anime);
     const cardStats = Recommendations.getCardStats(anime);
-    const episodeCount = this.getEpisodeCount(anime);
+    const episodeCount = CatalogPayload.getEpisodeCount(anime);
     const hasEpisodes = episodeCount > 0;
     const rawRetention = anime?.stats?.retentionScore;
     const retentionLevel = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : 0;
@@ -5427,7 +5275,7 @@ const App = {
 
     const loadingAttrs = this.getImageLoadingAttrs(index);
     const fetchPriorityAttr = loadingAttrs.fetchpriority ? `fetchpriority="${loadingAttrs.fetchpriority}"` : '';
-    const cardDims = this.getImageDimensions('card');
+    const cardDims = this.getImageProxyRuntime().getDimensions('card');
     const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
     return `
       <div class="anime-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">

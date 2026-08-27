@@ -55,9 +55,6 @@ jobs:
       - name: Coverage
         run: bun --silent run test:coverage
 
-      - name: Coverage thresholds
-        run: bun --silent run check:coverage-thresholds
-
       - name: Build verification
         run: bun --silent run build:verify
 

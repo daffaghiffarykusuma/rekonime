@@ -9,7 +9,20 @@ import {
   renderSynopsisLoading
 } from './detail-presentation.ts';
 import { createDetailMedia } from './detail-media.ts';
-import { renderDetailErrorState } from './detail-error-state.ts';
+import { CatalogPayload } from './services/catalog-payload.ts';
+
+const DETAIL_ERROR_MESSAGES = {
+  catalog: 'We could not find that anime in the current catalog.',
+  deepLink: 'We could not find that anime. The link may be outdated or the catalog may have changed.'
+};
+
+const renderDetailErrorState = (reason = 'catalog') => `
+  <div class="error-message">
+    <h2>That title is not available</h2>
+    <p>${DETAIL_ERROR_MESSAGES[reason] || DETAIL_ERROR_MESSAGES.catalog}</p>
+    <button class="btn btn-primary detail-close-button" data-action="close-detail">Back to browsing</button>
+  </div>
+`;
 
 const normalizeDetailKey = (animeId) => String(animeId ?? '').trim();
 
@@ -63,9 +76,9 @@ const createDetailExperience = (app, dependencies = {}) => {
     sanitizeImageUrl: app.sanitizeImageUrl.bind(app),
     sanitizeClassList: app.sanitizeClassList.bind(app),
     buildImageSrcset: app.buildImageSrcset.bind(app),
-    getImageDimensions: app.getImageDimensions.bind(app),
+    getImageDimensions: (kind) => app.getImageProxyRuntime().getDimensions(kind),
     getImageFallbackAttrs: app.getImageFallbackAttrs.bind(app),
-    getEpisodeCount: app.getEpisodeCount.bind(app),
+    getEpisodeCount: (anime) => CatalogPayload.getEpisodeCount(anime),
     renderSynopsis: app.renderSynopsis.bind(app),
     renderSynopsisLoading,
     renderFranchiseHubSection: app.renderFranchiseHubSection.bind(app),
@@ -200,7 +213,7 @@ const createDetailExperience = (app, dependencies = {}) => {
   };
 
   const close = ({ updateUrl = true } = {}) => {
-    app.setModalVisibility('detail-modal', false);
+    app.getRuntimeCapabilities().setModalVisibility('detail-modal', false);
     media.cleanup();
     app.currentAnimeId = null;
     activeAnime = null;
@@ -218,7 +231,9 @@ const createDetailExperience = (app, dependencies = {}) => {
     if (!modal || !content) return false;
 
     setHTML(content, renderDetailSkeleton());
-    app.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+    app.getRuntimeCapabilities().setModalVisibility('detail-modal', true, {
+      initialFocusSelector: '#close-detail'
+    });
 
     let anime = app.animeData.find(anime => anime?.id === animeId) || null;
 
@@ -234,7 +249,7 @@ const createDetailExperience = (app, dependencies = {}) => {
       return true;
     }
 
-    setHTML(content, renderDetailErrorState({ reason: 'deepLink' }));
+    setHTML(content, renderDetailErrorState('deepLink'));
     return false;
   };
 
@@ -263,7 +278,9 @@ const createDetailExperience = (app, dependencies = {}) => {
       setHTML(content, renderDetailSkeleton());
     }
     if (!skipModalOpen) {
-      app.setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+      app.getRuntimeCapabilities().setModalVisibility('detail-modal', true, {
+        initialFocusSelector: '#close-detail'
+      });
     }
 
     let anime = app.animeData.find(entry => entry?.id === animeId) || null;
@@ -279,7 +296,7 @@ const createDetailExperience = (app, dependencies = {}) => {
         app.updateUrlForAnime(null, { replace: true });
       }
       app.resetMetaToDefault();
-      setHTML(content, renderDetailErrorState({ reason: 'catalog' }));
+      setHTML(content, renderDetailErrorState());
       reportModalOpened({ status: 'not_found' });
       return;
     }

@@ -31,7 +31,7 @@ All actions are in-memory. The success screen describes the planned result but d
 
 - `bun run typecheck` passed.
 - `bun run build` passed.
-- Playwright exercised the supplied XML, one Use MAL override, live count update, confirmation cancel-first focus, success focus/status, invalid-file retry focus, and a 390 x 844 viewport.
+- Playwright exercises the privacy-safe 415-row XML fixture, one Use MAL override, live count update, confirmation cancel-first focus, success focus/status, invalid-file retry focus, and a 390 x 844 viewport.
 - Mobile screenshot: [`output/playwright/mal-import-review-mobile.png`](../../../../output/playwright/mal-import-review-mobile.png).
 - The dev server logs the repository's existing missing full-catalog-index request; it is outside this prototype and does not block reviewing the flow.
 

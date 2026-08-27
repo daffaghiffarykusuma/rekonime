@@ -457,7 +457,7 @@ const createAppCatalogRuntime = (app) => createCatalogRuntime({
     }
   }),
   teardownFullCatalogInteractionTriggers: () => app.teardownFullCatalogInteractionTriggers(),
-  cancelIdleTask: (handle) => app.cancelIdleTask(handle),
+  cancelIdleTask: (handle) => app.getRuntimeCapabilities().cancelIdleTask(handle),
   addPreloadHints: () => app.addPreloadHints(),
   emitAppEvent: (name, detail) => app.emitAppEvent(name, detail),
   emitCatalogEvent: (type, detail) => app.emitCatalogEvent(type, detail),

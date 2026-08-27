@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { DataValidator } from './data-validator.js';
 
 const isValidCatalogPayload = (payload) => {
   if (!payload || typeof payload !== 'object' || !Array.isArray(payload.anime)) return false;
@@ -230,20 +229,15 @@ const prepareCatalogPayloadState = (
   {
     isFull = false,
     preserveFilters = true,
-    defaultActiveFilters = DEFAULT_ACTIVE_FILTERS,
-    validator = DataValidator
+    defaultActiveFilters = DEFAULT_ACTIVE_FILTERS
   } = {}
 ) => {
   const animeData = normalizeAnimeData(payload?.anime || []);
   const scoreProfile = isValidScoreProfile(payload?.scoreProfile) ? payload.scoreProfile : null;
-  const validation = validator?.validateCatalog
-    ? validator.validateCatalog(animeData, { source: isFull ? 'full' : 'embedded' })
-    : null;
 
   return {
     animeData,
     scoreProfile,
-    validation,
     isFullDataLoaded: Boolean(isFull),
     catalogStatus: isFull ? 'full' : 'embedded',
     catalogReady: true,
@@ -261,14 +255,12 @@ const prepareCatalogPayloadApplication = (payload, {
   isFull = false,
   preserveFilters = true,
   defaultActiveFilters = DEFAULT_ACTIVE_FILTERS,
-  filterUi = {},
-  validator = DataValidator
+  filterUi = {}
 } = {}) => {
   const state = prepareCatalogPayloadState(payload, {
     isFull,
     preserveFilters,
-    defaultActiveFilters,
-    validator
+    defaultActiveFilters
   });
   const deferFilterUi = !filterUi.deferUsed && Boolean(filterUi.lowMotion);
   const applyUrlFilters = !filterUi.urlFiltersApplied && Boolean(filterUi.catalogPage);

@@ -4,7 +4,9 @@ import { App } from '../../js/app.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('App Shell applies Catalog Payload state and browser effects', async () => {
-  setupDom('<!doctype html><html><body></body></html>');
+  setupDom('<!doctype html><html><body></body></html>', {
+    url: 'http://localhost/?genre=Action'
+  });
   const calls = [];
   const app = Object.assign(Object.create(App), {
     gridDomCache: new Map([['stale', {}]]),
@@ -15,11 +17,11 @@ test('App Shell applies Catalog Payload state and browser effects', async () => 
     filterPanelRendered: false,
     filterPanelOpen: false,
     urlFiltersApplied: false,
-    getDefaultActiveFilters: () => ({ genres: ['Action'] }),
     isCatalogPage: () => true,
-    hasFilterParamsInUrl: () => true,
     shouldEnableLowMotionMode: () => false,
-    cancelIdleTask: (handle) => calls.push(['cancelIdleTask', handle]),
+    runtimeCapabilities: {
+      cancelIdleTask: (handle) => calls.push(['cancelIdleTask', handle])
+    },
     markCatalogFresh: () => calls.push(['markCatalogFresh']),
     ensureStats: async () => calls.push(['ensureStats']),
     refreshWatchlistSnapshotsFromCatalog: (options) => calls.push(['refreshWatchlistSnapshots', options]),

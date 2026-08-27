@@ -47,8 +47,7 @@ Run these before opening a PR:
 3. `bun run test:golden`
 4. `bun run data:validate`
 5. `bun run test:coverage`
-6. `bun run check:coverage-thresholds`
-7. `bun run check:security`
+6. `bun run check:security`
 
 Useful grouped commands:
 - `bun run check:quick` (unit + integration + data validation)
@@ -64,7 +63,7 @@ Useful grouped commands:
 - `bun run check:unsafe-patterns` (static unsafe API pattern scan)
 - `bun run check:security-headers` (verifies required security headers in `vercel.json`)
 
-`bun run check:coverage-thresholds` now generates coverage first if `coverage/coverage-summary.json` is missing.
+`bun run test:coverage` uses Bun's native coverage gate from `bunfig.toml`.
 
 Reference docs:
 - CI/local command matrix: `docs/ci-local-matrix.md`

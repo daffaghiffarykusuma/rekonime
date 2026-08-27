@@ -76,7 +76,9 @@ const createWatchlistPageInteractions = ({
     documentRef?.getElementById('mal-import-toggle')?.addEventListener('click', async () => {
       const app = await loadFullApp();
       app.ensureSettingsRendered();
-      app.setModalVisibility('settings-modal', true, { initialFocusSelector: '#mal-watchlist-import-file' });
+      app.getRuntimeCapabilities().setModalVisibility('settings-modal', true, {
+        initialFocusSelector: '#mal-watchlist-import-file'
+      });
       documentRef.getElementById('mal-watchlist-import-file')?.scrollIntoView({ block: 'center' });
     });
   };

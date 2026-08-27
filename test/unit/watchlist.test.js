@@ -26,7 +26,7 @@ test('Setting watch status creates a planned watchlist entry', () => {
 
   App.setWatchStatus(anime.id, 'planned');
 
-  const entry = App.getWatchlistEntry(anime.id);
+  const entry = App.getWatchlistLifecycle().getEntry(anime.id);
   assert.ok(entry);
   assert.equal(entry.status, 'planned');
   assert.equal(entry.progress, 0);
@@ -40,11 +40,11 @@ test('Clearing watch status removes watchlist entry', () => {
   App.animeData = [anime];
 
   App.setWatchStatus(anime.id, 'planned');
-  assert.ok(App.getWatchlistEntry(anime.id));
+  assert.ok(App.getWatchlistLifecycle().getEntry(anime.id));
 
   App.setWatchStatus(anime.id, '');
 
-  assert.equal(App.getWatchlistEntry(anime.id), null);
+  assert.equal(App.getWatchlistLifecycle().getEntry(anime.id), null);
 });
 
 test('Setting watch progress upgrades planned to watching', () => {
@@ -56,7 +56,7 @@ test('Setting watch progress upgrades planned to watching', () => {
   App.setWatchStatus(anime.id, 'planned');
   App.setWatchProgress(anime.id, 2);
 
-  const entry = App.getWatchlistEntry(anime.id);
+  const entry = App.getWatchlistLifecycle().getEntry(anime.id);
   assert.ok(entry);
   assert.equal(entry.status, 'watching');
   assert.equal(entry.progress, 2);
