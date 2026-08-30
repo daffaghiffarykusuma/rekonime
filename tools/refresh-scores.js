@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fetchCommunityScore } from './lib/mal-community-score.js';
 import { parseTrustedMalEpisodePageUrl } from './lib/mal-pagination-url.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -250,20 +251,6 @@ const fetchWithRetry = async (url, options = {}) => {
   throw new Error(`Failed to fetch ${url}`);
 };
 
-const fetchCommunityScore = async (malId) => {
-  const url = `https://api.jikan.moe/v4/anime/${malId}`;
-  const response = await fetchWithRetry(url, {
-    headers: {
-      'User-Agent': 'rekonime-refresh-scores/1.0',
-      Accept: 'application/json'
-    }
-  });
-  const payload = await response.json();
-  const raw = payload?.data?.score;
-  const score = Number(raw);
-  return Number.isFinite(score) ? score : null;
-};
-
 const fetchEpisodeScores = async (malId, slug, scheduler) => {
   const visitedUrls = new Set();
   const pageEpisodes = [];
@@ -350,7 +337,7 @@ const main = async () => {
     }
 
     const [communityResult, episodesResult] = await Promise.allSettled([
-      jikanScheduler.schedule(() => fetchCommunityScore(malId)),
+      jikanScheduler.schedule(() => fetchCommunityScore(malId, fetchWithRetry)),
       fetchEpisodeScores(malId, slug, malScheduler)
     ]);
 
