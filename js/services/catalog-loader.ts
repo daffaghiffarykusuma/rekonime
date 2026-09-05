@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { CatalogCache } from './catalog-cache.ts';
-import { isValidCatalogPayload } from './catalog-payload.ts';
+import { isValidCatalogPayload, normalizeAnimeData } from './catalog-payload.ts';
 
 const DEFAULT_FETCH_CONFIG = {
   maxRetries: 3,
@@ -145,9 +145,7 @@ const createCatalogRuntime = ({
   emitCatalogEvent = () => {},
   loadEmbeddedData = async () => false,
   applyCatalogPayload = async () => {},
-  mergeAnimeDetail = () => null,
-  hasFullAnimeDetail = (anime) => Array.isArray(anime?.episodes) && anime.episodes.length > 0,
-  clearDetailCache = () => {},
+  onAnimeDetailLoaded = () => {},
   catalogCache = CatalogCache,
   catalogCacheMaxAgeMs = 30 * 24 * 60 * 60 * 1000,
   fullCatalogTimeoutMs = 30000
@@ -389,7 +387,7 @@ const createCatalogRuntime = ({
     if (!key) return null;
 
     const existing = getCurrentAnimeData().find((anime) => String(anime.id) === key);
-    if (hasFullAnimeDetail(existing)) return existing;
+    if (Array.isArray(existing?.episodes) && existing.episodes.length > 0) return existing;
     if (session.hasDetailLoaded(key)) return existing || null;
 
     if (session.hasDetailLoad(key)) {
@@ -402,13 +400,21 @@ const createCatalogRuntime = ({
         timeoutMs: 8000
       });
       const detailAnime = Array.isArray(payload?.anime) ? payload.anime[0] : null;
-      if (!detailAnime) return null;
-      const merged = mergeAnimeDetail(detailAnime);
-      session.markDetailLoaded(key);
-      if (merged) {
-        clearDetailCache(merged.id);
-        emitCatalogEvent('detail-chunk-loaded', { animeId: key });
+      if (!detailAnime || String(detailAnime.metadata?.id || detailAnime.id || '') !== key) return null;
+      const animeData = getCurrentAnimeData();
+      const existingIndex = animeData.findIndex((anime) => String(anime.id) === key);
+      const current = existingIndex >= 0 ? animeData[existingIndex] : {};
+      const normalized = normalizeAnimeData([{ ...current, ...detailAnime }])[0];
+      if (!normalized?.id || String(normalized.id) !== key) return null;
+      const merged = { ...current, ...normalized };
+      if (existingIndex >= 0) {
+        animeData[existingIndex] = merged;
+      } else {
+        animeData.push(merged);
       }
+      session.markDetailLoaded(key);
+      onAnimeDetailLoaded(merged);
+      emitCatalogEvent('detail-chunk-loaded', { animeId: key });
       return merged;
     })()
       .catch((error) => {
@@ -463,10 +469,12 @@ const createAppCatalogRuntime = (app) => createCatalogRuntime({
   emitCatalogEvent: (type, detail) => app.emitCatalogEvent(type, detail),
   loadEmbeddedData: () => app.loadEmbeddedData(),
   applyCatalogPayload: (payload, options) => app.applyCatalogPayload(payload, options),
-  mergeAnimeDetail: (detailAnime) => app.mergeAnimeDetail(detailAnime),
-  hasFullAnimeDetail: (anime) => app.hasFullAnimeDetail(anime),
-  clearDetailCache: (animeId) => {
-    app.detailCache.delete(animeId);
+  onAnimeDetailLoaded: (anime) => {
+    app.detailCache.delete(anime.id);
+    app.gridSortedCache = null;
+    app.gridSortedKey = '';
+    app.gridSortedSource = null;
+    app.refreshWatchlistSnapshotsFromCatalog({ persist: true });
   },
   catalogCacheMaxAgeMs: app.catalogCacheMaxAgeMs,
   fullCatalogTimeoutMs: app.fullCatalogTimeoutMs

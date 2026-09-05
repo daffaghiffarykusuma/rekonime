@@ -19,7 +19,8 @@
 - App handoff: `js/app.ts` (`applyCatalogPayload`, render/filter/meta refresh); App and Detail Experience call Catalog Runtime directly rather than mirroring its commands
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
-- Interface: load the initial/full catalog, track scheduled and active loads, and load detail chunks; network fetching and full-catalog cache access stay private to the runtime
+- Interface: load the initial/full catalog, track scheduled and active loads, and enrich a requested anime through detail chunks; Catalog Runtime owns detail readiness, request deduplication, requested-title acceptance, Catalog Payload normalization, merging into the current catalog, and accepted-detail bookkeeping. Network fetching and full-catalog cache access stay private to the runtime.
+- Detail enrichment effects: one App adapter callback invalidates detail and grid caches and refreshes Watchlist Snapshots after acceptance. Rejected chunks remain retryable; accepted empty-episode chunks are remembered. Detail Experience refreshes only when enrichment returns a different record for the still-open title.
 - Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns payload acceptance, normalization, score-profile validation, validation handoff, render-ready catalog state, and downstream refresh intent; the App Shell applies document, cache, Snapshot, Airing Schedule, and filter effects from that intent
 
 ### Browse View Filtering
@@ -166,6 +167,9 @@
 - Outputs: error/warning report and process status
 
 ### Data Operations
+- Score refresh request module: `tools/lib/score-refresh-request.js`, shared by community-score fallback and episode pagination in `tools/refresh-scores.js`
+- Score refresh request interface: request a URL; the module owns destination-host queues and paces every attempt, including retries and MAL fallbacks. Production fetch and mock fetch/clock adapters use the same seam.
+- Score refresh preserves independent score/episode outcomes, partial saves, CLI options, and existing values when a fetch fails.
 - Stable Bun commands: `bun run data:regenerate`, `bun run data:backup`, `bun run data:rollback`, `bun run test:scraper`
 - Python entry points: `tools/regenerate_data.py`, `tools/deploy_data.py`, existing `tools/scraper/*.py`
 - Launcher: `tools/run-python.js`

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createCatalogRuntime } from '../../js/services/catalog-loader.ts';
 import { createDetailExperience } from '../../js/detail-experience.ts';
 import { setupDom } from '../helpers/dom.js';
 
@@ -29,7 +30,6 @@ const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
     resetMetaToDefault: () => calls.push(['resetMetaToDefault']),
     normalizeBookmarkId: (value) => String(value ?? '').trim(),
     getWatchlistSnapshot: () => null,
-    hasFullAnimeDetail: () => true,
     loadAnimeDetailChunk: async () => null,
     getSynopsisForAnime: (anime) => anime.synopsis || '',
     renderFranchiseHubSection: () => '',
@@ -296,4 +296,26 @@ test('Detail Experience deep link loads full catalog before showing a title', as
   assert.equal(app.currentAnimeId, 'deep-link-title');
   assert.match(document.getElementById('detail-content').innerHTML, /Deep Link Title/);
   assert.equal(calls.some(([name]) => name === 'showAnimeDetail'), false);
+});
+
+test('Detail Experience renders enriched detail once without reopening indefinitely', async () => {
+  setupDom('<div id="detail-modal"><div class="modal-content"></div></div><div id="detail-content"></div>');
+  let fetchCount = 0;
+  let app;
+  const runtime = createCatalogRuntime({
+    getCurrentAnimeData: () => app.animeData,
+    fetchFn: async () => {
+      fetchCount += 1;
+      return Response.json({ anime: [{ id: 'one', title: 'Enriched title', episodes: [] }] });
+    },
+    onAnimeDetailLoaded: (anime) => app.detailCache.delete(anime.id)
+  });
+  const harness = createAppHarness({ animeData: [{ id: 'one', title: 'Index title', episodes: [] }] }, { catalogRuntime: runtime });
+  app = harness.app;
+  harness.detail.open('one', { updateUrl: false });
+  await runtime.loadAnimeDetailChunk('one');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.match(document.getElementById('detail-content').textContent, /Enriched title/);
+  assert.equal(fetchCount, 1);
+  assert.equal(harness.calls.filter(([name, event]) => name === 'emitAppEvent' && event === 'rekonime:modal-opened').length, 2);
 });

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createScoreRefreshRequest } from './lib/score-refresh-request.js';
 import { fetchCommunityScore } from './lib/mal-community-score.js';
 import { parseTrustedMalEpisodePageUrl } from './lib/mal-pagination-url.js';
 
@@ -12,9 +13,6 @@ const DEFAULT_SAVE_INTERVAL = 25;
 const DEFAULT_MAL_DELAY_MS = 1200;
 const DEFAULT_JIKAN_DELAY_MS = 400;
 const DEFAULT_CONCURRENCY = 4;
-const MAX_RETRIES = 4;
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const parseNumberArg = (value, fallback) => {
   const parsed = Number(value);
@@ -179,30 +177,6 @@ const sanitizeEpisodeList = (episodes) => {
     .sort((left, right) => left.episode - right.episode);
 };
 
-class ServiceScheduler {
-  constructor(intervalMs) {
-    this.intervalMs = Math.max(0, Number(intervalMs) || 0);
-    this.nextRunAt = 0;
-    this.queue = Promise.resolve();
-  }
-
-  schedule(task) {
-    const run = async () => {
-      const waitMs = Math.max(0, this.nextRunAt - Date.now());
-      if (waitMs > 0) {
-        await sleep(waitMs);
-      }
-
-      this.nextRunAt = Date.now() + this.intervalMs;
-      return task();
-    };
-
-    const scheduled = this.queue.then(run, run);
-    this.queue = scheduled.catch(() => undefined);
-    return scheduled;
-  }
-}
-
 const episodesChanged = (existing, incoming) => {
   const current = sanitizeEpisodeList(existing);
   if (current.length !== incoming.length) return true;
@@ -229,29 +203,7 @@ const syncEpisodeCountMetadata = (anime, episodes) => {
   }
 };
 
-const fetchWithRetry = async (url, options = {}) => {
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
-    try {
-      const response = await fetch(url, options);
-      if (response.ok) return response;
-
-      if (![429, 500, 502, 503, 504].includes(response.status) || attempt === MAX_RETRIES) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const retryAfter = response.headers.get('retry-after');
-      const backoffMs = retryAfter ? Number(retryAfter) * 1000 : 1000 * (attempt + 1);
-      await sleep(backoffMs);
-    } catch (error) {
-      if (attempt === MAX_RETRIES) throw error;
-      await sleep(1000 * (attempt + 1));
-    }
-  }
-
-  throw new Error(`Failed to fetch ${url}`);
-};
-
-const fetchEpisodeScores = async (malId, slug, scheduler) => {
+const fetchEpisodeScores = async (malId, slug, request) => {
   const visitedUrls = new Set();
   const pageEpisodes = [];
   let nextUrl = `https://myanimelist.net/anime/${malId}/${slug}/episode`;
@@ -259,16 +211,8 @@ const fetchEpisodeScores = async (malId, slug, scheduler) => {
   while (nextUrl && !visitedUrls.has(nextUrl)) {
     visitedUrls.add(nextUrl);
 
-    const response = scheduler
-      ? await scheduler.schedule(() => fetchWithRetry(nextUrl, {
-        headers: {
-          'User-Agent': 'rekonime-refresh-scores/1.0'
-        }
-      }))
-      : await fetchWithRetry(nextUrl, {
-        headers: {
-          'User-Agent': 'rekonime-refresh-scores/1.0'
-        }
+    const response = await request(nextUrl, {
+      headers: { 'User-Agent': 'rekonime-refresh-scores/1.0' }
     });
     const html = await response.text();
     const episodes = parseEpisodeScores(html);
@@ -317,8 +261,7 @@ const main = async () => {
   console.log(`Data path: ${path.relative(process.cwd(), options.dataPath)}`);
   console.log(`MAL delay: ${options.malDelayMs}ms | Jikan delay: ${options.jikanDelayMs}ms | Save interval: ${options.saveInterval} | Concurrency: ${options.concurrency}`);
 
-  const malScheduler = new ServiceScheduler(options.malDelayMs);
-  const jikanScheduler = new ServiceScheduler(options.jikanDelayMs);
+  const request = createScoreRefreshRequest(options);
 
   const writeProgress = () => {
     fs.writeFileSync(options.dataPath, `${JSON.stringify(root, null, 2)}\n`, 'utf8');
@@ -337,8 +280,8 @@ const main = async () => {
     }
 
     const [communityResult, episodesResult] = await Promise.allSettled([
-      jikanScheduler.schedule(() => fetchCommunityScore(malId, fetchWithRetry)),
-      fetchEpisodeScores(malId, slug, malScheduler)
+      fetchCommunityScore(malId, request),
+      fetchEpisodeScores(malId, slug, request)
     ]);
 
     if (communityResult.status === 'fulfilled') {

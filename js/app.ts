@@ -1496,34 +1496,6 @@ const App = {
     schedule();
   },
 
-  hasFullAnimeDetail(anime) {
-    if (!anime) return false;
-    return Array.isArray(anime.episodes) && anime.episodes.length > 0;
-  },
-
-  mergeAnimeDetail(detailAnime) {
-    const existingIndex = this.animeData.findIndex((anime) => String(anime.id) === String(detailAnime?.id));
-    const existingAnime = existingIndex >= 0 ? this.animeData[existingIndex] : {};
-    const normalized = CatalogPayload.normalizeAnimeData([{ ...existingAnime, ...detailAnime }])[0];
-    if (!normalized?.id) return null;
-
-    if (existingIndex >= 0) {
-      this.animeData[existingIndex] = {
-        ...this.animeData[existingIndex],
-        ...normalized
-      };
-    } else {
-      this.animeData.push(normalized);
-    }
-
-    this.detailCache.delete(normalized.id);
-    this.gridSortedCache = null;
-    this.gridSortedKey = '';
-    this.gridSortedSource = null;
-    this.refreshWatchlistSnapshotsFromCatalog({ persist: true });
-    return normalized;
-  },
-
   async applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
     const { state, intent } = CatalogPayload.prepareApplication(payload, {
       isFull,
