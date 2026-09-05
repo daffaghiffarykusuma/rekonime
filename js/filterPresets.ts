@@ -36,7 +36,7 @@ const FilterPresets = {
 
         'hidden-gems': {
             label: 'Overlooked Standouts',
-            description: 'Strong finish confidence with less mainstream buzz',
+            description: 'Strong episode rating strength with less mainstream buzz',
             icon: 'O',
             sort: 'retention',
             filterFn: (anime) => {

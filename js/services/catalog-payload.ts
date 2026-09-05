@@ -189,6 +189,7 @@ const normalizeAnimeData = (animeList = []) => {
       searchIndex,
       searchText,
       episodes: Array.isArray(anime?.episodes) ? anime.episodes : [],
+      status: anime?.status || anime?.metadata?.status || null,
       stats: existingStats,
       colorIndex: existingColorIndex,
       franchise: anime?.franchise || anime?.metadata?.franchise || null

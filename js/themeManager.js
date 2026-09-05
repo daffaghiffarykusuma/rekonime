@@ -113,8 +113,8 @@ const ThemeManager = {
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
         if (metaThemeColor) {
             const themeColors = {
-                dark: '#000000',
-                light: '#F6F1FA'
+                dark: '#151917',
+                light: '#f6f3eb'
             };
             metaThemeColor.setAttribute('content', themeColors[theme] || themeColors.dark);
         }

@@ -21,6 +21,8 @@ const toRuntimeStatsSummary = (stats = {}) => ({
   scoreClass: stats.scoreClass,
   episodeCount: stats.episodeCount,
   retentionScore: stats.retentionScore,
+  ratingEvidence: stats.ratingEvidence,
+  scoringVersion: stats.scoringVersion,
   threeEpisodeHook: stats.threeEpisodeHook,
   worthFinishing: stats.worthFinishing,
   flowState: stats.flowState,

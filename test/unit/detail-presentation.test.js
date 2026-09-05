@@ -35,9 +35,9 @@ test('Detail Presentation builds the shared decision signal', () => {
       communityScore: 7.2
     }, { episodeCount: 12 }),
     {
-      value: '90%',
-      label: 'Finish confidence',
-      note: 'Very likely to keep you watching',
+      value: '90/100',
+      label: 'Episode rating strength',
+      note: 'Limited data · coverage unavailable',
       className: 'score-high'
     }
   );
@@ -60,7 +60,7 @@ test('Detail Presentation renders modal body without App Shell state', () => {
   assert.match(html, /Show &lt;One&gt;/);
   assert.match(html, /Local synopsis/);
   assert.match(html, /watchlist-controls/);
-  assert.match(html, /Decision signal/);
+  assert.match(html, /Episode rating strength/);
   assert.match(html, /Satisfaction \(MAL\)/);
   assert.doesNotMatch(html, /detail-stat-label">Finish Confidence/);
   assert.match(html, /role="tab"[^>]*>Overview/);

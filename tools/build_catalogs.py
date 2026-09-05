@@ -184,6 +184,7 @@ def normalize_anime(anime: Dict[str, Any], resolve_franchise) -> Dict[str, Any]:
             "searchText": anime.get("searchText") or build_search_text(resolved_title, title_english, title_japanese),
             "episodes": anime.get("episodes") if isinstance(anime.get("episodes"), list) else [],
         }
+    normalized["status"] = anime.get("status") or metadata.get("status")
     if episode_count:
         normalized["episodeCount"] = episode_count
     if franchise:
@@ -362,18 +363,18 @@ def normalize_episodes(episodes: Any, strict: bool = False, max_episode_entries:
             normalized_episode = int(episode_number)
         else:
             normalized_episode = episode_number
-        cleaned.append({**episode, "episode": normalized_episode, "score": score})
+        cleaned.append({**episode, "episode": normalized_episode, "score": score, "positionKnown": episode.get("positionKnown") is not False and isinstance(episode.get("episode"), (int, float)) and episode["episode"] > 0 and float(episode["episode"]).is_integer()})
     if strict and len(episodes) > max_episode_entries:
         raise BuildError("Episode count exceeds supported limit", {"total": len(episodes), "maxEpisodeEntries": max_episode_entries})
     if strict and source_episodes and not cleaned:
         raise BuildError("No valid episodes available", {"total": len(source_episodes)})
-    return cleaned
+    return sorted({ep["episode"]: ep for ep in cleaned}.values(), key=lambda ep: ep["episode"])
 
 
 def calculate_average(episodes: List[Dict[str, Any]]) -> float:
     if not episodes:
         return 0
-    return round_to(sum(ep["score"] for ep in episodes) / len(episodes), 2)
+    return js_round(sum(ep["score"] for ep in episodes) / len(episodes) * 100 + 1e-9) / 100
 
 
 def get_episode_score_range(episodes: List[Dict[str, Any]]) -> Dict[str, float]:
@@ -423,7 +424,9 @@ def calculate_median(episodes: List[Dict[str, Any]]) -> float:
 def calculate_3_episode_hook(episodes: List[Dict[str, Any]]) -> int:
     if not episodes:
         return 0
-    hook = episodes[: min(3, len(episodes))]
+    hook = [ep for i, ep in enumerate(episodes) if ep.get("positionKnown") is not False and 1 <= ep.get("episode", i + 1) <= 3]
+    if not hook:
+        return 0
     return score_to_strict_percent(sum(ep["score"] for ep in hook) / len(hook))
 
 
@@ -471,7 +474,7 @@ def calculate_momentum(episodes: List[Dict[str, Any]]) -> int:
     if len(episodes) < 4:
         return 0
     last3_avg = sum(ep["score"] for ep in episodes[-3:]) / 3
-    return js_round(clamp((last3_avg - calculate_average(episodes)) * 50, -100, 100))
+    return js_round(clamp((last3_avg - calculate_average(episodes)) * 50, -100, 100) + 1e-9)
 
 
 def calculate_narrative_acceleration(episodes: List[Dict[str, Any]]) -> float:
@@ -617,36 +620,36 @@ def calculate_churn_risk(episodes: List[Dict[str, Any]], score_profile: Dict[str
     factors = []
     avg = calculate_average(episodes)
     drop_threshold = clamp(avg - 0.4, thresholds["p35"], thresholds["p65"])
-    current = 0
-    max_slump = 0
-    for ep in episodes:
-        if ep["score"] <= drop_threshold:
-            current += 1
-        else:
-            max_slump = max(max_slump, current)
-            current = 0
-    max_slump = max(max_slump, current)
-    if max_slump >= 3:
-        risk += 50
-        factors.append("Quality slump (%s consecutive weak episodes)" % max_slump)
-    elif max_slump >= 2:
-        risk += 25
-        factors.append("Minor slump (2 consecutive weak episodes)")
-    if len(episodes) > 1 and episodes[-1]["score"] < thresholds["p35"] and episodes[-2]["score"] < thresholds["p35"]:
-        risk += 30
-        factors.append("Poor recent episodes (last 2 below p35 baseline)")
+    run = 0
+    worst_run = 0
+    previous = 0
+    for i, ep in enumerate(episodes):
+        position = ep.get("episode", i + 1)
+        if position != previous + 1 or ep.get("positionKnown") is False:
+            run = 0
+        severity = clamp((drop_threshold - ep["score"]) / 1.5, 0, 1)
+        run = run + severity if severity > 0 else 0
+        worst_run = max(worst_run, run)
+        previous = position
+    slump_penalty = 50 * (1 - math.exp(-worst_run / 3))
+    recent = episodes[-2:]
+    recent_penalty = 30 * sum(clamp((thresholds["p35"] - ep["score"]) / 1.5, 0, 1) for ep in recent) / len(recent)
     avg_penalty = (1 - normalize_score(avg)) * 35
+    risk = slump_penalty + recent_penalty + avg_penalty
+    if slump_penalty > 0:
+        factors.append("Consecutive ratings below the catalog baseline")
+    if recent_penalty > 0:
+        factors.append("Recent ratings below the catalog baseline")
     if avg_penalty > 0:
-        risk += js_round(avg_penalty)
-        factors.append("Overall quality below peak baseline")
+        factors.append("Average rating below 5/5")
     strict_risk = strict_percent(min(100, risk), True)
-    label = "Low Risk"
+    label = "Low rating weakness"
     if strict_risk > 75:
-        label = "Critical Drop-off Risk"
+        label = "Very high rating weakness"
     elif strict_risk > 45:
-        label = "High Risk"
+        label = "High rating weakness"
     elif strict_risk > 20:
-        label = "Moderate Risk"
+        label = "Moderate rating weakness"
     return {"score": strict_risk, "label": label, "factors": factors}
 
 
@@ -666,7 +669,8 @@ def calculate_retention_score(episodes: List[Dict[str, Any]], score_profile: Dic
     finale = calculate_finale_strength(episodes)
     base_scale = get_early_penalty_scale(episodes)
     early_scale = clamp(base_scale + ((1 - base_scale) * (get_slow_burn_signal(momentum_score, finale) * 0.35)), 0, 1)
-    hook_weight = 0.35 * early_scale
+    opening_coverage = len([ep for i, ep in enumerate(episodes) if ep.get("positionKnown") is not False and ep.get("episode", i + 1) <= 3]) / 3
+    hook_weight = 0.35 * early_scale * min(1, opening_coverage)
     scale_up = (1 - hook_weight) / 0.65 if 0.65 > 0 else 0
     blended = (hook * hook_weight) + ((100 - churn) * 0.3 * scale_up) + (momentum_score * 0.2 * scale_up) + (flow * 0.15 * scale_up)
     return strict_percent(clamp(blended, 0, 100))
@@ -708,6 +712,26 @@ def calculate_production_quality_index(episodes: List[Dict[str, Any]], score_pro
     return strict_percent(clamp(pqi, 0, 100))
 
 
+def get_rating_evidence(anime, episodes):
+    total = normalize_episode_count(anime)
+    highest = max((ep["episode"] for ep in episodes), default=0)
+    rated = len(episodes)
+    coverage = rated / max(total or highest, highest, 1)
+    positions_known = all(ep.get("positionKnown") is not False for ep in episodes)
+    votes = [ep.get("votes", ep.get("voteCount")) for ep in episodes]
+    votes = [v for v in votes if isinstance(v, (int, float)) and math.isfinite(v) and v >= 0]
+    median = calculate_percentile(votes, 50) if votes else None
+    status = str(anime.get("status") or (anime.get("metadata") or {}).get("status") or "").lower()
+    completion = "finished" if status in ["finished airing", "finished", "completed"] else "airing" if status in ["currently airing", "airing", "releasing"] else "unknown"
+    weight = min(1, rated / min(total or 12, 12)) * math.sqrt(coverage)
+    weight *= 1 if median is None else min(1, math.sqrt(median / 20))
+    weight *= 1 if positions_known else 0.5
+    return {"ratedEpisodes": rated, "totalEpisodes": total, "coverage": round_to(coverage, 2),
+            "positionsKnown": positions_known, "completion": completion, "medianVotes": median,
+            "limited": rated < min(total or 12, 6) or coverage < 0.6 or not positions_known or (median is not None and median < 10),
+            "weight": weight}
+
+
 def calculate_all_stats(anime: Dict[str, Any], score_profile: Dict[str, Any], strict: bool = False) -> Dict[str, Any]:
     episodes = normalize_episodes(anime.get("episodes") or [], strict=strict)
     profile = resolve_score_profile(score_profile)
@@ -734,6 +758,8 @@ def calculate_all_stats(anime: Dict[str, Any], score_profile: Dict[str, Any], st
             count = index + 1
         observed_episode_count = max(observed_episode_count, count)
     score_range = get_episode_score_range(episodes)
+    evidence = get_rating_evidence(anime, episodes)
+    strength = js_round(50 + (calculate_retention_score(episodes, profile) - 50) * evidence["weight"]) if episodes else 0
     return {
         "average": avg,
         "stdDev": std_dev,
@@ -743,7 +769,9 @@ def calculate_all_stats(anime: Dict[str, Any], score_profile: Dict[str, Any], st
         "episodeCount": max(direct_episode_count, observed_episode_count),
         "highestScore": score_range["max"],
         "lowestScore": score_range["min"],
-        "retentionScore": calculate_retention_score(episodes, profile),
+        "retentionScore": strength,
+        "ratingEvidence": evidence,
+        "scoringVersion": 2,
         "malSatisfactionScore": anime.get("communityScore") if isinstance(anime.get("communityScore"), (int, float)) else 0,
         "reliabilityScore": calculate_reliability_score(episodes, profile),
         "sessionSafety": calculate_session_safety(episodes, profile),

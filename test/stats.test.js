@@ -85,6 +85,44 @@ test('calculateRetentionScore returns 0 for empty episodes', () => {
   assert.equal(Stats.calculateRetentionScore([], Stats.defaultScoreProfile), 0);
 });
 
+test('rating strength discounts sparse coverage and uses actual opening positions', () => {
+  const sparse = Stats.calculateAllStats({ episodeCount: 72, episodes: [{ episode: 18, score: 5 }] });
+  assert.equal(sparse.ratingEvidence.limited, true);
+  assert.equal(sparse.ratingEvidence.ratedEpisodes, 1);
+  assert.equal(sparse.ratingEvidence.completion, 'unknown');
+  assert.equal(sparse.ratingEvidence.medianVotes, null);
+  assert.equal(sparse.threeEpisodeHook, 0);
+  assert.ok(sparse.retentionScore <= 52);
+  const full = Stats.calculateAllStats({ episodeCount: 12, status: 'Finished Airing', episodes: Array.from({ length: 12 }, (_, i) => ({ episode: i + 1, score: 5 })) });
+  assert.equal(full.ratingEvidence.limited, false);
+  assert.equal(full.ratingEvidence.completion, 'finished');
+  assert.ok(full.retentionScore > sparse.retentionScore);
+});
+
+test('rating evidence deduplicates, orders episodes, and distinguishes unknown positions and voters', () => {
+  const stats = Stats.calculateAllStats({ episodeCount: 24, status: 'Currently Airing', episodes: [{ episode: 8, score: 4 }, { episode: 1, score: 5, votes: 2 }, { episode: 1, score: 5, votes: 2 }] });
+  assert.equal(stats.ratingEvidence.ratedEpisodes, 2);
+  assert.equal(stats.threeEpisodeHook, 100);
+  assert.equal(stats.ratingEvidence.medianVotes, 2);
+  assert.equal(stats.ratingEvidence.completion, 'airing');
+  assert.equal(stats.ratingEvidence.limited, true);
+  const unknown = Stats.calculateAllStats({ episodes: [{ score: 5 }] });
+  assert.equal(unknown.ratingEvidence.positionsKnown, false);
+  assert.equal(unknown.threeEpisodeHook, 0);
+});
+
+test('rating penalties vary gradually across the catalog baseline', () => {
+  const profile = { p35: 4.15, p50: 4.29, p65: 4.41 };
+  const strength = score => Stats.calculateRetentionScore(Array.from({ length: 12 }, (_, i) => ({ episode: i + 1, score })), profile);
+  assert.ok(strength(4.2) - strength(4.0) < 15);
+  let previous = strength(3.8);
+  for (let i = 381; i <= 440; i++) {
+    const current = strength(i / 100);
+    assert.ok(current >= previous && current - previous <= 3, `${i / 100}: ${previous} -> ${current}`);
+    previous = current;
+  }
+});
+
 test('calculateRetentionScore stays within bounds for extreme scores', () => {
   const highEpisodes = Array.from({ length: 8 }, () => ({ score: 5 }));
   const lowEpisodes = Array.from({ length: 8 }, () => ({ score: 1 }));
