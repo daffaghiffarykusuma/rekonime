@@ -308,12 +308,10 @@ const createDetailExperience = (app, dependencies = {}) => {
       app.updateUrlForAnime(anime.id);
     }
 
-    if (!app.hasFullAnimeDetail(anime)) {
-      catalogRuntime.loadAnimeDetailChunk(anime.id).then((detailAnime) => {
-        if (!detailAnime || app.currentAnimeId !== anime.id) return;
-        open(anime.id, { updateUrl: false, skipModalOpen: true });
-      });
-    }
+    catalogRuntime.loadAnimeDetailChunk(anime.id).then((detailAnime) => {
+      if (!detailAnime || detailAnime === anime || app.currentAnimeId !== anime.id) return;
+      open(anime.id, { updateUrl: false, skipModalOpen: true });
+    });
 
     const synopsis = app.getSynopsisForAnime(anime);
     activeSynopsis = synopsis;

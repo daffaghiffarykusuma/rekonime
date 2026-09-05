@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCatalogRuntime, createCatalogSession } from '../../js/services/catalog-loader.ts';
+import { createAppCatalogRuntime, createCatalogRuntime, createCatalogSession } from '../../js/services/catalog-loader.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const fullIndexPayload = {
@@ -152,4 +152,108 @@ test('Catalog runtime uses cached full catalog before embedded fallback', async 
     events.filter((event) => event.name === 'catalog').map((event) => event.type),
     ['indexeddb-full-hit', 'indexeddb-full-used']
   );
+});
+
+test('Catalog runtime deduplicates detail enrichment and preserves index fields', async () => {
+  let resolveFetch;
+  let fetchCount = 0;
+  const refreshed = [];
+  const response = new Promise((resolve) => { resolveFetch = resolve; });
+  const { runtime, state, events } = createRuntimeHarness({
+    fetchFn: async () => { fetchCount += 1; return response; },
+    onAnimeDetailLoaded: (anime) => refreshed.push(anime)
+  });
+  state.animeData = [{ id: 'one', title: 'One', cover: 'cover.jpg', custom: 'retained', episodes: [] }];
+  const first = runtime.loadAnimeDetailChunk('one');
+  const second = runtime.loadAnimeDetailChunk('one');
+  // A full-index replacement while fetching must not be overwritten with stale fields.
+  state.animeData = [{ ...state.animeData[0], year: 2026 }];
+  resolveFetch(jsonResponse({ anime: [{ id: 'one', title: 'One', synopsis: 'Detail synopsis', episodes: [{ episode: 1, score: 4 }] }] }));
+  const [left, right] = await Promise.all([first, second]);
+  assert.equal(fetchCount, 1);
+  assert.equal(left, right);
+  assert.equal(left, state.animeData[0]);
+  assert.equal(left.title, 'One');
+  assert.equal(left.cover, 'cover.jpg');
+  assert.equal(left.custom, 'retained');
+  assert.equal(left.year, 2026);
+  assert.equal(left.synopsis, 'Detail synopsis');
+  assert.equal(refreshed.length, 1);
+  assert.equal(events.filter((event) => event.type === 'detail-chunk-loaded').length, 1);
+  assert.equal(await runtime.loadAnimeDetailChunk('one'), left);
+  assert.equal(fetchCount, 1);
+  assert.equal(refreshed.length, 1);
+});
+
+test('Catalog runtime rejects missing or mismatched detail identity and allows another load', async () => {
+  const payloads = [
+    { anime: [{ synopsis: 'Missing identity' }] },
+    { anime: [{ id: 'other', title: 'Other', episodes: [] }] },
+    { anime: [{ id: 'one', title: 'One', synopsis: 'Accepted empty episode list', episodes: [] }] }
+  ];
+  let fetchCount = 0;
+  let refreshCount = 0;
+  const { runtime, state } = createRuntimeHarness({
+    fetchFn: async () => jsonResponse(payloads[fetchCount++]),
+    onAnimeDetailLoaded: () => { refreshCount += 1; }
+  });
+  const original = { id: 'one', title: 'One', episodes: [] };
+  state.animeData = [original];
+  assert.equal(await runtime.loadAnimeDetailChunk('one'), null);
+  assert.equal(await runtime.loadAnimeDetailChunk('one'), null);
+  assert.equal(state.animeData[0], original);
+  assert.equal(refreshCount, 0);
+  const accepted = await runtime.loadAnimeDetailChunk('one');
+  assert.equal(accepted.synopsis, 'Accepted empty episode list');
+  assert.equal(await runtime.loadAnimeDetailChunk('one'), accepted);
+  assert.equal(fetchCount, 3);
+  assert.equal(refreshCount, 1);
+});
+
+test('Catalog runtime skips complete records and retries a failed detail fetch', async () => {
+  let fetchCount = 0;
+  const { runtime, state } = createRuntimeHarness({
+    fetchFn: async () => ++fetchCount === 1
+      ? jsonResponse(null, 404)
+      : jsonResponse({ anime: [{ id: 'one', title: 'One', episodes: [{ episode: 1, score: 4 }] }] }),
+    getLogger: () => ({ error() {} })
+  });
+  const complete = { id: 'complete', episodes: [{ episode: 1, score: 4 }] };
+  state.animeData = [complete, { id: 'one', title: 'One' }];
+  assert.equal(await runtime.loadAnimeDetailChunk('complete'), complete);
+  assert.equal(fetchCount, 0);
+  assert.equal(await runtime.loadAnimeDetailChunk('one'), null);
+  assert.equal((await runtime.loadAnimeDetailChunk('one')).id, 'one');
+  assert.equal(fetchCount, 2);
+});
+
+test('App Catalog Runtime applies detail cache and Snapshot effects once', async () => {
+  const originalFetch = globalThis.fetch;
+  let cacheDeletes = 0;
+  let snapshotRefreshes = 0;
+  const app = {
+    animeData: [{ id: 'one', title: 'One' }],
+    getLogger: () => null,
+    detailCache: { delete: () => { cacheDeletes += 1; } },
+    gridSortedCache: ['old'], gridSortedKey: 'old', gridSortedSource: ['old'],
+    refreshWatchlistSnapshotsFromCatalog: (options) => {
+      assert.deepEqual(options, { persist: true });
+      assert.equal(app.animeData[0].synopsis, 'Enriched');
+      snapshotRefreshes += 1;
+    },
+    emitCatalogEvent() {}
+  };
+  globalThis.fetch = async () => jsonResponse({ anime: [{ id: 'one', title: 'One', synopsis: 'Enriched', episodes: [] }] });
+  try {
+    const runtime = createAppCatalogRuntime(app);
+    await Promise.all([runtime.loadAnimeDetailChunk('one'), runtime.loadAnimeDetailChunk('one')]);
+    await runtime.loadAnimeDetailChunk('one');
+    assert.equal(cacheDeletes, 1);
+    assert.equal(snapshotRefreshes, 1);
+    assert.equal(app.gridSortedCache, null);
+    assert.equal(app.gridSortedKey, '');
+    assert.equal(app.gridSortedSource, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
