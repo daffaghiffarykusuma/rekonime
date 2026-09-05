@@ -4,7 +4,7 @@ import { isValidCatalogPayload } from './catalog-payload.ts';
 const DB_NAME = 'rekonime-catalog-cache';
 const DB_VERSION = 1;
 const STORE_NAME = 'catalogs';
-const FULL_CATALOG_KEY = 'full';
+const FULL_CATALOG_KEY = 'full-rating-v2';
 const DEFAULT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 const resolveIndexedDB = (indexedDBImpl, hasOverride = false) => {

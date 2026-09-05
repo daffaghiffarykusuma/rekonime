@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Watchlist | Rekonime</title>
   <meta name="description" content="Keep your next anime lined up, track what you are watching now, and revisit completed favorites on Rekonime.">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#151917">
   <link rel="canonical" href="">
   <meta property="og:site_name" content="Rekonime">
   <meta property="og:title" content="My Watchlist | Rekonime">
@@ -298,7 +298,7 @@
         <div class="logo-icon" aria-hidden="true">R</div>
         <div class="logo-text">
           <span class="logo-title">Rekonime</span>
-          <span class="logo-tagline">Find stories you will want to finish</span>
+          <span class="logo-tagline">Your personal anime collection</span>
         </div>
       </a>
       <div class="header-actions">
@@ -325,7 +325,8 @@
     <section class="watchlist-section is-empty" id="watchlist-section">
       <div class="section-header">
         <div>
-          <h2>My Watchlist</h2>
+          <p class="discovery-eyebrow">Saved for a good evening</p>
+          <h1>My Watchlist</h1>
           <p class="section-subtitle" id="watchlist-subtitle">Keep upcoming picks, current watches, and finished favorites in one place.</p>
         </div>
       </div>
@@ -346,6 +347,8 @@
       </noscript>
       <div class="anime-grid watchlist-grid" id="watchlist-grid"></div>
       <div class="watchlist-empty" id="watchlist-empty">
+        <div class="watchlist-empty-icon" aria-hidden="true"><i class="ph ph-bookmark-simple"></i></div>
+        <h2>Make room for a new favorite.</h2>
         <p>Your watchlist is empty. Mark any title to build a lineup worth coming back to.</p>
         <div class="watchlist-empty-actions">
           <a class="btn btn-sm btn-primary" href="/">Browse recommendations</a>
@@ -355,7 +358,7 @@
         <p class="watchlist-empty-note">Watch statuses and episode progress are saved in this browser.</p>
       </div>
     </section>
-  </div>
+  </main>
 
   <!-- Detail Modal -->
   <dialog class="modal-overlay" id="detail-modal" hidden inert>

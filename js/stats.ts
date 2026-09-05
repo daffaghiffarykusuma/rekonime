@@ -217,7 +217,7 @@ const Stats = {
   calculateAverage(episodes) {
     if (!episodes || episodes.length === 0) return 0;
     const sum = episodes.reduce((acc, ep) => acc + ep.score, 0);
-    return Math.round((sum / episodes.length) * 100) / 100;
+    return Math.round((sum / episodes.length) * 100 + 1e-9) / 100;
   },
 
   /**
@@ -293,7 +293,8 @@ const Stats = {
       const episodeNumber = Number(episode.episode);
       cleaned.push({
         ...episode,
-        episode: Number.isFinite(episodeNumber) ? episodeNumber : index + 1,
+        episode: Number.isInteger(episodeNumber) && episodeNumber > 0 ? episodeNumber : index + 1,
+        positionKnown: episode.positionKnown !== false && Number.isInteger(episodeNumber) && episodeNumber > 0,
         score
       });
     });
@@ -309,7 +310,7 @@ const Stats = {
       throw new StatsCalculationError('No valid episodes available', { total: sourceEpisodes.length });
     }
 
-    return cleaned;
+    return [...new Map(cleaned.map(ep => [ep.episode, ep])).values()].sort((a, b) => a.episode - b.episode);
   },
 
   /**
@@ -384,7 +385,8 @@ const Stats = {
     const habitRiskRate = this.calculateHabitBreakRisk(episodes);
 
     const earlyScale = this.getEarlyPenaltyScale(episodes);
-    const hookWeight = 0.35 * earlyScale;
+    const openingCoverage = episodes.filter((ep, i) => ep.positionKnown !== false && (ep.episode ?? i + 1) <= 3).length / 3;
+    const hookWeight = 0.35 * earlyScale * Math.min(1, openingCoverage);
     const remainingWeight = 1 - hookWeight;
     const otherTotal = 0.65;
     const scaleUp = otherTotal > 0 ? (remainingWeight / otherTotal) : 0;
@@ -443,7 +445,8 @@ const Stats = {
     if (!episodes || episodes.length === 0) return 0;
 
     // Take first 3 episodes or all if less
-    const hookEpisodes = episodes.slice(0, Math.min(3, episodes.length));
+    const hookEpisodes = episodes.filter((ep, index) => ep.positionKnown !== false && (ep.episode ?? index + 1) >= 1 && (ep.episode ?? index + 1) <= 3);
+    if (!hookEpisodes.length) return 0;
     const hookAvg = hookEpisodes.reduce((sum, ep) => sum + ep.score, 0) / hookEpisodes.length;
 
     // Normalize to 0-100 scale with strictness curve
@@ -570,7 +573,7 @@ const Stats = {
 
     // Difference normalized to -100 to +100 scale
     const diff = last3Avg - globalAvg;
-    return Math.round(Math.max(-100, Math.min(100, diff * 50)));
+    return Math.round(Math.max(-100, Math.min(100, diff * 50)) + 1e-9);
   },
 
   /**
@@ -900,52 +903,35 @@ const Stats = {
     const globalAvg = avgScore;
     const dropThreshold = this.clamp(globalAvg - 0.4, thresholds.p35, thresholds.p65);
 
-    let currentSlump = 0;
-    let maxSlump = 0;
-
-    for (const ep of episodes) {
-      if (ep.score <= dropThreshold) {
-        currentSlump++;
-      } else {
-        maxSlump = Math.max(maxSlump, currentSlump);
-        currentSlump = 0;
-      }
+    // Severity grows continuously below the baseline. Gaps break a run.
+    let run = 0;
+    let worstRun = 0;
+    let previous = 0;
+    for (const [index, ep] of episodes.entries()) {
+      const position = ep.episode ?? index + 1;
+      if (position !== previous + 1 || ep.positionKnown === false) run = 0;
+      const severity = this.clamp((dropThreshold - ep.score) / 1.5, 0, 1);
+      run = severity > 0 ? run + severity : 0;
+      worstRun = Math.max(worstRun, run);
+      previous = position;
     }
-    maxSlump = Math.max(maxSlump, currentSlump); // Check end of array
-
-    if (maxSlump >= 3) {
-      riskScore += 50; // 3 bad eps in a row is a "habit breaker"
-      factors.push(`Quality slump (${maxSlump} consecutive weak episodes)`);
-    } else if (maxSlump >= 2) {
-      riskScore += 25;
-      factors.push('Minor slump (2 consecutive weak episodes)');
-    }
-
-    // FACTOR 2: Recent Trend (Are they leaving on a low note?)
-    if (episodes.length > 1) {
-      const lastEp = episodes[episodes.length - 1];
-      const secondLastEp = episodes[episodes.length - 2];
-      if (lastEp.score < thresholds.p35 && secondLastEp.score < thresholds.p35) {
-        riskScore += 30;
-        factors.push('Poor recent episodes (last 2 below p35 baseline)');
-      }
-    }
-
-    // FACTOR 3: Baseline quality penalty (stricter overall)
+    const slumpPenalty = 50 * (1 - Math.exp(-worstRun / 3));
+    const recent = episodes.slice(-2);
+    const recentPenalty = 30 * recent.reduce((sum, ep) => sum + this.clamp((thresholds.p35 - ep.score) / 1.5, 0, 1), 0) / recent.length;
     const avgPenalty = (1 - this.normalizeScore(avgScore)) * 35;
-    if (avgPenalty > 0) {
-      riskScore += Math.round(avgPenalty);
-      factors.push('Overall quality below peak baseline');
-    }
+    riskScore = slumpPenalty + recentPenalty + avgPenalty;
+    if (slumpPenalty > 0) factors.push('Consecutive ratings below the catalog baseline');
+    if (recentPenalty > 0) factors.push('Recent ratings below the catalog baseline');
+    if (avgPenalty > 0) factors.push('Average rating below 5/5');
 
     // Cap at 100
     const finalRisk = Math.min(100, riskScore);
     const strictRisk = this.strictPercent(finalRisk, true);
 
-    let label = 'Low Risk';
-    if (strictRisk > 75) label = 'Critical Drop-off Risk';
-    else if (strictRisk > 45) label = 'High Risk';
-    else if (strictRisk > 20) label = 'Moderate Risk';
+    let label = 'Low rating weakness';
+    if (strictRisk > 75) label = 'Very high rating weakness';
+    else if (strictRisk > 45) label = 'High rating weakness';
+    else if (strictRisk > 20) label = 'Moderate rating weakness';
 
     return {
       score: strictRisk,
@@ -981,7 +967,8 @@ const Stats = {
     const slowBurnLift = slowBurnSignal * 0.35;
     const earlyScale = this.clamp(baseEarlyScale + ((1 - baseEarlyScale) * slowBurnLift), 0, 1);
 
-    const hookWeight = 0.35 * earlyScale;
+    const openingCoverage = episodes.filter((ep, i) => ep.positionKnown !== false && (ep.episode ?? i + 1) <= 3).length / 3;
+    const hookWeight = 0.35 * earlyScale * Math.min(1, openingCoverage);
     const remainingWeight = 1 - hookWeight;
     const otherTotal = 0.65;
     const scaleUp = otherTotal > 0 ? (remainingWeight / otherTotal) : 0;
@@ -992,6 +979,30 @@ const Stats = {
       + (flowState * 0.15 * scaleUp);
 
     return this.strictPercent(this.clamp(blended, 0, 100));
+  },
+
+  getRatingEvidence(anime, episodes) {
+    const metadata = anime?.metadata || {};
+    const declared = [anime?.episodeCount, anime?.episodesCount, anime?.episodes_count, metadata.episodeCount, metadata.episodesCount, metadata.episodes_count]
+      .map(Number).filter(n => Number.isInteger(n) && n > 0);
+    const totalEpisodes = declared.length ? Math.max(...declared) : null;
+    const highest = episodes.reduce((max, ep) => Math.max(max, ep.episode), 0);
+    const ratedEpisodes = episodes.length;
+    const coverage = ratedEpisodes / Math.max(totalEpisodes || highest, highest, 1);
+    const positionsKnown = episodes.every(ep => ep.positionKnown !== false);
+    const votes = episodes.map(ep => ep.votes ?? ep.voteCount).filter(n => Number.isFinite(n) && n >= 0);
+    const medianVotes = votes.length ? this.calculatePercentile(votes, 50) : null;
+    const status = String(anime?.status || metadata.status || '').toLowerCase();
+    const completion = ['finished airing', 'finished', 'completed'].includes(status) ? 'finished'
+      : ['currently airing', 'airing', 'releasing'].includes(status) ? 'airing' : 'unknown';
+    const sampleWeight = Math.min(1, ratedEpisodes / Math.min(totalEpisodes || 12, 12));
+    const voteWeight = medianVotes === null ? 1 : Math.min(1, Math.sqrt(medianVotes / 20));
+    return {
+      ratedEpisodes, totalEpisodes, coverage: Math.round(coverage * 100) / 100,
+      positionsKnown, completion, medianVotes,
+      limited: ratedEpisodes < Math.min(totalEpisodes || 12, 6) || coverage < 0.6 || !positionsKnown || (medianVotes !== null && medianVotes < 10),
+      weight: sampleWeight * Math.sqrt(coverage) * voteWeight * (positionsKnown ? 1 : 0.5)
+    };
   },
 
   /**
@@ -1007,7 +1018,10 @@ const Stats = {
     const auc = this.calculateAUC(episodes);
     const consistency = this.getConsistencyRating(stdDev);
     const scoreClass = this.getScoreColorClass(avg);
-    const retentionScore = this.calculateRetentionScore(episodes, profile);
+    const ratingEvidence = this.getRatingEvidence(anime, episodes);
+    const rawRatingStrength = this.calculateRetentionScore(episodes, profile);
+    // Keep the legacy storage key; this is an index, never a completion probability.
+    const retentionScore = episodes.length ? Math.round(50 + (rawRatingStrength - 50) * ratingEvidence.weight) : 0;
     const momentum = this.calculateMomentum(episodes);
     const momentumScore = this.clamp((momentum + 100) / 2, 0, 100);
     const finaleStrength = this.calculateFinaleStrength(episodes);
@@ -1044,6 +1058,8 @@ const Stats = {
       highestScore: scoreRange.max,
       lowestScore: scoreRange.min,
       retentionScore: retentionScore,
+      ratingEvidence,
+      scoringVersion: 2,
       malSatisfactionScore: malSatisfactionScore,
 
       // Weekly Watcher archetype metrics

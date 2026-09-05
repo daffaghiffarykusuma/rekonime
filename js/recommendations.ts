@@ -149,7 +149,7 @@ const Recommendations = {
     if (['Horror', 'Gore', 'Psychological', 'Suspense'].some(tag => tags.has(tag))) add('Dark', 95);
     if (['Psychological', 'Strategy Game', 'Time Travel'].some(tag => tags.has(tag))) add('Complex', 88);
 
-    if ((stats.retentionScore ?? 0) >= 78) add('Easy to finish', 72);
+    if ((stats.retentionScore ?? 0) >= 78) add('Strong episode ratings', 72);
     if ((stats.worthFinishing ?? 0) >= 75) add('Strong payoff', intentKey === 'emotional' ? 105 : 70);
     if ((anime?.communityScore ?? 0) >= 8.1) add('Viewer favorite', 68);
 
@@ -328,9 +328,9 @@ const Recommendations = {
     }
 
     if (retentionScore !== null && retentionScore >= 85) reasons.push('Easy to keep watching');
-    if (churnRiskScore !== null && churnRiskScore <= 25) reasons.push('Strong finish potential');
+    if (churnRiskScore !== null && churnRiskScore <= 25) reasons.push('Few weak episode ratings');
     if (hookScore !== null && hookScore >= 80) reasons.push('Grabs you quickly');
-    if (finishScore !== null && finishScore >= 70) reasons.push('Pays off by the ending');
+    if (finishScore !== null && finishScore >= 70) reasons.push('Later episodes rate higher');
     if (flowScore !== null && flowScore >= 85) reasons.push('Great episode-to-episode momentum');
     if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) reasons.push('Widely praised by viewers');
 
@@ -347,7 +347,7 @@ const Recommendations = {
    */
   getRankingTitles() {
     return {
-      title1: 'Highest Finish Confidence',
+      title1: 'Highest Episode Rating Strength',
       title2: 'Most Loved by Viewers',
       metric1: 'retention',
       metric2: 'satisfaction'
@@ -361,7 +361,7 @@ const Recommendations = {
   getSortOptions() {
     return [
       { value: 'taste', label: 'Best fit for your taste' },
-      { value: 'retention', label: 'Best chance you will finish' },
+      { value: 'retention', label: 'Highest episode rating strength' },
       { value: 'satisfaction', label: 'Highest community rating' }
     ];
   },
@@ -399,6 +399,15 @@ const Recommendations = {
    * @param {Object} anime - Anime object with stats
    * @returns {Array} Stat objects
    */
+  getRatingEvidenceLabel(anime) {
+    const evidence = anime?.stats?.ratingEvidence;
+    if (!evidence) return 'Limited data · coverage unavailable';
+    const coverage = evidence.totalEpisodes
+      ? `${evidence.ratedEpisodes}/${evidence.totalEpisodes} episodes rated`
+      : `${evidence.ratedEpisodes} episodes rated · total unknown`;
+    return `${evidence.limited ? 'Limited data · ' : ''}${coverage}${evidence.completion === 'airing' ? ' · Provisional' : ''}`;
+  },
+
   getCardStats(anime) {
     const episodeCount = this.getEpisodeCount(anime);
     const hasEpisodes = episodeCount > 0;
@@ -409,13 +418,13 @@ const Recommendations = {
 
     return [
       {
-        label: 'Finish Confidence',
+        label: 'Episode Rating Strength',
         value: retentionScore !== null ? retentionScore : 'N/A',
-        suffix: retentionScore !== null ? '%' : '',
+        suffix: retentionScore !== null ? '/100' : '',
         class: this.getRetentionClass(retentionScore),
         tooltip: {
-          title: 'Finish Confidence',
-          text: 'An estimate of how reliably a show may keep viewers watching all the way through.'
+          title: 'Episode Rating Strength',
+          text: 'An episode-rating index adjusted for coverage and sample size. It is not a completion probability.'
         }
       },
       {
@@ -604,34 +613,29 @@ const Recommendations = {
   modes: {
     balanced: {
       label: 'Balanced',
-      description: 'Strong finishability with broad audience approval',
-      icon: '⚖️',
+      description: 'Strong episode ratings with broad audience approval',
       weights: { retention: 0.75, satisfaction: 0.25 }
     },
     binge: {
       label: 'Binge Mode',
       description: 'Fast hooks and momentum that keep you going',
-      icon: '🔥',
       weights: { retention: 0.9, satisfaction: 0.1 },
       boosters: ['flowState', 'threeEpisodeHook']
     },
     quality: {
       label: 'Critical Acclaim',
       description: 'Led by top audience scores',
-      icon: '⭐',
       weights: { retention: 0.3, satisfaction: 0.7 }
     },
     discovery: {
       label: 'Hidden Gems',
       description: 'Excellent staying power with less mainstream attention',
-      icon: '💎',
       weights: { retention: 0.8, satisfaction: 0.2 },
       filter: (anime) => (anime.communityScore || 0) < 7.8
     },
     comfort: {
       label: 'Comfort Shows',
       description: 'Relaxed picks that are easy to settle into',
-      icon: '😌',
       weights: { retention: 0.6, satisfaction: 0.4 },
       boosters: ['comfortScore'],
       filter: (anime) => (anime.stats?.comfortScore || 0) > 70

@@ -35,7 +35,7 @@ test('App createAnimeCardElement strips injected badge and stat classes', () => 
     { label: 'Hooked', class: 'badge-retention" data-pwned="1' }
   ];
   Recommendations.getCardStats = () => [
-    { label: 'Finish Confidence', value: '99', suffix: '%', class: 'score-high', tooltip: null },
+    { label: 'Episode Rating Strength', value: '99', suffix: '/100', class: 'score-high', tooltip: null },
     { label: 'Community Score', value: '9.9', suffix: '/10', class: 'score-high" onclick="alert(1)', tooltip: null }
   ];
 

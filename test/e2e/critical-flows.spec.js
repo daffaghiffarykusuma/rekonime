@@ -87,7 +87,15 @@ test('first-run intent choices are usable before entering discovery', async ({ b
   await expect(choices.nth(2)).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(choices.nth(2)).toHaveAttribute('aria-pressed', 'true');
-  await expect(choices.nth(2)).toHaveCSS('border-color', 'rgb(184, 82, 132)');
+  const accentColor = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--accent-primary)';
+    document.body.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  });
+  await expect(choices.nth(2)).toHaveCSS('border-color', accentColor);
   expect(await choices.evaluateAll((buttons) => buttons.map((button) => button.disabled)))
     .toEqual([true, true, true]);
   await expect(page.locator('#onboarding-modal')).toBeHidden();
@@ -150,7 +158,7 @@ test('recommendation quick-save persists without replacing detail access', async
 
   const firstCard = page.locator('#recommendations-grid .recommendation-card').first();
   const title = (await firstCard.locator('.recommendation-title').textContent()).trim();
-  const save = firstCard.getByRole('button', { name: `Want to watch ${title}` });
+  const save = firstCard.getByRole('button', { name: `Want to watch ${title}`, exact: true });
   await expect(save).toBeVisible();
 
   await firstCard.focus();
@@ -183,7 +191,7 @@ test('recommendation quick-save persists without replacing detail access', async
 
   const toast = page.getByRole('status').filter({ hasText: 'Saved to Want to watch' });
   await expect(toast).toBeVisible();
-  await expect(page.locator('#recommendations-grid .recommendation-card').filter({ hasText: title })).toHaveCount(0);
+  await expect(page.locator('#recommendations-grid .recommendation-card').filter({ has: page.getByRole('button', { name: `Want to watch ${title}`, exact: true }) })).toHaveCount(0);
   await toast.getByRole('link', { name: 'View watchlist' }).click();
   await expect(page).toHaveURL(/watchlist\.html/);
   await expect(page.locator('.card-title', { hasText: title })).toBeVisible();
@@ -221,7 +229,7 @@ test('complete discovery-to-watchlist journey', async ({ browser }) => {
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
   await page.getByRole('button', { name: 'Close details' }).click();
 
-  const save = page.getByRole('button', { name: `Want to watch ${title}` });
+  const save = page.getByRole('button', { name: `Want to watch ${title}`, exact: true });
   await save.focus();
   await expect(save).toBeFocused();
   await page.keyboard.press('Enter');
@@ -394,6 +402,18 @@ test('home renders catalog grid', async ({ page }) => {
   await page.waitForSelector('#anime-grid .anime-card');
   const count = await page.locator('#anime-grid .anime-card').count();
   expect(count).toBeGreaterThan(0);
+  for (const width of [1920, 1280, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const hero = await page.locator('#discovery-garden').boundingBox();
+    const recommendations = await page.locator('#recommendations-section').boundingBox();
+    expect(hero.y + hero.height).toBeLessThanOrEqual(recommendations.y);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    const card = page.locator('#anime-grid .anime-card').first();
+    await card.scrollIntoViewIfNeeded();
+    const cover = await card.locator('.card-cover').boundingBox();
+    const title = await card.locator('.card-title').boundingBox();
+    expect(title.y - (cover.y + cover.height)).toBeLessThanOrEqual(24);
+  }
 });
 
 test('open detail modal from grid', async ({ page }) => {
@@ -468,7 +488,8 @@ test('MAL XML first import previews exact matches before one confirmed batch', a
   const dialog = page.locator('#mal-import-confirmation');
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveCSS('width', '512px');
-  await expect(dialog).toHaveCSS('border-top-left-radius', '20px');
+  const dialogRadius = await dialog.evaluate(element => getComputedStyle(element).getPropertyValue('--radius').trim());
+  await expect(dialog).toHaveCSS('border-top-left-radius', dialogRadius);
   await expect(dialog).not.toHaveCSS('box-shadow', 'none');
   await expect(dialog.getByRole('button', { name: 'Go back' })).toBeFocused();
 

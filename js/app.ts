@@ -1339,7 +1339,6 @@ const App = {
   async init() {
     try {
       this.syncHomePath();
-      this.prioritizeHomeDecisionFlow();
       this.renderLoadingState();
       const restoreRecovery = recoverPendingPersonalDataRestore(this.getCache(), {
         tasteProfileStore: this.getTasteProfileStore(),
@@ -1578,17 +1577,6 @@ const App = {
     if (intent.renderQuickFilters) this.renderQuickFilters();
     this.applyFilters(intent.applyFilters);
     return state;
-  },
-
-  prioritizeHomeDecisionFlow() {
-    if (typeof document === 'undefined') return;
-    const intentSection = document.getElementById('viewing-intent-section');
-    const recommendations = document.getElementById('recommendations-section');
-    const activeFilters = document.getElementById('active-filters');
-    const header = document.querySelector('.header');
-    const anchor = activeFilters || header;
-    if (recommendations && anchor && anchor.nextElementSibling !== recommendations) anchor.after(recommendations);
-    if (intentSection && recommendations && recommendations.nextElementSibling !== intentSection) recommendations.after(intentSection);
   },
 
   renderCardSkeleton(type = 'catalog') {
@@ -3394,6 +3382,13 @@ const App = {
 
     const modes = Recommendations.modes;
     const currentMode = Recommendations.currentMode;
+    const iconPaths = {
+      balanced: 'M12 3v17m-5 1h10M4 7h16M5 7l-3 7h6L5 7Zm14 0-3 7h6l-3-7Z',
+      binge: 'M13 3c1 5-4 5-4 9-2-1-2-3-2-3s-3 3-3 6a8 8 0 0 0 16 0c0-5-4-9-7-12Zm-1 11c2 2 3 3 3 4a3 3 0 0 1-6 0c0-1 1-3 3-4Z',
+      quality: 'm12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z',
+      discovery: 'm3 9 4-5h10l4 5-9 12L3 9Zm0 0h18M8 9l4 12 4-12M7 4l1 5 4-5 4 5 1-5',
+      comfort: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM6 10q2 2 4 0m4 0q2 2 4 0m-10 5q4 4 8 0'
+    };
 
     setHTML(container, Object.entries(modes).map(([key, mode]) => {
       const isActive = key === currentMode;
@@ -3403,7 +3398,7 @@ const App = {
                 data-mode="${this.escapeAttr(key)}"
                 title="${this.escapeAttr(mode.description)}"
                 type="button">
-          <span class="mode-icon">${mode.icon}</span>
+          <svg class="mode-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${iconPaths[key]}"></path></svg>
           <span class="mode-label">${this.escapeHtml(mode.label)}</span>
         </button>
       `;
@@ -3465,7 +3460,7 @@ const App = {
     setHTML(grid, recommendations.map((anime, index) => {
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
       const hasEpisodes = episodeCount > 0;
-      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
+      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}/100` : 'N/A';
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
@@ -3489,7 +3484,7 @@ const App = {
           <div class="recommendation-info">
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
             <div class="recommendation-meta">
-              <span>Finish Confidence ${retention}</span>
+              <span>Episode Rating Strength ${retention}</span><span>${this.escapeHtml(Recommendations.getRatingEvidenceLabel(anime))}</span>
               <span>MAL ${malScore}</span>
             </div>
             <div class="recommendation-reason">${this.escapeHtml(anime.reason || '')}</div>
@@ -3515,7 +3510,7 @@ const App = {
       const rankClass = rank <= 3 ? 'top-3' : '';
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
       const hasEpisodes = episodeCount > 0;
-      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}%` : 'N/A';
+      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}/100` : 'N/A';
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
@@ -3538,7 +3533,7 @@ const App = {
           <div class="trending-info">
             <div class="trending-title">${this.escapeHtml(anime.title)}</div>
             <div class="trending-meta">
-              ${safeYear} · Finish Confidence ${retention}
+              ${safeYear} · Episode Rating Strength ${retention} · ${this.escapeHtml(Recommendations.getRatingEvidenceLabel(anime))}
             </div>
           </div>
         </div>
@@ -4309,10 +4304,10 @@ const App = {
       const hasEpisodes = episodeCount > 0;
       if (hasEpisodes) {
         const score = Math.round(anime.stats?.retentionScore ?? 0);
-        valueDisplay = `${score}%`;
+        valueDisplay = `${score}/100`;
         valueClass = Recommendations.getRetentionClass(score);
       }
-      labelDisplay = 'finish confidence';
+      labelDisplay = `episode rating strength · ${Recommendations.getRatingEvidenceLabel(anime)}`;
     } else if (metric === 'satisfaction') {
       if (Number.isFinite(anime.communityScore)) {
         valueDisplay = `${anime.communityScore.toFixed(1)}/10`;
@@ -5055,7 +5050,7 @@ const App = {
       <div class="similar-anime">
         <div class="detail-section-header">
           <h3>Similar Anime</h3>
-          <span class="detail-section-note">Shared genre + theme, aligned finish confidence and satisfaction</span>
+          <span class="detail-section-note">Shared genre + theme, aligned episode rating strength and satisfaction</span>
         </div>
         ${similarResults.length > 0 ? `
           <div class="similar-grid">
@@ -5097,7 +5092,7 @@ const App = {
                       <span class="similar-tag">Themes: ${safeThemes}</span>
                     </div>
                     <div class="similar-stats">
-                      <span class="similar-stat ${retentionClass}">Finish Confidence ${retentionScore !== null ? `${retentionScore}%` : 'N/A'}</span>
+                      <span class="similar-stat ${retentionClass}">Episode Rating Strength ${retentionScore !== null ? `${retentionScore}/100` : 'N/A'}</span><span>${this.escapeHtml(Recommendations.getRatingEvidenceLabel(similar))}</span>
                       <span class="similar-stat ${satisfactionClass}">Satisfaction (MAL) ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
                     </div>
                   </div>
@@ -5166,14 +5161,14 @@ const App = {
         <h3>Why These Recommendations Stand Out</h3>
         <p>Rekonime balances two signals to keep suggestions both useful and trustworthy:</p>
         <div class="help-factor">
-          <strong>Finish Confidence (60%)</strong>
-          <p>An estimate of how likely a show is to keep viewers watching through the full run.</p>
+          <strong>Episode Rating Strength</strong>
+          <p>A score out of 100 based on episode ratings, their pattern, and available coverage. Small samples are pulled toward the neutral midpoint. It is not a measured retention rate or a completion probability.</p>
         </div>
         <div class="help-factor">
-          <strong>Satisfaction Score (40%)</strong>
+          <strong>Community Score</strong>
           <p>Community sentiment from MyAnimeList that reflects how strongly viewers rated it.</p>
         </div>
-        <p class="help-note">Together, they surface anime that is easier to stick with and more likely to pay off.</p>
+        <p class="help-note">Their weights depend on the selected mode. Limited data means ratings are sparse, episode positions are unknown, or known vote counts are low. Unknown completion status and missing voter counts are shown in details.</p>
       </div>
     `;
 
@@ -5320,7 +5315,7 @@ const App = {
     }).join('')}
           </div>
           <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-            <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Finish Confidence"></progress>
+            <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Episode Rating Strength"></progress>
           </div>
           <div class="card-reason">${safeReason}</div>
         </div>

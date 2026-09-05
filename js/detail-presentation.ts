@@ -48,17 +48,10 @@ const buildDetailDecisionData = (anime, { episodeCount = 0 } = {}) => {
     : null;
 
   if (retention !== null) {
-    let note = 'Steady finish confidence';
-    if (retention >= 88) {
-      note = 'Very likely to keep you watching';
-    } else if (retention >= 76) {
-      note = 'Reliable through the middle';
-    } else if (retention < 60) {
-      note = 'More selective pick';
-    }
+    const note = Recommendations.getRatingEvidenceLabel(anime);
     return {
-      value: `${retention}%`,
-      label: 'Finish confidence',
+      value: `${retention}/100`,
+      label: 'Episode rating strength',
       note,
       className: Recommendations.getRetentionClass(retention)
     };
@@ -128,49 +121,49 @@ const renderBreakdown = ({
 }) => hasEpisodes ? `
   <div class="detail-breakdown">
     <div class="detail-section-header">
-      <h3>Why it sticks</h3>
-      <span class="detail-section-note">Start, stay, finish</span>
+      <h3>Episode rating patterns</h3>
+      <span class="detail-section-note">Rating indices, not probabilities</span>
     </div>
     <div class="breakdown-row">
       <span class="breakdown-label has-tooltip" tabindex="0">
-        Strong start
+        Opening ratings
         <div class="tooltip tooltip--bottom" role="tooltip">
-          <div class="tooltip-title">Strong Start</div>
-          <div class="tooltip-text">How compelling the first 3 episodes are. High scores mean the show hooks viewers early.</div>
+          <div class="tooltip-title">Opening Ratings</div>
+          <div class="tooltip-text">Ratings for available episodes numbered 1 through 3. Missing opening episodes cannot establish a strong opening.</div>
         </div>
       </span>
-      <progress class="breakdown-progress" value="${safeStartScore}" max="100" aria-label="Strong start score"></progress>
-      <span class="breakdown-value">${startScore !== null ? `${startScore}%` : 'N/A'}</span>
+      <progress class="breakdown-progress" value="${safeStartScore}" max="100" aria-label="Opening ratings score"></progress>
+      <span class="breakdown-value">${startScore !== null ? `${startScore}/100` : 'N/A'}</span>
     </div>
     <div class="breakdown-row">
       <span class="breakdown-label has-tooltip" tabindex="0">
-        Keeps you watching
+        Rating stability
         <div class="tooltip tooltip--bottom" role="tooltip">
-          <div class="tooltip-title">Keeps You Watching</div>
-          <div class="tooltip-text">Low drop-off probability. Measures how likely viewers are to continue without losing interest.</div>
+          <div class="tooltip-title">Rating Stability</div>
+          <div class="tooltip-text">The inverse of rating weakness, based on the severity of below-baseline episode ratings.</div>
         </div>
       </span>
-      <progress class="breakdown-progress" value="${safeStayScore}" max="100" aria-label="Keeps you watching score"></progress>
-      <span class="breakdown-value">${stayScore !== null ? `${stayScore}%` : 'N/A'}</span>
+      <progress class="breakdown-progress" value="${safeStayScore}" max="100" aria-label="Rating stability score"></progress>
+      <span class="breakdown-value">${stayScore !== null ? `${stayScore}/100` : 'N/A'}</span>
     </div>
     <div class="breakdown-row">
       <span class="breakdown-label has-tooltip" tabindex="0">
-        Finish payoff
+        Recent rating trend
         <div class="tooltip tooltip--bottom" role="tooltip">
-          <div class="tooltip-title">Finish Payoff</div>
-          <div class="tooltip-text">How well the show sticks the landing. Combines finale strength, momentum, and narrative build-up.</div>
+          <div class="tooltip-title">Recent Rating Trend</div>
+          <div class="tooltip-text">Compares later available ratings with earlier ratings. For unfinished or incomplete data this does not describe the finale.</div>
         </div>
       </span>
-      <progress class="breakdown-progress" value="${safeFinishScore}" max="100" aria-label="Finish payoff score"></progress>
-      <span class="breakdown-value">${finishScore !== null ? `${finishScore}%` : 'N/A'}</span>
+      <progress class="breakdown-progress" value="${safeFinishScore}" max="100" aria-label="Recent rating trend score"></progress>
+      <span class="breakdown-value">${finishScore !== null ? `${finishScore}/100` : 'N/A'}</span>
     </div>
   </div>
 ` : `
   <div class="detail-breakdown detail-breakdown-empty">
     <div class="detail-section-header">
-      <h3>Why it sticks</h3>
+      <h3>Episode rating patterns</h3>
     </div>
-    <p class="detail-empty">No episode scores yet. Finish Confidence appears once episode scores are available.</p>
+    <p class="detail-empty">No episode scores yet. Episode Rating Strength appears once episode scores are available.</p>
   </div>
 `;
 
@@ -235,7 +228,8 @@ const renderDetailContent = (anime, {
   const rawStart = anime?.stats?.threeEpisodeHook;
   const rawChurn = anime?.stats?.churnRisk?.score;
   const rawFinish = anime?.stats?.worthFinishing;
-  const startScore = hasEpisodes && Number.isFinite(rawStart) ? Math.round(rawStart) : null;
+  const hasOpening = anime.stats?.ratingEvidence ? anime.stats.ratingEvidence.positionsKnown && (anime.episodes || []).some(ep => ep.episode >= 1 && ep.episode <= 3) : true;
+  const startScore = hasEpisodes && hasOpening && Number.isFinite(rawStart) ? Math.round(rawStart) : null;
   const stayScore = hasEpisodes && Number.isFinite(rawChurn) ? Math.round(100 - rawChurn) : null;
   const finishScore = hasEpisodes && Number.isFinite(rawFinish) ? Math.round(rawFinish) : null;
   const safeStartScore = Number.isFinite(startScore) ? startScore : 0;
@@ -271,10 +265,11 @@ const renderDetailContent = (anime, {
         </div>
         <div class="detail-decision-panel">
           <div class="${detailDecisionClass}">
-            <span class="detail-verdict-label">Decision signal</span>
+            <span class="detail-verdict-label">${escapeHtml(decision.label)}</span>
             <strong class="detail-verdict-value">${escapeHtml(decision.value)}</strong>
             <span class="detail-verdict-copy">${escapeHtml(decision.note)}</span>
           </div>
+          <p class="rating-evidence-note">${escapeHtml(anime.stats?.ratingEvidence?.completion === 'finished' ? 'Series finished.' : anime.stats?.ratingEvidence?.completion === 'airing' ? 'Series still airing. Rating strength is provisional.' : 'Completion status unknown.')} ${escapeHtml(anime.stats?.ratingEvidence?.medianVotes != null ? `Median ${anime.stats.ratingEvidence.medianVotes} votes per episode with known vote counts.` : 'Episode voter counts unavailable.')} This is a rating index, not a chance of finishing.</p>
           <div class="detail-stats">
             <div class="detail-stat has-tooltip" tabindex="0">
               <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>

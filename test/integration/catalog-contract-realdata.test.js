@@ -2,6 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { Stats } from '../../js/stats.ts';
+
+test('Python-built rating strength and evidence agree with browser calculations', () => {
+  const catalog = readCatalog('anime.full.json');
+  for (const anime of catalog.anime) {
+    const actual = Stats.calculateAllStats(anime, catalog.scoreProfile);
+    assert.equal(actual.retentionScore, anime.stats.retentionScore, anime.id);
+    assert.equal(actual.scoringVersion, 2);
+    for (const key of ['ratedEpisodes', 'totalEpisodes', 'coverage', 'positionsKnown', 'limited', 'completion', 'medianVotes']) {
+      assert.equal(actual.ratingEvidence[key], anime.stats.ratingEvidence[key], `${anime.id}: ${key}`);
+    }
+  }
+});
 
 const readCatalog = (name) => {
   const filePath = path.join(process.cwd(), 'data', name);
