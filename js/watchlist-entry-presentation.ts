@@ -110,6 +110,7 @@ const createWatchlistControlsElement = (item, entry, {
 
   const select = document.createElement('select');
   select.className = 'watchlist-controls-select';
+  select.setAttribute('aria-label', `Your watch status for ${item.title}`);
   select.setAttribute('data-action', 'watch-status');
   select.setAttribute('data-anime-id', item.id);
   appendOptions(select, model.options, model.status);

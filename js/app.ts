@@ -807,7 +807,7 @@ const App = {
         <span class="mal-import-eyebrow">Watchlist import</span>
         <h3 id="mal-import-heading" tabindex="-1">Bring progress in from MyAnimeList</h3>
         <p class="settings-description">Choose your MyAnimeList XML export. Rekonime reads it locally and changes nothing until you confirm.</p>
-        <input id="mal-watchlist-import-file" class="mal-import-file" type="file" accept=".xml,application/xml,text/xml" data-action="mal-watchlist-file">
+        <input id="mal-watchlist-import-file" class="mal-import-file" type="file" aria-label="MyAnimeList XML export" accept=".xml,application/xml,text/xml" data-action="mal-watchlist-file">
         <p class="settings-description">This merges Watchlist progress only. Rekonime JSON backup and restore remains separate below.</p>
         ${status}
       </section>`;
@@ -3999,7 +3999,7 @@ const App = {
             <button class="btn btn-outline btn-sm" type="button" data-action="reset-taste-profile">Reset profile</button>
             <button class="btn btn-outline btn-sm" type="button" data-action="export-personal-data">Export data</button>
             <button class="btn btn-outline btn-sm" type="button" data-action="restore-personal-data">Restore data</button>
-            <input class="visually-hidden" id="personal-data-restore" type="file" accept="application/json" data-action="personal-data-file">
+            <input class="visually-hidden" id="personal-data-restore" type="file" aria-label="Rekonime JSON backup" accept="application/json" data-action="personal-data-file">
           </div>
           <p class="settings-description">${this.escapeHtml(tasteProfile.hiddenCount)} hidden recommendation ${tasteProfile.hiddenCount === 1 ? 'title' : 'titles'}.</p>
         </div>
@@ -4152,13 +4152,13 @@ const App = {
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
       return `
-        <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
+        <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="group" tabindex="-1" aria-label="${safeTitle}">
           <div class="recommendation-media">
             <span class="recommendation-rank">#${index + 1}</span>
             <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" ${recDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${recFallbackAttrs}>
           </div>
           <div class="recommendation-info">
-            <div class="recommendation-title">${safeTitle}</div>
+            <button class="recommendation-title" type="button" data-action="open-anime" data-anime-id="${safeId}" aria-label="${cardLabel}">${safeTitle}</button>
             <div class="recommendation-submeta">${safeYear} &bull; ${safeStudio}</div>
             <div class="${decisionClass}">
               <span class="recommendation-signal-value">${this.escapeHtml(decision.value)}</span>

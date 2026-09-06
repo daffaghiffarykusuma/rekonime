@@ -45,12 +45,23 @@ const main = () => {
   }
 
   const watchlistPath = path.join(dist, 'watchlist.html');
+  const sharedStylePosition = homeHtml.indexOf('href="/css/preload-helper.css"');
+  if (sharedStylePosition < homeHtml.indexOf(mainStyleMatch[0])) {
+    console.error('Distribution asset check failed: shared theme styles must follow home page styles');
+    process.exitCode = 1;
+    return;
+  }
   const watchlistHtml = fs.existsSync(watchlistPath)
     ? fs.readFileSync(watchlistPath, 'utf8')
     : '';
   const watchlistStyleErrors = [];
   if (!watchlistHtml.includes('id="watchlist-critical-styles"')) {
     watchlistStyleErrors.push('watchlist.html is missing inlined production styles');
+  }
+  const watchlistCss = fs.readFileSync(path.join(dist, 'css', 'watchlist.css'), 'utf8');
+  const sharedCss = fs.readFileSync(path.join(dist, 'css', 'preload-helper.css'), 'utf8');
+  if (!watchlistHtml.includes(`${watchlistCss}\n${sharedCss}`)) {
+    watchlistStyleErrors.push('shared theme styles must follow watchlist page styles');
   }
   if (/href="\/css\/(?:preload-helper|watchlist)\.css"/.test(watchlistHtml)) {
     watchlistStyleErrors.push('watchlist.html still has render-blocking stylesheet requests');

@@ -157,8 +157,8 @@ const inlineWatchlistStyles = () => {
   if (source.includes('id="watchlist-critical-styles"')) return;
 
   const styleAssets = [
-    { href: '/css/preload-helper.css', filePath: path.join(dist, 'css', 'preload-helper.css') },
-    { href: '/css/watchlist.css', filePath: path.join(dist, 'css', 'watchlist.css') }
+    { href: '/css/watchlist.css', filePath: path.join(dist, 'css', 'watchlist.css') },
+    { href: '/css/preload-helper.css', filePath: path.join(dist, 'css', 'preload-helper.css') }
   ];
   if (styleAssets.some((asset) => !fs.existsSync(asset.filePath))) return;
 
@@ -176,6 +176,18 @@ const inlineWatchlistStyles = () => {
     '</head>',
     `  <style id="watchlist-critical-styles">${css}</style>\n</head>`
   );
+  fs.writeFileSync(filePath, next, 'utf8');
+};
+
+// Vite extracts themes and core-ui into the shared CSS chunk. Keep those
+// overrides after page CSS, matching the source HTML cascade on both pages.
+const restoreHomeStylesheetOrder = () => {
+  const filePath = path.join(dist, 'index.html');
+  const source = fs.readFileSync(filePath, 'utf8');
+  const sharedLink = source.match(/<link\s+rel="stylesheet"\s+crossorigin\s+href="\/css\/preload-helper\.css">/);
+  const pageLink = source.match(/<link\s+rel="stylesheet"\s+crossorigin\s+href="\/css\/main-[^"]+\.css">/);
+  if (!sharedLink || !pageLink) throw new Error('Missing production stylesheets');
+  const next = source.replace(sharedLink[0], '').replace(pageLink[0], `${pageLink[0]}\n  ${sharedLink[0]}`);
   fs.writeFileSync(filePath, next, 'utf8');
 };
 
@@ -207,4 +219,5 @@ copyRecursive(path.join(root, 'health.html'), path.join(dist, 'health.html'));
 copyServiceWorker();
 stripInjectedStylesheetLinks();
 inlineWatchlistStyles();
+restoreHomeStylesheetOrder();
 injectCatalogStartupHints();

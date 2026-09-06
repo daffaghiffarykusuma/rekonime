@@ -50,9 +50,9 @@ const createWatchlistPageRenderer = ({
     card.className = 'anime-card';
     card.setAttribute('data-action', 'open-anime');
     card.setAttribute('data-anime-id', item.id);
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', `View details for ${item.title}`);
+    card.setAttribute('role', 'group');
+    card.setAttribute('tabindex', '-1');
+    card.setAttribute('aria-label', item.title);
 
     const media = documentRef.createElement('div');
     media.className = 'card-media';
@@ -82,9 +82,16 @@ const createWatchlistPageRenderer = ({
 
     const body = documentRef.createElement('div');
     body.className = 'card-body';
-    const title = documentRef.createElement('h3');
+    const title = documentRef.createElement('h2');
     title.className = 'card-title';
-    title.textContent = item.title;
+    const titleButton = documentRef.createElement('button');
+    titleButton.type = 'button';
+    titleButton.className = 'card-title-button';
+    titleButton.dataset.action = 'open-anime';
+    titleButton.dataset.animeId = item.id;
+    titleButton.setAttribute('aria-label', `View details for ${item.title}`);
+    titleButton.textContent = item.title;
+    title.appendChild(titleButton);
     const meta = documentRef.createElement('div');
     meta.className = 'card-year';
     const year = item.year ? String(item.year) : 'Unknown';
