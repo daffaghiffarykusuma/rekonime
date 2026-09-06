@@ -9,6 +9,8 @@ const SidebarPreference = {
   modes: SIDEBAR_MODES,
   currentMode: 'auto-hide' as SidebarMode,
   initialized: false,
+  mobileQuery: null as MediaQueryList | null,
+  mobileOpen: false,
 
   getCache() {
     return CacheManager;
@@ -40,7 +42,23 @@ const SidebarPreference = {
   },
 
   cycleMode() {
+    if (this.mobileQuery?.matches) {
+      this.setMobileOpen(false, true);
+      return;
+    }
     this.applyMode(this.currentMode === 'expanded' ? 'compact' : 'expanded');
+  },
+
+  setMobileOpen(open: boolean, restoreFocus = false) {
+    this.mobileOpen = Boolean(this.mobileQuery?.matches && open);
+    const sidebar = document.querySelector<HTMLElement>('.app-sidebar');
+    const trigger = document.querySelector<HTMLElement>('.sidebar-edge-trigger');
+    document.documentElement.dataset.sidebarOpen = String(this.mobileOpen);
+    if (restoreFocus) trigger?.focus();
+    if (sidebar) sidebar.inert = Boolean(this.mobileQuery?.matches && !this.mobileOpen);
+    if (this.mobileQuery?.matches) trigger?.setAttribute('aria-expanded', String(this.mobileOpen));
+    else trigger?.removeAttribute('aria-expanded');
+    this.updateUI();
   },
 
   updateUI() {
@@ -52,7 +70,8 @@ const SidebarPreference = {
 
     const toggle = document.querySelector<HTMLElement>('[data-sidebar-action="cycle"]');
     if (toggle) {
-      const label = this.currentMode === 'expanded' ? 'Use compact sidebar' : 'Keep sidebar expanded';
+      const label = this.mobileQuery?.matches ? 'Close navigation'
+        : this.currentMode === 'expanded' ? 'Use compact sidebar' : 'Keep sidebar expanded';
       toggle.setAttribute('aria-label', label);
       toggle.setAttribute('title', label);
     }
@@ -89,10 +108,22 @@ const SidebarPreference = {
   init() {
     if (this.initialized) return;
     this.initialized = true;
+    this.mobileQuery = window.matchMedia('(max-width: 760px)');
     this.applyMode(this.loadMode() || 'auto-hide');
+    this.setMobileOpen(false);
+    this.mobileQuery.addEventListener('change', () => this.setMobileOpen(false));
     document.addEventListener('click', (event) => {
-      const target = (event.target as Element | null)?.closest?.('[data-sidebar-action="cycle"]');
-      if (target) this.cycleMode();
+      const target = event.target as Element | null;
+      if (target?.closest?.('[data-sidebar-action="cycle"]')) {
+        this.cycleMode();
+      } else if (this.mobileQuery?.matches && target?.closest?.('.sidebar-edge-trigger')) {
+        this.setMobileOpen(!this.mobileOpen);
+      } else if (this.mobileOpen && !target?.closest?.('.app-sidebar')) {
+        this.setMobileOpen(false);
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && this.mobileOpen) this.setMobileOpen(false, true);
     });
   }
 };

@@ -28,6 +28,48 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test('mobile filters, menu, and sidebar work with touch', async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await context.addInitScript(() => {
+    localStorage.setItem('rekonime.onboarding', 'completed');
+    localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
+  });
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.locator('.quick-filters-summary').tap();
+  for (const tab of ['Genres', 'Themes']) {
+    await page.getByRole('tab', { name: tab, exact: true }).tap();
+    const gap = await page.evaluate(() => document.querySelector('.quick-filters-panel').getBoundingClientRect().top
+      - document.querySelector('.quick-filters-tabs').getBoundingClientRect().bottom);
+    expect(gap).toBeGreaterThanOrEqual(12);
+  }
+  await page.locator('.header-more-toggle').tap();
+  await expect(page.locator('.header-controls .watchlist-link:visible, .mobile-watchlist-link:visible')).toHaveCount(1);
+  await expect(page.locator('.header-more .help-label')).toBeVisible();
+
+  for (const path of ['/', '/watchlist.html']) {
+    for (const mode of ['auto-hide', 'compact', 'expanded']) {
+      await page.evaluate(mode => localStorage.setItem('rekonime.sidebarMode', mode), mode);
+      await page.goto(path);
+      const trigger = page.getByRole('button', { name: 'Show navigation', exact: true });
+      await trigger.tap();
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      await page.getByRole('button', { name: 'Close navigation', exact: true }).tap();
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      await expect(trigger).toBeFocused();
+      await expect.poll(() => page.locator('.app-sidebar').evaluate(element => element.getBoundingClientRect().right)).toBeLessThanOrEqual(0);
+      expect(await page.evaluate(() => localStorage.getItem('rekonime.sidebarMode'))).toBe(mode);
+      await trigger.tap();
+      await page.keyboard.press('Escape');
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      await trigger.tap();
+      await page.touchscreen.tap(370, 300);
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    }
+  }
+  await context.close();
+});
+
 test('production build supports browse, full catalog, search, details, and watchlist', async ({ page, context }) => {
   const failures = installFailureCollectors(page);
   const catalogRequests = [];
