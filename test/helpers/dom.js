@@ -87,8 +87,7 @@ const installCssEscape = (window) => {
 export const setupDom = (html = defaultHtml, { url = 'http://localhost/' } = {}) => {
   const dom = new JSDOM(html, {
     url,
-    pretendToBeVisual: true,
-    runScripts: 'dangerously'
+    pretendToBeVisual: true
   });
 
   const { window } = dom;
