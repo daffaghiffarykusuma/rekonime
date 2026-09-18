@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Logger } from '../../js/services/logger.ts';
+import { Logger } from '../../src/shared/services/logger.ts';
 
 test('Logger filters by level and writes fatal messages as errors', () => {
   const original = {

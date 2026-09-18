@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { App } from '../../js/app.ts';
+import { App } from '../../src/app/app.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('App Shell keeps Runtime Capabilities as one stable instance', () => {

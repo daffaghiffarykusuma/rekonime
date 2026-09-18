@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {
   recoverPendingPersonalDataRestore,
   restorePersonalData
-} from '../../js/personal-data-restore.ts';
-import { createTasteProfileStore } from '../../js/taste-profile.ts';
-import { createWatchlistLifecycle } from '../../js/watchlist-state.js';
+} from '../../src/features/preferences/personal-data-restore.ts';
+import { createTasteProfileStore } from '../../src/features/preferences/taste-profile.ts';
+import { createWatchlistLifecycle } from '../../src/features/watchlist/watchlist-state.js';
 
 const profile = (preferredGenres: string[] = []) => ({
   version: 1,

@@ -1,13 +1,13 @@
 # Event Contracts
 
 ## `rekonime:data-load-start`
-- Emitter: `js/app.ts`
+- Emitter: `src/app/app.ts`
 - Payload:
   - `source`: `preview | full | embedded`
   - `timestamp`: ISO string, optional
 
 ## `rekonime:data-load-end`
-- Emitter: `js/services/catalog-loader.ts` through `js/app.ts`
+- Emitter: `src/features/catalog/catalog-loader.ts` through `src/app/app.ts`
 - Payload:
   - `source`: `preview | full | embedded`
   - `count`: number of anime entries, optional
@@ -15,7 +15,7 @@
   - `status`: `ok | error | fallback`, optional
 
 ## `rekonime:catalog-cache`
-- Emitter: `js/app.ts`
+- Emitter: `src/app/app.ts`
 - Payload:
   - `type`: `network-full-loaded | indexeddb-full-hit | indexeddb-full-miss | indexeddb-full-used | indexeddb-full-read-failed | embedded-fallback-used | cache-write-ok | cache-write-failed | full-load-timeout | detail-chunk-loaded`
   - `at`: ISO string
@@ -24,8 +24,8 @@
   - `reason`: optional diagnostic reason
 
 ## `rekonime:watchlist-updated`
-- Emitters: `js/app.ts`, `js/watchlist-main.ts`
-- TypeScript contract: `WatchlistLifecycleEventMap['rekonime:watchlist-updated']` in `js/contracts/watchlist-lifecycle.ts`
+- Emitters: `src/app/app.ts`, `src/app/watchlist-main.ts`
+- TypeScript contract: `WatchlistLifecycleEventMap['rekonime:watchlist-updated']` in `src/features/watchlist/contracts/watchlist-lifecycle.ts`
 - Payload:
   - `id`: anime id
   - `status`: `planned | watching | completed | dropped` (optional when removed)
@@ -33,7 +33,7 @@
   - `removed`: boolean
 
 ## `rekonime:theme-changed`
-- Emitter: `js/themeManager.js`
+- Emitter: `src/shared/ui/themeManager.js`
 - Payload:
   - `theme`: `light | dark | auto`
 

@@ -21,18 +21,18 @@ test('HTML entrypoints load app CSS before first paint', () => {
   const indexLinks = extractStylesheets(read('index.html'));
   const watchlistLinks = extractStylesheets(read('watchlist.html'));
 
-  assertBlockingStylesheet(indexLinks, '/css/fonts.css');
-  assertBlockingStylesheet(indexLinks, '/css/styles.css');
-  assertBlockingStylesheet(indexLinks, '/css/mal-watchlist-import.css');
-  assertBlockingStylesheet(indexLinks, '/css/themes.css');
-  assertBlockingStylesheet(indexLinks, '/css/phosphor-icons.css');
-  assertBlockingStylesheet(indexLinks, '/css/core-ui.css');
-  assertBlockingStylesheet(watchlistLinks, '/css/fonts.css');
-  assertBlockingStylesheet(watchlistLinks, '/css/watchlist.css');
-  assertBlockingStylesheet(watchlistLinks, '/css/mal-watchlist-import.css');
-  assertBlockingStylesheet(watchlistLinks, '/css/themes.css');
-  assertBlockingStylesheet(watchlistLinks, '/css/phosphor-icons.css');
-  assertBlockingStylesheet(watchlistLinks, '/css/core-ui.css');
+  assertBlockingStylesheet(indexLinks, '/src/styles/fonts.css');
+  assertBlockingStylesheet(indexLinks, '/src/styles/styles.css');
+  assertBlockingStylesheet(indexLinks, '/src/styles/mal-watchlist-import.css');
+  assertBlockingStylesheet(indexLinks, '/src/styles/themes.css');
+  assertBlockingStylesheet(indexLinks, '/src/styles/phosphor-icons.css');
+  assertBlockingStylesheet(indexLinks, '/src/styles/core-ui.css');
+  assertBlockingStylesheet(watchlistLinks, '/src/styles/fonts.css');
+  assertBlockingStylesheet(watchlistLinks, '/src/styles/watchlist.css');
+  assertBlockingStylesheet(watchlistLinks, '/src/styles/mal-watchlist-import.css');
+  assertBlockingStylesheet(watchlistLinks, '/src/styles/themes.css');
+  assertBlockingStylesheet(watchlistLinks, '/src/styles/phosphor-icons.css');
+  assertBlockingStylesheet(watchlistLinks, '/src/styles/core-ui.css');
 });
 
 test('HTML entrypoints preload local self-hosted fonts', () => {
@@ -49,11 +49,11 @@ test('font loading does not depend on Google Fonts or delayed markers', () => {
     'health.html',
     'vercel.json',
     'tools/copy-static.js',
-    'css/fonts.css',
-    'css/styles.css',
-    'css/watchlist.css',
-    'js/main.ts',
-    'js/watchlist-main.ts'
+    'src/styles/fonts.css',
+    'src/styles/styles.css',
+    'src/styles/watchlist.css',
+    'src/app/main.ts',
+    'src/app/watchlist-main.ts'
   ];
   const combined = files.map(read).join('\n');
 

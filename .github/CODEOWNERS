@@ -1,13 +1,14 @@
 # Runtime and UX
-/js/app.js @runtime-team
-/js/watchlist-main.js @runtime-team
-/js/reviews.js @runtime-team
+/src/ @runtime-team
+/src/styles/ @runtime-team
+/public/js/ @runtime-team
 
 # Security-sensitive files
 /vercel.json @security-team @runtime-team
 /sw.js @security-team @runtime-team
-/js/urlSanitizer.js @security-team @runtime-team
-/js/security/* @security-team @runtime-team
+/src/shared/security/ @security-team @runtime-team
+/public/js/sw-cache-policy.js @security-team @runtime-team
+/public/js/data.js @pipeline-team
 /tools/validate_data.py @security-team @pipeline-team
 /tools/run-python.js @pipeline-team
 

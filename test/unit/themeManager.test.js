@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ThemeManager } from '../../js/themeManager.js';
+import { ThemeManager } from '../../src/shared/ui/themeManager.js';
 import { resetDomBody } from '../helpers/dom.js';
 
 test('ThemeManager applyTheme sets attribute and persists', () => {

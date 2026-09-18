@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWatchlistPageRenderer } from '../../js/watchlist-page-renderer.ts';
+import { createWatchlistPageRenderer } from '../../src/features/watchlist/watchlist-page-renderer.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const createRenderer = ({

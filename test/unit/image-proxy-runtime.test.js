@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setupDom } from '../helpers/dom.js';
-import { createImageProxyRuntime } from '../../js/image-proxy-runtime.js';
+import { createImageProxyRuntime } from '../../src/shared/runtime/image-proxy-runtime.js';
 
 test('image proxy runtime schedules probe and persists healthy status', async () => {
   setupDom();

@@ -11,9 +11,9 @@ Primary local sources:
 - Original private MAL export: reviewed locally for this audit, then removed from version control. Only aggregate, non-identifying findings are retained below.
 - Privacy-safe regression fixture: `test/helpers/mal-watchlist-fixture.js` preserves the 415-row, 339-match, 76-unmatched acceptance case without user data.
 - Current full catalog: `data/anime.full.json:1`, generated `2026-07-13T07:03:08.000Z` with 3,578 anime records.
-- Catalog normalization: `js/services/catalog-payload.ts` normalizes source `malId`/`mal_id` into runtime `malId` and validates Catalog Payloads as `anime` arrays.
+- Catalog normalization: `src/features/catalog/catalog-payload.ts` normalizes source `malId`/`mal_id` into runtime `malId` and validates Catalog Payloads as `anime` arrays.
 - Existing repository MAL parser precedent: `tools/scraper/convert_mal_export.py:24-51` parses direct `anime` children and reads `series_animedb_id`, title, type, episode count, status, and score.
-- Watchlist contract: `js/contracts/watchlist-lifecycle.ts:1-5` permits `planned`, `watching`, `completed`, and `dropped`; `js/contracts/watchlist-lifecycle.ts:37-40` stores status and numeric progress. It has no `on-hold` status.
+- Watchlist contract: `src/features/watchlist/contracts/watchlist-lifecycle.ts:1-5` permits `planned`, `watching`, `completed`, and `dropped`; `src/features/watchlist/contracts/watchlist-lifecycle.ts:37-40` stores status and numeric progress. It has no `on-hold` status.
 
 The aggregate counts below were computed from the original private export with Python's standard-library `xml.etree.ElementTree` and `json` modules; no fuzzy matcher or external dataset was used. The original file is no longer retained, so only the privacy-safe 339/415 regression case remains reproducible in this repository.
 
@@ -71,7 +71,7 @@ Representative unmatched rows:
 
 ### Why title fallback is unsupported
 
-Applying the repository's broad search-style normalization (case folding, Unicode normalization, punctuation removal, and whitespace collapse; see `js/services/catalog-payload.ts:42-99`) to the 76 unmatched titles finds two apparent unique matches, but both are wrong:
+Applying the repository's broad search-style normalization (case folding, Unicode normalization, punctuation removal, and whitespace collapse; see `src/features/catalog/catalog-payload.ts:42-99`) to the 76 unmatched titles finds two apparent unique matches, but both are wrong:
 
 - MAL 58755, `5-toubun no Hanayome*` (TV Special), collapsed to catalog MAL 38101, `5-toubun no Hanayome` (TV) in the reviewed sample.
 - MAL 37773, `Yuru Yuri,` (OVA), collapsed to catalog MAL 10495, `Yuru Yuri` (TV) in the reviewed sample.
@@ -107,7 +107,7 @@ This is deliberately MAL-specific. Do not add a provider interface, title matche
 ### Matching and result
 
 1. Wait for the full Catalog Payload, then build a lookup by numeric `malId`.
-2. Match only exact numeric MAL IDs. Catalog `malId` is the external identity; Watchlist Entries continue to use the matched catalog `id` and snapshot (`js/contracts/watchlist-lifecycle.ts:17-40`).
+2. Match only exact numeric MAL IDs. Catalog `malId` is the external identity; Watchlist Entries continue to use the matched catalog `id` and snapshot (`src/features/watchlist/contracts/watchlist-lifecycle.ts:17-40`).
 3. A valid row with no exact catalog match yields an unmatched result such as `{ row, malId, title, sourceStatus, watchedEpisodes, reason: "catalog-not-found" }`; it creates or updates nothing.
 4. An invalid row yields a distinct validation result, not `catalog-not-found`. Whether any invalid row blocks the whole import belongs to the acceptance/recovery decision ticket.
 5. Keep `On-Hold` distinct in the parsed result. Mapping it into Rekonime's four statuses belongs to the watchlist import contract/merge decision; this research does not silently collapse it.

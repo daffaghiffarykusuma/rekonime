@@ -11,7 +11,7 @@
 3. Scope blast radius:
    - `data/anime.full.json`
    - `data/anime.preview.json`
-   - `js/data.js` embedded payload
+   - `public/js/data.js` embedded payload
 4. Classify severity:
    - `SEV-1`: broken user flows or invalid JSON shipped
    - `SEV-2`: degraded metadata quality, app still functional

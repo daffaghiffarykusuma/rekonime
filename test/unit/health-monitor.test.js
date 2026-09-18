@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { HealthMonitor } from '../../js/healthMonitor.js';
+import { HealthMonitor } from '../../src/shared/runtime/healthMonitor.js';
 
 test('HealthMonitor marks data fresh and detects staleness', () => {
   const originalNow = Date.now;

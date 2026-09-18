@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ReviewsService } from '../../js/reviews.js';
+import { ReviewsService } from '../../src/features/detail/reviews.js';
 
 test('ReviewsService sanitizeReviewText removes markup', () => {
   const raw = '<p>Hello<br>World</p> ~!spoiler!~ [img]http://x/y.png[/img]';

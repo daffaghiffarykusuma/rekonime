@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Onboarding } from '../../js/onboarding.js';
+import { Onboarding } from '../../src/features/onboarding/onboarding.js';
 import { resetDomBody, setupDom } from '../helpers/dom.js';
 
 const createCache = () => {

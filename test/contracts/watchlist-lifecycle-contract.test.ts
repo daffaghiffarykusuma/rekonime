@@ -7,7 +7,7 @@ import type {
   WatchlistTransitionEnvelope,
   WatchlistTransitionResult,
   WatchlistUpdatedEventPayload
-} from '../../js/contracts/watchlist-lifecycle.ts';
+} from '../../src/features/watchlist/contracts/watchlist-lifecycle.ts';
 
 const snapshot: Snapshot = {
   id: 'show-1',

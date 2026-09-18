@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import {
   parseMalWatchlistXml,
   planMalWatchlistImport
-} from '../../js/mal-watchlist-import.ts';
+} from '../../src/features/watchlist/mal-watchlist-import.ts';
 import { buildPrivacySafeMalExport } from '../helpers/mal-watchlist-fixture.js';
 
 test('privacy-safe fixture preserves the 415 row and 339 exact-match regression', () => {

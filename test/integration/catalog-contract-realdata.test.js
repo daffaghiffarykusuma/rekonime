@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Stats } from '../../js/stats.ts';
+import { Stats } from '../../src/features/discovery/stats.ts';
 
 test('Python-built rating strength and evidence agree with browser calculations', () => {
   const catalog = readCatalog('anime.full.json');

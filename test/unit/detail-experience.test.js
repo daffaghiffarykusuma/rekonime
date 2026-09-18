@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCatalogRuntime } from '../../js/services/catalog-loader.ts';
-import { createDetailExperience } from '../../js/detail-experience.ts';
+import { createCatalogRuntime } from '../../src/features/catalog/catalog-loader.ts';
+import { createDetailExperience } from '../../src/features/detail/detail-experience.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {

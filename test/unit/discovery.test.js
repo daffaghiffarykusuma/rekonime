@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Discovery } from '../../js/discovery.js';
+import { Discovery } from '../../src/features/discovery/discovery.js';
 import { createAnime, createStats } from '../helpers/factories.js';
 
 test('Discovery getSurpriseMe filters by quality thresholds', () => {

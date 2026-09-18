@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { App } from '../../js/app.ts';
-import { Discovery } from '../../js/discovery.js';
-import { Recommendations } from '../../js/recommendations.ts';
+import { App } from '../../src/app/app.ts';
+import { Discovery } from '../../src/features/discovery/discovery.js';
+import { Recommendations } from '../../src/features/discovery/recommendations.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const createAnime = (overrides = {}) => ({

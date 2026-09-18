@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWatchlistPageRuntime } from '../../js/watchlist-page-runtime.ts';
+import { createWatchlistPageRuntime } from '../../src/features/watchlist/watchlist-page-runtime.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const createRuntime = (result) => {

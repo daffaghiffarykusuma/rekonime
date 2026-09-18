@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildDetailDecisionData, renderDetailContent } from '../../js/detail-presentation.ts';
+import { buildDetailDecisionData, renderDetailContent } from '../../src/features/detail/detail-presentation.ts';
 
 const escapeHtml = (value) => String(value ?? '')
   .replaceAll('&', '&amp;')

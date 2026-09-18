@@ -9,12 +9,12 @@ Use one MAL-specific pure planner and one atomic Watchlist Lifecycle batch mutat
 
 ## Minimum module changes
 
-- Add `js/mal-watchlist-import.ts` for pure `parseMalWatchlistXml` and `planMalWatchlistImport` functions. Use native `DOMParser`; reject `DOCTYPE` or entity declarations before parsing. Do not add a provider interface or dependency.
-- Extend `js/contracts/watchlist-lifecycle.ts` with the import result types below, `WatchlistOperation: 'import'`, the existing optional `loved` and `lovedAt` entry fields that an import must preserve, and batch details on the existing `rekonime:watchlist-updated` event.
-- Add one atomic `commitEntries` operation to `js/watchlist-state.js`. It validates and serializes a detached candidate payload, writes `rekonime.watchlist` once, and only then replaces the live map contents. It returns failure without changing the live map when persistence fails.
-- Add `applyImport(plan)` to `js/watchlist-lifecycle-runtime.ts`. It owns the stale-plan guard, calls `commitEntries` once, and returns the existing transition/effects shape with batch render intent and one Taste Profile refresh intent.
-- Wire file reading, full-catalog readiness, preview, and result application in `js/app.ts`. The later UI prototype decides the markup; this contract only requires the App Shell adapter to apply returned effects in order.
-- Change `js/taste-profile.ts` only enough to stop persisting Watchlist-derived `inferred` evidence: keep it in memory, rebuild it from current Watchlist entries on app startup before recommendation use, and have the storage writer omit it (or write the empty schema-compatible value). Explicit preferences remain persisted. Loading must ignore any legacy persisted `inferred` value.
+- Add `src/features/watchlist/mal-watchlist-import.ts` for pure `parseMalWatchlistXml` and `planMalWatchlistImport` functions. Use native `DOMParser`; reject `DOCTYPE` or entity declarations before parsing. Do not add a provider interface or dependency.
+- Extend `src/features/watchlist/contracts/watchlist-lifecycle.ts` with the import result types below, `WatchlistOperation: 'import'`, the existing optional `loved` and `lovedAt` entry fields that an import must preserve, and batch details on the existing `rekonime:watchlist-updated` event.
+- Add one atomic `commitEntries` operation to `src/features/watchlist/watchlist-state.js`. It validates and serializes a detached candidate payload, writes `rekonime.watchlist` once, and only then replaces the live map contents. It returns failure without changing the live map when persistence fails.
+- Add `applyImport(plan)` to `src/features/watchlist/watchlist-lifecycle-runtime.ts`. It owns the stale-plan guard, calls `commitEntries` once, and returns the existing transition/effects shape with batch render intent and one Taste Profile refresh intent.
+- Wire file reading, full-catalog readiness, preview, and result application in `src/app/app.ts`. The later UI prototype decides the markup; this contract only requires the App Shell adapter to apply returned effects in order.
+- Change `src/features/preferences/taste-profile.ts` only enough to stop persisting Watchlist-derived `inferred` evidence: keep it in memory, rebuild it from current Watchlist entries on app startup before recommendation use, and have the storage writer omit it (or write the empty schema-compatible value). Explicit preferences remain persisted. Loading must ignore any legacy persisted `inferred` value.
 
 No background worker, upload, server endpoint, history store, provider framework, or new dependency is needed.
 

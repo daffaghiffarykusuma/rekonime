@@ -11,7 +11,7 @@
       "missingEpisodes": 120
     }
   },
-  "js/data.js": {
+  "public/js/data.js": {
     "errors": {
       "missingScore": 200,
       "missingTrailer": 19,

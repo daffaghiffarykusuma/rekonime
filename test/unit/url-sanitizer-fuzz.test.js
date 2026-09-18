@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeUrl } from '../../js/urlSanitizer.ts';
+import { sanitizeUrl } from '../../src/shared/security/urlSanitizer.ts';
 
 const EDGE_CASE_URLS = [
   '',

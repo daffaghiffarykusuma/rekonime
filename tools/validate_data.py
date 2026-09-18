@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Set
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_PATH = ROOT / "data" / "anime.full.json"
-DEFAULT_EMBEDDED_PATH = ROOT / "js" / "data.js"
+DEFAULT_EMBEDDED_PATH = ROOT / "public" / "js" / "data.js"
 DEFAULT_INDEX_PATH = ROOT / "index.html"
 DEFAULT_BASELINE_PATH = Path(__file__).resolve().parent / "validation-baseline.json"
 NON_TOLERATED_BASELINE_ERRORS = {"duplicateIds"}
@@ -259,8 +259,8 @@ def validate_index_references(index_path: Path) -> Dict[str, Any]:
     warnings: List[str] = []
     if re.search(r"const\s+ANIME_DATA\s*=", html):
         errors.append("index.html still contains inline ANIME_DATA payload")
-    if not re.search(r"src=[\"']/js/main\.ts[\"']", html):
-        warnings.append("index.html does not reference /js/main.ts")
+    if not re.search(r"src=[\"']/src/app/main\.ts[\"']", html):
+        warnings.append("index.html does not reference /src/app/main.ts")
     return {"hasErrors": bool(errors), "errors": errors, "warnings": warnings}
 
 

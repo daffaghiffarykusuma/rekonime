@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { App } from '../../js/app.ts';
+import { App } from '../../src/app/app.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('App reviews and applies a MAL export as one first-import batch', async () => {

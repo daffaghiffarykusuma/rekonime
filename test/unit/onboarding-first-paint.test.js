@@ -10,7 +10,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 test('home entrypoint contains an early onboarding shell and gate', () => {
   const html = read('index.html');
   const gateIndex = html.indexOf('<script src="/js/onboarding-gate.js"></script>');
-  const appIndex = html.indexOf('<script type="module" src="/js/main.ts"></script>');
+  const appIndex = html.indexOf('<script type="module" src="/src/app/main.ts"></script>');
 
   assert.ok(gateIndex > 0);
   assert.ok(appIndex > gateIndex);
@@ -23,8 +23,8 @@ test('home entrypoint contains an early onboarding shell and gate', () => {
 
 test('onboarding shell visibility is storage-gated and controller-adopted', () => {
   const gate = read('public/js/onboarding-gate.js');
-  const css = read('css/styles.css');
-  const controller = read('js/onboarding.js');
+  const css = read('src/styles/styles.css');
+  const controller = read('src/features/onboarding/onboarding.js');
 
   assert.match(gate, /rekonime\.onboarding/);
   assert.match(gate, /data-onboarding-pending/);

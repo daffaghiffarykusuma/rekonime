@@ -12,7 +12,7 @@ import {
   buildWatchlistUpdatePayload,
   buildWatchlistTransitionEnvelope,
   createWatchlistLifecycle
-} from '../../js/watchlist-state.js';
+} from '../../src/features/watchlist/watchlist-state.js';
 
 test('watchlist status normalization uses allowed values only', () => {
   assert.equal(WATCH_STATUS_VALUES.includes('planned'), true);

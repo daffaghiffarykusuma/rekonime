@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate js/data.js-compatible embedded fallback data."""
+"""Regenerate public/js/data.js-compatible embedded fallback data."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from embedded_data import extract_embedded_data, serialize_embedded_data, valida
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT = ROOT / "data" / "anime.preview.json"
-DEFAULT_OUTPUT = ROOT / "js" / "data.js"
+DEFAULT_OUTPUT = ROOT / "public" / "js" / "data.js"
 
 
 def regenerate(input_path: Path = DEFAULT_INPUT, output_path: Path = DEFAULT_OUTPUT) -> None:

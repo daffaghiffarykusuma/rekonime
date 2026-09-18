@@ -1,7 +1,7 @@
 // @ts-nocheck
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SidebarPreference } from '../../js/sidebar-preference.ts';
+import { SidebarPreference } from '../../src/shared/ui/sidebar-preference.ts';
 import { resetDomBody } from '../helpers/dom.js';
 
 test('SidebarPreference applies and persists a valid mode', () => {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { showToast } from '../../js/toast.ts';
+import { showToast } from '../../src/shared/ui/toast.ts';
 import { resetDomBody, setupDom } from '../helpers/dom.js';
 
 test('toast replaces stale feedback with the same key', () => {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeUrl, sanitizeImageUrl } from '../../js/urlSanitizer.ts';
+import { sanitizeUrl, sanitizeImageUrl } from '../../src/shared/security/urlSanitizer.ts';
 
 test('sanitizeUrl rejects protocol-relative and javascript URLs', () => {
   assert.equal(sanitizeUrl('//evil.example/path'), '');

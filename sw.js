@@ -15,11 +15,11 @@ const API_HOSTS = ['api.jikan.moe'];
 const STATIC_ASSETS = [
     '/index.html',
     '/watchlist.html',
-    '/css/styles.css',
-    '/css/themes.css',
-    '/css/watchlist.css',
-    '/js/main.ts',
-    '/js/watchlist-main.ts',
+    '/src/styles/styles.css',
+    '/src/styles/themes.css',
+    '/src/styles/watchlist.css',
+    '/src/app/main.ts',
+    '/src/app/watchlist-main.ts',
     '/favicon.svg'
 ];
 

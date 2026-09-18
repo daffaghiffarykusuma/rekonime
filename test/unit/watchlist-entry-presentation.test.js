@@ -4,7 +4,7 @@ import {
   renderWatchlistControlsHtml,
   createWatchlistControlsElement,
   updateWatchlistControlsElement
-} from '../../js/watchlist-entry-presentation.ts';
+} from '../../src/features/watchlist/watchlist-entry-presentation.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('Watchlist Entry presentation renders detail controls from one model', () => {

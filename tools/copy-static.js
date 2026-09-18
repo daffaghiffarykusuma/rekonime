@@ -128,7 +128,17 @@ const copyServiceWorker = () => {
   if (!fs.existsSync(swSourcePath)) return;
   const cacheVersion = readBuildVersion();
   const source = fs.readFileSync(swSourcePath, 'utf8');
-  const stamped = source.replace(/__REKONIME_CACHE_VERSION__/g, cacheVersion);
+  // Source URLs are for Vite development. Precache the emitted page assets in production.
+  const staticAssets = new Set(['/index.html', '/watchlist.html', '/favicon.svg']);
+  for (const page of ['index.html', 'watchlist.html']) {
+    const html = fs.readFileSync(path.join(dist, page), 'utf8');
+    for (const match of html.matchAll(/(?:src|href)="(\/(?:js|css)\/[^"?]+\.(?:js|css))"/g)) {
+      staticAssets.add(match[1]);
+    }
+  }
+  const stamped = source
+    .replace(/__REKONIME_CACHE_VERSION__/g, cacheVersion)
+    .replace(/const STATIC_ASSETS = \[[\s\S]*?\];/, `const STATIC_ASSETS = ${JSON.stringify([...staticAssets], null, 2)};`);
   const outputPath = path.join(dist, 'sw.js');
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, stamped, 'utf8');
@@ -212,12 +222,8 @@ const injectCatalogStartupHints = () => {
 };
 
 copyRuntimeData();
-copyRecursive(path.join(root, 'js', 'data.js'), path.join(dist, 'js', 'data.js'));
-copyRecursive(path.join(root, 'js', 'sw-cache-policy.js'), path.join(dist, 'js', 'sw-cache-policy.js'));
-copyRecursive(path.join(root, 'js', 'bootstrap'), path.join(dist, 'js', 'bootstrap'));
-copyRecursive(path.join(root, 'health.html'), path.join(dist, 'health.html'));
-copyServiceWorker();
 stripInjectedStylesheetLinks();
 inlineWatchlistStyles();
 restoreHomeStylesheetOrder();
 injectCatalogStartupHints();
+copyServiceWorker();

@@ -10,4 +10,4 @@ Coverage uses the declared episode count or, if unknown, the highest observed po
 
 These thresholds are heuristics, not statistically calibrated confidence intervals. Sparse scores near 50 indicate insufficient evidence, not proven average quality. Episode poll participants may differ from all viewers, including viewers who stopped watching.
 
-`js/stats.ts` and `tools/build_catalogs.py` implement the same calculation. The real-catalog contract test compares both implementations for every title. Regression tests cover sparse samples, actual opening positions, duplicates, vote evidence, and gradual penalty behavior.
+`src/features/discovery/stats.ts` and `tools/build_catalogs.py` implement the same calculation. The real-catalog contract test compares both implementations for every title. Regression tests cover sparse samples, actual opening positions, duplicates, vote evidence, and gradual penalty behavior.

@@ -6,7 +6,7 @@ import {
   writeImageProxyStatus,
   isProxyImageUrl,
   buildImageProxyUrl
-} from '../../js/image-proxy.js';
+} from '../../src/shared/runtime/image-proxy.js';
 
 const STORAGE_KEY = 'rekonime.imageProxyStatus.test';
 

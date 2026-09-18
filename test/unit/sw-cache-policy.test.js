@@ -6,7 +6,7 @@ import {
   hostMatchesAllowlist,
   getNormalizedDataJsonUrl,
   buildNormalizedDataRequest
-} from '../../js/sw-cache-policy.js';
+} from '../../public/js/sw-cache-policy.js';
 
 test('normalizePathname collapses duplicates and trims trailing slash', () => {
   assert.equal(normalizePathname('data//anime.full.json/'), '/data/anime.full.json');

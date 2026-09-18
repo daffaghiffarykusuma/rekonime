@@ -22,7 +22,7 @@
 ## Data and Validation
 - Run `bun run data:validate` and confirm no baseline regressions.
 - Run `bun run data:validate:strict` before major catalog/pipeline releases.
-- Run `bun run data:regenerate` after preview catalog changes and confirm `js/data.js` is expected.
+- Run `bun run data:regenerate` after preview catalog changes and confirm `public/js/data.js` is expected.
 - For backup or rollback changes, run `bun test test/unit/deploy-data.test.js test/unit/python-data-ops-migration.test.js`.
 
 ## Sign-off

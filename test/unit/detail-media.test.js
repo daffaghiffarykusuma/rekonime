@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDetailMedia } from '../../js/detail-media.ts';
+import { createDetailMedia } from '../../src/features/detail/detail-media.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const createMedia = ({ embed = true, autoplay = false } = {}) => createDetailMedia({

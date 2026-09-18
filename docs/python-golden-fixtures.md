@@ -12,7 +12,7 @@ The Bun command uses `tools/run-python.js` to find the local virtual environment
 
 The harness covers:
 - Representative catalog input, full catalog output, and preview catalog output.
-- Embedded data output compatible with `js/data.js`.
+- Embedded data output compatible with `public/js/data.js`.
 - Quality report output from the catalog build path.
 - Validation success and validation failure reports.
 

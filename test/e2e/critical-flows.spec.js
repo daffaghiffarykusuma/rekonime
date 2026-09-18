@@ -34,7 +34,7 @@ test.beforeEach(async ({ page }) => {
 
 test('first-run intent choices are usable before entering discovery', async ({ browser }) => {
   const shellPage = await browser.newPage();
-  await shellPage.route('**/js/main.ts', (route) => route.abort());
+  await shellPage.route('**/src/app/main.ts', (route) => route.abort());
   await shellPage.goto('/');
   const shellChoice = shellPage.locator('.onboarding-intent-card').first();
   await expect(shellChoice).toBeVisible();

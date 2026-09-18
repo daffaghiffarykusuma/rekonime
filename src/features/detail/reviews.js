@@ -1,0 +1,1039 @@
+import { CacheManager } from '../../shared/services/cache-manager.ts';
+import { Logger } from '../../shared/services/logger.ts';
+import { SchemaValidator } from '../catalog/schema-validator.js';
+import { HealthMonitor } from '../../shared/runtime/healthMonitor.js';
+import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from '../../shared/security/urlSanitizer.ts';
+import { setHTML } from '../../shared/security/trusted-types.js';
+
+/**
+ * Reviews Service - Fetches MyAnimeList reviews via Jikan, with an AniList fallback.
+ */
+const ReviewsService = {
+  API_URL: 'https://api.jikan.moe/v4',
+  ANILIST_API_URL: 'https://graphql.anilist.co',
+  ANILIST_REVIEWS_QUERY: `
+    query ($idMal: Int) {
+      Media(idMal: $idMal, type: ANIME) {
+        description(asHtml: false)
+        reviews(page: 1, perPage: 9, sort: RATING_DESC) {
+          nodes {
+            id
+            summary
+            body
+            score
+            rating
+            user { name avatar { medium } }
+            siteUrl
+            createdAt
+          }
+        }
+      }
+    }
+  `,
+  maxReviewsTotal: 9,
+  maxReviewsPerSentiment: 3,
+  minReviewLength: 120,
+  includeSpoilers: false,
+  includePreliminary: false,
+  reviewsPage: 1,
+
+  // Retry configuration
+  maxRetries: 3,
+  baseRetryDelay: 1000, // 1 second
+  maxRetryDelay: 8000, // 8 seconds
+  retryAttempts: new Map(), // Track retry attempts per anime
+  jikanQueue: Promise.resolve(),
+  nextJikanRequestAt: 0,
+
+  getCache() {
+    return CacheManager;
+  },
+
+  getSchemaValidator() {
+    return SchemaValidator;
+  },
+
+  getPerformanceNow() {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+      return performance.now();
+    }
+    return Date.now();
+  },
+
+  recordReviewLatency(duration, { success = true, error } = {}) {
+    if (!Number.isFinite(duration) || !HealthMonitor?.recordServiceLatency) return;
+    HealthMonitor.recordServiceLatency('reviews', duration, {
+      success,
+      errorMessage: error?.message
+    });
+  },
+
+  validateApiResponse(schemaKey, payload, context = {}) {
+    const validator = this.getSchemaValidator();
+    if (!validator || typeof validator.validate !== 'function') return true;
+    const isValid = validator.validate(schemaKey, payload);
+    if (!isValid) {
+      const error = new Error('Unexpected API response schema: ' + schemaKey);
+      Logger?.warn?.('Reviews response schema invalid', { error, schemaKey, ...context });
+    }
+    return isValid;
+  },
+
+  async withJikanRateLimit(fn) {
+    const run = async () => {
+      const waitMs = Math.max(0, this.nextJikanRequestAt - Date.now());
+      if (waitMs) await new Promise(resolve => setTimeout(resolve, waitMs));
+      this.nextJikanRequestAt = Date.now() + 500;
+      return fn();
+    };
+    const scheduled = this.jikanQueue.then(run, run);
+    this.jikanQueue = scheduled.catch(() => undefined);
+    return scheduled;
+  },
+
+  async requestJson(url) {
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!response.ok) {
+      const error = new Error('API request failed: ' + response.status);
+      error.status = response.status;
+      throw error;
+    }
+    return response.json();
+  },
+
+  async requestAniListJson(malId) {
+    const response = await fetch(this.ANILIST_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: this.ANILIST_REVIEWS_QUERY, variables: { idMal: malId } })
+    });
+    if (!response.ok) {
+      const error = new Error('AniList request failed: ' + response.status);
+      error.status = response.status;
+      throw error;
+    }
+    return response.json();
+  },
+
+  escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => {
+      switch (char) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case '\'': return '&#39;';
+        default: return char;
+      }
+    });
+  },
+
+  escapeAttr(value) {
+    return this.escapeHtml(value).replace(/`/g, '&#96;');
+  },
+
+  sanitizeUrl(rawUrl) {
+    return sanitizeSafeUrl(rawUrl, {
+      allowRelative: false,
+      allowedProtocols: ['https:'],
+      allowedHosts: ['myanimelist.net', 'www.myanimelist.net', 'anilist.co', 'www.anilist.co'],
+      allowSubdomains: false
+    });
+  },
+
+  sanitizeImageUrl(rawUrl) {
+    return sanitizeSafeImageUrl(rawUrl, {
+      allowRelative: false,
+      allowedHosts: [
+        'cdn.myanimelist.net',
+        'myanimelist.cdn-dena.com',
+        's4.anilist.co',
+        'via.placeholder.com',
+        'i.ytimg.com'
+      ]
+    });
+  },
+
+  decodeHtmlEntities(text) {
+    if (!text) return '';
+    const named = {
+      amp: '&',
+      lt: '<',
+      gt: '>',
+      quot: '"',
+      apos: '\'',
+      nbsp: ' ',
+      rsquo: '\'',
+      lsquo: '\'',
+      ldquo: '"',
+      rdquo: '"',
+      mdash: '-',
+      ndash: '-',
+      hellip: '...'
+    };
+
+    let decoded = String(text);
+    for (let i = 0; i < 2; i += 1) {
+      decoded = decoded
+        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+          const code = Number.parseInt(hex, 16);
+          return Number.isFinite(code) ? String.fromCharCode(code) : _;
+        })
+        .replace(/&#(\d+);/g, (_, num) => {
+          const code = Number.parseInt(num, 10);
+          return Number.isFinite(code) ? String.fromCharCode(code) : _;
+        })
+        .replace(/&([a-z]+);/gi, (match, name) => {
+          const key = String(name || '').toLowerCase();
+          return Object.prototype.hasOwnProperty.call(named, key) ? named[key] : match;
+        });
+    }
+    return decoded;
+  },
+
+  sanitizeReviewText(text) {
+    if (!text) return '';
+    let cleaned = this.decodeHtmlEntities(String(text));
+
+    cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
+    cleaned = cleaned.replace(/<[^>]*>/g, '');
+
+    // Spoiler markup (~!spoiler!~) -> keep content without markers.
+    cleaned = cleaned.replace(/~!([\s\S]*?)!~/g, '$1');
+
+    // Remove common BBCode image embeds and markdown images.
+    cleaned = cleaned.replace(/!\[[^\]]*]\(([^)]+)\)/g, '');
+    cleaned = cleaned.replace(/\[img\][\s\S]*?\[\/img\]/gi, '');
+    cleaned = cleaned.replace(/\bimg\d*\([^)]+\)/gi, '');
+    cleaned = cleaned.replace(/\bimage\d*\([^)]+\)/gi, '');
+
+    // Remove media embeds while keeping surrounding text.
+    cleaned = cleaned.replace(/\b(?:youtube|video)\([^)]+\)/gi, '');
+
+    // Keep link text but drop the URL.
+    cleaned = cleaned.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '$1');
+
+    // Remove spoiler labels and tags.
+    cleaned = cleaned.replace(/\[\s*(no spoilers?|contains spoilers?|spoilers?|spoiler warning)\s*\]/gi, '');
+    cleaned = cleaned.replace(/^\s*(contains spoilers?|no spoilers?)\s*[:-]?\s*/gmi, '');
+    cleaned = cleaned.replace(/https?:\/\/\S+\.(png|jpe?g|gif|webp|bmp|svg)(\?\S*)?/gi, '');
+
+    const lines = cleaned.split(/\r?\n/);
+    const filtered = lines.filter(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return true;
+      if (/^(contains spoilers?|no spoilers?|spoilers?|spoiler warning|spoilers ahead)\.?$/i.test(trimmed)) {
+        return false;
+      }
+      if (/^https?:\/\/\S+\.(png|jpe?g|gif|webp|bmp|svg)(\?\S*)?$/i.test(trimmed)) {
+        return false;
+      }
+      return true;
+    });
+
+    cleaned = filtered.join('\n');
+    cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+    return cleaned.trim();
+  },
+
+  buildReviewSummary(text) {
+    const cleaned = this.sanitizeReviewText(text);
+    if (!cleaned) return '';
+    const lines = cleaned.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    const candidate = lines[0] || cleaned;
+    const sentenceMatch = candidate.match(/^(.{0,180}?[.!?])\s/);
+    let summary = sentenceMatch ? sentenceMatch[1] : candidate;
+    if (summary.length > 180) {
+      summary = `${summary.slice(0, 177).trim()}...`;
+    }
+    return summary;
+  },
+
+  // Cache to avoid repeated API calls
+  cache: new Map(),
+  cacheMaxSize: 50,
+  cacheMaxAgeMs: 1000 * 60 * 30,
+  descriptionCachePrefix: 'rekonime:description:',
+  descriptionCacheTtlMs: 1000 * 60 * 60 * 24 * 30,
+  descriptionIndexKey: 'rekonime:description:index',
+  descriptionIndexMaxEntries: 100,
+
+  buildReviewsUrl(malId) {
+    if (!malId) return '';
+    const parsedId = Number.parseInt(malId, 10);
+    if (!Number.isFinite(parsedId)) return '';
+
+    const params = {};
+    if (Number.isFinite(this.reviewsPage) && this.reviewsPage > 0) {
+      params.page = String(this.reviewsPage);
+    }
+    if (this.includeSpoilers) {
+      params.spoiler = 'true';
+    }
+    if (this.includePreliminary) {
+      params.preliminary = 'true';
+    }
+
+    const url = new URL(this.API_URL + '/anime/' + parsedId + '/reviews');
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, String(value));
+      }
+    });
+    return url.toString();
+  },
+
+  buildAnimeUrl(malId) {
+    if (!malId) return '';
+    const parsedId = Number.parseInt(malId, 10);
+    if (!Number.isFinite(parsedId)) return '';
+    return this.API_URL + '/anime/' + parsedId;
+  },
+
+  async fetchSynopsis(malId) {
+    const parsedId = Number.parseInt(malId, 10);
+    if (!Number.isFinite(parsedId)) return '';
+
+    try {
+      const data = await this.withJikanRateLimit(() => this.requestJson(this.buildAnimeUrl(parsedId)));
+      if (!this.validateApiResponse('api.jikan.anime', data, { endpoint: 'anime', malId: parsedId })) {
+        return '';
+      }
+      const synopsis = data?.data?.synopsis;
+      return typeof synopsis === 'string' ? synopsis : '';
+    } catch (error) {
+      return '';
+    }
+  },
+
+  /**
+   * Calculate exponential backoff delay with jitter
+   * @param {number} attempt - Current attempt number (0-indexed)
+   * @returns {number} Delay in milliseconds
+   */
+  getRetryDelay(attempt) {
+    // Exponential backoff: 1s, 2s, 4s, etc.
+    const exponentialDelay = this.baseRetryDelay * Math.pow(2, attempt);
+    // Cap at max delay
+    const cappedDelay = Math.min(exponentialDelay, this.maxRetryDelay);
+    // Add random jitter (±25%) to prevent thundering herd
+    const jitter = cappedDelay * 0.25 * (Math.random() * 2 - 1);
+    return Math.floor(cappedDelay + jitter);
+  },
+
+  /**
+   * Get current retry count for an anime
+   * @param {string|number} cacheKey - Anime identifier
+   * @returns {number} Current retry attempt count
+   */
+  getRetryCount(cacheKey) {
+    return this.retryAttempts.get(cacheKey) || 0;
+  },
+
+  /**
+   * Increment retry count for an anime
+   * @param {string|number} cacheKey - Anime identifier
+   */
+  incrementRetryCount(cacheKey) {
+    const current = this.getRetryCount(cacheKey);
+    this.retryAttempts.set(cacheKey, current + 1);
+  },
+
+  /**
+   * Reset retry count for an anime
+   * @param {string|number} cacheKey - Anime identifier
+   */
+  resetRetryCount(cacheKey) {
+    this.retryAttempts.delete(cacheKey);
+  },
+
+  setCacheEntry(key, value) {
+    if (!key) return;
+    while (this.cache.size >= this.cacheMaxSize) {
+      const firstKey = this.cache.keys().next().value;
+      if (!firstKey) break;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, {
+      value,
+      timestamp: Date.now()
+    });
+  },
+
+  getCacheEntry(key) {
+    if (!key) return null;
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.timestamp > this.cacheMaxAgeMs) {
+      this.cache.delete(key);
+      return null;
+    }
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+    return entry.value;
+  },
+
+  /**
+   * Check if we should retry a failed request
+   * @param {string|number} cacheKey - Anime identifier
+   * @param {Error} error - The error that occurred
+   * @returns {boolean} Whether to retry
+   */
+  shouldRetry(cacheKey, error) {
+    const attemptCount = this.getRetryCount(cacheKey);
+    if (attemptCount >= this.maxRetries) {
+      return false;
+    }
+    // Retry on network errors or 5xx server errors
+    if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      return true;
+    }
+    const statusCode = Number(error.status || error.response?.status) ||
+      parseInt(error.message?.match(/\d+/)?.[0], 10);
+    if (Number.isFinite(statusCode)) {
+      return statusCode >= 500 || statusCode === 429;
+    }
+    return false;
+  },
+
+  async fetchAniListFallback(malId, cachedDescription = '') {
+    const payload = await this.requestAniListJson(malId);
+    if (payload?.errors?.length) throw new Error(payload.errors[0]?.message || 'AniList GraphQL error');
+
+    const media = payload?.data?.Media;
+    if (!media) throw new Error('Anime unavailable from AniList');
+
+    const reviews = (media.reviews?.nodes || []).map(review => ({
+      mal_id: review.id,
+      review: [review.summary, review.body].filter(Boolean).join('\n\n'),
+      score: Number.isFinite(review.score) ? review.score / 10 : null,
+      reactions: { overall: review.rating },
+      user: { username: review.user?.name, images: { jpg: { image_url: review.user?.avatar?.medium } } },
+      url: review.siteUrl,
+      date: Number.isFinite(review.createdAt) ? new Date(review.createdAt * 1000).toISOString() : null
+    }));
+
+    return {
+      ...this.categorizeReviews(reviews),
+      description: media.description || cachedDescription,
+      source: 'AniList',
+      retryAttempt: this.getRetryCount(malId),
+      maxRetries: this.maxRetries
+    };
+  },
+
+  /**
+   * Fetch reviews from MyAnimeList via the Jikan API with retry logic.
+   * @param {number|null} malId - MyAnimeList media ID
+   * @param {string} title - Anime title for caching fallback
+   * @param {boolean} isManualRetry - Whether this is a manual user-initiated retry
+   * @returns {Promise<Object>} Categorized reviews and description
+   */
+  async fetchReviews(malId, title, isManualRetry = false) {
+    const cacheKey = malId || title;
+    const requestStart = this.getPerformanceNow();
+
+    // Reset retry count on manual retry
+    if (isManualRetry) {
+      this.resetRetryCount(cacheKey);
+    }
+
+    const cached = this.getCacheEntry(cacheKey);
+    if (cached && !isManualRetry) {
+      return cached;
+    }
+
+    const cachedDescription = this.getCachedDescription(cacheKey);
+    const parsedId = Number.parseInt(malId, 10);
+
+    try {
+      if (!Number.isFinite(parsedId)) {
+        throw new Error('Missing MAL id for reviews');
+      }
+      const data = await this.withJikanRateLimit(() => this.requestJson(this.buildReviewsUrl(parsedId)));
+      if (!this.validateApiResponse('api.jikan.reviews', data, { endpoint: 'anime/reviews', malId: parsedId })) {
+        throw new Error('Unexpected reviews response');
+      }
+      const reviews = Array.isArray(data?.data) ? data.data : [];
+      let description = cachedDescription || '';
+      if (!description) {
+        const synopsis = await this.fetchSynopsis(malId);
+        if (synopsis) {
+          description = synopsis;
+          this.setCachedDescription(cacheKey, synopsis);
+        }
+      }
+      const categorized = this.categorizeReviews(reviews);
+
+      const result = {
+        ...categorized,
+        description,
+        source: 'MyAnimeList',
+        retryAttempt: this.getRetryCount(cacheKey),
+        maxRetries: this.maxRetries
+      };
+
+      // Reset retry count on success
+      this.resetRetryCount(cacheKey);
+      this.setCacheEntry(cacheKey, result);
+      this.recordReviewLatency(this.getPerformanceNow() - requestStart, { success: true });
+      return result;
+
+    } catch (error) {
+      if (Logger?.error) {
+        Logger.error('Failed to fetch reviews', { error });
+      } else {
+        console.error('Failed to fetch reviews:', error);
+      }
+      this.recordReviewLatency(this.getPerformanceNow() - requestStart, { success: false, error });
+
+      // Check if we should retry
+      if (this.shouldRetry(cacheKey, error)) {
+        try {
+          const fallback = await this.fetchAniListFallback(parsedId, cachedDescription);
+          if (fallback.description) this.setCachedDescription(cacheKey, fallback.description);
+          this.resetRetryCount(cacheKey);
+          this.setCacheEntry(cacheKey, fallback);
+          this.recordReviewLatency(this.getPerformanceNow() - requestStart, { success: true });
+          return fallback;
+        } catch (fallbackError) {
+          Logger?.warn?.('AniList reviews fallback failed', { error: fallbackError, malId: parsedId });
+        }
+
+        this.incrementRetryCount(cacheKey);
+        const delay = this.getRetryDelay(this.getRetryCount(cacheKey) - 1);
+        if (Logger?.info) {
+          Logger.info('Retrying reviews fetch', {
+            cacheKey,
+            delayMs: delay,
+            attempt: this.getRetryCount(cacheKey),
+            maxRetries: this.maxRetries
+          });
+        } else {
+          console.log(`Retrying reviews fetch for ${cacheKey} in ${delay}ms (attempt ${this.getRetryCount(cacheKey)}/${this.maxRetries})`);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.fetchReviews(malId, title, false);
+      }
+
+      // Max retries reached or non-retryable error
+      return {
+        positive: [],
+        neutral: [],
+        negative: [],
+        description: cachedDescription || '',
+        error: true,
+        errorMessage: error.message,
+        circuitOpen: false,
+        retryAttempt: this.getRetryCount(cacheKey),
+        maxRetries: this.maxRetries,
+        canRetry: this.getRetryCount(cacheKey) < this.maxRetries
+      };
+    }
+  },
+
+  /**
+   * Build a stable storage key for cached descriptions.
+   * @param {string|number} cacheKey - Anime identifier
+   * @returns {string} Storage key
+   */
+  getDescriptionCacheKey(cacheKey) {
+    if (cacheKey === null || cacheKey === undefined || cacheKey === '') return '';
+    return `${this.descriptionCachePrefix}${String(cacheKey)}`;
+  },
+
+  getDescriptionIndex() {
+    const cache = this.getCache();
+    const stored = cache.getJSON(this.descriptionIndexKey, { fallback: [], validate: true });
+    return Array.isArray(stored) ? stored : [];
+  },
+
+  saveDescriptionIndex(index) {
+    const cache = this.getCache();
+    cache.setJSON(this.descriptionIndexKey, index, { validate: true });
+  },
+
+  pruneDescriptionIndex(index) {
+    if (!Array.isArray(index)) return;
+    const cache = this.getCache();
+    const trimmed = index.slice(0, this.descriptionIndexMaxEntries);
+    const toRemove = index.slice(this.descriptionIndexMaxEntries);
+
+    toRemove.forEach((entry) => {
+      if (entry?.key) {
+        cache.removeItem(entry.key);
+      }
+    });
+
+    this.saveDescriptionIndex(trimmed);
+  },
+
+  touchDescriptionIndex(storageKey) {
+    if (!storageKey) return;
+    const now = Date.now();
+    const index = this.getDescriptionIndex();
+    const filtered = index.filter((entry) => entry?.key && entry.key !== storageKey);
+    const updated = [{ key: storageKey, lastAccess: now }, ...filtered];
+    this.pruneDescriptionIndex(updated);
+  },
+
+  removeDescriptionIndexEntry(storageKey) {
+    if (!storageKey) return;
+    const index = this.getDescriptionIndex();
+    const next = index.filter((entry) => entry?.key && entry.key !== storageKey);
+    if (next.length !== index.length) {
+      this.saveDescriptionIndex(next);
+    }
+  },
+
+  /**
+   * Read a cached description if available and not expired.
+   * @param {string|number} cacheKey - Anime identifier
+   * @returns {string} Cached description
+   */
+  getCachedDescription(cacheKey) {
+    const storageKey = this.getDescriptionCacheKey(cacheKey);
+    if (!storageKey) return '';
+
+    const cache = this.getCache();
+    const cached = cache.getJSON(storageKey, { fallback: '' });
+    if (typeof cached === 'string') {
+      this.touchDescriptionIndex(storageKey);
+      return cached;
+    }
+    if (cached && typeof cached.description === 'string') {
+      if (cached.expiresAt && Date.now() > cached.expiresAt) {
+        cache.removeItem(storageKey);
+        this.removeDescriptionIndexEntry(storageKey);
+        return '';
+      }
+      this.touchDescriptionIndex(storageKey);
+      return cached.description;
+    }
+    return '';
+  },
+
+  /**
+   * Persist a description for faster synopsis loads.
+   * @param {string|number} cacheKey - Anime identifier
+   * @param {string} description - Description text
+   */
+  setCachedDescription(cacheKey, description) {
+    const storageKey = this.getDescriptionCacheKey(cacheKey);
+    if (!storageKey || !description) return;
+
+    const cache = this.getCache();
+    cache.setJSON(storageKey, description, { ttlMs: this.descriptionCacheTtlMs });
+    this.touchDescriptionIndex(storageKey);
+  },
+
+  /**
+   * Categorize reviews by sentiment based on score
+   * Positive: >= 70, Neutral: 50-69, Negative: < 50
+   * @param {Array} reviews - Raw reviews from API
+   * @returns {Object} Categorized reviews
+   */
+  normalizeReviewScore(score) {
+    if (!Number.isFinite(score)) return null;
+    const bounded = Math.min(10, Math.max(0, score));
+    return Math.round((bounded / 10) * 100);
+  },
+
+  getReviewSentiment(scoreNormalized) {
+    if (!Number.isFinite(scoreNormalized)) return 'neutral';
+    if (scoreNormalized >= 70) return 'positive';
+    if (scoreNormalized >= 50) return 'neutral';
+    return 'negative';
+  },
+
+  getReviewUsefulness(review) {
+    const reactions = review?.reactions || {};
+    const overall = Number(reactions.overall);
+    if (Number.isFinite(overall)) return overall;
+    const keys = ['nice', 'love_it', 'funny', 'informative', 'well_written', 'creative'];
+    return keys.reduce((sum, key) => {
+      const value = Number(reactions[key]);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+  },
+
+  normalizeReview(review) {
+    if (!review) return null;
+    if (!this.includeSpoilers && review.is_spoiler) return null;
+    if (!this.includePreliminary && review.is_preliminary) return null;
+
+    const cleanedBody = this.sanitizeReviewText(review.review);
+    if (!cleanedBody || cleanedBody.length < this.minReviewLength) return null;
+
+    const scoreNormalized = this.normalizeReviewScore(review.score);
+    const dateValue = review.date ? new Date(review.date) : null;
+    const dateLabel = dateValue && !Number.isNaN(dateValue.getTime())
+      ? dateValue.toLocaleDateString()
+      : '';
+
+    return {
+      id: review.mal_id || review.id,
+      summary: this.buildReviewSummary(cleanedBody),
+      body: this.truncateText(cleanedBody, 300, { alreadyClean: true }),
+      score: scoreNormalized,
+      helpfulCount: this.getReviewUsefulness(review),
+      userName: review.user?.username || 'Anonymous',
+      userAvatar: review.user?.images?.jpg?.image_url || review.user?.images?.webp?.image_url,
+      url: review.url,
+      date: dateLabel,
+      sentiment: this.getReviewSentiment(scoreNormalized)
+    };
+  },
+
+  categorizeReviews(reviews) {
+    const result = {
+      positive: [],
+      neutral: [],
+      negative: []
+    };
+
+    if (!Array.isArray(reviews) || reviews.length === 0) {
+      return result;
+    }
+
+    const seen = new Set();
+    const processed = [];
+
+    reviews.forEach(review => {
+      const normalized = this.normalizeReview(review);
+      if (!normalized) return;
+      const key = String(normalized.id || normalized.url || normalized.summary || '');
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      processed.push(normalized);
+    });
+
+    const buckets = {
+      positive: [],
+      neutral: [],
+      negative: []
+    };
+
+    processed.forEach(review => {
+      const bucket = buckets[review.sentiment] || buckets.neutral;
+      bucket.push(review);
+    });
+
+    const sortByUsefulness = (a, b) => {
+      const helpfulDiff = (b.helpfulCount || 0) - (a.helpfulCount || 0);
+      if (helpfulDiff !== 0) return helpfulDiff;
+      return (b.body?.length || 0) - (a.body?.length || 0);
+    };
+
+    ['positive', 'neutral', 'negative'].forEach(key => {
+      const bucket = buckets[key].sort(sortByUsefulness);
+      result[key] = bucket.slice(0, this.maxReviewsPerSentiment);
+    });
+
+    const totalCount = result.positive.length + result.neutral.length + result.negative.length;
+    if (totalCount <= this.maxReviewsTotal) {
+      return result;
+    }
+
+    const flattened = [
+      ...result.positive.map(review => ({ ...review, _bucket: 'positive' })),
+      ...result.neutral.map(review => ({ ...review, _bucket: 'neutral' })),
+      ...result.negative.map(review => ({ ...review, _bucket: 'negative' }))
+    ].sort(sortByUsefulness);
+
+    const trimmed = {
+      positive: [],
+      neutral: [],
+      negative: []
+    };
+
+    for (const review of flattened) {
+      const bucket = trimmed[review._bucket];
+      if (bucket.length >= this.maxReviewsPerSentiment) continue;
+      bucket.push(review);
+      if (trimmed.positive.length + trimmed.neutral.length + trimmed.negative.length >= this.maxReviewsTotal) {
+        break;
+      }
+    }
+
+    return trimmed;
+  },
+
+  /**
+   * Truncate text to specified length
+   * @param {string} text - Text to truncate
+   * @param {number} maxLength - Maximum length
+   * @returns {string} Truncated text
+   */
+  truncateText(text, maxLength, { alreadyClean = false } = {}) {
+    if (!text) return '';
+    const stripped = alreadyClean ? String(text) : this.sanitizeReviewText(text);
+    if (stripped.length <= maxLength) return stripped;
+    return stripped.substring(0, maxLength).trim() + '...';
+  },
+
+  /**
+   * Render a single review card
+   * @param {Object} review - Processed review object
+   * @returns {string} HTML string
+   */
+  renderReviewCard(review) {
+    const hasScore = Number.isFinite(review.score);
+    const numericScore = hasScore ? review.score : 0;
+    const scoreClass = hasScore ? (numericScore >= 70 ? 'positive' : numericScore >= 50 ? 'neutral' : 'negative') : 'neutral';
+    const scoreText = hasScore ? `${review.score}/100` : 'N/A';
+    const helpfulCount = Number.isFinite(review.helpfulCount) ? review.helpfulCount : null;
+    const helpfulText = helpfulCount !== null ? `${helpfulCount} helpful reactions` : 'Helpful reactions: N/A';
+    const safeUserName = this.escapeHtml(review.userName || 'Anonymous');
+    const safeSummary = this.escapeHtml(review.summary || '');
+    const safeBody = this.escapeHtml(review.body || '');
+    const safeDate = this.escapeHtml(review.date || '');
+    const safeAvatar = this.escapeAttr(this.sanitizeImageUrl(review.userAvatar));
+    const safeUrl = this.escapeAttr(this.sanitizeUrl(review.url));
+
+    return `
+      <div class="review-card">
+        <div class="review-header">
+          <div class="review-user">
+            ${safeAvatar ? `<img src="${safeAvatar}" alt="${safeUserName}" class="review-avatar" data-fallback-src="https://via.placeholder.com/40x40?text=User">` : ''}
+            <span class="review-username">${safeUserName}</span>
+          </div>
+          <div class="review-score ${scoreClass}">${scoreText}</div>
+        </div>
+        <div class="review-content">
+          <p class="review-summary">${safeSummary}</p>
+          <p class="review-body">${safeBody}</p>
+        </div>
+        <div class="review-footer">
+          <span class="review-date">${safeDate}</span>
+          <span class="review-helpful">${helpfulText}</span>
+          ${safeUrl ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin" class="review-link">Read full review</a>` : ''}
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render the reviews section HTML
+   * @param {Object} categorizedReviews - Reviews sorted by sentiment
+   * @param {string} activeSentiment - Currently active tab
+   * @returns {string} HTML string
+   */
+  renderReviewsSection(categorizedReviews, activeSentiment = 'positive') {
+    const counts = {
+      positive: categorizedReviews.positive.length,
+      neutral: categorizedReviews.neutral.length,
+      negative: categorizedReviews.negative.length
+    };
+
+    const activeReviews = categorizedReviews[activeSentiment] || [];
+    const hasError = categorizedReviews.error === true;
+    const canRetry = categorizedReviews.canRetry === true;
+    const retryAttempt = categorizedReviews.retryAttempt || 0;
+    const maxRetries = categorizedReviews.maxRetries || this.maxRetries;
+    const sourceName = categorizedReviews.source === 'AniList' ? 'AniList' : 'MyAnimeList';
+    const sourceUrl = sourceName === 'AniList' ? 'https://anilist.co' : 'https://myanimelist.net';
+
+    // Build error message if needed
+    let errorContent = '';
+    if (hasError) {
+      const isRateLimit = categorizedReviews.errorMessage?.includes('429') ||
+        categorizedReviews.errorMessage?.includes('rate limit');
+      const errorMessage = isRateLimit
+        ? 'Rate limited by MyAnimeList. Please wait a moment and try again.'
+        : 'Failed to load reviews from MyAnimeList.';
+
+      errorContent = `
+        <div class="reviews-error" role="alert">
+          <div class="reviews-error-icon">??</div>
+          <div class="reviews-error-content">
+            <p class="reviews-error-message">${this.escapeHtml(errorMessage)}</p>
+            ${retryAttempt > 0 ? `<p class="reviews-error-attempts">Automatic retry ${retryAttempt}/${maxRetries} failed</p>` : ''}
+            ${canRetry ? `
+              <button class="reviews-retry-btn" data-action="retry-reviews" type="button">
+                <span class="retry-icon">??</span> Try Again
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="community-reviews">
+        <h3>Community Reviews</h3>
+        ${hasError ? errorContent : `
+          <div class="review-tabs">
+            <button class="review-tab ${activeSentiment === 'positive' ? 'active' : ''}" data-sentiment="positive">
+              Positive <span class="tab-count">${counts.positive}</span>
+            </button>
+            <button class="review-tab ${activeSentiment === 'neutral' ? 'active' : ''}" data-sentiment="neutral">
+              Neutral <span class="tab-count">${counts.neutral}</span>
+            </button>
+            <button class="review-tab ${activeSentiment === 'negative' ? 'active' : ''}" data-sentiment="negative">
+              Negative <span class="tab-count">${counts.negative}</span>
+            </button>
+          </div>
+          <div class="reviews-container" id="reviews-container">
+            ${activeReviews.length > 0
+          ? activeReviews.map(r => this.renderReviewCard(r)).join('')
+          : `<p class="no-reviews">No community reviews yet&mdash;be the first on ${sourceName}!</p>`
+        }
+          </div>
+        `}
+        <p class="reviews-attribution">
+          Reviews from <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="strict-origin-when-cross-origin">${sourceName}</a>
+        </p>
+      </div>
+    `;
+  },
+
+  /**
+   * Render the synopsis/description section
+   * @param {string} description - Anime description text
+   * @returns {string} HTML string
+   */
+  renderSynopsis(description) {
+    if (!description) {
+      return '';
+    }
+
+    // Clean up the description (remove any remaining HTML-like artifacts)
+    const cleanDescription = this.decodeHtmlEntities(description)
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .trim();
+
+    if (!cleanDescription) {
+      return '';
+    }
+
+    const safeDescription = this.escapeHtml(cleanDescription);
+
+    return `
+      <div class="anime-synopsis">
+        <h3>Synopsis</h3>
+        <p class="synopsis-text">${safeDescription}</p>
+      </div>
+    `;
+  },
+
+  /**
+   * Render loading state for synopsis
+   * @returns {string} HTML string
+   */
+  renderSynopsisLoading() {
+    return `
+      <div class="anime-synopsis">
+        <h3>Synopsis</h3>
+        <div class="synopsis-loading">
+          <div class="loading-shimmer"></div>
+          <div class="loading-shimmer"></div>
+          <div class="loading-shimmer short"></div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render loading state
+   * @returns {string} HTML string
+   */
+  renderLoading() {
+    return `
+      <div class="community-reviews">
+        <h3>Community Reviews</h3>
+        <div class="reviews-loading">
+          <div class="loading-spinner"></div>
+          <p>Loading reviews...</p>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Retry loading reviews for the currently displayed anime
+   * This should be called from the app's action delegate when retry button is clicked
+   * @param {Object} anime - The anime object with malId and title
+   * @param {Function} onSuccess - Callback when retry succeeds
+   * @param {Function} onError - Callback when retry fails
+   * @returns {Promise<void>}
+   */
+  async retryFetchReviews(anime, onSuccess, onError) {
+    if (!anime) return;
+
+    try {
+      const data = await this.fetchReviews(anime.malId, anime.title, true);
+      if (data.error) {
+        if (onError) onError(data);
+      } else {
+        if (onSuccess) onSuccess(data);
+      }
+    } catch (error) {
+      if (Logger?.error) {
+        Logger.error('Retry failed', { error });
+      } else {
+        console.error('Retry failed:', error);
+      }
+      if (onError) onError({ error: true, errorMessage: error.message });
+    }
+  },
+
+  /**
+   * Initialize tab switching for reviews section
+   * @param {Object} categorizedReviews - Reviews data
+   */
+  initTabSwitching(categorizedReviews) {
+    const tabs = document.querySelectorAll('.review-tab');
+    const container = document.getElementById('reviews-container');
+    const tabsWrap = document.querySelector('.review-tabs');
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const scrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+    const sourceName = categorizedReviews.source === 'AniList' ? 'AniList' : 'MyAnimeList';
+
+    if (!container || tabs.length === 0) return;
+
+    const scrollTabIntoView = (tab) => {
+      if (!tab || !tabsWrap) return;
+      if (tabsWrap.scrollWidth <= tabsWrap.clientWidth) return;
+      tab.scrollIntoView({ behavior: scrollBehavior, block: 'nearest', inline: 'center' });
+    };
+
+    const activeTab = document.querySelector('.review-tab.active');
+    if (activeTab) {
+      scrollTabIntoView(activeTab);
+    }
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const sentiment = tab.dataset.sentiment;
+
+        // Update active tab
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update content
+        const reviews = categorizedReviews[sentiment] || [];
+        setHTML(container, reviews.length > 0
+          ? reviews.map(r => this.renderReviewCard(r)).join('')
+          : `<p class="no-reviews">No community reviews yet&mdash;be the first on ${sourceName}!</p>`);
+        scrollTabIntoView(tab);
+      });
+    });
+  }
+};
+
+export { ReviewsService };
+
+
+
+
+
+
+
+
+
+
+

@@ -5,8 +5,8 @@ import {
   createAiringScheduleRuntime,
   fetchAiringSchedules,
   formatCountdownLabel
-} from '../../js/airing-schedule.ts';
-import { CacheManager } from '../../js/services/cache-manager.ts';
+} from '../../src/features/airing/airing-schedule.ts';
+import { CacheManager } from '../../src/shared/services/cache-manager.ts';
 
 const resetCache = () => {
   CacheManager.clearMemory();

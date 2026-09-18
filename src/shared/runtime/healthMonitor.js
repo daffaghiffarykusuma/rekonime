@@ -1,0 +1,175 @@
+import { Logger } from '../services/logger.ts';
+
+/**
+ * Health Monitor - tracks connectivity and data freshness.
+ */
+const HealthMonitor = {
+  config: {
+    checkIntervalMs: 30000,
+    staleThresholdMs: 60 * 60 * 1000
+  },
+  initialized: false,
+  isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+  lastCheckAt: null,
+  dataFreshness: new Map(),
+  serviceMetrics: new Map(),
+  listeners: [],
+  checkIntervalId: null,
+  serviceLabels: {
+    catalog: 'Catalog',
+    reviews: 'Reviews'
+  },
+  services: {
+    catalog: {
+      healthy: true,
+      stale: false,
+      lastUpdated: null,
+      lastCheck: null
+    },
+    reviews: {
+      healthy: true,
+      state: 'UNKNOWN',
+      failures: 0,
+      lastFailureTime: null,
+      lastCheck: null,
+      latencyMs: null,
+      lastLatencyAt: null,
+      lastError: null
+    }
+  },
+
+  init() {
+    if (this.initialized) return;
+    this.initialized = true;
+    this.setupConnectivityListeners();
+    this.startPeriodicChecks();
+    this.performHealthChecks();
+  },
+
+  setupConnectivityListeners() {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      this.notifyListeners('connectivity', { online: true });
+      this.performHealthChecks();
+    });
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+      this.notifyListeners('connectivity', { online: false });
+      this.performHealthChecks();
+    });
+  },
+
+  startPeriodicChecks() {
+    if (this.checkIntervalId) return;
+    this.checkIntervalId = setInterval(() => {
+      this.performHealthChecks();
+    }, this.config.checkIntervalMs);
+  },
+
+  stopPeriodicChecks() {
+    if (this.checkIntervalId) {
+      clearInterval(this.checkIntervalId);
+      this.checkIntervalId = null;
+    }
+  },
+
+  markDataFresh(dataType, timestamp) {
+    const time = Number.isFinite(timestamp) ? timestamp : Date.now();
+    this.dataFreshness.set(dataType, time);
+  },
+
+  isDataStale(dataType) {
+    const timestamp = this.dataFreshness.get(dataType);
+    if (!Number.isFinite(timestamp)) return false;
+    return Date.now() - timestamp > this.config.staleThresholdMs;
+  },
+
+  updateCatalogService() {
+    const timestamp = this.dataFreshness.get('catalog');
+    const hasData = Number.isFinite(timestamp);
+    const stale = hasData ? this.isDataStale('catalog') : true;
+    this.services.catalog = {
+      healthy: hasData,
+      stale,
+      lastUpdated: hasData ? timestamp : null,
+      lastCheck: Date.now()
+    };
+  },
+
+  updateReviewService() {
+    const metrics = this.serviceMetrics.get('reviews') || {};
+    const healthy = !metrics.lastError;
+    this.services.reviews = {
+      healthy,
+      state: healthy ? 'HEALTHY' : 'DEGRADED',
+      failures: healthy ? 0 : 1,
+      lastFailureTime: healthy ? null : metrics.lastLatencyAt || null,
+      lastCheck: Date.now(),
+      latencyMs: Number.isFinite(metrics.latencyMs) ? metrics.latencyMs : null,
+      lastLatencyAt: metrics.lastLatencyAt || null,
+      lastError: metrics.lastError || null
+    };
+  },
+
+  recordServiceLatency(serviceName, latencyMs, { success = true, errorMessage } = {}) {
+    if (!serviceName || !Number.isFinite(latencyMs)) return;
+    this.serviceMetrics.set(serviceName, {
+      latencyMs: Math.round(latencyMs),
+      lastLatencyAt: Date.now(),
+      lastError: success ? null : errorMessage || 'unknown'
+    });
+    if (serviceName === 'reviews') {
+      this.updateReviewService();
+    }
+  },
+
+  async performHealthChecks() {
+    this.lastCheckAt = Date.now();
+    this.updateCatalogService();
+    this.updateReviewService();
+    const status = this.getStatus();
+    this.notifyListeners('health-check', status);
+    return status;
+  },
+
+  getStatus() {
+    const services = Object.entries(this.services).map(([name, service]) => ({
+      name,
+      label: this.serviceLabels[name] || name,
+      ...service
+    }));
+    const allHealthy = services.every(service => service.healthy);
+    return {
+      online: this.isOnline,
+      healthy: this.isOnline && allHealthy,
+      degraded: this.isOnline && !allHealthy,
+      services,
+      lastCheck: this.lastCheckAt
+    };
+  },
+
+  subscribe(callback) {
+    if (typeof callback !== 'function') return () => {};
+    this.listeners.push(callback);
+    return () => {
+      this.listeners = this.listeners.filter(listener => listener !== callback);
+    };
+  },
+
+  notifyListeners(event, data) {
+    this.listeners.forEach((callback) => {
+      try {
+        callback(event, data);
+      } catch (error) {
+        if (Logger?.warn) {
+          Logger.warn('[HealthMonitor] Listener error', { error });
+        } else {
+          console.error('[HealthMonitor] Listener error:', error);
+        }
+      }
+    });
+  }
+};
+
+export { HealthMonitor };

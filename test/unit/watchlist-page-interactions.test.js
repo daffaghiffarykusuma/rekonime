@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWatchlistPageInteractions } from '../../js/watchlist-page-interactions.ts';
+import { createWatchlistPageInteractions } from '../../src/features/watchlist/watchlist-page-interactions.ts';
 import { setupDom } from '../helpers/dom.js';
 
 const createInteractions = (overrides = {}) => {

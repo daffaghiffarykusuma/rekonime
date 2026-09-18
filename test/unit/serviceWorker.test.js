@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ServiceWorkerManager } from '../../js/serviceWorker.ts';
+import { ServiceWorkerManager } from '../../src/shared/runtime/serviceWorker.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('ServiceWorkerManager register skips localhost', async () => {

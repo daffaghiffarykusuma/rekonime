@@ -3,12 +3,12 @@
 Canonical reviewer mapping is codified in `.github/CODEOWNERS`.
 
 ## Runtime Domains
-- `js/app.ts`, `js/main.ts`, `js/watchlist-main.ts`, `js/serviceWorker.ts`, `js/reviews.js`:
+- `src/app/app.ts`, `src/app/main.ts`, `src/app/watchlist-main.ts`, `src/shared/runtime/serviceWorker.ts`, `src/features/detail/reviews.js`:
   - Owner group: Runtime team
   - Required review focus: user-facing regressions, accessibility, state transitions
 
 ## Security-Sensitive Surface
-- `vercel.json`, `sw.js`, `js/urlSanitizer.ts`, `js/security/trailer-url-policy.ts`, `tools/validate_data.py`:
+- `vercel.json`, `sw.js`, `src/shared/security/urlSanitizer.ts`, `src/shared/security/trailer-url-policy.ts`, `tools/validate_data.py`:
   - Owner group: Security + Runtime joint review
   - Required review focus: URL policy, host allowlists, CSP, network/cache behavior
 

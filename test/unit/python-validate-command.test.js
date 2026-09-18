@@ -43,7 +43,7 @@ test('data:validate:strict launcher preserves validation behavior', () => {
 
   fs.writeFileSync(dataPath, JSON.stringify(payload));
   fs.writeFileSync(embeddedPath, `const ANIME_DATA=${JSON.stringify(payload)};`);
-  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/js/main.ts"></script></body></html>');
+  fs.writeFileSync(indexPath, '<!doctype html><html><body><script type="module" src="/src/app/main.ts"></script></body></html>');
 
   execFileSync('bun', [
     'run',

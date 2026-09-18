@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SchemaValidator } from '../../js/services/schema-validator.js';
+import { SchemaValidator } from '../../src/features/catalog/schema-validator.js';
 
 test('SchemaValidator validates enum schemas', () => {
   assert.equal(SchemaValidator.validate('rekonime.theme', 'dark'), true);

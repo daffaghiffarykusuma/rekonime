@@ -34,6 +34,29 @@ const main = () => {
     return;
   }
 
+  // Catch source-folder URLs accidentally shipped after a repository move.
+  const missingAssets = [];
+  for (const page of ['index.html', 'watchlist.html', 'health.html']) {
+    const html = fs.readFileSync(path.join(dist, page), 'utf8');
+    for (const match of html.matchAll(/(?:src|href)="(\/[^"?]+\.(?:js|ts|css))"/g)) {
+      if (!fs.existsSync(path.join(dist, match[1].slice(1)))) {
+        missingAssets.push(`${page}: ${match[1]}`);
+      }
+    }
+  }
+  const worker = fs.readFileSync(path.join(dist, 'sw.js'), 'utf8');
+  const precacheMatch = worker.match(/const STATIC_ASSETS = (\[[\s\S]*?\]);/);
+  if (!precacheMatch) throw new Error('Missing service worker precache list');
+  const workerAssets = [...JSON.parse(precacheMatch[1]), '/js/sw-cache-policy.js', '/js/data.js'];
+  for (const asset of workerAssets) {
+    if (!fs.existsSync(path.join(dist, asset.slice(1)))) missingAssets.push(`sw.js: ${asset}`);
+  }
+  if (missingAssets.length) {
+    console.error('Distribution references missing assets:\n' + missingAssets.join('\n'));
+    process.exitCode = 1;
+    return;
+  }
+
   const homePath = path.join(dist, 'index.html');
   const homeHtml = fs.existsSync(homePath) ? fs.readFileSync(homePath, 'utf8') : '';
   const mainStyleMatch = homeHtml.match(/href="\/css\/(main-[A-Za-z0-9_-]+\.css)"/);

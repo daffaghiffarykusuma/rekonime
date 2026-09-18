@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { App } from '../../js/app.ts';
-import { Discovery } from '../../js/discovery.js';
+import { App } from '../../src/app/app.ts';
+import { Discovery } from '../../src/features/discovery/discovery.js';
 
 test('App routes Surprise Me candidates through Taste Profile before Discovery', () => {
   const original = {

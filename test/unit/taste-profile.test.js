@@ -4,7 +4,7 @@ import {
   buildTasteProfileFromWatchlist,
   createTasteProfileStore,
   scoreAnimeForTaste
-} from '../../js/taste-profile.ts';
+} from '../../src/features/preferences/taste-profile.ts';
 
 const createMemoryStorage = () => {
   const store = new Map();

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWatchlistAiringDashboardAdapter } from '../../js/watchlist-airing-dashboard-adapter.ts';
+import { createWatchlistAiringDashboardAdapter } from '../../src/features/watchlist/watchlist-airing-dashboard-adapter.ts';
 
 const createAdapter = ({ controllerOptions, factoryRejects = false, updateRejects = false } = {}) => {
   const calls = [];

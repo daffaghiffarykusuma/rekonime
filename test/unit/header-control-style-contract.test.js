@@ -41,7 +41,7 @@ const assertStyleContract = (css, label) => {
 
 test('critical and full CSS keep header control styling in sync', () => {
   assertStyleContract(getCriticalCss(), 'critical CSS');
-  assertStyleContract(read('css/styles.css'), 'full stylesheet');
+  assertStyleContract(read('src/styles/styles.css'), 'full stylesheet');
 });
 
 test('home header keeps primary actions simple and accessible', () => {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWatchlistLifecycleRuntime } from '../../js/watchlist-lifecycle-runtime.ts';
-import { createWatchlistLifecycle } from '../../js/watchlist-state.js';
+import { createWatchlistLifecycleRuntime } from '../../src/features/watchlist/watchlist-lifecycle-runtime.ts';
+import { createWatchlistLifecycle } from '../../src/features/watchlist/watchlist-state.js';
 
 const createMemoryStorage = () => {
   const store = new Map();

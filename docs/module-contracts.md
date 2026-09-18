@@ -3,7 +3,7 @@
 ## Runtime App Domains
 
 ### App Shell
-- Stable TypeScript entry points: `js/main.ts`, `js/watchlist-main.ts`, `js/app.ts`, `js/serviceWorker.ts`
+- Stable TypeScript entry points: `src/app/main.ts`, `src/app/watchlist-main.ts`, `src/app/app.ts`, `src/shared/runtime/serviceWorker.ts`
 - Decision note: `docs/app-shell-migration-decision-2026-05-31.md`
 - Current deepening rule: keep broad render-slice extraction last; first move product behavior behind deeper Detail Experience, Watchlist Entry presentation, and Catalog Payload effect modules so App Shell slices do not become shallow pass-through modules.
 - Inputs: browser document state, catalog runtime services, watchlist lifecycle state, user input, service worker lifecycle
@@ -11,34 +11,34 @@
 - Side effects: DOM rendering, event listeners, history state, local storage/cache reads and writes, service worker registration
 
 ### Catalog Loading
-- Runtime module: `js/services/catalog-loader.ts`
-- Runtime TypeScript entrypoint: `js/services/catalog-loader.ts`
-- Payload module: `js/services/catalog-payload.ts`
-- Payload TypeScript entrypoint: `js/services/catalog-payload.ts`
-- Service TypeScript entrypoints: `js/services/catalog-cache.ts`, `js/services/cache-manager.ts`, `js/services/logger.ts`
-- App handoff: `js/app.ts` (`applyCatalogPayload`, render/filter/meta refresh); App and Detail Experience call Catalog Runtime directly rather than mirroring its commands
+- Runtime module: `src/features/catalog/catalog-loader.ts`
+- Runtime TypeScript entrypoint: `src/features/catalog/catalog-loader.ts`
+- Payload module: `src/features/catalog/catalog-payload.ts`
+- Payload TypeScript entrypoint: `src/features/catalog/catalog-payload.ts`
+- Service TypeScript entrypoints: `src/features/catalog/catalog-cache.ts`, `src/shared/services/cache-manager.ts`, `src/shared/services/logger.ts`
+- App handoff: `src/app/app.ts` (`applyCatalogPayload`, render/filter/meta refresh); App and Detail Experience call Catalog Runtime directly rather than mirroring its commands
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
 - Interface: load the initial/full catalog, track scheduled and active loads, and enrich a requested anime through detail chunks; Catalog Runtime owns detail readiness, request deduplication, requested-title acceptance, Catalog Payload normalization, merging into the current catalog, and accepted-detail bookkeeping. Network fetching and full-catalog cache access stay private to the runtime.
 - Detail enrichment effects: one App adapter callback invalidates detail and grid caches and refreshes Watchlist Snapshots after acceptance. Rejected chunks remain retryable; accepted empty-episode chunks are remembered. Detail Experience refreshes only when enrichment returns a different record for the still-open title.
-- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `js/services/catalog-payload.ts` owns payload acceptance, normalization, score-profile validation, validation handoff, render-ready catalog state, and downstream refresh intent; the App Shell applies document, cache, Snapshot, Airing Schedule, and filter effects from that intent
+- Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `src/features/catalog/catalog-payload.ts` owns payload acceptance, normalization, score-profile validation, validation handoff, render-ready catalog state, and downstream refresh intent; the App Shell applies document, cache, Snapshot, Airing Schedule, and filter effects from that intent
 
 ### Browse View Filtering
-- Runtime module: `js/browse-filtering.ts`
+- Runtime module: `src/features/discovery/browse-filtering.ts`
 - Inputs: Catalog Payload anime records, URL filter parameters, search text, selected facets, and available facet options
 - Outputs: filtered anime list, normalized active filters, available facet options, active-filter summary items, and filter metadata inputs
 - Interface: parse and write browse filter URL state, canonicalize selected facet values, extract available facet options, prepare and score catalog search matches, apply selected facets and search text, and build active-filter and metadata summaries
 - Side effects: none; App Shell owns DOM rendering, history mutation, and metadata application after consuming Browse View Filtering output
 
 ### Taste Profile
-- Runtime module: `js/taste-profile.ts`
+- Runtime module: `src/features/preferences/taste-profile.ts`
 - Inputs: recommendation feedback, Watchlist Lifecycle entries, Catalog Payload anime records, and excluded Watchlist Entry ids
 - Outputs: persisted cross-title preferences, Watchlist-derived evidence, ranked recommendation source, weighted Discovery source, feedback result, and settings summary
 - Interface: apply recommendation feedback, refresh inferred evidence, prepare recommendation and Discovery candidates, reset while preserving Watchlist Lifecycle evidence, commit a validated profile, and export personal data
 - Side effects: Taste Profile storage writes only; App Shell owns DOM rendering, announcements, file download/upload, and Watchlist Lifecycle transitions such as Already seen
 
 ### Personal Data Restore
-- Runtime module: `js/personal-data-restore.ts`
+- Runtime module: `src/features/preferences/personal-data-restore.ts`
 - Inputs: version 1 full exports or legacy profile-only data, current Taste Profile, and current Watchlist Lifecycle entries
 - Outputs: one restore outcome with the applied mode and restored Watchlist Entry count, or a validation/storage failure reason
 - Interface: restore compatible personal data; a full restore commits Taste Profile and Watchlist Lifecycle together or rolls back, while a profile-only restore leaves Watchlist Lifecycle unchanged
@@ -46,84 +46,84 @@
 - Contract rules: reject unsupported versions, invalid Watchlist Entries, and duplicate Watchlist Entry ids before writing; recompute inferred Taste Profile evidence from the restored or retained Watchlist Lifecycle
 
 ### Discovery
-- Runtime module: `js/discovery.js`
+- Runtime module: `src/features/discovery/discovery.js`
 - Inputs: Taste Profile-prepared weighted candidates, quality requirements, Catalog Payload anime records, and current date
 - Outputs: Surprise Me selection, seasonal filter choices, trending titles, and weekly popularity
 - Interface: apply quality gates and weighted random selection to prepared candidates; calculate seasonal, trending, and weekly catalog exploration models
 - Side effects: Discovery analytics only; Taste Profile owns preference and Watchlist Lifecycle evidence interpretation
 
 ### Viewing Intent
-- Runtime module: `js/viewing-intent.ts`
+- Runtime module: `src/features/discovery/viewing-intent.ts`
 - Inputs: Viewing Intent key, session activity time, and optional completion announcement
 - Outputs: active Viewing Intent definition and apply/clear transition effects
 - Interface: list definitions, read the active Viewing Intent, apply a Viewing Intent, and clear it after discovery completes
 - Side effects: Viewing Intent session storage writes only; App Shell executes returned option, recommendation-mode, recommendation, and announcement effects
 
 ### Watchlist State
-- Entry points: `js/app.ts`, `js/watchlist-main.ts`
-- Airing dashboard adapter: `js/watchlist-airing-dashboard-adapter.ts`
-- Lifecycle module: `js/watchlist-state.js`
-- Lifecycle runtime module: `js/watchlist-lifecycle-runtime.ts`
-- Page interactions module: `js/watchlist-page-interactions.ts`
-- Page renderer module: `js/watchlist-page-renderer.ts`
-- Page runtime module: `js/watchlist-page-runtime.ts`
-- Presentation module: `js/watchlist-entry-presentation.ts`
-- Shared TypeScript contracts: `js/contracts/watchlist-lifecycle.ts`
+- Entry points: `src/app/app.ts`, `src/app/watchlist-main.ts`
+- Airing dashboard adapter: `src/features/watchlist/watchlist-airing-dashboard-adapter.ts`
+- Lifecycle module: `src/features/watchlist/watchlist-state.js`
+- Lifecycle runtime module: `src/features/watchlist/watchlist-lifecycle-runtime.ts`
+- Page interactions module: `src/features/watchlist/watchlist-page-interactions.ts`
+- Page renderer module: `src/features/watchlist/watchlist-page-renderer.ts`
+- Page runtime module: `src/features/watchlist/watchlist-page-runtime.ts`
+- Presentation module: `src/features/watchlist/watchlist-entry-presentation.ts`
+- Shared TypeScript contracts: `src/features/watchlist/contracts/watchlist-lifecycle.ts`
 - Storage key: `rekonime.watchlist`
 - Interface: load entries, migrate legacy bookmarks, update status/progress, refresh snapshots, expose filtered entries/items, and build transition envelopes for adapters
 - Side effects: storage writes only; Watchlist Lifecycle Runtime owns shared home/watchlist mutation, ordinary transition snapshot resolution, transition envelopes, Taste Profile intent, recommendation render intent, and Airing Schedule dashboard intent; the pure MAL import planner builds detached creation Snapshots from the full Catalog Payload before the Runtime commits the batch; callers apply the returned event, render, and dashboard scheduling intent; Watchlist Airing Dashboard Adapter owns shared home/watchlist lazy dashboard loading, controller caching, idle scheduling, cancellation, scheduled data-source resolution, controller options, and update failure logging; Watchlist Page Renderer owns filter-chip markup, card DOM assembly, empty-state class updates, snapshot backfill, and dashboard render scheduling; Watchlist Page Interactions owns page-level DOM event listeners, filter changes, card opening, image fallback, settings, and sync events; Watchlist Page Runtime translates page DOM actions into Watchlist Lifecycle Runtime commands and applies returned render intent; Watchlist Entry presentation owns shared control labels, progress visibility, total text, and detail/watchlist page adapters
 - Contract surface: `WatchlistEntry`, `Snapshot`, `WatchlistPersistedPayload`, `WatchlistTransitionResult`, `WatchlistControlModel`, `WatchlistDisplayModel`, and `WatchlistLifecycleEventMap`
 
 ### Detail Experience
-- Stable TypeScript entry point: `js/detail-experience.ts`
-- Media module: `js/detail-media.ts`
-- Private Reviews implementation: `js/reviews.js`, lazy-loaded by Detail Experience with Jikan and AniList as external adapters
-- Presentation module: `js/detail-presentation.ts`
-- App handoff: `js/app.ts` (`showAnimeDetail`, detail markup builders, image helpers, trailer settings policy)
+- Stable TypeScript entry point: `src/features/detail/detail-experience.ts`
+- Media module: `src/features/detail/detail-media.ts`
+- Private Reviews implementation: `src/features/detail/reviews.js`, lazy-loaded by Detail Experience with Jikan and AniList as external adapters
+- Presentation module: `src/features/detail/detail-presentation.ts`
+- App handoff: `src/app/app.ts` (`showAnimeDetail`, detail markup builders, image helpers, trailer settings policy)
 - Inputs: anime id, cached detail, review provider results, trailer metadata and settings policy, detail URL state (`?anime=...`)
 - Outputs: modal visibility, one visible review refresh outcome, refreshed synopsis/reviews, trailer presentation and playback state, cached detail HTML, detail URL synchronization
 - Side effects: history state, metadata updates, review provider/cache access and rendering, trailer rendering/playback/cleanup, full-catalog deep-link fallback, modal-open telemetry
-- Interface rule: `js/detail-experience.ts` owns review loading, stale-title protection, unavailable/failure rendering, synopsis/metadata updates, and retry through `refreshCommunityReviews`; the Jikan/AniList variation and lazy implementation stay private and tests use the injected mock adapter. `js/detail-presentation.ts` owns modal body and loading markup, while `js/detail-media.ts` owns trailer URL policy use, rendering, player messaging, autoplay, replacement, and cleanup. App Shell invokes only experience-level commands.
+- Interface rule: `src/features/detail/detail-experience.ts` owns review loading, stale-title protection, unavailable/failure rendering, synopsis/metadata updates, and retry through `refreshCommunityReviews`; the Jikan/AniList variation and lazy implementation stay private and tests use the injected mock adapter. `src/features/detail/detail-presentation.ts` owns modal body and loading markup, while `src/features/detail/detail-media.ts` owns trailer URL policy use, rendering, player messaging, autoplay, replacement, and cleanup. App Shell invokes only experience-level commands.
 
 ### Airing Schedule
-- Stable TypeScript entry points: `js/airing-schedule.ts`, `js/airing-dashboard.ts`
-- Shared dashboard adapter: `js/watchlist-airing-dashboard-adapter.ts` is consumed by both the home App Shell and the watchlist page.
+- Stable TypeScript entry points: `src/features/airing/airing-schedule.ts`, `src/features/airing/airing-dashboard.ts`
+- Shared dashboard adapter: `src/features/watchlist/watchlist-airing-dashboard-adapter.ts` is consumed by both the home App Shell and the watchlist page.
 - Inputs: planned/watching watchlist entries, catalog or snapshot anime items, AniList schedule responses, local clock
 - Outputs: dashboard model with next episode, readiness, countdown, local time labels, and summary counts
 - Interface: fetch/cache schedule metadata, build dashboard models, and run countdown refresh ticks
 - Side effects: AniList GraphQL calls, local schedule cache writes, and renderer callbacks
 
 ### Shared URL Policies
-- Stable TypeScript entry points: `js/security/trailer-url-policy.ts`, `js/urlSanitizer.ts`
+- Stable TypeScript entry points: `src/shared/security/trailer-url-policy.ts`, `src/shared/security/urlSanitizer.ts`
 - Inputs: trailer URL candidates and embed URL candidates
 - Outputs: sanitized URL strings (`''` when invalid)
 - Side effects: none (pure sanitization helpers)
 
 ### Shared Image Proxy
-- Entry point: `js/image-proxy.js`
-- Runtime module: `js/image-proxy-runtime.js`
+- Entry point: `src/shared/runtime/image-proxy.js`
+- Runtime module: `src/shared/runtime/image-proxy-runtime.js`
 - Inputs: image URL, display intent, dimensions, loading priority, placeholder, storage key, and status TTL/probe config
 - Outputs: complete image-delivery decision, proxy status, availability checks, and fallback transition
 - Interface: resolve primary URL, fallback chain, dimensions, loading hints, and proxy use through one decision; apply image failures through the same module
 - Side effects: localStorage reads/writes for proxy health status
 
 ### Runtime Calculations
-- Stable TypeScript entry points: `js/stats.ts`, `js/recommendations.ts`, `js/filterPresets.ts`
+- Stable TypeScript entry points: `src/features/discovery/stats.ts`, `src/features/discovery/recommendations.ts`, `src/features/discovery/filterPresets.ts`
 - Inputs: episode score lists, Catalog Payload anime records, score profiles, Taste Profile-prepared recommendation candidates, active Viewing Intent and recommendation mode facts, and filter preset keys
 - Outputs: calculated stats, one render-ready recommendation decision with context, reasons, and Experience Cues, card stat models, badges, similar-title matches, and filter preset view models
 - Interface: calculate statistics and display models; turn prepared candidates plus current intent/mode facts into one complete recommendation decision
 - Side effects: recommendations mode preference may use `CacheManager`; scoring and filter predicates are pure
 
 ### Runtime Capabilities
-- Stable TypeScript entry point: `js/runtime-capabilities.ts`
-- App handoff: `js/app.ts` keeps one Runtime Capabilities instance and provides product-specific close handlers
+- Stable TypeScript entry point: `src/shared/runtime/runtime-capabilities.ts`
+- App handoff: `src/app/app.ts` keeps one Runtime Capabilities instance and provides product-specific close handlers
 - Inputs: idle callbacks, native dialog ids, focus targets, Escape key events
 - Outputs: idle task handles, modal open state, scroll lock state
 - Interface: schedules and cancels ordinary idle work and opens/closes native `<dialog>` elements; deferred boot, Shared Image Proxy, App Shell, and Airing Schedule adapters consume the same scheduling functions; the browser owns focus trapping
 - Side effects: dialog attributes/classes, initial focus, body scroll lock, scheduled callbacks
 
 ### Onboarding Journey
-- Runtime module: `js/onboarding.js`
+- Runtime module: `src/features/onboarding/onboarding.js`
 - First-paint adapter: `public/js/onboarding-gate.js`
 - Static shell: `index.html`
 - Inputs: persisted onboarding status, Viewing Intent choice, skip, and Escape
@@ -132,14 +132,14 @@
 - Side effects: onboarding storage writes, shell visibility, analytics, and `rekonime:onboarding-intent` dispatch; the gate and runtime are the two adapters at the same static-shell seam
 
 ### Keyboard Shortcuts
-- Stable TypeScript entry point: `js/keyboardShortcuts.ts`
+- Stable TypeScript entry point: `src/shared/ui/keyboardShortcuts.ts`
 - Inputs: browser keyboard events, active detail state, explicit product commands, and ordered anime ids
 - Outputs: command dispatch, shortcut help markup, shortcut acknowledgement state
 - Interface: configure explicit commands and a read-only navigation-state provider; Keyboard Shortcuts never receives the mutable App Shell
 - Side effects: focus movement, navigation, local preference cache, and modal/help rendering
 
 ### Reviews
-- Entry point: `js/reviews.js`
+- Entry point: `src/features/detail/reviews.js`
 - Inputs: MAL id and title
 - Outputs: sanitized synopsis/review markup
 - Side effects: network calls to Jikan, circuit breaker state
@@ -174,11 +174,11 @@
 - Python entry points: `tools/regenerate_data.py`, `tools/deploy_data.py`, existing `tools/scraper/*.py`
 - Launcher: `tools/run-python.js`
 - Inputs: preview catalog, source/full/preview data files, backup ids, scraper fixtures
-- Outputs: embedded `js/data.js`, data backups, restored data files, scraper test status
+- Outputs: embedded `public/js/data.js`, data backups, restored data files, scraper test status
 - Safety gates: embedded payload shape validation, backup id allowlist, backup directory containment, scraper host-policy tests
 
 ## Security-Sensitive Files
 - `vercel.json`
 - `sw.js`
-- `js/urlSanitizer.ts`
+- `src/shared/security/urlSanitizer.ts`
 - `tools/validate_data.py`

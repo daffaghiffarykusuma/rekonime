@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createViewingIntentRuntime
-} from '../../js/viewing-intent.ts';
+} from '../../src/features/discovery/viewing-intent.ts';
 
 const createStorage = () => {
   const values = new Map();

@@ -72,12 +72,12 @@ const readAllowlist = (filePath) => {
 };
 
 const listTrackedFiles = () => {
-  const output = execFileSync('git', ['ls-files'], { encoding: 'utf8' });
-  return output
+  const output = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { encoding: 'utf8' });
+  return [...new Set(output
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((filePath) => filePath.replace(/\\/g, '/'));
+    .map((filePath) => filePath.replace(/\\/g, '/')))];
 };
 
 const shouldScan = (filePath) => {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BrowseFiltering } from '../../js/browse-filtering.ts';
+import { BrowseFiltering } from '../../src/features/discovery/browse-filtering.ts';
 
 test('Browse View Filtering parses and canonicalizes URL filters', () => {
   const filters = BrowseFiltering.getFiltersFromUrl(

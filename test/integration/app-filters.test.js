@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { App } from '../../js/app.ts';
-import { BrowseFiltering } from '../../js/browse-filtering.ts';
-import { createTasteProfileStore } from '../../js/taste-profile.ts';
+import { App } from '../../src/app/app.ts';
+import { BrowseFiltering } from '../../src/features/discovery/browse-filtering.ts';
+import { createTasteProfileStore } from '../../src/features/preferences/taste-profile.ts';
 import { setupDom } from '../helpers/dom.js';
 
 test('App URL filter parsing and normalization', () => {

@@ -245,7 +245,7 @@ def build_actuals(workdir: Path) -> Dict[str, str]:
     write_json(validation_data_path, valid_payload)
     validation_embedded_path.write_text(serialize_embedded_data(valid_payload), encoding="utf-8")
     validation_index_path.write_text(
-        '<!doctype html><html><body><script type="module" src="/js/main.ts"></script></body></html>',
+        '<!doctype html><html><body><script type="module" src="/src/app/main.ts"></script></body></html>',
         encoding="utf-8",
     )
 
