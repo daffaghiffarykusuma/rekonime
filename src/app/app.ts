@@ -3598,6 +3598,7 @@ const App = {
             <h3 class="card-title"></h3>
           </div>
           <div class="card-year"></div>
+          <div class="card-scoreboard">
           <div class="card-primary-signal">
             <div class="card-primary-score">
               <span class="card-primary-value"></span>
@@ -3605,8 +3606,9 @@ const App = {
             </div>
             <span class="card-primary-note"></span>
           </div>
-          <div class="card-badges"></div>
           <div class="card-stats"></div>
+          </div>
+          <div class="card-badges"></div>
         </div>
       </div>
     `);
@@ -3715,10 +3717,10 @@ const App = {
       primarySignal.className = this.sanitizeClassList('card-primary-signal', decision.className);
     }
     if (primaryValue) {
-      primaryValue.textContent = decision.value;
+      setHTML(primaryValue, this.renderCardScoreValue(decision.value));
     }
     if (primaryLabel) {
-      primaryLabel.textContent = decision.label;
+      primaryLabel.textContent = decision.label === 'Episode rating strength' ? 'Episode strength' : decision.label;
     }
     if (primaryNote) {
       primaryNote.textContent = decision.note;
@@ -3745,13 +3747,13 @@ const App = {
       setHTML(statsContainer, cardStats.map(stat => {
         const safeValue = this.escapeHtml(stat.value);
         const safeSuffix = this.escapeHtml(stat.suffix || '');
-        const safeLabel = this.escapeHtml(stat.label);
+        const safeLabel = this.escapeHtml(stat.label === 'Community Score' ? 'Community' : stat.label);
         const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
         const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
         const statValueClass = this.sanitizeClassList('stat-value', stat.class);
         return `
           <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
-            <span class="${statValueClass}">${safeValue}${safeSuffix}</span>
+            <span class="${statValueClass}">${safeValue}<small>${safeSuffix}</small></span>
             <span class="stat-label">${safeLabel}</span>
             ${stat.tooltip ? `
               <div class="tooltip tooltip--bottom" role="tooltip">
@@ -3849,32 +3851,25 @@ const App = {
               <h3 class="card-title">${safeTitle}</h3>
             </div>
             <div class="card-year">${safeYear} &bull; ${safeStudio}</div>
+            <div class="card-scoreboard">
             <div class="${decisionClass}">
               <div class="card-primary-score">
-                <span class="card-primary-value">${this.escapeHtml(decision.value)}</span>
-                <span class="card-primary-label">${this.escapeHtml(decision.label)}</span>
+                <span class="card-primary-value">${this.renderCardScoreValue(decision.value)}</span>
+                <span class="card-primary-label">${this.escapeHtml(decision.label === 'Episode rating strength' ? 'Episode strength' : decision.label)}</span>
               </div>
               <span class="card-primary-note">${this.escapeHtml(decision.note)}</span>
             </div>
-            ${badges.length > 0 ? `
-              <div class="card-badges">
-                ${badges.map((badge) => {
-        const badgeClass = this.sanitizeClassList('card-badge', badge.class);
-        return `<span class="${badgeClass}">${this.escapeHtml(badge.label)}</span>`;
-      }).join('')}
-              </div>
-            ` : ''}
             <div class="card-stats">
               ${cardStats.map(stat => {
         const safeValue = this.escapeHtml(stat.value);
         const safeSuffix = this.escapeHtml(stat.suffix || '');
-        const safeLabel = this.escapeHtml(stat.label);
+        const safeLabel = this.escapeHtml(stat.label === 'Community Score' ? 'Community' : stat.label);
         const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
         const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
         const statValueClass = this.sanitizeClassList('stat-value', stat.class);
         return `
                 <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
-                  <span class="${statValueClass}">${safeValue}${safeSuffix}</span>
+                  <span class="${statValueClass}">${safeValue}<small>${safeSuffix}</small></span>
                   <span class="stat-label">${safeLabel}</span>
                   ${stat.tooltip ? `
                     <div class="tooltip tooltip--bottom" role="tooltip">
@@ -3886,6 +3881,15 @@ const App = {
               `;
       }).join('')}
             </div>
+            </div>
+            ${badges.length > 0 ? `
+              <div class="card-badges">
+                ${badges.map((badge) => {
+        const badgeClass = this.sanitizeClassList('card-badge', badge.class);
+        return `<span class="${badgeClass}">${this.escapeHtml(badge.label)}</span>`;
+      }).join('')}
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
@@ -4082,8 +4086,15 @@ const App = {
     return 6;
   },
 
+  renderCardScoreValue(value) {
+    const match = String(value).match(/^(\d+(?:\.\d+)?)\/(\d+)$/);
+    const [, score, scale] = match || ['', String(value), ''];
+    return `${this.escapeHtml(score)}${scale ? `<small>/${this.escapeHtml(scale)}</small>` : ''}`;
+  },
+
   getCardDecisionData(anime) {
-    return buildDetailDecisionData(anime, { episodeCount: CatalogPayload.getEpisodeCount(anime) });
+    const decision = buildDetailDecisionData(anime, { episodeCount: CatalogPayload.getEpisodeCount(anime) });
+    return decision.label === 'Community score' ? { ...decision, value: `${decision.value}/10` } : decision;
   },
 
   /**
@@ -4125,7 +4136,6 @@ const App = {
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const satisfactionTooltipTitle = this.escapeHtml('Community Score');
       const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
-      const safeSatisfaction = this.escapeHtml(malSatisfaction);
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
       const cues = anime.experienceCues;
@@ -4160,21 +4170,24 @@ const App = {
           <div class="recommendation-info">
             <button class="recommendation-title" type="button" data-action="open-anime" data-anime-id="${safeId}" aria-label="${cardLabel}">${safeTitle}</button>
             <div class="recommendation-submeta">${safeYear} &bull; ${safeStudio}</div>
+            <div class="recommendation-scoreboard">
             <div class="${decisionClass}">
-              <span class="recommendation-signal-value">${this.escapeHtml(decision.value)}</span>
-              <span class="recommendation-signal-copy">
-                <span class="recommendation-signal-label">${this.escapeHtml(decision.label)}</span>
-                <span class="recommendation-signal-note">${this.escapeHtml(decision.note)}</span>
-              </span>
+              <div class="recommendation-primary-score">
+                <span class="recommendation-signal-value">${this.renderCardScoreValue(decision.value)}</span>
+                <span class="recommendation-signal-label">${this.escapeHtml(decision.label === 'Episode rating strength' ? 'Episode strength' : decision.label)}</span>
+              </div>
+              <span class="recommendation-signal-note">${this.escapeHtml(decision.note)}</span>
             </div>
-            <div class="recommendation-meta">
+            ${decision.label === 'Community score' ? '' : `<div class="recommendation-meta">
               <span class="recommendation-stat has-tooltip" tabindex="0">
-                Community Score ${safeSatisfaction}
+                <strong class="recommendation-community-value">${this.renderCardScoreValue(malSatisfaction)}</strong>
+                <span class="recommendation-community-label">Community</span>
                 <div class="tooltip tooltip--bottom" role="tooltip">
                   <div class="tooltip-title">${satisfactionTooltipTitle}</div>
                   <div class="tooltip-text">${satisfactionTooltipText}</div>
                 </div>
               </span>
+              </div>`}
               </div>
               <div class="recommendation-reason experience-cue">${safeReason}</div>
               <div class="recommendation-quick-actions">

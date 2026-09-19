@@ -691,3 +691,70 @@ html:not([data-theme="light"]) .sidebar-mode-option.is-active .sidebar-mode-desc
 [data-high-contrast="true"] { --border-color: currentColor; --border-hover: currentColor; }
 
 .rating-evidence-note { color: var(--text-secondary); font-size: .85rem; line-height: 1.6; margin: .75rem 0 1rem; }
+/* Compact score rows share a baseline; evidence stays separate from the scores. */
+.card-scoreboard, .recommendation-scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, .7fr);
+  gap: 10px 12px;
+  padding: 14px 0 12px;
+  margin: 4px 0 0;
+  border-block: 1px solid var(--border-color);
+}
+.recommendation-scoreboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.card-scoreboard .card-primary-signal,
+.card-scoreboard .card-stats,
+.recommendation-scoreboard .recommendation-signal,
+.recommendation-scoreboard .recommendation-meta { display: contents; }
+.card-scoreboard .card-primary-score,
+.card-scoreboard .stat,
+.recommendation-scoreboard .recommendation-primary-score,
+.recommendation-scoreboard .recommendation-stat {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start;
+  grid-row: 1; gap: 4px; min-width: 0; padding: 0; margin: 0;
+  border: 0; border-radius: 0; background: transparent; text-align: left;
+}
+.card-scoreboard .card-primary-score { grid-column: 1; }
+.card-scoreboard .card-primary-value,
+.card-scoreboard .stat-value,
+.recommendation-scoreboard .recommendation-signal-value,
+.recommendation-scoreboard .recommendation-community-value {
+  font-size: 1.4rem; font-weight: 700; line-height: 1.2; letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-primary);
+}
+.card-scoreboard small, .recommendation-scoreboard small {
+  margin-left: 2px; color: var(--text-muted); font-size: .68em; font-weight: 400; letter-spacing: 0;
+}
+.card-scoreboard .card-primary-label,
+.card-scoreboard .stat-label,
+.recommendation-scoreboard .recommendation-signal-label,
+.recommendation-scoreboard .recommendation-community-label {
+  font-size: .72rem; font-weight: 400; line-height: 1.4; letter-spacing: 0;
+  text-transform: none; text-decoration: none; border: 0; color: var(--text-secondary);
+}
+.card-scoreboard .card-primary-note,
+.recommendation-scoreboard .recommendation-signal-note {
+  grid-column: 1 / -1; grid-row: 2; max-width: none;
+  font-size: .7rem; line-height: 1.5; text-align: left; color: var(--text-muted);
+}
+.recommendation-scoreboard .recommendation-primary-score { grid-column: 1; }
+.recommendation-scoreboard .recommendation-stat { grid-column: 2; }
+.anime-card .card-badges { gap: 4px 10px; margin: 10px 0 0; }
+.anime-card .card-badge {
+  padding: 0; border: 0; border-radius: 0; background: transparent;
+  color: var(--text-secondary); font-size: .7rem; font-weight: 400; line-height: 1.5;
+}
+.anime-card .card-badge + .card-badge::before { content: '\00b7'; margin-right: 10px; }
+.recommendation-info .recommendation-reason {
+  align-self: flex-start; padding: 2px 0; border: 0; border-radius: 0;
+  background: transparent; color: var(--text-secondary); font-size: .8rem;
+}
+.anime-card .card-body { container-type: inline-size; }
+@container (max-width: 220px) {
+  .card-scoreboard { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 8px; }
+  .card-scoreboard .card-primary-value, .card-scoreboard .stat-value { font-size: 1.15rem; }
+  .card-scoreboard .stat:not(.has-tooltip) {
+    grid-column: 1 / -1; grid-row: 3; flex-direction: row; align-items: baseline; gap: 4px;
+  }
+  .card-scoreboard .stat:not(.has-tooltip) .stat-value { font-size: .72rem; font-weight: 400; }
+  .card-scoreboard .stat-label, .card-scoreboard .card-primary-label { font-size: .68rem; }
+}
