@@ -2,8 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildTasteProfileFromWatchlist,
-  createTasteProfileStore,
-  scoreAnimeForTaste
+  createTasteProfileStore
 } from '../../src/features/preferences/taste-profile.ts';
 
 const createMemoryStorage = () => {
@@ -13,26 +12,6 @@ const createMemoryStorage = () => {
     setItem: (key, value) => store.set(key, String(value))
   };
 };
-
-test('taste profile stores explicit positive, negative, and reduced preferences', () => {
-  const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 1000 });
-  store.load();
-
-  store.applyRecommendationFeedback('rec-more-like', {
-    id: 'show-1',
-    title: 'Show 1',
-    genres: ['Action'],
-    themes: ['Super Power']
-  });
-  store.applyRecommendationFeedback('rec-not-for-me', { id: 'show-2', title: 'Show 2', genres: ['Horror'] });
-  store.applyRecommendationFeedback('rec-less-tag', { id: 'show-3', title: 'Show 3' }, { genre: 'Horror' });
-
-  const profile = store.getProfile();
-  assert.deepEqual(profile.explicit.moreLikeTitleIds, ['show-1']);
-  assert.deepEqual(profile.explicit.notForMeTitleIds, ['show-2']);
-  assert.deepEqual(profile.explicit.preferredGenres, ['Action']);
-  assert.deepEqual(profile.explicit.reducedGenres, ['Horror']);
-});
 
 test('taste profile infers weighted evidence without treating completed as loved', () => {
   const inferred = buildTasteProfileFromWatchlist([
@@ -59,24 +38,9 @@ test('taste profile infers weighted evidence without treating completed as loved
   assert.equal(inferred.negativeThemes.find(item => item.label === 'Gore').weight, 3);
 });
 
-test('taste score rewards matching preferences and strongly suppresses not-for-me titles', () => {
-  const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 2000 });
-  store.load();
-  store.applyRecommendationFeedback('rec-more-like', {
-    id: 'liked',
-    title: 'Liked',
-    genres: ['Adventure'],
-    themes: ['Found Family']
-  });
-  store.applyRecommendationFeedback('rec-not-for-me', { id: 'blocked', title: 'Blocked', genres: ['Adventure'] });
-  const profile = store.getProfile();
-
-  assert.equal(scoreAnimeForTaste({ id: 'candidate', genres: ['Adventure'], themes: ['Found Family'] }, profile) > 0, true);
-  assert.equal(scoreAnimeForTaste({ id: 'blocked', genres: ['Adventure'], themes: [] }, profile) < -900, true);
-});
-
 test('taste profile owns feedback, recommendation preparation, and settings summary', () => {
-  const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 3000 });
+  const storage = createMemoryStorage();
+  const store = createTasteProfileStore({ storage, now: () => 3000 });
   store.load();
   const liked = { id: 'liked', title: 'Liked', genres: ['Action'], themes: ['School'] };
   const blocked = { id: 'blocked', title: 'Blocked', genres: ['Action'], themes: [] };
@@ -89,7 +53,15 @@ test('taste profile owns feedback, recommendation preparation, and settings summ
   store.applyRecommendationFeedback('rec-not-for-me', blocked);
   store.applyRecommendationFeedback('rec-less-tag', neutral, { genre: 'Drama' });
 
-  const source = store.prepareRecommendationSource([neutral, blocked, liked], { excludedIds: ['watched'] });
+  const reloaded = createTasteProfileStore({ storage });
+  reloaded.load();
+  const profile = reloaded.getProfile();
+  assert.deepEqual(profile.explicit.moreLikeTitleIds, ['liked']);
+  assert.deepEqual(profile.explicit.notForMeTitleIds, ['blocked']);
+  assert.deepEqual(profile.explicit.preferredGenres, ['Action']);
+  assert.deepEqual(profile.explicit.reducedGenres, ['Drama']);
+
+  const source = reloaded.prepareRecommendationSource([neutral, blocked, liked], { excludedIds: ['watched'] });
   assert.deepEqual(source.map(item => item.id), ['liked', 'neutral']);
   assert.equal(source[0].tasteScore > source[1].tasteScore, true);
   assert.deepEqual(store.getSettingsSummary(), {

@@ -17,24 +17,15 @@ test('HealthMonitor marks data fresh and detects staleness', () => {
   Date.now = originalNow;
 });
 
-test('HealthMonitor performHealthChecks returns status', async () => {
-  HealthMonitor.dataFreshness.clear();
-
-  const status = await HealthMonitor.performHealthChecks();
-  assert.equal(typeof status.online, 'boolean');
-  assert.ok(Array.isArray(status.services));
-
-  const catalog = status.services.find(service => service.name === 'catalog');
-  assert.ok(catalog);
-});
-
 test('HealthMonitor subscribe notifies listeners', async () => {
   let events = 0;
   const unsubscribe = HealthMonitor.subscribe((event) => {
     if (event === 'health-check') events += 1;
   });
 
-  await HealthMonitor.performHealthChecks();
+  const status = await HealthMonitor.performHealthChecks();
+  assert.equal(typeof status.online, 'boolean');
+  assert.ok(status.services.some(service => service.name === 'catalog'));
   unsubscribe();
   await HealthMonitor.performHealthChecks();
 

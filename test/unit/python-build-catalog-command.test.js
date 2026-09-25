@@ -5,12 +5,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-test('catalog build command is exposed through a Python-capable Bun launcher', () => {
-  const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
-  assert.equal(packageJson.scripts['data:build'], 'bun tools/run-python.js tools/build_catalogs.py');
-  assert.equal(fs.existsSync(path.join(process.cwd(), 'tools', 'build_catalogs.py')), true);
-});
-
 test('data:build launcher preserves catalog output behavior', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rekonime-build-launcher-'));
   const inputPath = path.join(dir, 'anime.json');

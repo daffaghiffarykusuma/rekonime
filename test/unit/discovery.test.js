@@ -3,17 +3,6 @@ import assert from 'node:assert/strict';
 import { Discovery } from '../../src/features/discovery/discovery.js';
 import { createAnime, createStats } from '../helpers/factories.js';
 
-test('Discovery getSurpriseMe filters by quality thresholds', () => {
-  const high = createAnime({ id: 'high', stats: createStats({ retentionScore: 90 }), communityScore: 8.5 });
-  const low = createAnime({ id: 'low', stats: createStats({ retentionScore: 50 }), communityScore: 6.0 });
-
-  const result = Discovery.getSurpriseMe([
-    { anime: high, weight: 1 },
-    { anime: low, weight: 1 }
-  ], { requireRetention: true, requireSatisfaction: false });
-  assert.equal(result.id, 'high');
-});
-
 test('Discovery applies quality gates to Taste Profile weighted candidates', () => {
   const originalRandom = Math.random;
   try {
@@ -68,21 +57,9 @@ test('Discovery getTrending orders by score', () => {
   const result = Discovery.getTrending([low, top], 1);
   assert.equal(result.length, 1);
   assert.equal(result[0].id, 'top');
+  assert.deepEqual(Discovery.getTrending([low, top], 1), result);
 
   Math.random = originalRandom;
-});
-
-test('Discovery popularity score is deterministic for the same catalog data', () => {
-  const anime = createAnime({
-    id: 'stable',
-    communityScore: 8.4,
-    stats: createStats({ retentionScore: 84, worthFinishing: 82 })
-  });
-
-  assert.equal(
-    Discovery.calculateTrendingScore(anime),
-    Discovery.calculateTrendingScore(anime)
-  );
 });
 
 test('Discovery getPopularThisWeek is stable for same week', () => {

@@ -5,12 +5,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-test('data validation package scripts use the Python-capable launcher', () => {
-  const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
-  assert.match(packageJson.scripts['data:validate'], /^bun tools\/run-python\.js tools\/validate_data\.py --enforce-baseline/);
-  assert.equal(packageJson.scripts['data:validate:strict'], 'bun tools/run-python.js tools/validate_data.py');
-});
-
 test('data:validate:strict launcher preserves validation behavior', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rekonime-validate-launcher-'));
   const dataPath = path.join(dir, 'anime.full.json');

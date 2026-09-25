@@ -41,6 +41,9 @@ test('Watchlist Entry presentation creates and updates watchlist page controls',
   assert.equal(updated, true);
   assert.equal(root.querySelector('.watchlist-controls-select').value, 'watching');
   assert.equal(root.querySelector('.watchlist-controls-input').value, '4');
+  assert.equal(root.querySelector('.watchlist-controls-input').max, '10');
+  assert.equal(root.querySelector('.watchlist-controls-progress').classList.contains('is-hidden'), false);
+  assert.ok(root.querySelector('.watchlist-controls-select option[value=""]'));
   assert.equal(root.querySelector('.watchlist-controls-total').textContent, 'of 10');
 
   updateWatchlistControlsElement(root, {

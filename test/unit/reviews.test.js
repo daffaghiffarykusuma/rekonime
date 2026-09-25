@@ -3,16 +3,12 @@ import assert from 'node:assert/strict';
 import { ReviewsService } from '../../src/features/detail/reviews.js';
 
 test('ReviewsService sanitizeReviewText removes markup', () => {
-  const raw = '<p>Hello<br>World</p> ~!spoiler!~ [img]http://x/y.png[/img]';
+  const raw = '<p>Hello<br>World &amp; &#39;friends&#39;</p> ~!spoiler!~ [img]http://x/y.png[/img]';
   const cleaned = ReviewsService.sanitizeReviewText(raw);
   assert.equal(cleaned.includes('<'), false);
   assert.equal(cleaned.includes('spoiler'), true);
   assert.equal(cleaned.includes('http://x/y.png'), false);
-});
-
-test('ReviewsService decodeHtmlEntities decodes basic entities', () => {
-  const decoded = ReviewsService.decodeHtmlEntities('Fish &amp; Chips &#39;Test&#39;');
-  assert.equal(decoded, "Fish & Chips 'Test'");
+  assert.ok(cleaned.includes("World & 'friends'"));
 });
 
 test('ReviewsService review links stay on MyAnimeList hosts', () => {
@@ -29,27 +25,12 @@ test('ReviewsService review links stay on MyAnimeList hosts', () => {
   assert.equal(ReviewsService.sanitizeUrl('https://anilist.co/review/7'), 'https://anilist.co/review/7');
 });
 
-test('ReviewsService buildReviewSummary trims long text', () => {
-  const raw = 'Sentence one. ' + 'word '.repeat(80);
-  const summary = ReviewsService.buildReviewSummary(raw);
-  assert.ok(summary.length <= 180);
-  assert.ok(summary.endsWith('.') || summary.endsWith('...'));
-});
-
-test('ReviewsService normalizeReviewScore and sentiment', () => {
-  const normalized = ReviewsService.normalizeReviewScore(8.5);
-  assert.equal(normalized, 85);
-  assert.equal(ReviewsService.getReviewSentiment(85), 'positive');
-  assert.equal(ReviewsService.getReviewSentiment(55), 'neutral');
-  assert.equal(ReviewsService.getReviewSentiment(20), 'negative');
-});
-
 test('ReviewsService categorizeReviews dedupes and limits', () => {
   const longBody = 'Great show. '.repeat(20);
   const reviews = [
-    { mal_id: 1, score: 9, review: longBody, reactions: { nice: 5 } },
+    { mal_id: 1, score: 8.5, review: longBody, reactions: { nice: 5 } },
     { mal_id: 1, score: 9, review: longBody, reactions: { nice: 10 } },
-    { mal_id: 2, score: 6, review: longBody, reactions: { nice: 2 } },
+    { mal_id: 2, score: 5.5, review: 'word '.repeat(80), reactions: { nice: 2 } },
     { mal_id: 3, score: 2, review: longBody, reactions: { nice: 1 } }
   ];
 
@@ -57,6 +38,12 @@ test('ReviewsService categorizeReviews dedupes and limits', () => {
   assert.equal(categorized.positive.length, 1);
   assert.equal(categorized.neutral.length, 1);
   assert.equal(categorized.negative.length, 1);
+  assert.equal(categorized.positive[0].score, 85);
+  assert.equal(categorized.neutral[0].score, 55);
+  assert.equal(categorized.negative[0].score, 20);
+  assert.equal(categorized.positive[0].summary, 'Great show.');
+  assert.ok(categorized.neutral[0].summary.length <= 180);
+  assert.ok(categorized.neutral[0].summary.endsWith('...'));
 });
 
 test('ReviewsService fetchReviews returns cached result when available', async () => {

@@ -18,21 +18,6 @@ const resetState = () => {
   App.lastRecommendationIds = new Set();
 };
 
-test('Setting watch status creates a planned watchlist entry', () => {
-  setupDom();
-  resetState();
-  const anime = createAnime({ id: 'anime-1' });
-  App.animeData = [anime];
-
-  App.setWatchStatus(anime.id, 'planned');
-
-  const entry = App.getWatchlistLifecycle().getEntry(anime.id);
-  assert.ok(entry);
-  assert.equal(entry.status, 'planned');
-  assert.equal(entry.progress, 0);
-  assert.ok(entry.snapshot);
-});
-
 test('Clearing watch status removes watchlist entry', () => {
   setupDom();
   resetState();
@@ -40,26 +25,14 @@ test('Clearing watch status removes watchlist entry', () => {
   App.animeData = [anime];
 
   App.setWatchStatus(anime.id, 'planned');
-  assert.ok(App.getWatchlistLifecycle().getEntry(anime.id));
+  const planned = App.getWatchlistLifecycle().getEntry(anime.id);
+  assert.equal(planned.status, 'planned');
+  assert.equal(planned.progress, 0);
+  assert.equal(planned.snapshot.id, anime.id);
 
   App.setWatchStatus(anime.id, '');
 
   assert.equal(App.getWatchlistLifecycle().getEntry(anime.id), null);
-});
-
-test('Setting watch progress upgrades planned to watching', () => {
-  setupDom();
-  resetState();
-  const anime = createAnime({ id: 'anime-3' });
-  App.animeData = [anime];
-
-  App.setWatchStatus(anime.id, 'planned');
-  App.setWatchProgress(anime.id, 2);
-
-  const entry = App.getWatchlistLifecycle().getEntry(anime.id);
-  assert.ok(entry);
-  assert.equal(entry.status, 'watching');
-  assert.equal(entry.progress, 2);
 });
 
 test('Watchlist lifecycle schedules Airing Schedule through the shared adapter', () => {
@@ -72,7 +45,10 @@ test('Watchlist lifecycle schedules Airing Schedule through the shared adapter',
     scheduleUpdate: (...args) => calls.push(args)
   };
 
-  App.setWatchStatus(anime.id, 'watching');
+  App.setWatchStatus(anime.id, 'planned');
+  assert.equal(calls.length, 1);
+  calls.length = 0;
+  App.setWatchProgress(anime.id, 2);
 
   assert.equal(calls.length, 1);
   assert.equal(typeof calls[0][0], 'function');
@@ -80,4 +56,6 @@ test('Watchlist lifecycle schedules Airing Schedule through the shared adapter',
   assert.deepEqual(calls[0][2], { timeout: 500 });
   assert.deepEqual(calls[0][0]().map((entry) => entry.id), ['anime-4']);
   assert.deepEqual(calls[0][1]().map((item) => item.id), ['anime-4']);
+  assert.equal(App.getWatchlistLifecycle().getEntry(anime.id).status, 'watching');
+  assert.equal(App.getWatchlistLifecycle().getEntry(anime.id).progress, 2);
 });

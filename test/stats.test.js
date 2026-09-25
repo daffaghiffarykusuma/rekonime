@@ -2,16 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Stats } from '../src/features/discovery/stats.ts';
 
-test('calculateAverage rounds to 2 decimals', () => {
-  const episodes = [{ score: 3 }, { score: 4 }, { score: 5 }];
-  assert.equal(Stats.calculateAverage(episodes), 4);
-});
-
-test('calculateStdDev returns expected value', () => {
-  const episodes = [{ score: 3 }, { score: 4 }, { score: 5 }];
-  assert.equal(Stats.calculateStdDev(episodes), 0.82);
-});
-
 test('buildScoreProfileFromScores falls back for small samples', () => {
   const profile = Stats.buildScoreProfileFromScores([4, 4, 4, 4]);
   assert.equal(profile.p35, Stats.defaultScoreProfile.p35);
@@ -36,13 +26,6 @@ test('calculateFlowState returns 100 for stable scores', () => {
   assert.equal(Stats.calculateFlowState(episodes), 100);
 });
 
-test('calculateAllStats reports sparse highest episode number as count', () => {
-  const stats = Stats.calculateAllStats({
-    episodes: [{ episode: 12, score: 5 }]
-  });
-  assert.equal(stats.episodeCount, 12);
-});
-
 test('calculateAllStats handles oversized episode arrays without spreading', () => {
   const episodes = Array.from({ length: Stats.maxEpisodeEntries + 100 }, (_, index) => ({
     episode: index + 1,
@@ -54,15 +37,10 @@ test('calculateAllStats handles oversized episode arrays without spreading', () 
   assert.equal(stats.episodeCount, Stats.maxEpisodeEntries);
   assert.equal(stats.highestScore, 5);
   assert.equal(stats.lowestScore, 1);
-});
-
-test('large-array score helpers do not throw RangeError', () => {
-  const episodes = Array.from({ length: Stats.maxEpisodeEntries + 100 }, (_, index) => ({
-    score: index % 2 === 0 ? 1 : 5
-  }));
-
-  assert.equal(Stats.calculatePeakScore(episodes), 5);
-  assert.ok(Stats.calculateControversyPotential(episodes) > 0);
+  assert.equal(stats.average, 3);
+  assert.equal(stats.stdDev, 2);
+  assert.equal(stats.peakScore, 5);
+  assert.ok(stats.controversyPotential > 0);
 });
 
 test('calculateChurnRisk returns Unknown for empty episodes', () => {
@@ -109,6 +87,8 @@ test('rating evidence deduplicates, orders episodes, and distinguishes unknown p
   const unknown = Stats.calculateAllStats({ episodes: [{ score: 5 }] });
   assert.equal(unknown.ratingEvidence.positionsKnown, false);
   assert.equal(unknown.threeEpisodeHook, 0);
+  const sparse = Stats.calculateAllStats({ episodes: [{ episode: 12, score: 5 }] });
+  assert.equal(sparse.episodeCount, 12);
 });
 
 test('rating penalties vary gradually across the catalog baseline', () => {

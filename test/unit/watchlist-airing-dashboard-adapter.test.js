@@ -35,26 +35,6 @@ const createAdapter = ({ controllerOptions, factoryRejects = false, updateReject
   return { adapter, calls, queued };
 };
 
-test('Watchlist Airing Dashboard Adapter schedules one dashboard update', async () => {
-  const { adapter, calls, queued } = createAdapter();
-  const entries = [{ id: 'show-1' }];
-  const animeItems = [{ id: 'show-1', title: 'Show 1' }];
-
-  const handle = adapter.scheduleUpdate(entries, animeItems, { timeout: 1800 });
-  await queued[0].callback();
-
-  assert.equal(handle, 1);
-  assert.deepEqual(calls.map((call) => call[0]), [
-    'queueTask',
-    'loadDashboardFactory',
-    'createController',
-    'update'
-  ]);
-  assert.deepEqual(calls[0], ['queueTask', 1, 1800]);
-  assert.equal(calls[2][1].gridId, 'airing-dashboard-grid');
-  assert.deepEqual(calls[3][1], { entries, animeItems });
-});
-
 test('Watchlist Airing Dashboard Adapter resolves scheduled sources when work runs', async () => {
   const { adapter, calls, queued } = createAdapter();
   let entries = [{ id: 'show-before' }];
@@ -66,6 +46,8 @@ test('Watchlist Airing Dashboard Adapter resolves scheduled sources when work ru
   await queued[0].callback();
 
   assert.deepEqual(calls.at(-1), ['update', { entries, animeItems }]);
+  assert.equal(calls.filter(([name]) => name === 'update').length, 1);
+  assert.equal(queued[0].timeout, 1800);
 });
 
 test('Watchlist Airing Dashboard Adapter shares controller options with callers', async () => {

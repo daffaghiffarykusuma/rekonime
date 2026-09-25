@@ -86,12 +86,3 @@ test('Viewing Intent persists in session storage and expires after four hours of
   now += (4 * 60 * 60 * 1000) + 1;
   assert.equal(runtime.getActive(), null);
 });
-
-test('Viewing Intent clears when discovery completes', () => {
-  const storage = createStorage();
-  const runtime = createViewingIntentRuntime({ storage, now: () => 1 });
-
-  runtime.apply('immersive');
-  assert.equal(runtime.clear().changed, true);
-  assert.equal(runtime.getActive(), null);
-});

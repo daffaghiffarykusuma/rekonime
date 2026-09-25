@@ -5,7 +5,7 @@ import { setupDom } from '../helpers/dom.js';
 import { createAnime, createStats } from '../helpers/factories.js';
 
 test('App applyFilterPreset updates filtered data and sort', () => {
-  setupDom('<select id="sort-select"><option value="retention">Retention</option></select><section id="catalog-section"></section>', { url: 'http://localhost/' });
+  setupDom('<select id="sort-select"><option value="retention">Retention</option><option value="satisfaction">Satisfaction</option></select><section id="catalog-section"></section>', { url: 'http://localhost/' });
 
   const good = createAnime({ stats: createStats({ flowState: 80, stressSpikes: 1 }) });
   const bad = createAnime({ id: 'bad', stats: createStats({ flowState: 30, stressSpikes: 5 }) });
@@ -29,6 +29,10 @@ test('App applyFilterPreset updates filtered data and sort', () => {
   assert.equal(document.getElementById('sort-select').value, 'retention');
   assert.equal(resetCalled, true);
   assert.equal(renderCalled, true);
+
+  App.applyFilterPreset('critical-darlings');
+  assert.equal(App.currentSort, 'satisfaction');
+  assert.equal(document.getElementById('sort-select').value, 'satisfaction');
 
   App.resetGridPagination = originalReset;
   App.render = originalRender;

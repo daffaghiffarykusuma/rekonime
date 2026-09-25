@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildAiringDashboardModel,
   createAiringScheduleRuntime,
-  fetchAiringSchedules,
-  formatCountdownLabel
+  fetchAiringSchedules
 } from '../../src/features/airing/airing-schedule.ts';
 import { CacheManager } from '../../src/shared/services/cache-manager.ts';
 
@@ -14,13 +13,6 @@ const resetCache = () => {
     localStorage.clear();
   }
 };
-
-test('formatCountdownLabel compresses short and long countdowns', () => {
-  const now = Date.UTC(2026, 3, 15, 12, 0, 0);
-  assert.equal(formatCountdownLabel(now + 45 * 60 * 1000, now), 'in 45m');
-  assert.equal(formatCountdownLabel(now + (2 * 60 + 15) * 60 * 1000, now), 'in 2h 15m');
-  assert.equal(formatCountdownLabel(now + ((2 * 24) + 4) * 60 * 60 * 1000, now), 'in 2d 4h');
-});
 
 test('buildAiringDashboardModel prioritizes released episodes over future-only drops', () => {
   const now = Date.UTC(2026, 3, 15, 12, 0, 0);
@@ -70,7 +62,7 @@ test('buildAiringDashboardModel prioritizes released episodes over future-only d
       episodeCount: 12,
       nextAiringEpisode: {
         episode: 1,
-        airingAt: Math.floor((now + (2 * 24 * 60 * 60 * 1000)) / 1000)
+        airingAt: Math.floor((now + ((2 * 24 + 4) * 60 * 60 * 1000)) / 1000)
       }
     }]
   ]);
@@ -89,6 +81,7 @@ test('buildAiringDashboardModel prioritizes released episodes over future-only d
   assert.equal(model.items[0].behindCount, 1);
   assert.equal(model.counts.availableNow, 1);
   assert.equal(model.counts.airingToday, 1);
+  assert.equal(model.items.find(item => item.id === 'show-b').countdownLabel, 'in 2d 4h');
 });
 
 test('fetchAiringSchedules caches fresh AniList responses by MAL id', async () => {

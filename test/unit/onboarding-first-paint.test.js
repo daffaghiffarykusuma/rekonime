@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
+import { JSDOM } from 'jsdom';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -19,19 +21,17 @@ test('home entrypoint contains an early onboarding shell and gate', () => {
   assert.match(html, /data-onboarding-step="welcome"/);
   assert.match(html, /data-action="onboarding-intent"/);
   assert.match(html, /data-shell-dismiss/);
-});
+  assert.match(read('src/styles/styles.css'), /html\[data-onboarding-pending\] \.onboarding-overlay\.onboarding-shell/);
 
-test('onboarding shell visibility is storage-gated and controller-adopted', () => {
   const gate = read('public/js/onboarding-gate.js');
-  const css = read('src/styles/styles.css');
-  const controller = read('src/features/onboarding/onboarding.js');
-
-  assert.match(gate, /rekonime\.onboarding/);
-  assert.match(gate, /data-onboarding-pending/);
-  assert.doesNotMatch(gate, /shell\.remove\(\)/);
-  assert.match(css, /html\[data-onboarding-pending\] \.onboarding-overlay\.onboarding-shell/);
-  assert.match(controller, /classList\.remove\('onboarding-shell'\)/);
-  assert.match(controller, /closeModal\(\)[\s\S]*removeAttribute\('data-onboarding-pending'\)/);
-  assert.match(controller, /attachModalListeners\(modal\)/);
-  assert.doesNotMatch(controller, /tourStep|onboarding-next|onboarding-goto|onboarding-restart/);
+  for (const status of [null, 'completed', 'skipped']) {
+    const dom = new JSDOM(html, { url: 'https://example.test/' });
+    const { document, localStorage, Event } = dom.window;
+    if (status) localStorage.setItem('rekonime.onboarding', status);
+    runInNewContext(gate, { document, localStorage });
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    assert.equal(document.documentElement.hasAttribute('data-onboarding-pending'), status === null);
+    assert.equal(document.getElementById('onboarding-modal').getAttribute('aria-hidden'), String(status !== null));
+    dom.window.close();
+  }
 });

@@ -9,6 +9,8 @@ test('Python-built rating strength and evidence agree with browser calculations'
   for (const anime of catalog.anime) {
     const actual = Stats.calculateAllStats(anime, catalog.scoreProfile);
     assert.equal(actual.retentionScore, anime.stats.retentionScore, anime.id);
+    assert.equal(actual.average, anime.stats.average, `${anime.id}: average`);
+    assert.equal(actual.stdDev, anime.stats.stdDev, `${anime.id}: stdDev`);
     assert.equal(actual.scoringVersion, 2);
     for (const key of ['ratedEpisodes', 'totalEpisodes', 'coverage', 'positionsKnown', 'limited', 'completion', 'medianVotes']) {
       assert.equal(actual.ratingEvidence[key], anime.stats.ratingEvidence[key], `${anime.id}: ${key}`);

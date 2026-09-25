@@ -62,26 +62,6 @@ test('Catalog runtime loadInitialData applies the full index directly', async ()
   assert.equal(events.some((event) => event.name === 'rekonime:data-load-end' && event.status === 'ok'), true);
 });
 
-test('Catalog runtime loadInitialData falls back to cached full index when network fails', async () => {
-  setupDom(undefined, { url: 'https://example.com/' });
-  let cacheRead = false;
-  const { runtime } = createRuntimeHarness({
-    fetchFn: async () => jsonResponse(null),
-    catalogCache: {
-      getFullCatalog: async () => {
-        cacheRead = true;
-        return fullIndexPayload;
-      },
-      putFullCatalog: async () => false
-    }
-  });
-
-  const loaded = await runtime.loadInitialData();
-
-  assert.equal(loaded, true);
-  assert.equal(cacheRead, true);
-});
-
 test('Catalog runtime loadFullCatalog uses embedded fallback after network and cache miss', async () => {
   setupDom(undefined, { url: 'https://example.com/' });
   const { state, runtime, events, applied } = createRuntimeHarness({
@@ -143,7 +123,7 @@ test('Catalog runtime uses cached full catalog before embedded fallback', async 
     }
   });
 
-  const loaded = await runtime.loadFullCatalog();
+  const loaded = await runtime.loadInitialData();
 
   assert.equal(loaded, true);
   assert.equal(embeddedCalled, false);

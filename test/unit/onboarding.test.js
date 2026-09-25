@@ -28,24 +28,8 @@ const setupOnboardingShell = () => {
     </div>
   `);
   Onboarding.isActive = false;
+  document.documentElement.setAttribute('data-onboarding-pending', '');
 };
-
-test('Onboarding hasCompleted reflects stored state', () => {
-  const cache = createCache();
-  const originalGetCache = Onboarding.getCache;
-  Onboarding.getCache = () => cache;
-
-  cache.setRaw(Onboarding.storageKey, 'completed');
-  assert.equal(Onboarding.hasCompleted(), true);
-
-  cache.setRaw(Onboarding.storageKey, 'skipped');
-  assert.equal(Onboarding.hasCompleted(), true);
-
-  cache.setRaw(Onboarding.storageKey, '');
-  assert.equal(Onboarding.hasCompleted(), false);
-
-  Onboarding.getCache = originalGetCache;
-});
 
 test('Onboarding adopts the first-paint shell as one welcome journey', () => {
   setupOnboardingShell();
@@ -54,6 +38,7 @@ test('Onboarding adopts the first-paint shell as one welcome journey', () => {
   Onboarding.getCache = () => cache;
 
   assert.equal(Onboarding.startTour(), true);
+  assert.equal(Onboarding.hasCompleted(), false);
 
   const modal = document.getElementById('onboarding-modal');
   assert.equal(Onboarding.isActive, true);
@@ -83,6 +68,8 @@ test('Onboarding intent choice completes and dispatches selected intent', async 
   await new Promise(resolve => setTimeout(resolve, 150));
 
   assert.equal(cache.getRaw(Onboarding.storageKey), 'completed');
+  assert.equal(Onboarding.hasCompleted(), true);
+  assert.equal(document.documentElement.hasAttribute('data-onboarding-pending'), false);
   assert.equal(selectedIntent, 'energy');
   assert.equal(document.getElementById('onboarding-modal').getAttribute('aria-hidden'), 'true');
 
@@ -99,6 +86,8 @@ test('Onboarding skip stores state and hides the reusable shell', () => {
   Onboarding.skipTour();
 
   assert.equal(cache.getRaw(Onboarding.storageKey), 'skipped');
+  assert.equal(Onboarding.hasCompleted(), true);
+  assert.equal(document.documentElement.hasAttribute('data-onboarding-pending'), false);
   assert.equal(Onboarding.isActive, false);
   assert.equal(document.getElementById('onboarding-modal').getAttribute('aria-hidden'), 'true');
 

@@ -2,12 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SchemaValidator } from '../../src/features/catalog/schema-validator.js';
 
-test('SchemaValidator validates enum schemas', () => {
-  assert.equal(SchemaValidator.validate('rekonime.theme', 'dark'), true);
-  assert.equal(SchemaValidator.validate('rekonime.theme', 'light'), true);
-  assert.equal(SchemaValidator.validate('rekonime.theme', 'purple'), false);
-});
-
 test('SchemaValidator validates legacy watchlist schema', () => {
   assert.equal(SchemaValidator.validate('rekonime.bookmarks', ['one', 'two']), true);
   assert.equal(SchemaValidator.validate('rekonime.bookmarks', ['']), false);

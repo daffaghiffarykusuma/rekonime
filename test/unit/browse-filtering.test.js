@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BrowseFiltering } from '../../src/features/discovery/browse-filtering.ts';
+import { normalizeAnimeData } from '../../src/features/catalog/catalog-payload.ts';
 
 test('Browse View Filtering parses and canonicalizes URL filters', () => {
   const filters = BrowseFiltering.getFiltersFromUrl(
@@ -81,6 +82,12 @@ test('Browse View Filtering owns ranked search matching and metadata inputs', ()
     BrowseFiltering.findSearchMatches({ animeData, query: 'blue', limit: 2 }).map(item => item.id),
     ['a', 'b']
   );
+  const indexed = normalizeAnimeData([{
+    id: 'alias', title: 'Different title', searchText: 'blue comet',
+    searchIndex: { variants: ['blue comet'], compactVariants: ['bluecomet'], tokenSet: new Set(['blue', 'comet']) }
+  }]);
+  assert.deepEqual(BrowseFiltering.findSearchMatches({ animeData: indexed, query: 'comet' }).map(item => item.id), ['alias']);
+  assert.equal(indexed[0].searchText, 'blue comet');
 
   const meta = BrowseFiltering.buildFilterMeta({
     activeFilters: BrowseFiltering.getDefaultActiveFilters(),

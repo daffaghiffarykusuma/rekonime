@@ -18,30 +18,6 @@ const baseAnime = (overrides = {}) => ({
   ...overrides
 });
 
-test('normalizeTagSet trims and deduplicates', () => {
-  const set = Recommendations.normalizeTagSet([' Action ', 'Action', '', '  ', 'Drama']);
-  assert.deepEqual([...set], ['Action', 'Drama']);
-});
-
-test('getSharedTags returns unique shared tags', () => {
-  const shared = Recommendations.getSharedTags(new Set(['Action', 'Drama']), ['Drama', 'Action', 'Action']);
-  assert.deepEqual(shared, ['Drama', 'Action']);
-});
-
-test('computeAlignmentScore returns 1 for identical scores', () => {
-  assert.equal(Recommendations.computeAlignmentScore(80, 80, 100), 1);
-});
-
-test('combineAlignmentScores returns weighted average', () => {
-  const combined = Recommendations.combineAlignmentScores(0.5, 0.25);
-  assert.equal(combined, (0.5 * 0.6 + 0.25 * 0.4) / 1);
-});
-
-test('getRecommendationReason handles missing episodes with high community score', () => {
-  const anime = baseAnime({ episodes: [], stats: {} });
-  assert.equal(Recommendations.getRecommendationReason(anime), 'A clear community favorite');
-});
-
 test('getEpisodeCount uses highest scraped episode number', () => {
   const anime = baseAnime({
     episodes: [{ episode: 12, score: 5 }],
@@ -64,19 +40,6 @@ test('getSimilarAnime returns empty when base themes missing', () => {
   assert.deepEqual(result, []);
 });
 
-test('getRecommendations returns limited results with reasons', () => {
-  const list = [
-    baseAnime({ id: 'a', stats: { retentionScore: 95, churnRisk: { score: 5 }, threeEpisodeHook: 85 } }),
-    baseAnime({ id: 'b', stats: { retentionScore: 70, churnRisk: { score: 30 }, threeEpisodeHook: 70 } }),
-    baseAnime({ id: 'c', stats: { retentionScore: 80, churnRisk: { score: 20 }, threeEpisodeHook: 75 } })
-  ];
-  const result = Recommendations.getRecommendations(list, 2);
-  assert.equal(result.length, 2);
-  result.forEach(item => {
-    assert.equal(typeof item.reason, 'string');
-  });
-});
-
 test('prepared taste fit outranks a generic quality lead', () => {
   const tasteFit = baseAnime({
     id: 'taste-fit',
@@ -91,14 +54,20 @@ test('prepared taste fit outranks a generic quality lead', () => {
     stats: { retentionScore: 80 }
   });
 
-  const decision = Recommendations.getRecommendationDecision([genericLead, tasteFit], {
+  const communityFavorite = baseAnime({ id: 'community-favorite', episodes: [], stats: {}, communityScore: 9 });
+  const decision = Recommendations.getRecommendationDecision([genericLead, tasteFit, communityFavorite], {
     modeKey: 'balanced',
-    limit: 2
+    limit: 3
   });
 
   assert.equal(decision.items[0].id, 'taste-fit');
   assert.equal(decision.context, 'Balanced picks that combine strong staying power with trusted audience approval.');
   assert.ok(Array.isArray(decision.items[0].experienceCues));
+  assert.equal(decision.items.find(item => item.id === 'community-favorite').reason, 'A clear community favorite');
+  assert.deepEqual(
+    Recommendations.getRecommendationDecision([genericLead, tasteFit, communityFavorite], { modeKey: 'balanced', limit: 1 }).items.map(item => item.id),
+    ['taste-fit']
+  );
 });
 
 test('recommendation decision ranks the active Viewing Intent without removing viable titles', () => {
@@ -198,7 +167,7 @@ test('recommendation decision changes cue priority with intent and uses a restra
 
 test('getSimilarAnime prioritizes strict matches over higher-scoring relaxed matches', () => {
   const base = baseAnime({
-    genres: ['Action', 'Adventure'],
+    genres: [' Action ', 'Adventure', 'Action', '', '  '],
     themes: ['Fantasy'],
     communityScore: 10,
     stats: { retentionScore: 100 },
@@ -206,7 +175,7 @@ test('getSimilarAnime prioritizes strict matches over higher-scoring relaxed mat
   });
   const strictMatch = baseAnime({
     id: 'strict',
-    genres: ['Action', 'Adventure'],
+    genres: ['Adventure', ' Action ', 'Action'],
     themes: ['Fantasy'],
     communityScore: 0,
     stats: { retentionScore: 0 },
@@ -224,6 +193,11 @@ test('getSimilarAnime prioritizes strict matches over higher-scoring relaxed mat
   const result = Recommendations.getSimilarAnime([strictMatch, relaxedMatch], base, 2);
   assert.equal(result[0].anime.id, 'strict');
   assert.equal(result[1].anime.id, 'relaxed');
+  assert.deepEqual(result[0].sharedGenres, ['Adventure', 'Action']);
+  assert.equal(result[0].retentionAlignment, 0);
+  assert.equal(result[0].satisfactionAlignment, 0);
+  assert.equal(result[1].retentionAlignment, 1);
+  assert.equal(result[1].satisfactionAlignment, 1);
 });
 
 test('getSimilarAnime scoring falls back to similarity when scores are missing', () => {

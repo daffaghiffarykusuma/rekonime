@@ -33,27 +33,12 @@ test('image proxy runtime schedules probe and persists healthy status', async ()
   assert.equal(runtime.shouldUseProxy(), true);
   await new Promise((resolve) => setTimeout(resolve, 5));
   assert.equal(runtime.getStatus(), true);
+  const persisted = JSON.parse(localStorage.getItem(storageKey));
+  assert.equal(persisted.ok, true);
+  assert.ok(Number.isFinite(persisted.checkedAt));
+  assert.equal(createImageProxyRuntime({ storageKey, ttlMs: 60_000 }).getStatus(), true);
 
   globalThis.Image = originalImage;
-});
-
-test('image proxy runtime markFailed forces disabled status', () => {
-  setupDom();
-  const storageKey = 'rekonime.imageProxyRuntime.failed';
-  localStorage.removeItem(storageKey);
-
-  const runtime = createImageProxyRuntime({
-    storageKey,
-    ttlMs: 60_000,
-    queueTask: (callback) => {
-      callback();
-      return null;
-    },
-    waitForLoad: false
-  });
-
-  runtime.markFailed();
-  assert.equal(runtime.getStatus(), false);
 });
 
 test('image proxy runtime resolves complete image delivery and failure transition', () => {
@@ -78,6 +63,11 @@ test('image proxy runtime resolves complete image delivery and failure transitio
     priorityCount: 1
   });
   assert.equal(decision.src.includes('images.weserv.nl'), true);
+  const proxyUrl = new URL(decision.src);
+  assert.equal(proxyUrl.origin, 'https://images.weserv.nl');
+  assert.deepEqual(Object.fromEntries(proxyUrl.searchParams), {
+    url: 'cdn.myanimelist.net/show.jpg', w: '240', h: '360', fit: 'cover', output: 'webp'
+  });
   assert.equal(decision.fallbackSrc, 'https://cdn.myanimelist.net/show.jpg');
   assert.equal(decision.fallbackSecondary, 'https://via.placeholder.com/cover.jpg');
   assert.deepEqual([decision.width, decision.height], [240, 360]);

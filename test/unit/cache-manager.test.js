@@ -42,4 +42,7 @@ test('CacheManager validation rejects invalid payloads', () => {
   const failure = CacheManager.setJSON('rekonime.theme', 'invalid', { validate: true });
   assert.equal(success, true);
   assert.equal(failure, false);
+  assert.equal(CacheManager.getJSON('rekonime.theme', { validate: true }), 'dark');
+  assert.equal(CacheManager.setJSON('rekonime.theme', 'light', { validate: true }), true);
+  assert.equal(CacheManager.getJSON('rekonime.theme', { validate: true }), 'light');
 });

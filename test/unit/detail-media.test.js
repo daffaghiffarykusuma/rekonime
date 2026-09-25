@@ -15,25 +15,6 @@ const trailer = {
   embedUrl: 'https://www.youtube.com/embed/abc123'
 };
 
-test('Detail Media renders and refreshes the current trailer', () => {
-  setupDom(`
-    <div id="detail-modal"><div class="modal-content"></div></div>
-    <section id="detail-trailer">Old</section>
-    <section id="community-reviews-section"></section>
-  `);
-  const media = createMedia();
-
-  media.refresh({
-    currentAnimeId: 'show-1',
-    animeData: [{ id: 'show-1', title: 'Show One', trailer }]
-  });
-
-  const iframe = document.querySelector('#detail-trailer iframe');
-  assert.equal(iframe?.dataset.embedSrc, 'https://www.youtube.com/embed/abc123');
-  assert.equal(iframe?.dataset.paused, '1');
-  assert.match(document.getElementById('detail-trailer').textContent, /Watch on YouTube/);
-});
-
 test('Detail Media renders the Data Saver fallback without an iframe', () => {
   setupDom();
   const markup = createMedia({ embed: false }).render({

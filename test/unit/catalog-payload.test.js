@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {
   CatalogPayload,
   normalizeAnimeData,
-  prepareCatalogPayloadApplication,
   prepareCatalogPayloadState
 } from '../../src/features/catalog/catalog-payload.ts';
 
@@ -35,26 +34,6 @@ test('CatalogPayload normalizes nested metadata into render-ready anime data', (
   assert.equal(anime.episodeCount, 12);
   assert.equal(anime.searchIndex.variants.includes('main title'), true);
   assert.equal(anime.searchText.includes('englishtitle'), true);
-});
-
-test('CatalogPayload preserves existing search text and search index', () => {
-  const existingSearchIndex = {
-    variants: ['custom'],
-    compactVariants: ['custom'],
-    tokenSet: new Set(['custom'])
-  };
-
-  const [anime] = normalizeAnimeData([
-    {
-      id: 'anime-2',
-      title: 'Should Not Rebuild',
-      searchText: 'already indexed',
-      searchIndex: existingSearchIndex
-    }
-  ]);
-
-  assert.equal(anime.searchText, 'already indexed');
-  assert.equal(anime.searchIndex, existingSearchIndex);
 });
 
 test('CatalogPayload prepares application state for a full payload', () => {
@@ -109,33 +88,6 @@ test('CatalogPayload keeps filters untouched and drops invalid score profiles', 
   assert.equal(state.catalogStatus, 'embedded');
   assert.equal(state.activeFilters, null);
   assert.equal(state.animeData[0].id, 'embedded-entry');
-});
-
-test('CatalogPayload prepares downstream refresh intent without App Shell knowledge', () => {
-  const application = prepareCatalogPayloadApplication({
-    anime: [{ id: 'show-1', title: 'Show 1' }]
-  }, {
-    filterUi: {
-      catalogPage: true,
-      deferUsed: false,
-      hasFilterParams: true,
-      lowMotion: false,
-      panelVisible: false,
-      urlFiltersApplied: false
-    }
-  });
-
-  assert.equal(application.state.animeData[0].id, 'show-1');
-  assert.deepEqual(application.intent, {
-    applyUrlFilters: true,
-    replaceUrlFilters: true,
-    deferFilterUi: false,
-    filterPanel: 'schedule',
-    renderQuickFilters: true,
-    refreshWatchlistSnapshots: { persist: true },
-    scheduleAiringDashboard: { timeout: 3500 },
-    applyFilters: { syncUrl: false, updateMeta: false }
-  });
 });
 
 test('CatalogPayload suppresses filter rendering when low-motion deferral is active', () => {

@@ -21,28 +21,22 @@ const EDGE_CASE_URLS = [
   'ftp://example.com/file.txt'
 ];
 
-test('sanitizeUrl handles malformed/edge-case inputs without throwing', () => {
-  EDGE_CASE_URLS.forEach((value) => {
-    assert.doesNotThrow(() => {
-      sanitizeUrl(value, {
-        allowRelative: true,
+test('sanitizeUrl returns only allowed protocol/hosts for edge-case inputs', () => {
+  for (const allowRelative of [false, true]) {
+    for (const value of EDGE_CASE_URLS) {
+      const safe = sanitizeUrl(value, {
+        allowRelative,
         allowedProtocols: ['https:'],
         allowedHosts: ['example.com', 'www.youtube.com']
       });
-    });
-  });
-});
-
-test('sanitizeUrl returns only allowed protocol/hosts for edge-case inputs', () => {
-  EDGE_CASE_URLS.forEach((value) => {
-    const safe = sanitizeUrl(value, {
-      allowRelative: false,
-      allowedProtocols: ['https:'],
-      allowedHosts: ['example.com', 'www.youtube.com']
-    });
-    if (!safe) return;
-    const parsed = new URL(safe);
-    assert.equal(parsed.protocol, 'https:');
-    assert.ok(['example.com', 'www.youtube.com'].includes(parsed.hostname));
-  });
+      if (!safe) continue;
+      if (allowRelative && /^(?:\.{1,2}\/|\/)/.test(safe)) {
+        assert.equal(safe.startsWith('//'), false);
+        continue;
+      }
+      const parsed = new URL(safe);
+      assert.equal(parsed.protocol, 'https:');
+      assert.ok(['example.com', 'www.youtube.com'].includes(parsed.hostname));
+    }
+  }
 });

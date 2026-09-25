@@ -1,31 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  WATCH_STATUS_VALUES,
-  WATCH_STATUS_DISPLAY_OPTIONS,
-  normalizeWatchStatus,
-  normalizeWatchProgress,
-  buildWatchlistControlModel,
   buildWatchlistCounts,
   filterWatchlistEntries,
   buildWatchlistDisplayModel,
-  buildWatchlistUpdatePayload,
-  buildWatchlistTransitionEnvelope,
   createWatchlistLifecycle
 } from '../../src/features/watchlist/watchlist-state.js';
-
-test('watchlist status normalization uses allowed values only', () => {
-  assert.equal(WATCH_STATUS_VALUES.includes('planned'), true);
-  assert.equal(WATCH_STATUS_DISPLAY_OPTIONS.some(option => option.value === ''), true);
-  assert.equal(normalizeWatchStatus('WATCHING'), 'watching');
-  assert.equal(normalizeWatchStatus('unknown'), 'planned');
-});
-
-test('watchlist progress normalization floors and clamps to non-negative', () => {
-  assert.equal(normalizeWatchProgress(3.8), 3);
-  assert.equal(normalizeWatchProgress('-7'), 0);
-  assert.equal(normalizeWatchProgress('not-a-number'), 0);
-});
 
 test('watchlist lifecycle commits an imported batch in one write', () => {
   const values = new Map();
@@ -117,6 +97,8 @@ test('watchlist lifecycle owns status timestamps and completion progress', () =>
   const storage = createMemoryStorage();
   const lifecycle = createWatchlistLifecycle({ storage, now: () => 2000 });
 
+  assert.equal(lifecycle.setStatus('normalized', 'unknown').entry.status, 'planned');
+  assert.equal(lifecycle.setStatus('normalized', 'WATCHING').entry.status, 'watching');
   const result = lifecycle.setStatus('show-1', 'completed', {
     episodeCount: 12,
     snapshot: { id: 'show-1', title: 'Show 1', cover: 'cover.jpg' }
@@ -145,6 +127,9 @@ test('watchlist lifecycle clamps progress and upgrades planned entries to watchi
   assert.equal(result.operation, 'progress');
   assert.equal(result.statusChanged, true);
   assert.equal(result.progressChanged, true);
+  for (const [input, expected] of [[3.8, 3], ['-7', 0], ['not-a-number', 0]]) {
+    assert.equal(lifecycle.setProgress('show-1', input, { episodeCount: 8 }).entry.progress, expected);
+  }
 });
 
 test('watchlist lifecycle stores reversible loved affinity only as explicit user evidence', () => {
@@ -203,55 +188,4 @@ test('watchlist display puts Watching now entries before other statuses', () => 
     model.visibleEntries.map(entry => entry.id),
     ['watching-new', 'watching-old', 'completed', 'planned']
   );
-});
-
-test('watchlist lifecycle builds shared control model and update payload', () => {
-  const entry = { id: 'show-1', status: 'watching', progress: 3 };
-  const model = buildWatchlistControlModel(entry, {
-    anime: { id: 'show-1', stats: { episodeCount: 12 } }
-  });
-
-  assert.equal(model.status, 'watching');
-  assert.equal(model.showProgress, true);
-  assert.equal(model.inputMax, '12');
-  assert.equal(model.totalText, 'of 12');
-  assert.equal(model.options.find(option => option.value === 'watching').selected, true);
-
-  assert.deepEqual(buildWatchlistUpdatePayload({ id: 'show-1', entry, removed: false }), {
-    id: 'show-1',
-    removed: false,
-    status: 'watching',
-    progress: 3,
-    loved: false,
-    entry
-  });
-});
-
-test('watchlist lifecycle builds transition envelopes for adapters', () => {
-  const entry = { id: 'show-1', status: 'watching', progress: 4 };
-  const previousEntry = { id: 'show-1', status: 'planned', progress: 0 };
-  const transition = buildWatchlistTransitionEnvelope({
-    changed: true,
-    id: 'show-1',
-    entry,
-    previousEntry,
-    operation: 'status',
-    statusChanged: true,
-    progressChanged: true
-  }, { dashboardTimeout: 500 });
-
-  assert.equal(transition.event.name, 'rekonime:watchlist-updated');
-  assert.deepEqual(transition.event.payload, {
-    id: 'show-1',
-    removed: false,
-    status: 'watching',
-    progress: 4,
-    loved: false,
-    entry
-  });
-  assert.equal(transition.render.controls.shouldUpdate, true);
-  assert.equal(transition.render.watchlist.shouldRender, true);
-  assert.equal(transition.dashboard.shouldSchedule, true);
-  assert.equal(transition.dashboard.timeout, 500);
-  assert.deepEqual(transition.compatibilityResult, { entry });
 });

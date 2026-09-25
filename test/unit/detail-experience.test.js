@@ -88,41 +88,6 @@ test('Detail Experience cache evicts least recently used detail markup', () => {
   assert.equal(app.detailCache.has('three'), true);
 });
 
-test('Detail Experience opens and renders a title lifecycle', () => {
-  setupDom(`
-    <div id="detail-modal"><div class="modal-content"></div></div>
-    <div id="detail-content"></div>
-  `);
-  const { app, detail, calls } = createAppHarness({
-    animeData: [{
-      id: 'show-1',
-      title: 'Show One',
-      cover: 'https://example.test/show.jpg',
-      genres: ['Drama'],
-      themes: ['School'],
-      type: 'TV',
-      year: 2024,
-      synopsis: 'Local synopsis',
-      episodes: [{ score: 80 }],
-      stats: { retentionScore: 82, threeEpisodeHook: 77, churnRisk: { score: 18 }, worthFinishing: 91 },
-      communityScore: 8.2
-    }]
-  });
-
-  detail.open('show-1', { updateUrl: false });
-
-  assert.equal(app.currentAnimeId, 'show-1');
-  assert.match(document.getElementById('detail-content').innerHTML, /Show One/);
-  assert.equal(app.detailCache.has('show-1'), true);
-  assert.equal(calls.some(([name]) => name === 'updateWatchlistControls'), true);
-  assert.deepEqual(calls.at(-1), ['emitAppEvent', 'rekonime:modal-opened', {
-    animeId: 'show-1',
-    durationMs: 0,
-    cached: false,
-    status: 'ok'
-  }]);
-});
-
 test('Detail Experience syncs URL anime state to open or close actions', () => {
   setupDom(`
     <div id="detail-modal"><div class="modal-content"></div></div>
@@ -146,6 +111,7 @@ test('Detail Experience syncs URL anime state to open or close actions', () => {
 test('Detail Experience refreshes trailer behavior through its private media module', () => {
   setupDom(`
     <div id="detail-modal"><div class="modal-content"></div></div>
+    <section id="detail-trailer">Old</section>
     <div id="community-reviews-section"></div>
   `);
   const animeData = [{
@@ -163,6 +129,8 @@ test('Detail Experience refreshes trailer behavior through its private media mod
   const iframe = document.querySelector('#detail-trailer iframe');
   assert.equal(iframe?.dataset.paused, '1');
   assert.equal(iframe?.dataset.embedSrc, 'https://www.youtube.com/embed/abc123');
+  assert.equal(document.querySelectorAll('#detail-trailer').length, 1);
+  assert.match(document.getElementById('detail-trailer').textContent, /Watch on YouTube/);
 });
 
 test('Detail Experience owns the active review lifecycle and visible outcome', async () => {
@@ -313,6 +281,13 @@ test('Detail Experience renders enriched detail once without reopening indefinit
   const harness = createAppHarness({ animeData: [{ id: 'one', title: 'Index title', episodes: [] }] }, { catalogRuntime: runtime });
   app = harness.app;
   harness.detail.open('one', { updateUrl: false });
+  assert.equal(app.currentAnimeId, 'one');
+  assert.match(document.getElementById('detail-content').textContent, /Index title/);
+  assert.equal(app.detailCache.has('one'), true);
+  assert.equal(harness.calls.some(([name]) => name === 'updateWatchlistControls'), true);
+  assert.deepEqual(harness.calls.at(-1), ['emitAppEvent', 'rekonime:modal-opened', {
+    animeId: 'one', durationMs: 0, cached: false, status: 'ok'
+  }]);
   await runtime.loadAnimeDetailChunk('one');
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.match(document.getElementById('detail-content').textContent, /Enriched title/);

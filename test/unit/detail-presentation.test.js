@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildDetailDecisionData, renderDetailContent } from '../../src/features/detail/detail-presentation.ts';
+import { renderDetailContent } from '../../src/features/detail/detail-presentation.ts';
 
 const escapeHtml = (value) => String(value ?? '')
   .replaceAll('&', '&amp;')
@@ -28,21 +28,6 @@ const createRenderOptions = (overrides = {}) => ({
   ...overrides
 });
 
-test('Detail Presentation builds the shared decision signal', () => {
-  assert.deepEqual(
-    buildDetailDecisionData({
-      stats: { retentionScore: 90 },
-      communityScore: 7.2
-    }, { episodeCount: 12 }),
-    {
-      value: '90/100',
-      label: 'Episode rating strength',
-      note: 'Limited data · coverage unavailable',
-      className: 'score-high'
-    }
-  );
-});
-
 test('Detail Presentation renders modal body without App Shell state', () => {
   const html = renderDetailContent({
     id: 'show-1',
@@ -61,6 +46,8 @@ test('Detail Presentation renders modal body without App Shell state', () => {
   assert.match(html, /Local synopsis/);
   assert.match(html, /watchlist-controls/);
   assert.match(html, /Episode rating strength/);
+  assert.match(html, /82\/100/);
+  assert.match(html, /Limited data.*coverage unavailable/);
   assert.match(html, /Satisfaction \(MAL\)/);
   assert.doesNotMatch(html, /detail-stat-label">Finish Confidence/);
   assert.match(html, /role="tab"[^>]*>Overview/);

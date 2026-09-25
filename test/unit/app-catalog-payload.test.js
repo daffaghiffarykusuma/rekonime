@@ -46,6 +46,10 @@ test('App Shell applies Catalog Payload state and browser effects', async () => 
   assert.equal(app.gridDomCache.size, 0);
   assert.equal(app.detailCache.size, 0);
   assert.equal(document.documentElement.dataset.catalogStatus, 'full');
+  assert.deepEqual(calls.find(([name]) => name === 'refreshWatchlistSnapshots'), ['refreshWatchlistSnapshots', { persist: true }]);
+  assert.deepEqual(calls.find(([name]) => name === 'scheduleAiringDashboard'), ['scheduleAiringDashboard', { timeout: 3500 }]);
+  assert.deepEqual(calls.find(([name]) => name === 'applyFilters'), ['applyFilters', { syncUrl: false, updateMeta: false }]);
+  assert.deepEqual(calls.find(([name]) => name === 'updateUrlForFilters'), ['updateUrlForFilters', { replace: true }]);
   assert.deepEqual(calls.map(([name]) => name), [
     'cancelIdleTask',
     'markCatalogFresh',
