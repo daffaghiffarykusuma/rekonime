@@ -5,7 +5,9 @@ import {
   createAiringScheduleRuntime,
   fetchAiringSchedules
 } from '../../src/features/airing/airing-schedule.ts';
+import { createAiringDashboardController } from '../../src/features/airing/airing-dashboard.ts';
 import { CacheManager } from '../../src/shared/services/cache-manager.ts';
+import { setupDom } from '../helpers/dom.js';
 
 const resetCache = () => {
   CacheManager.clearMemory();
@@ -168,4 +170,86 @@ test('createAiringScheduleRuntime owns countdown refresh ticks', async () => {
 
   assert.equal(models[1].items[0].countdownLabel, 'in 30m');
   runtime.destroy();
+});
+
+test('airing dashboard controller renders safe schedule cards and summary', async () => {
+  setupDom(`<!doctype html><section id="airing-dashboard-section" hidden>
+    <p id="airing-dashboard-subtitle"></p>
+    <div id="airing-dashboard-summary"></div>
+    <div id="airing-dashboard-grid"></div>
+    <p id="airing-dashboard-empty" hidden></p>
+  </section>`);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    data: {
+      Page: {
+        media: [{
+          id: 1,
+          idMal: 555,
+          status: 'RELEASING',
+          episodes: 12,
+          nextAiringEpisode: {
+            episode: 4,
+            airingAt: Math.floor((Date.now() + 60 * 60 * 1000) / 1000),
+            timeUntilAiring: 3600
+          }
+        }]
+      }
+    }
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+  try {
+    const controller = createAiringDashboardController();
+    await controller.update({
+      entries: [{ id: 'unsafe-show', status: 'watching', progress: 2 }],
+      animeItems: [{
+        id: 'unsafe-show',
+        title: '<img src=x onerror=alert(1)>',
+        cover: 'https://cdn.myanimelist.net/images/anime/1/1.jpg',
+        malId: 555
+      }],
+      locale: 'en-US',
+      timeZone: 'UTC'
+    });
+
+    const section = document.getElementById('airing-dashboard-section');
+    const grid = document.getElementById('airing-dashboard-grid');
+    assert.equal(section.hidden, false);
+    assert.equal(document.getElementById('airing-dashboard-subtitle').textContent.length > 0, true);
+    assert.equal(document.querySelectorAll('#airing-dashboard-summary .airing-summary-card').length, 3);
+    assert.equal(grid.querySelectorAll('.airing-card').length, 1);
+    assert.equal(grid.querySelector('h3').textContent, '<img src=x onerror=alert(1)>');
+    assert.equal(grid.querySelector('img[onerror]'), null);
+    assert.equal(document.getElementById('airing-dashboard-empty').hidden, true);
+    controller.destroy();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('airing dashboard controller handles loading, empty watchlists, and missing sections', async () => {
+  setupDom(`<!doctype html><section id="airing-dashboard-section" hidden>
+    <p id="airing-dashboard-subtitle"></p>
+    <div id="airing-dashboard-summary"></div>
+    <div id="airing-dashboard-grid"></div>
+    <p id="airing-dashboard-empty" hidden></p>
+  </section>`);
+
+  const controller = createAiringDashboardController();
+  controller.showLoading(0);
+  assert.equal(document.getElementById('airing-dashboard-section').hidden, true);
+
+  controller.showLoading(1);
+  assert.equal(document.querySelector('.airing-summary-card.is-loading') !== null, true);
+  assert.equal(document.getElementById('airing-dashboard-section').hidden, false);
+
+  await controller.update({ entries: [], animeItems: [] });
+  assert.equal(document.getElementById('airing-dashboard-section').hidden, true);
+  assert.equal(document.getElementById('airing-dashboard-summary').innerHTML, '');
+  controller.destroy();
+
+  const missingNodesController = createAiringDashboardController({ sectionId: 'missing-section' });
+  missingNodesController.showLoading(1);
+  await missingNodesController.update({ entries: [], animeItems: [] });
+  missingNodesController.destroy();
 });
