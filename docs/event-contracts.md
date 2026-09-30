@@ -27,10 +27,12 @@
 - Emitters: `src/app/app.ts`, `src/app/watchlist-main.ts`
 - TypeScript contract: `WatchlistLifecycleEventMap['rekonime:watchlist-updated']` in `src/features/watchlist/contracts/watchlist-lifecycle.ts`
 - Payload:
-  - `id`: anime id
+  - `id`: anime id; empty string for a full backup restore
   - `status`: `planned | watching | completed | dropped` (optional when removed)
   - `progress`: non-negative integer (optional when removed)
   - `removed`: boolean
+  - `changedIds`: affected anime ids, optional for a batch import or backup restore
+  - `summary`: numeric import totals, optional
 
 ## `rekonime:theme-changed`
 - Emitter: `src/shared/ui/themeManager.js`

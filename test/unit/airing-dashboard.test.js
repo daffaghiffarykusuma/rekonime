@@ -253,3 +253,20 @@ test('airing dashboard controller handles loading, empty watchlists, and missing
   await missingNodesController.update({ entries: [], animeItems: [] });
   missingNodesController.destroy();
 });
+
+test('import-triggered schedule refresh reads cache without requests or new schedule records', async () => {
+  setupDom();
+  resetCache();
+  const previousFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = async () => { requests += 1; throw new Error('Unexpected network request'); };
+  try {
+    CacheManager.setJSON('rekonime.airing-schedule.v1:111', { fetchedAt: 1, data: { malId: 111, status: 'RELEASING' } }, { validate: false });
+    const before = localStorage.length;
+    const map = await fetchAiringSchedules([{ malId: 111 }, { malId: 222 }], { cacheOnly: true });
+    assert.equal(map.get(111).status, 'RELEASING');
+    assert.equal(map.has(222), false);
+    assert.equal(requests, 0);
+    assert.equal(localStorage.length, before);
+  } finally { globalThis.fetch = previousFetch; }
+});

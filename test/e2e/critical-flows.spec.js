@@ -114,12 +114,12 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
   await expect(summary).toContainText('Help me unwind');
   await expect(page.locator('#recommendations-context')).toContainText('Help me unwind');
   await expect(page.locator('#recommendations-grid .recommendation-card').first().locator('.recommendation-reason'))
-    .toContainText('Gentle');
+    .toContainText('slice-of-life');
   const firstRecommendation = page.locator('#recommendations-grid .recommendation-card').first();
   await expect(firstRecommendation.locator('.recommendation-signal-value')).toHaveCount(1);
   await expect(firstRecommendation.locator('.recommendation-stat')).toHaveCount(1);
   await expect(firstRecommendation.locator('.recommendation-stat')).toContainText('Community Score');
-  await expect(firstRecommendation.locator('.experience-cue')).toHaveCount(1);
+  await expect(firstRecommendation.locator('.recommendation-fit-label')).toHaveCount(1);
   await expect(options.locator('.viewing-intent-option')).toHaveCount(0);
   await expect(page.locator('#quick-filters')).toBeVisible();
 
@@ -148,7 +148,7 @@ test('selected viewing intent collapses to a changeable summary', async ({ page 
   await options.getByRole('button', { name: /Give me energy/ }).click();
   await expect(page.locator('#active-viewing-intent')).toContainText('Give me energy');
   await expect(page.locator('#recommendations-grid .recommendation-card').first().locator('.recommendation-reason'))
-    .toContainText('High energy');
+    .toContainText('action or sports');
 });
 
 test('recommendation quick-save persists without replacing detail access', async ({ page }) => {
@@ -198,8 +198,8 @@ test('recommendation quick-save persists without replacing detail access', async
 
 });
 
-test('complete discovery-to-watchlist journey', async ({ browser }) => {
-  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:4173', viewport: { width: 1280, height: 720 } });
+test('complete discovery-to-watchlist journey', async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ baseURL, viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
@@ -217,8 +217,8 @@ test('complete discovery-to-watchlist journey', async ({ browser }) => {
 
   await expect(page.locator('#active-viewing-intent')).toContainText('Help me unwind');
   const card = page.locator('#recommendations-grid .recommendation-card').first();
-  await expect(card.locator('.recommendation-reason')).toContainText('Gentle');
-  await expect(card.locator('.experience-cue')).toHaveCount(1);
+  await expect(card.locator('.recommendation-reason')).toContainText('slice-of-life');
+  await expect(card.locator('.recommendation-fit-label')).toHaveCount(1);
   await card.scrollIntoViewIfNeeded();
   await expect(card).toBeVisible();
   const cardBox = await card.boundingBox();
@@ -410,9 +410,12 @@ test('home renders catalog grid', async ({ page }) => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     const card = page.locator('#anime-grid .anime-card').first();
     await card.scrollIntoViewIfNeeded();
-    const cover = await card.locator('.card-cover').boundingBox();
-    const title = await card.locator('.card-title').boundingBox();
-    expect(title.y - (cover.y + cover.height)).toBeLessThanOrEqual(24);
+    await expect(card.locator('.card-cover')).toBeVisible();
+    await expect.poll(async () => {
+      const cover = await card.locator('.card-cover').boundingBox();
+      const title = await card.locator('.card-title').boundingBox();
+      return cover && title ? title.y - (cover.y + cover.height) : Infinity;
+    }).toBeLessThanOrEqual(24);
   }
 });
 
@@ -516,4 +519,108 @@ test('MAL XML first import previews exact matches before one confirmed batch', a
   await expect(page.getByRole('heading', { name: '339 Watchlist entries imported' })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')).entries.length)).toBe(339);
   await expect(page.locator('#watchlist-grid .anime-card')).toHaveCount(339);
+});
+
+test('MAL conflict merge is keyboard operable, preserves evidence, cancels, and repeats without writes', async ({ page }) => {
+  const catalog = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
+  const anime = catalog.find(item => item.malId && item.episodeCount > 3);
+  const entry = { id: anime.id, status: 'watching', progress: 1, updatedAt: 1000, loved: true, lovedAt: 900, startedAt: 800, snapshot: { ...anime, episodes: undefined } };
+  await page.addInitScript(({ entry }) => localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [entry] })), { entry });
+  await page.route('https://graphql.anilist.co', route => route.fulfill({ json: { data: { Page: { media: [] } } } }));
+  await page.goto('/watchlist.html');
+  await page.getByRole('button', { name: 'Import MAL progress' }).click();
+  const xml = `<myanimelist><anime><series_animedb_id>${anime.malId}</series_animedb_id><series_title>PRIVATE_SOURCE_TITLE_X9</series_title><my_status>Watching</my_status><my_watched_episodes>3</my_watched_episodes></anime></myanimelist>`;
+  const requests = [], logs = [];
+  page.on('request', request => requests.push(request.url() + (request.postData() || '')));
+  page.on('console', message => logs.push(message.text()));
+  const initial = await page.evaluate(() => localStorage.getItem('rekonime.watchlist'));
+  const file = { name: 'PRIVATE_SOURCE_FILE_X9.xml', mimeType: 'application/xml', buffer: Buffer.from(xml) };
+  await page.locator('#mal-watchlist-import-file').setInputFiles(file);
+  await expect(page.locator('[data-mal-count="conflicts"]')).toHaveText('1');
+  await expect(page.locator('[data-mal-count="updates"]')).toHaveText('0');
+  await expect(page.getByRole('radio', { name: `Keep Rekonime for ${anime.title}`, exact: true })).toBeChecked();
+  const override = page.getByRole('radio', { name: `Use MAL for ${anime.title}`, exact: true });
+  await override.focus();
+  await page.keyboard.press('Space');
+  await expect(page.locator('[data-mal-count="updates"]')).toHaveText('1');
+  await expect(page.locator('#mal-import-status')).toContainText('1 changes selected');
+  await page.getByRole('button', { name: 'Review 1 Watchlist changes' }).click();
+  await expect(page.getByRole('button', { name: 'Go back' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Review 1 Watchlist changes' })).toBeFocused();
+  expect(await page.evaluate(() => localStorage.getItem('rekonime.watchlist'))).toBe(initial);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.getByRole('button', { name: 'Review 1 Watchlist changes' }).click();
+  await page.getByRole('button', { name: 'Apply Watchlist changes' }).click();
+  await expect(page.locator('#mal-import-success-heading')).toBeFocused();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')));
+  expect(saved.entries[0]).toMatchObject({ progress: 3, loved: true, lovedAt: 900, startedAt: 800 });
+  await expect(page.locator('#watchlist-grid select')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Import another XML' }).click();
+  await page.locator('#mal-watchlist-import-file').setInputFiles(file);
+  await expect(page.locator('[data-mal-count="unchanged"]')).toHaveText('1');
+  await page.getByRole('button', { name: 'Review 0 Watchlist changes' }).click();
+  await page.getByRole('button', { name: 'Apply Watchlist changes' }).click();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')))).toEqual(saved);
+  expect(requests.join(' ')).not.toContain('PRIVATE_SOURCE_');
+  expect(requests.filter(request => request.startsWith('https://graphql.anilist.co'))).toHaveLength(0);
+  expect(logs.join(' ')).not.toContain('PRIVATE_SOURCE_');
+  expect(await page.evaluate(() => Object.values(localStorage).join(' '))).not.toContain('PRIVATE_SOURCE_');
+});
+
+test('MAL malformed retry and downstream recovery retain committed progress', async ({ page }) => {
+  const catalog = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
+  const anime = catalog.find(item => item.malId);
+  await page.goto('/watchlist.html');
+  await page.getByRole('button', { name: 'Import from MAL', exact: true }).click();
+  await page.locator('#mal-watchlist-import-file').setInputFiles({ name: 'bad.xml', mimeType: 'application/xml', buffer: Buffer.from('<myanimelist>') });
+  await expect(page.locator('#mal-import-error')).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Retry import review' })).toBeVisible();
+  await page.locator('#mal-watchlist-import-file').setInputFiles({ name: 'good.xml', mimeType: 'application/xml', buffer: Buffer.from(`<myanimelist><anime><series_animedb_id>${anime.malId}</series_animedb_id><series_title>One</series_title><my_status>Watching</my_status><my_watched_episodes>1</my_watched_episodes></anime></myanimelist>`) });
+  await expect(page.locator('[data-mal-count="creates"]')).toHaveText('1');
+  await page.evaluate(async () => {
+    const { App } = await import('/src/app/app.ts');
+    const original = App.refreshTasteProfileEvidence;
+    App.refreshTasteProfileEvidence = () => { App.refreshTasteProfileEvidence = original; throw new Error('Injected test failure'); };
+  });
+  await page.getByRole('button', { name: 'Review 1 Watchlist changes' }).click();
+  await page.getByRole('button', { name: 'Apply Watchlist changes' }).click();
+  await expect(page.getByRole('heading', { name: 'Watchlist imported; recommendations need refresh' })).toBeFocused();
+  const raw = await page.evaluate(() => localStorage.getItem('rekonime.watchlist'));
+  await page.getByRole('button', { name: 'Refresh recommendations', exact: true }).click();
+  await expect(page.locator('#mal-import-status')).toContainText('recommendations refreshed');
+  expect(await page.evaluate(() => localStorage.getItem('rekonime.watchlist'))).toBe(raw);
+});
+
+test('Watchlist backup roundtrip and home Continue watching preserve editable progress', async ({ page }) => {
+  const catalog = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
+  const anime = catalog.find(item => item.episodeCount > 4 && item.malId);
+  const snapshot = { id: anime.id, title: anime.title, cover: anime.cover, malId: anime.malId, stats: { episodeCount: anime.episodeCount } };
+  await page.addInitScript(({ snapshot }) => {
+    if (!localStorage.getItem('rekonime.watchlist')) localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [{ id: snapshot.id, status: 'watching', progress: 3, updatedAt: 1000, snapshot }] }));
+  }, { snapshot });
+  await page.route('https://graphql.anilist.co', route => route.fulfill({ json: { data: { Page: { media: [] } } } }));
+  await page.goto('/watchlist.html');
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export backup', exact: true }).click();
+  const download = await downloadPromise;
+  const payload = readFileSync(await download.path(), 'utf8');
+  expect(JSON.parse(payload).watchlist[0].progress).toBe(3);
+  await expect(page.locator('.watchlist-backup-tools [data-backup-status]')).toContainText('Last export requested');
+  await page.locator('#watchlist-grid input[type="number"]').fill('5');
+  await page.locator('#watchlist-grid input[type="number"]').press('Tab');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')).entries[0].progress)).toBe(5);
+  await page.locator('#watchlist-backup-file').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(payload) });
+  await expect(page.locator('#watchlist-grid input[type="number"]')).toHaveValue('3');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.locator('#continue-watching-section')).toBeVisible();
+  await expect(page.locator('.continue-card')).toContainText(anime.title);
+  await page.getByRole('button', { name: 'Edit your taste', exact: true }).click();
+  await expect(page.locator('#taste-profile-heading')).toBeFocused();
+  await page.getByRole('button', { name: 'Close settings', exact: true }).click();
+  await page.locator('[data-action="continue-progress"]').click();
+  await expect(page.locator('.continue-card')).toContainText('4');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')).entries[0].progress)).toBe(4);
 });

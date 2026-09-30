@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { prepareDiscoveryCandidates } from './recommendation-eligibility.ts';
+import { getExperienceCues, getExperienceSignals } from './experience-cues.ts';
 import { CacheManager } from '../../shared/services/cache-manager.ts';
 
 /**
@@ -16,6 +18,15 @@ const Recommendations = {
       const score = scorer(anime);
       if (!Number.isFinite(score) || score < minScore) continue;
 
+      const group = anime.franchise?.id || anime.id || anime;
+      const existing = top.findIndex(entry => (entry.anime.franchise?.id || entry.anime.id || entry.anime) === group);
+      if (existing >= 0) {
+        if (score > top[existing].score) {
+          top[existing] = { anime, score };
+          top.sort((a, b) => b.score - a.score);
+        }
+        continue;
+      }
       if (top.length < maxItems) {
         top.push({ anime, score });
         if (top.length === maxItems) {
@@ -33,7 +44,7 @@ const Recommendations = {
   },
 
   /**
-   * Get recommended anime based on finish likelihood with a satisfaction nudge (MAL)
+   * Get recommended anime from episode rating strength and community scores
    * @param {Array} animeList - Array of anime objects with stats
    * @param {number} limit - Maximum number of recommendations
    * @returns {Array} Array of recommended anime with reasons
@@ -50,62 +61,16 @@ const Recommendations = {
 
   getIntentDefinition(intentKey) {
     const definitions = {
-      unwind: {
-        reason: 'A gentler pick for an easy viewing session',
-        score: anime => {
-          const stats = anime?.stats || {};
-          return ((stats.comfortScore ?? 50) * 0.35) +
-            ((stats.emotionalStability ?? 50) * 0.25) +
-            ((stats.retentionScore ?? 0) * 0.25) +
-            ((100 - (stats.threeEpisodeHook ?? 50)) * 0.15);
-        }
-      },
-      energy: {
-        reason: 'Strong momentum for a higher-energy watch',
-        score: anime => {
-          const stats = anime?.stats || {};
-          return ((stats.threeEpisodeHook ?? 0) * 0.45) +
-            ((stats.flowState ?? 0) * 0.4) +
-            ((stats.retentionScore ?? 0) * 0.15);
-        }
-      },
-      emotional: {
-        reason: 'A character-led story with emotional payoff',
-        score: anime => {
-          const stats = anime?.stats || {};
-          const tags = this.normalizeTagSet([...(anime?.genres || []), ...(anime?.themes || [])]);
-          const tagBoost = ['Drama', 'Romance', 'Music', 'Performing Arts']
-            .some(tag => tags.has(tag)) ? 15 : 0;
-          return ((stats.worthFinishing ?? 0) * 0.45) +
-            ((anime?.communityScore ?? 0) * 3) +
-            ((stats.retentionScore ?? 0) * 0.25) +
-            tagBoost;
-        }
-      },
-      immersive: {
-        reason: 'A world-rich pick built for getting absorbed',
-        score: anime => {
-          const stats = anime?.stats || {};
-          const tags = this.normalizeTagSet([...(anime?.genres || []), ...(anime?.themes || [])]);
-          const tagBoost = ['Fantasy', 'Adventure', 'Sci-Fi', 'Isekai', 'Mythology', 'Space']
-            .filter(tag => tags.has(tag)).length * 8;
-          return ((stats.flowState ?? 0) * 0.35) +
-            ((stats.worthFinishing ?? 0) * 0.25) +
-            ((stats.retentionScore ?? 0) * 0.2) +
-            tagBoost;
-        }
-      },
-      surprise: {
-        reason: 'A qualified pick beyond the most obvious choices',
-        score: anime => {
-          const quality = this.scoreAnime(anime);
-          const id = String(anime?.id || anime?.title || '');
-          const diversity = [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 20;
-          return quality + diversity;
-        }
-      }
+      unwind: { signal: 'gentle', reason: 'Suggested from slice-of-life or iyashikei themes' },
+      energy: { signal: 'energy', reason: 'Suggested from action or sports themes' },
+      emotional: { signal: 'emotional', reason: 'Suggested from drama, romance, or music themes' },
+      immersive: { signal: 'immersive', reason: 'Suggested from fantasy, adventure, or sci-fi themes' },
+      surprise: { signal: '', reason: 'A general discovery pick' }
     };
-    return definitions[intentKey] || null;
+    const definition = definitions[intentKey];
+    if (!definition) return null;
+    return { ...definition, score: anime => this.scoreAnime(anime)
+      + (getExperienceSignals(anime)[definition.signal] ? 35 : 0) };
   },
 
   getRecommendationsForIntent(animeList, intentKey, {
@@ -127,44 +92,22 @@ const Recommendations = {
 
     return top.map(entry => ({
       ...entry.anime,
-      reason: intent.reason,
+      reason: getExperienceSignals(entry.anime)[intent.signal] ? intent.reason : this.getRecommendationReasonForMode(entry.anime, modeKey),
       experienceCues: this.getExperienceCues(entry.anime, intentKey)
     }));
   },
 
   getExperienceCues(anime, intentKey = '') {
-    const stats = anime?.stats || {};
-    const tags = this.normalizeTagSet([...(anime?.genres || []), ...(anime?.themes || [])]);
-    const candidates = [];
-    const add = (label, score) => candidates.push({ label, score });
-
-    if ((stats.comfortScore ?? 0) >= 75 || tags.has('Iyashikei')) add('Gentle', intentKey === 'unwind' ? 120 : 80);
-    if ((stats.threeEpisodeHook ?? 0) >= 82) add('Fast hook', intentKey === 'energy' ? 110 : 82);
-    if ((stats.flowState ?? 0) >= 85) add('High energy', intentKey === 'energy' ? 120 : 85);
-    if ((stats.worthFinishing ?? 0) >= 78 || tags.has('Drama')) add('Emotional', intentKey === 'emotional' ? 120 : 78);
-    if (['Fantasy', 'Adventure', 'Sci-Fi', 'Isekai', 'Space'].some(tag => tags.has(tag))) {
-      add('Immersive', intentKey === 'immersive' ? 120 : 76);
-    }
-    if ((stats.threeEpisodeHook ?? 100) <= 65 && (stats.worthFinishing ?? 0) >= 72) add('Slow burn', 75);
-    if (['Horror', 'Gore', 'Psychological', 'Suspense'].some(tag => tags.has(tag))) add('Dark', 95);
-    if (['Psychological', 'Strategy Game', 'Time Travel'].some(tag => tags.has(tag))) add('Complex', 88);
-
-    if ((stats.retentionScore ?? 0) >= 78) add('Strong episode ratings', 72);
-    if ((stats.worthFinishing ?? 0) >= 75) add('Strong payoff', intentKey === 'emotional' ? 105 : 70);
-    if ((anime?.communityScore ?? 0) >= 8.1) add('Viewer favorite', 68);
-
-    const cues = candidates
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-      .map(candidate => candidate.label);
-    return cues.length > 0 ? cues : ['Experience data is limited'];
+    return getExperienceCues(anime, intentKey);
   },
 
   getRecommendationDecision(animeList, {
     viewingIntent = null,
     modeKey = this.currentMode,
-    limit = 6
+    limit = 6,
+    watchlistEntries = [] as any[]
   } = {}) {
+    animeList = prepareDiscoveryCandidates(animeList, watchlistEntries);
     const intentKey = String(viewingIntent?.key || '');
     const intent = this.getIntentDefinition(intentKey);
     const recommendations = intent
@@ -174,9 +117,11 @@ const Recommendations = {
     return {
       context: intent && viewingIntent?.label && viewingIntent?.description
         ? `${viewingIntent.label}: ${viewingIntent.description}`
-        : this.getModeContext(modeKey),
+        : recommendations.some(anime => anime.tasteReason) ? 'Picks ranked using your saved taste and audience ratings.' : this.getModeContext(modeKey),
       items: recommendations.map(anime => ({
         ...anime,
+        fitLabel: anime.tasteReason ? 'For your taste' : intent && getExperienceSignals(anime)[intent.signal] ? 'For this session' : 'General pick',
+        fitReason: anime.tasteReason || (intent && getExperienceSignals(anime)[intent.signal] ? intent.reason : anime.reason || anime.franchiseReason),
         experienceCues: Array.isArray(anime.experienceCues)
           ? anime.experienceCues
           : this.getExperienceCues(anime, intentKey)
@@ -327,11 +272,11 @@ const Recommendations = {
       return 'Fresh listing with more data coming soon';
     }
 
-    if (retentionScore !== null && retentionScore >= 85) reasons.push('Easy to keep watching');
+    if (retentionScore !== null && retentionScore >= 85) reasons.push('Strong episode ratings');
     if (churnRiskScore !== null && churnRiskScore <= 25) reasons.push('Few weak episode ratings');
-    if (hookScore !== null && hookScore >= 80) reasons.push('Grabs you quickly');
+    if (hookScore !== null && hookScore >= 80) reasons.push('Highly rated opening episodes');
     if (finishScore !== null && finishScore >= 70) reasons.push('Later episodes rate higher');
-    if (flowScore !== null && flowScore >= 85) reasons.push('Great episode-to-episode momentum');
+    if (flowScore !== null && flowScore >= 85) reasons.push('Consistent episode ratings');
     if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) reasons.push('Widely praised by viewers');
 
     if (reasons.length === 0) {
@@ -379,7 +324,7 @@ const Recommendations = {
     const hookScore = Number.isFinite(anime?.stats?.threeEpisodeHook) ? anime.stats.threeEpisodeHook : null;
 
     if (hasEpisodes && retentionScore !== null && retentionScore >= 85) {
-      badges.push({ label: 'Hard to stop watching', class: 'badge-retention' });
+      badges.push({ label: 'Strong episode ratings', class: 'badge-retention' });
     }
     if (malSatisfactionScore !== null && malSatisfactionScore >= 8.5) {
       badges.push({ label: 'Viewer favorite', class: 'badge-satisfaction' });
@@ -617,28 +562,27 @@ const Recommendations = {
       weights: { retention: 0.75, satisfaction: 0.25 }
     },
     binge: {
-      label: 'Binge Mode',
-      description: 'Fast hooks and momentum that keep you going',
+      label: 'Episode consistency',
+      description: 'Highly rated opening episodes and stable ratings',
       weights: { retention: 0.9, satisfaction: 0.1 },
       boosters: ['flowState', 'threeEpisodeHook']
     },
     quality: {
-      label: 'Critical Acclaim',
+      label: 'Community favorites',
       description: 'Led by top audience scores',
       weights: { retention: 0.3, satisfaction: 0.7 }
     },
     discovery: {
       label: 'Hidden Gems',
-      description: 'Excellent staying power with less mainstream attention',
+      description: 'Strong episode ratings with lower community scores',
       weights: { retention: 0.8, satisfaction: 0.2 },
       filter: (anime) => (anime.communityScore || 0) < 7.8
     },
     comfort: {
       label: 'Comfort Shows',
-      description: 'Relaxed picks that are easy to settle into',
+      description: 'Slice-of-life and iyashikei suggestions',
       weights: { retention: 0.6, satisfaction: 0.4 },
-      boosters: ['comfortScore'],
-      filter: (anime) => (anime.stats?.comfortScore || 0) > 70
+      filter: (anime) => getExperienceSignals(anime).gentle
     }
   },
 
@@ -744,21 +688,20 @@ const Recommendations = {
 
     switch (modeKey) {
       case 'binge':
-        if (stats?.flowState >= 85) return 'Built for long watch sessions';
-        if (stats?.threeEpisodeHook >= 85) return 'Hooks you almost immediately';
-        return 'A strong binge candidate';
+        if (stats?.flowState >= 85) return 'Consistent episode ratings';
+        if (stats?.threeEpisodeHook >= 85) return 'Highly rated opening episodes';
+        return 'Selected for opening episode ratings';
 
       case 'quality':
         if (anime.communityScore >= 8.5) return 'One of the strongest audience favorites';
         return 'Backed by a standout community score';
 
       case 'discovery':
-        if (stats?.retentionScore >= 85) return 'An overlooked show with serious staying power';
-        return 'Deserves far more attention';
+        if (stats?.retentionScore >= 85) return 'Strong episode ratings with a lower community score';
+        return 'A lower community score with promising episode ratings';
 
       case 'comfort':
-        if (stats?.comfortScore >= 80) return 'An especially easy, cozy watch';
-        return 'Low-friction viewing for a relaxed session';
+        return 'Suggested from slice-of-life or iyashikei themes';
 
       default:
         return this.getRecommendationReason(anime);
@@ -770,11 +713,11 @@ const Recommendations = {
    */
   getModeContext(modeKey = this.currentMode) {
     const contexts = {
-      balanced: 'Balanced picks that combine strong staying power with trusted audience approval.',
-      binge: 'Momentum-heavy shows that make it easy to keep watching one more episode.',
+      balanced: 'General picks ranked by episode ratings and community scores.',
+      binge: 'Picks ranked by opening episode ratings and rating stability.',
       quality: 'Audience-loved titles led by standout community ratings.',
-      discovery: 'Less obvious picks with impressive staying power and upside.',
-      comfort: 'Relaxed, lower-stress shows that are easy to sink into.'
+      discovery: 'Strong episode ratings paired with lower community scores.',
+      comfort: 'Genre-based suggestions from slice-of-life and iyashikei titles.'
     };
     return contexts[modeKey] || contexts.balanced;
   },
@@ -790,7 +733,7 @@ const Recommendations = {
    * @param {number} limit - Max recommendations
    * @returns {Object} { recommendations: Array, basedOn: Object }
    */
-  getBecauseYouWatched(animeList, watchlistIds, limit = 6) {
+  getBecauseYouWatched(animeList, watchlistIds, limit = 6, watchlistEntries = [] as any[]) {
     if (!watchlistIds || watchlistIds.length === 0) {
       return { recommendations: [], basedOn: null };
     }
@@ -809,14 +752,20 @@ const Recommendations = {
 
     // Get recommendations based on seed
     const similarResults = this.getSimilarAnime(
-      animeList.filter(a => !watchlistIds.includes(a.id)),
+      prepareDiscoveryCandidates(animeList, watchlistEntries).filter(a => !watchlistIds.includes(a.id)),
       seedAnime,
       limit + 5 // Get extra for filtering
     );
 
     // Filter out already watched and rank by relevance
+    const franchises = new Set();
     const filtered = similarResults
-      .filter(r => !watchlistIds.includes(r.anime.id))
+      .filter(r => {
+        const group = r.anime.franchise?.id || r.anime.id;
+        if (watchlistIds.includes(r.anime.id) || franchises.has(group)) return false;
+        franchises.add(group);
+        return true;
+      })
       .slice(0, limit);
 
     return {

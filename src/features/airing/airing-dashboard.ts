@@ -97,6 +97,7 @@ export const createAiringDashboardController = ({
     };
   }
 
+  let usesSavedSchedules = false;
   const render = (model) => {
     if (!model || (hideWhenNoEntries && model.eligibleEntries === 0)) {
       setSectionVisibility(section, false);
@@ -108,7 +109,7 @@ export const createAiringDashboardController = ({
 
     setSectionVisibility(section, true);
     if (subtitle) {
-      subtitle.textContent = model.subtitle;
+      subtitle.textContent = usesSavedSchedules ? 'Saved release times. Open your Watchlist again to check the live schedule.' : model.subtitle;
     }
     setHTML(summary, renderSummaryCards(model));
     setHTML(grid, renderAiringCards(model.items));
@@ -116,7 +117,7 @@ export const createAiringDashboardController = ({
     const hasItems = model.items.length > 0;
     empty.hidden = hasItems;
     if (!hasItems) {
-      empty.textContent = 'Nothing from your watchlist is airing right now.';
+      empty.textContent = usesSavedSchedules ? 'No saved release times are available yet.' : 'Nothing from your watchlist is airing right now.';
     }
   };
 
@@ -146,7 +147,8 @@ export const createAiringDashboardController = ({
       empty.hidden = true;
     },
 
-    async update({ entries, animeItems, locale, timeZone } = {}) {
+    async update({ entries, animeItems, locale, timeZone, cacheOnly = false } = {}) {
+      usesSavedSchedules = cacheOnly;
       const normalizedEntries = Array.isArray(entries) ? entries : [];
       const normalizedAnimeItems = Array.isArray(animeItems) ? animeItems : [];
       if (!normalizedEntries.length && hideWhenNoEntries) {
@@ -160,12 +162,13 @@ export const createAiringDashboardController = ({
         return;
       }
 
-      this.showLoading(normalizedEntries.length);
+      if (!cacheOnly) this.showLoading(normalizedEntries.length);
       await scheduleRuntime.update({
         entries: normalizedEntries,
         animeItems: normalizedAnimeItems,
         locale,
-        timeZone
+        timeZone,
+        cacheOnly
       });
     },
 

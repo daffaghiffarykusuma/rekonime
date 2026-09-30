@@ -36,7 +36,10 @@ test('mobile filters, menu, and sidebar work with touch', async ({ browser, base
   });
   const page = await context.newPage();
   await page.goto('/');
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  await expect(page.locator('#quick-filters')).not.toHaveAttribute('inert', '');
   await page.locator('.quick-filters-summary').tap();
+  await expect(page.locator('#quick-filters')).toHaveJSProperty('open', true);
   for (const tab of ['Genres', 'Themes']) {
     await page.getByRole('tab', { name: tab, exact: true }).tap();
     const gap = await page.evaluate(() => document.querySelector('.quick-filters-panel').getBoundingClientRect().top

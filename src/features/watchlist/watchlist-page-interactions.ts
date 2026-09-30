@@ -73,20 +73,37 @@ const createWatchlistPageInteractions = ({
       app.toggleSettingsModal();
     });
 
-    documentRef?.getElementById('mal-import-toggle')?.addEventListener('click', async () => {
+    const openImport = async () => {
       const app = await loadFullApp();
       app.ensureSettingsRendered();
       app.getRuntimeCapabilities().setModalVisibility('settings-modal', true, {
         initialFocusSelector: '#mal-watchlist-import-file'
       });
       documentRef.getElementById('mal-watchlist-import-file')?.scrollIntoView({ block: 'center' });
+    };
+    documentRef?.getElementById('mal-import-toggle')?.addEventListener('click', openImport);
+    documentRef?.getElementById('watchlist-mal-import-toggle')?.addEventListener('click', openImport);
+    documentRef?.getElementById('watchlist-export-backup')?.addEventListener('click', async () => {
+      const app = await loadFullApp();
+      app.exportPersonalData();
+    });
+    documentRef?.getElementById('watchlist-restore-backup')?.addEventListener('click', () => {
+      documentRef.getElementById('watchlist-backup-file')?.click();
+    });
+    documentRef?.getElementById('watchlist-backup-file')?.addEventListener('change', async (event) => {
+      const input = event.target;
+      const file = input.files?.[0];
+      input.value = '';
+      if (!file) return;
+      const app = await loadFullApp();
+      await app.restorePersonalDataFile(file);
     });
   };
 
   const setupWatchlistSync = () => {
     if (typeof window === 'undefined') return;
-    window.addEventListener('rekonime:watchlist-updated', () => {
-      renderWatchlist();
+    window.addEventListener('rekonime:watchlist-updated', (event) => {
+      renderWatchlist({ cacheOnly: Boolean(event.detail?.summary) });
     });
   };
 

@@ -171,7 +171,7 @@ const fetchScheduleBatch = async (malIds) => {
   return map;
 };
 
-export const fetchAiringSchedules = async (animeItems) => {
+export const fetchAiringSchedules = async (animeItems, { cacheOnly = false } = {}) => {
   const uniqueMalIds = [...new Set(
     (Array.isArray(animeItems) ? animeItems : [])
       .map(item => normalizeInteger(item?.malId))
@@ -196,7 +196,7 @@ export const fetchAiringSchedules = async (animeItems) => {
     staleIds.push(malId);
   });
 
-  if (staleIds.length === 0) {
+  if (cacheOnly || staleIds.length === 0) {
     return scheduleMap;
   }
 
@@ -428,14 +428,14 @@ export const createAiringScheduleRuntime = ({
   };
 
   return {
-    async update({ entries, animeItems, locale, timeZone } = {}) {
+    async update({ entries, animeItems, locale, timeZone, cacheOnly = false } = {}) {
       currentInput = {
         entries: Array.isArray(entries) ? entries : [],
         animeItems: Array.isArray(animeItems) ? animeItems : [],
         locale,
         timeZone
       };
-      currentScheduleMap = await fetchSchedules(currentInput.animeItems);
+      currentScheduleMap = await fetchSchedules(currentInput.animeItems, { cacheOnly });
       const model = emitModel();
       startTicker(model);
       return model;

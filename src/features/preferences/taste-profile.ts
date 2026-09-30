@@ -213,14 +213,14 @@ const createTasteProfileStore = ({
 
   const save = (nextProfile = profile) => {
     profile = normalizeProfile({ ...nextProfile, updatedAt: now() });
-    writeStorageJSON(storage, storageKey, profile);
+    writeStorageJSON(storage, storageKey, { ...profile, inferred: undefined });
     return profile;
   };
 
   const commitProfile = (nextProfile) => {
     const normalized = normalizeProfile({ ...nextProfile, updatedAt: now() });
-    if (!writeStorageJSON(storage, storageKey, normalized)) {
-      writeStorageJSON(storage, storageKey, profile);
+    if (!writeStorageJSON(storage, storageKey, { ...normalized, inferred: undefined })) {
+      writeStorageJSON(storage, storageKey, { ...profile, inferred: undefined });
       return false;
     }
     profile = normalized;
@@ -234,7 +234,8 @@ const createTasteProfileStore = ({
   };
 
   const load = () => {
-    profile = normalizeProfile(readStorageJSON(storage, storageKey));
+    const saved = readStorageJSON(storage, storageKey);
+    profile = normalizeProfile(saved && { ...saved, inferred: undefined });
     return profile;
   };
 
@@ -318,9 +319,20 @@ const createTasteProfileStore = ({
   const prepareRecommendationSource = (animeList, options = {}) => (
     prepareTasteCandidates(animeList, options).map(entry => ({
       ...entry.anime,
-      tasteScore: entry.tasteScore
+      tasteScore: entry.tasteScore,
+      tasteReason: entry.tasteScore > 0 ? getTasteReason(entry.anime) : ''
     }))
   );
+
+  const getTasteReason = (anime) => {
+    const tags = new Set([...(anime.genres || []), ...(anime.themes || [])].map(tag => tag.toLowerCase()));
+    const matches = values => values.find(tag => tags.has(tag.toLowerCase()));
+    const explicitTag = matches([...profile.explicit.preferredGenres, ...profile.explicit.preferredThemes]);
+    if (explicitTag) return `Matches your preference for ${explicitTag}`;
+    if (profile.explicit.moreLikeTitleIds.includes(anime.id)) return 'You asked for more like this title';
+    const inferredTag = matches([...profile.inferred.positiveGenres, ...profile.inferred.positiveThemes].map(item => item.label));
+    return inferredTag ? `${inferredTag}, based on your watchlist` : '';
+  };
 
   const prepareDiscoverySource = (animeList, options = {}) => (
     prepareTasteCandidates(animeList, options).map(entry => ({
@@ -355,10 +367,10 @@ const createTasteProfileStore = ({
     restorePersistedRaw,
     reset,
     getProfile: () => normalizeProfile(profile),
-    updateInferredFromWatchlist: (entries) => update((current) => ({
-      ...current,
-      inferred: buildTasteProfileFromWatchlist(entries)
-    })),
+    updateInferredFromWatchlist: (entries) => {
+      profile = { ...profile, inferred: buildTasteProfileFromWatchlist(entries) };
+      return profile;
+    },
     exportData: (watchlistEntries = []) => ({
       version: 1,
       generatedAt: new Date(now()).toISOString(),

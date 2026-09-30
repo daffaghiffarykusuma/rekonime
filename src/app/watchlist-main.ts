@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { ThemeManager } from '../shared/ui/themeManager.js';
+import { updateBackupStatus } from '../features/preferences/backup-status.ts';
 import { SidebarPreference } from '../shared/ui/sidebar-preference.ts';
 import { Logger } from '../shared/services/logger.ts';
 import { initDeferredRuntimeServices } from './bootstrap/deferred-runtime.js';
@@ -198,8 +199,8 @@ const getWatchlistPageRenderer = () => {
   return watchlistPageRenderer;
 };
 
-const renderWatchlist = () => {
-  return getWatchlistPageRenderer().renderWatchlist();
+const renderWatchlist = (options) => {
+  return getWatchlistPageRenderer().renderWatchlist(options);
 };
 
 const handleWatchlistChange = (target) => {
@@ -214,6 +215,11 @@ const bootstrap = () => {
   Logger.init({ level: 'info', captureGlobalErrors: true });
   ThemeManager.init();
   SidebarPreference.init();
+  updateBackupStatus();
+  for (const id of ['watchlist-grid', 'airing-dashboard-grid']) {
+    const grid = document.getElementById(id);
+    if (grid) grid.dataset.renderer = 'watchlist-page';
+  }
   initNonCriticalServices();
   scheduleImageProxyCheck();
   const watchlistSection = document.getElementById('watchlist-section');

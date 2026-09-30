@@ -13,7 +13,7 @@
   <meta property="og:site_name" content="Rekonime">
   <meta property="og:title" content="Rekonime | Discover Anime You'll Want to Finish">
   <meta property="og:description"
-    content="Find anime that earns your time with episode rating patterns and trusted community scores that highlight strong starts, steady momentum, and satisfying payoffs.">
+    content="Find anime using episode ratings, community scores, your viewing goal, and your saved taste.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="">
   <meta property="og:image" content="/favicon.svg">
@@ -1257,14 +1257,14 @@
     <section class="discovery-garden" id="discovery-garden" aria-labelledby="discovery-title">
       <div class="discovery-garden-content">
         <p class="discovery-eyebrow">For the love of the next episode</p>
-        <h1 class="discovery-title" id="discovery-title">Your next<br><em>can't-stop-watching.</em></h1>
+        <h1 class="discovery-title" id="discovery-title">Find your <br><em>next story.</em></h1>
         <p class="discovery-subtitle">
-          A new world to get lost in. A story that stays with you. Find anime worth your time, all the way to the end.
+          Choose a viewing goal or explore anime with episode ratings and community scores.
         </p>
         <div class="discovery-actions" role="group" aria-label="Primary discovery actions">
-          <button class="btn btn-primary" type="button" data-action="surprise-me">Find me a story <span aria-hidden="true">↗</span></button>
+          <button class="btn btn-primary" type="button" data-action="surprise-me">Pick a title for me <span aria-hidden="true">↗</span></button>
           <button class="btn btn-outline" type="button" data-action="scroll-to-filters">Explore genres</button>
-          <button class="btn btn-outline" type="button" data-action="reopen-onboarding">Choose a vibe</button>
+          <button class="btn btn-outline" type="button" data-action="choose-viewing-goal">Choose a viewing goal</button>
         </div>
       </div>
       <div class="discovery-art" aria-hidden="true">
@@ -1274,7 +1274,81 @@
       </div>
     </section>
 
-    <details class="quick-filters" id="quick-filters">
+    <section class="continue-watching-section" id="continue-watching-section" hidden aria-labelledby="continue-watching-heading">
+      <div class="section-header"><h2 id="continue-watching-heading">Continue watching</h2><a href="/watchlist.html">Open Watchlist</a></div>
+      <div class="continue-watching-grid" id="continue-watching-grid"></div>
+    </section>
+
+    <section class="viewing-intent-section" id="viewing-intent-section" aria-labelledby="viewing-intent-title">
+      <div class="mood-filter-header">
+        <div>
+          <p class="mood-filter-kicker">For this session</p>
+          <h2 class="mood-filter-title" id="viewing-intent-title">What do you want from your next watch?</h2>
+        </div>
+        <p class="mood-filter-note">This changes the ranking, not your saved taste or manual filters.</p>
+      </div>
+      <div class="mood-filter-clusters" id="viewing-intent-options" role="group" aria-label="Viewing goals" aria-busy="true">
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Help me unwind</button>
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Give me energy</button>
+        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Surprise me</button>
+      </div>
+    </section>
+
+    <section class="airing-dashboard-section is-hidden" id="airing-dashboard-section" hidden aria-live="polite">
+      <div class="section-header airing-dashboard-header">
+        <div>
+          <h2>Airing from My Watchlist</h2>
+          <p class="section-subtitle" id="airing-dashboard-subtitle">
+            See what is ready now and when the next episode lands. Times shown in your local time.
+          </p>
+        </div>
+        <a class="help-link airing-dashboard-link" href="/watchlist.html" aria-label="Open my full watchlist">
+          <span>Open watchlist</span>
+        </a>
+      </div>
+      <div class="airing-dashboard-summary" id="airing-dashboard-summary"></div>
+      <div class="airing-dashboard-grid" id="airing-dashboard-grid"></div>
+      <p class="airing-dashboard-empty" id="airing-dashboard-empty" hidden>
+        Nothing from your watchlist is airing right now.
+      </p>
+    </section>
+
+    <section class="recommendations-section" id="recommendations-section">
+      <div class="recommendations-header">
+        <div>
+          <h2 id="recommendations-heading">Explore something new</h2>
+          <p class="section-subtitle" id="recommendations-context">
+            Dependable picks ranked to balance strong episode rating strength with community approval.
+          </p>
+        </div>
+        <button class="help-link" data-action="explain-recommendations" aria-label="Learn why these recommendations were selected">
+          <span>How ranking works</span>
+        </button>
+      </div>
+      <details class="recommendation-modes" id="recommendation-modes"><summary>Tune ranking</summary>
+        <span class="modes-label">Tune recommendations:</span>
+        <div class="mode-chips" id="mode-chips">
+          <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Personalized</button>
+          <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Safe picks</button>
+          <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Hidden gems</button>
+        </div>
+      </details>
+      <div class="recommendations-grid" id="recommendations-grid">
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
+      </div>
+      <div class="recommendations-footer">
+        <button class="btn btn-outline" type="button" data-action="edit-taste-profile">Edit your taste</button>
+        <button class="btn btn-outline" type="button" data-action="scroll-to-results">See more matches</button>
+        <span class="visually-hidden" id="recommendations-status" role="status" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <details class="quick-filters" id="quick-filters" inert>
       <summary class="quick-filters-summary">
         <span class="mood-filter-kicker">The index</span>
         <span class="mood-filter-title">Find your kind of story</span>
@@ -1313,74 +1387,6 @@
       </div>
     </div>
 
-    <section class="airing-dashboard-section is-hidden" id="airing-dashboard-section" hidden aria-live="polite">
-      <div class="section-header airing-dashboard-header">
-        <div>
-          <h2>Airing from My Watchlist</h2>
-          <p class="section-subtitle" id="airing-dashboard-subtitle">
-            See what is ready now and when the next episode lands. Times shown in your local time.
-          </p>
-        </div>
-        <a class="help-link airing-dashboard-link" href="/watchlist.html" aria-label="Open my full watchlist">
-          <span>Open watchlist</span>
-        </a>
-      </div>
-      <div class="airing-dashboard-summary" id="airing-dashboard-summary"></div>
-      <div class="airing-dashboard-grid" id="airing-dashboard-grid"></div>
-      <p class="airing-dashboard-empty" id="airing-dashboard-empty" hidden>
-        Nothing from your watchlist is airing right now.
-      </p>
-    </section>
-
-    <section class="recommendations-section" id="recommendations-section">
-      <div class="recommendations-header">
-        <div>
-          <h2>Your next obsessions</h2>
-          <p class="section-subtitle" id="recommendations-context">
-            Dependable picks ranked to balance strong episode rating strength with community approval.
-          </p>
-        </div>
-        <button class="help-link" data-action="explain-recommendations" aria-label="Learn why these recommendations were selected">
-          <span>Why these made the cut</span>
-        </button>
-      </div>
-      <div class="recommendation-modes" id="recommendation-modes">
-        <span class="modes-label">Tune recommendations:</span>
-        <div class="mode-chips" id="mode-chips">
-          <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Personalized</button>
-          <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Safe picks</button>
-          <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Hidden gems</button>
-        </div>
-      </div>
-      <div class="recommendations-grid" id="recommendations-grid">
-        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-        <div class="recommendation-card skeleton-card skeleton-recommendation"><div class="recommendation-media"></div><div class="recommendation-info"><span class="skeleton-line skeleton-title"></span><span class="skeleton-line skeleton-meta"></span><span class="skeleton-line skeleton-copy"></span></div></div>
-      </div>
-      <div class="recommendations-footer">
-        <button class="btn btn-outline" type="button" data-action="scroll-to-results">See more matches</button>
-        <span class="visually-hidden" id="recommendations-status" role="status" aria-live="polite"></span>
-      </div>
-    </section>
-
-    <section class="viewing-intent-section" id="viewing-intent-section" aria-labelledby="viewing-intent-title">
-      <div class="mood-filter-header">
-        <div>
-          <p class="mood-filter-kicker">For this session</p>
-          <h2 class="mood-filter-title" id="viewing-intent-title">What do you want from your next watch?</h2>
-        </div>
-        <p class="mood-filter-note">This changes the ranking, not your saved taste or manual filters.</p>
-      </div>
-      <div class="mood-filter-clusters" id="viewing-intent-options" role="group" aria-label="Viewing goals" aria-busy="true">
-        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Help me unwind</button>
-        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Give me energy</button>
-        <button class="mood-cluster is-loading-chip" type="button" disabled aria-hidden="true">Surprise me</button>
-      </div>
-    </section>
-
     <section class="because-you-watched-section is-hidden" id="because-you-watched-section">
       <div class="byw-header">
         <h2>More Like What You Loved</h2>
@@ -1398,7 +1404,7 @@
         <div class="trending-title-group">
           <h2>On everyone's radar</h2>
         </div>
-        <p class="section-subtitle">Recent titles ranked from catalog quality and staying-power signals</p>
+        <p class="section-subtitle">Recent titles ranked by episode ratings and community scores</p>
       </div>
       <div class="trending-grid" id="trending-grid">
         <!-- Populated by JS -->
@@ -1615,15 +1621,15 @@
           <div class="onboarding-intent-options" role="group" aria-label="Choose a starting recommendation">
             <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="unwind" aria-pressed="false" disabled>
               <span class="onboarding-intent-title">Help me unwind</span>
-              <span class="onboarding-intent-copy">Comfortable picks with lower effort.</span>
+              <span class="onboarding-intent-copy">Suggestions from slice-of-life and iyashikei themes.</span>
             </button>
             <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="energy" aria-pressed="false" disabled>
               <span class="onboarding-intent-title">Give me energy</span>
-              <span class="onboarding-intent-copy">Fast hooks and stronger momentum.</span>
+              <span class="onboarding-intent-copy">Suggestions from action and sports themes.</span>
             </button>
             <button class="onboarding-intent-card" type="button" data-action="onboarding-intent" data-intent-key="surprise" aria-pressed="false" disabled>
               <span class="onboarding-intent-title">Surprise me</span>
-              <span class="onboarding-intent-copy">A confident pick outside the obvious lane.</span>
+              <span class="onboarding-intent-copy">A general discovery pick.</span>
             </button>
           </div>
           <div class="onboarding-actions">

@@ -5,14 +5,16 @@
  * Pre-configured filter combinations for common use cases
  */
 
+import { getExperienceSignals } from './experience-cues.ts';
+
 const FilterPresets = {
     /**
      * Preset definitions with labels, descriptions, and configurations
      */
     presets: {
         'binge-worthy': {
-            label: 'Binge Ready',
-            description: 'Smooth pacing and fewer rough patches',
+            label: 'Stable episode ratings',
+            description: 'Stable episode ratings with few rating dips',
             icon: 'B',
             sort: 'flowState',
             minRetention: 75,
@@ -24,7 +26,7 @@ const FilterPresets = {
         },
 
         'critical-darlings': {
-            label: 'Critics and Fans Love',
+            label: 'Community favorites',
             description: 'Top community ratings on MyAnimeList',
             icon: 'C',
             sort: 'satisfaction',
@@ -36,7 +38,7 @@ const FilterPresets = {
 
         'hidden-gems': {
             label: 'Overlooked Standouts',
-            description: 'Strong episode rating strength with less mainstream buzz',
+            description: 'Strong episode rating strength with lower community ratings',
             icon: 'O',
             sort: 'retention',
             filterFn: (anime) => {
@@ -48,22 +50,17 @@ const FilterPresets = {
 
         'easy-watches': {
             label: 'Easy to Settle Into',
-            description: 'Comfortable picks with a gentle learning curve',
+            description: 'Slice-of-life and iyashikei suggestions',
             icon: 'E',
             sort: 'comfort',
             filterFn: (anime) => {
-                const stats = anime.stats;
-                if (!stats) return false;
-                const isComfortable = stats.comfortScore >= 70;
-                const isSliceOfLife = anime.genres?.includes('Slice of Life');
-                const isComedy = anime.genres?.includes('Comedy');
-                return isComfortable || isSliceOfLife || isComedy;
+                return getExperienceSignals(anime).gentle;
             }
         },
 
         'strong-starters': {
-            label: 'Hooks You Fast',
-            description: 'Strong opening episodes that pull you in quickly',
+            label: 'Strong openings',
+            description: 'Highly rated opening episodes',
             icon: 'H',
             sort: 'retention',
             filterFn: (anime) => {
@@ -74,8 +71,8 @@ const FilterPresets = {
         },
 
         'great-endings': {
-            label: 'Great Payoffs',
-            description: 'Endings that feel worth the time investment',
+            label: 'Highly rated later episodes',
+            description: 'Highly rated later episodes',
             icon: 'G',
             sort: 'retention',
             filterFn: (anime) => {

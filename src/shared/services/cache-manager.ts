@@ -21,7 +21,7 @@ const CacheManager = {
     }
   },
 
-  setRaw(key, value, { ttlMs, validate = false, schemaKey } = {}) {
+  setRaw(key, value, { ttlMs, validate = false, schemaKey, allowMemory = true } = {}) {
     if (!key) return false;
     const stringValue = String(value);
     if (validate && !SchemaValidator.validate(schemaKey || key, stringValue)) {
@@ -29,14 +29,14 @@ const CacheManager = {
     }
     const storage = this.getStorage();
     if (!storage) {
-      this.setMemory(key, stringValue, { ttlMs });
+      if (allowMemory) this.setMemory(key, stringValue, { ttlMs });
       return false;
     }
     try {
       storage.setItem(key, stringValue);
       return true;
     } catch (error) {
-      this.setMemory(key, stringValue, { ttlMs });
+      if (allowMemory) this.setMemory(key, stringValue, { ttlMs });
       return false;
     }
   },
@@ -77,7 +77,7 @@ const CacheManager = {
     this.memory.delete(key);
   },
 
-  setJSON(key, value, { ttlMs, validate = false, schemaKey } = {}) {
+  setJSON(key, value, { ttlMs, validate = false, schemaKey, allowMemory = true } = {}) {
     if (!key) return false;
     if (validate && !SchemaValidator.validate(schemaKey || key, value)) {
       return false;
@@ -93,11 +93,11 @@ const CacheManager = {
       return false;
     }
 
-    if (this.setRaw(key, serialized)) {
+    if (this.setRaw(key, serialized, { allowMemory })) {
       return true;
     }
 
-    this.setMemory(key, value, { ttlMs: ttl });
+    if (allowMemory) this.setMemory(key, value, { ttlMs: ttl });
     return false;
   },
 

@@ -203,11 +203,11 @@ const readStorageRaw = (storage, key) => {
   return '';
 };
 
-const writeStorageJSON = (storage, key, payload) => {
+const writeStorageJSON = (storage, key, payload, options = {}) => {
   if (!storage) return false;
   try {
     if (typeof storage.setJSON === 'function') {
-      return storage.setJSON(key, payload, { validate: true });
+      return storage.setJSON(key, payload, { validate: true, ...options });
     }
     if (typeof storage.setItem === 'function') {
       return storage.setItem(key, JSON.stringify(payload)) !== false;
@@ -496,21 +496,35 @@ const createWatchlistLifecycle = ({
 
   const commitEntries = (nextEntries) => {
     if (!(nextEntries instanceof Map)) return false;
-    const normalizedEntries = new Map();
-    for (const [id, entry] of nextEntries) {
-      const normalized = buildWatchlistEntry(entry, options());
-      if (!normalized || normalized.id !== normalizeWatchId(id) || normalizedEntries.has(normalized.id)) return false;
-      normalizedEntries.set(normalized.id, normalized);
-    }
-    const payload = {
-      version,
-      updatedAt: now(),
-      entries: [...normalizedEntries.values()]
-    };
-    if (!writeStorageJSON(storage, storageKey, payload)) return false;
-    watchlistEntries.clear();
-    normalizedEntries.forEach((entry, id) => watchlistEntries.set(id, entry));
-    return true;
+    try {
+      JSON.stringify([...nextEntries.values()]);
+      const normalizedEntries = new Map();
+      for (const [id, entry] of nextEntries) {
+        if (!entry || !WATCH_STATUS_VALUES.includes(entry.status) || !Number.isSafeInteger(entry.progress)
+          || entry.progress < 0 || !Number.isFinite(entry.updatedAt) || entry.updatedAt <= 0) return false;
+        const normalized = buildWatchlistEntry(entry, options());
+        if (!normalized || normalized.id !== normalizeWatchId(id) || normalizedEntries.has(normalized.id)) return false;
+        normalizedEntries.set(normalized.id, normalized);
+      }
+      const payload = {
+        version,
+        updatedAt: now(),
+        entries: [...normalizedEntries.values()]
+      };
+      try { JSON.stringify(payload); } catch { return false; }
+      const previousRaw = readStorageRaw(storage, storageKey) || null;
+      if (!writeStorageJSON(storage, storageKey, payload, { allowMemory: false })) {
+        const currentRaw = readStorageRaw(storage, storageKey) || null;
+        if (currentRaw !== previousRaw) {
+          if (previousRaw === null) removeStorageItem(storage, storageKey);
+          else writeStorageRaw(storage, storageKey, previousRaw);
+        }
+        return false;
+      }
+      watchlistEntries.clear();
+      normalizedEntries.forEach((entry, id) => watchlistEntries.set(id, entry));
+      return true;
+    } catch { return false; }
   };
 
   const load = () => {

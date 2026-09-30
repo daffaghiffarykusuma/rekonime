@@ -135,7 +135,7 @@ const createWatchlistPageRenderer = ({
     }
   };
 
-  const renderWatchlist = () => {
+  const renderWatchlist = ({ cacheOnly = false } = {}) => {
     const section = documentRef?.getElementById('watchlist-section');
     const grid = documentRef?.getElementById('watchlist-grid');
     const empty = documentRef?.getElementById('watchlist-empty');
@@ -147,7 +147,7 @@ const createWatchlistPageRenderer = ({
     if (!entries.length) {
       section.classList.add('is-empty');
       grid.replaceChildren();
-      scheduleAiringDashboardUpdate([], [], { timeout: 1200 });
+      scheduleAiringDashboardUpdate([], [], { timeout: 1200, ...(cacheOnly ? { cacheOnly: true } : {}) });
       return true;
     }
 
@@ -158,7 +158,7 @@ const createWatchlistPageRenderer = ({
       placeholder: placeholderCover
     });
     renderWatchlistFilters(model.counts);
-    scheduleAiringDashboardUpdate(entries, model.allDisplayItems, { timeout: 1800 });
+    scheduleAiringDashboardUpdate(entries, model.allDisplayItems, { timeout: 1800, ...(cacheOnly ? { cacheOnly: true } : {}) });
 
     const fragment = documentRef.createDocumentFragment();
     model.visibleEntries.forEach((entry, index) => {

@@ -5,12 +5,12 @@ const VIEWING_INTENTS = [
   {
     key: 'unwind',
     label: 'Help me unwind',
-    description: 'Gentle, stable, low-friction viewing.'
+    description: 'Slice-of-life and iyashikei suggestions.'
   },
   {
     key: 'energy',
     label: 'Give me energy',
-    description: 'Fast hooks and strong episode-to-episode momentum.'
+    description: 'Action and sports suggestions.'
   },
   {
     key: 'emotional',
@@ -25,7 +25,7 @@ const VIEWING_INTENTS = [
   {
     key: 'surprise',
     label: 'Surprise me',
-    description: 'A qualified pick outside the obvious choices.'
+    description: 'A general discovery pick.'
   }
 ];
 

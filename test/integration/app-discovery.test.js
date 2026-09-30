@@ -17,7 +17,7 @@ test('App routes Surprise Me candidates through Taste Profile before Discovery',
 
   try {
     App.animeData = [candidate];
-    App.getWatchlistLifecycle = () => ({ getIds: () => ['watched'] });
+    App.getWatchlistLifecycle = () => ({ getIds: () => ['watched'], getEntries: () => [] });
     App.getTasteProfileStore = () => ({
       prepareDiscoverySource: (anime, options) => {
         calls.push(['prepare', anime, options]);

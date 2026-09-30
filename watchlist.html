@@ -330,6 +330,18 @@
           <p class="section-subtitle" id="watchlist-subtitle">Keep upcoming picks, current watches, and finished favorites in one place.</p>
         </div>
       </div>
+      <section class="watchlist-backup-tools" aria-labelledby="watchlist-backup-heading">
+        <h2 id="watchlist-backup-heading">Keep your progress safe</h2>
+        <p>Progress is saved in this browser. Export a backup to keep a copy or move it to another device.</p>
+        <div class="watchlist-backup-actions">
+          <button class="btn btn-sm btn-outline" id="watchlist-export-backup" type="button">Export backup</button>
+          <button class="btn btn-sm btn-outline" id="watchlist-restore-backup" type="button">Restore backup</button>
+          <button class="btn btn-sm btn-outline" id="watchlist-mal-import-toggle" type="button">Import MAL progress</button>
+          <input class="visually-hidden" id="watchlist-backup-file" type="file" aria-label="Restore Rekonime JSON backup" accept="application/json">
+        </div>
+        <p data-backup-status>No backup export recorded in this browser.</p>
+        <p>Restore replaces the personal data included in the backup. MAL import merges progress after review.</p>
+      </section>
       <div class="watchlist-filters" id="watchlist-filters">
         <span class="watchlist-filters-label">View by status</span>
         <div class="watchlist-filter-chips" id="watchlist-filter-chips" role="tablist" aria-label="Watchlist filters"></div>

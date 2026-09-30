@@ -520,6 +520,7 @@ button.recommendation-title { padding: 0; border: 0; background: transparent; te
 .watchlist-section .discovery-eyebrow { color: var(--accent-primary); }
 .experience-cue { border-color: var(--border-color); background: var(--bg-tertiary); }
 .airing-card, .airing-summary-card, [data-theme="light"] :is(.airing-card, .airing-summary-card) { background: var(--bg-primary); border-color: var(--border-color); }
+.modal-overlay.visible { transition-property: opacity; }
 .modal-overlay { width: 100%; height: 100%; margin: 0; box-sizing: border-box; background: rgb(10 17 12 / 70%); backdrop-filter: blur(8px); }
 .modal-content, .filter-modal-content, .settings-modal-content { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 22px; box-shadow: var(--shadow-lg); }
 .modal-close { border-radius: 50%; background: var(--bg-tertiary); color: var(--text-primary); }
@@ -757,4 +758,48 @@ html:not([data-theme="light"]) .sidebar-mode-option.is-active .sidebar-mode-desc
   }
   .card-scoreboard .stat:not(.has-tooltip) .stat-value { font-size: .72rem; font-weight: 400; }
   .card-scoreboard .stat-label, .card-scoreboard .card-primary-label { font-size: .68rem; }
+}
+
+/* Keep session choices and progress close to the first useful recommendation. */
+.recommendations-section, .recommendations-grid { content-visibility: visible; }
+.discovery-garden.is-returning { grid-template-columns: 1fr; min-height: 0; padding: 22px 28px; }
+.discovery-garden.is-returning .discovery-art, .discovery-garden.is-returning .discovery-eyebrow,
+.discovery-garden.is-returning .discovery-title br, .discovery-garden.is-returning .discovery-subtitle { display: none; }
+.discovery-garden.is-returning .discovery-title { font-size: 2rem; margin-bottom: 12px; }
+.discovery-garden.is-returning .discovery-actions { margin-top: 0; }
+.recommendation-modes summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--text-secondary); }
+.recommendation-modes .mode-chips { margin-top: 8px; }
+.recommendation-fit-label { color: var(--accent-primary); font-size: .75rem; font-weight: 700; }
+.recommendation-info .recommendation-reason { display: block; min-height: 2.8em; font-size: .85rem; line-height: 1.45; }
+.continue-watching-section { margin: 20px 0; }
+.continue-watching-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.continue-card, .watchlist-backup-tools { min-width: 0; padding: 18px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-secondary); }
+.continue-title { border: 0; padding: 0; background: none; color: var(--text-primary); text-align: left; font: inherit; font-weight: 700; cursor: pointer; }
+.continue-card p, .watchlist-backup-tools p { color: var(--text-secondary); font-size: .85rem; }
+.watchlist-backup-tools { margin-bottom: 20px; }
+.watchlist-backup-tools h2 { font-size: 1.1rem; }
+.watchlist-backup-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+@media (max-width: 640px) {
+  .discovery-garden { padding: 20px; margin-bottom: 16px; }
+  .discovery-title { font-size: 2.4rem; }
+  .discovery-subtitle { font-size: .85rem; }
+  .discovery-eyebrow { margin-bottom: 10px; }
+  .discovery-actions { margin-top: 16px; gap: 8px; }
+  .discovery-garden.is-returning { padding: 18px; }
+  .discovery-garden.is-returning .discovery-title { font-size: 1.6rem; }
+  .viewing-intent-section { padding: 16px; margin: 12px 0; }
+  .viewing-intent-section .mood-filter-title { font-size: 1.25rem; }
+  .viewing-intent-section .mood-filter-kicker { display: none; }
+  .viewing-intent-section .mood-cluster-desc { display: none; }
+  .viewing-intent-section .mood-filter-clusters { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+  .viewing-intent-section .mood-cluster { flex: 1 1 135px; min-width: 0; width: auto; min-height: 44px; padding: 10px; }
+  .continue-watching-grid { grid-template-columns: 1fr; }
+  .continue-card { padding: 14px; }
+}
+
+@media (max-width: 640px) {
+  .has-tooltip .tooltip, .has-tooltip .tooltip--bottom {
+    position: fixed; left: 20px; right: 20px; bottom: 20px; top: auto;
+    width: auto; max-width: none; transform: none;
+  }
 }

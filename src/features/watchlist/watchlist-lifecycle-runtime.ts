@@ -3,6 +3,7 @@ import {
   buildWatchlistTransitionEnvelope,
   normalizeWatchId
 } from './watchlist-state.js';
+import { fingerprintWatchlist, validateMalImportPlan } from './mal-watchlist-import.ts';
 
 const createWatchlistLifecycleRuntime = ({
   buildSnapshot,
@@ -69,23 +70,30 @@ const createWatchlistLifecycleRuntime = ({
   };
 
   const applyImport = (plan) => {
-    if (!plan?.ok || plan.catalogScope !== 'full' || !Array.isArray(plan.proposedEntries)) {
+    if (!validateMalImportPlan(plan)) {
       return { changed: false, compatibilityResult: { status: 'rejected', reason: 'invalid-plan' }, effects: {}, transition: null };
+    }
+    const lifecycle = getReadyLifecycle();
+    // Imports review persisted evidence; another tab may have changed it since review.
+    if (!loadBeforeTransition) lifecycle.load();
+    if (fingerprintWatchlist(lifecycle.getEntries()) !== plan.fingerprint) {
+      return { changed: false, compatibilityResult: { status: 'rejected', reason: 'stale-plan' }, effects: {}, transition: null };
     }
     if (plan.proposedEntries.length === 0) {
       return { changed: false, compatibilityResult: { status: 'no-changes', summary: plan.summary }, effects: {}, transition: null };
     }
 
-    const lifecycle = getReadyLifecycle();
     const appliedAt = now();
     const nextEntries = new Map(lifecycle.getEntries().map((entry) => [entry.id, entry]));
     const changedIds = [];
     for (const proposed of plan.proposedEntries) {
       const id = normalizeId(proposed?.id);
-      if (!id || nextEntries.has(id)) {
+      const conflict = plan.conflicts.find(item => item.id === id && item.useMal);
+      if (!id || (nextEntries.has(id) && !conflict) || (!nextEntries.has(id) && conflict)) {
         return { changed: false, compatibilityResult: { status: 'rejected', reason: 'invalid-plan' }, effects: {}, transition: null };
       }
       const resolveTime = (value) => value === 'apply-time' ? appliedAt : value;
+      const previous = nextEntries.get(id);
       nextEntries.set(id, {
         ...proposed,
         id,
@@ -93,6 +101,11 @@ const createWatchlistLifecycleRuntime = ({
         ...(proposed.startedAt ? { startedAt: resolveTime(proposed.startedAt) } : {}),
         ...(proposed.completedAt ? { completedAt: resolveTime(proposed.completedAt) } : {})
       });
+      if (previous && (proposed.loved !== previous.loved || proposed.lovedAt !== previous.lovedAt
+        || (previous.startedAt && proposed.startedAt !== previous.startedAt)
+        || (previous.completedAt && proposed.completedAt !== previous.completedAt))) {
+        return { changed: false, compatibilityResult: { status: 'rejected', reason: 'invalid-plan' }, effects: {}, transition: null };
+      }
       changedIds.push(id);
     }
     if (!lifecycle.commitEntries(nextEntries)) {

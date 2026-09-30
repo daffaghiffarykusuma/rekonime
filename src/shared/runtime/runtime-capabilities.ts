@@ -45,9 +45,9 @@ const createRuntimeCapabilities = ({
     if (isOpen) {
       modal.removeAttribute('hidden');
       modal.removeAttribute('inert');
+      modal.classList.add('visible');
       if (typeof modal.showModal === 'function' && !modal.open) modal.showModal();
       else modal.setAttribute('open', '');
-      modal.classList.add('visible');
       const target = initialFocusSelector && modal.querySelector(initialFocusSelector);
       target?.focus?.({ preventScroll: true });
     } else {

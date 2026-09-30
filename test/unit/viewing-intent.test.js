@@ -38,7 +38,7 @@ test('Viewing Intent apply transition owns active definition and follow-up effec
     active: {
       key: 'unwind',
       label: 'Help me unwind',
-      description: 'Gentle, stable, low-friction viewing.',
+      description: 'Slice-of-life and iyashikei suggestions.',
       activeAt: 100
     },
     effects: {

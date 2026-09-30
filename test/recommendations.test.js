@@ -30,7 +30,7 @@ test('getEpisodeCount uses highest scraped episode number', () => {
 test('getBadges returns at most two badges', () => {
   const badges = Recommendations.getBadges(baseAnime());
   assert.equal(badges.length, 2);
-  assert.equal(badges[0].label, 'Hard to stop watching');
+  assert.equal(badges[0].label, 'Strong episode ratings');
   assert.equal(badges[1].label, 'Viewer favorite');
 });
 
@@ -61,7 +61,7 @@ test('prepared taste fit outranks a generic quality lead', () => {
   });
 
   assert.equal(decision.items[0].id, 'taste-fit');
-  assert.equal(decision.context, 'Balanced picks that combine strong staying power with trusted audience approval.');
+  assert.equal(decision.context, 'General picks ranked by episode ratings and community scores.');
   assert.ok(Array.isArray(decision.items[0].experienceCues));
   assert.equal(decision.items.find(item => item.id === 'community-favorite').reason, 'A clear community favorite');
   assert.deepEqual(
@@ -107,7 +107,7 @@ test('recommendation decision ranks the active Viewing Intent without removing v
 
   assert.equal(decision.items.length, 2);
   assert.equal(decision.items[0].id, 'energetic');
-  assert.match(decision.items[0].reason, /energy|momentum|hook/i);
+  assert.match(decision.items[0].reason, /action|sports/i);
   assert.equal(decision.context, 'Bring the energy: Prioritize momentum and a fast hook.');
 });
 
@@ -132,14 +132,14 @@ test('recommendation decision returns two or three Experience Cues for the activ
   const cues = decision.items[0].experienceCues;
 
   assert.ok(cues.length >= 2 && cues.length <= 3);
-  assert.equal(cues[0], 'High energy');
-  assert.ok(cues.includes('Dark') || cues.includes('Fast hook'));
+  assert.equal(cues[0], 'Action / sports');
+  assert.ok(cues.includes('Dark themes'));
   assert.equal(cues.some(cue => ['Action', 'Suspense', 'Psychological'].includes(cue)), false);
 });
 
 test('recommendation decision changes cue priority with intent and uses a restrained fallback', () => {
   const versatile = baseAnime({
-    genres: ['Drama', 'Fantasy'],
+    genres: ['Drama', 'Fantasy', 'Slice of Life'],
     stats: { comfortScore: 90, emotionalStability: 88, worthFinishing: 90, flowState: 90 }
   });
 
@@ -151,8 +151,8 @@ test('recommendation decision changes cue priority with intent and uses a restra
     viewingIntent: { key: 'immersive', label: 'Immersive', description: 'World-rich viewing.' },
     limit: 1
   }).items[0].experienceCues;
-  assert.equal(unwind[0], 'Gentle');
-  assert.equal(immersive[0], 'Immersive');
+  assert.equal(unwind[0], 'Slice of life / iyashikei');
+  assert.equal(immersive[0], 'World exploration');
   assert.notDeepEqual(unwind, immersive);
 
   const fallback = Recommendations.getRecommendationDecision([baseAnime({
@@ -162,7 +162,7 @@ test('recommendation decision changes cue priority with intent and uses a restra
     communityScore: 1,
     stats: { retentionScore: 10 }
   })], { limit: 1 });
-  assert.deepEqual(fallback.items[0].experienceCues, ['Experience data is limited']);
+  assert.deepEqual(fallback.items[0].experienceCues, []);
 });
 
 test('getSimilarAnime prioritizes strict matches over higher-scoring relaxed matches', () => {

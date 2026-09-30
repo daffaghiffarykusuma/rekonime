@@ -52,7 +52,7 @@ const createWatchlistAiringDashboardAdapter = ({
     typeof value === 'function' ? value() : value
   );
 
-  const scheduleUpdate = (entries, animeItems, { timeout = 2500 } = {}) => {
+  const scheduleUpdate = (entries, animeItems, { timeout = 2500, cacheOnly = false } = {}) => {
     cancelScheduledUpdate();
 
     dashboardUpdateHandle = queueTask(async () => {
@@ -61,7 +61,8 @@ const createWatchlistAiringDashboardAdapter = ({
         const controller = await getAiringDashboardController();
         await controller.update({
           entries: resolveScheduledValue(entries),
-          animeItems: resolveScheduledValue(animeItems)
+          animeItems: resolveScheduledValue(animeItems),
+          ...(cacheOnly ? { cacheOnly: true } : {})
         });
       } catch (error) {
         logger?.warn?.('Failed to update airing dashboard', { error });

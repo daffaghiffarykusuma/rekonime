@@ -35,6 +35,10 @@ import {
   createWatchlistLifecycle
 } from '../features/watchlist/watchlist-state.js';
 import { createWatchlistLifecycleRuntime } from '../features/watchlist/watchlist-lifecycle-runtime.ts';
+import { prepareDiscoveryCandidates } from '../features/discovery/recommendation-eligibility.ts';
+import { buildContinueWatchingModel } from '../features/watchlist/continue-watching.ts';
+import { recordBackupExport, updateBackupStatus } from '../features/preferences/backup-status.ts';
+import { renderMalImport } from '../features/watchlist/mal-import-presentation.ts';
 import { createTasteProfileStore } from '../features/preferences/taste-profile.ts';
 import {
   recoverPendingPersonalDataRestore,
@@ -600,13 +604,13 @@ const App = {
     return this.airingDashboardAdapter;
   },
 
-  scheduleAiringDashboardRender({ timeout = 2500 } = {}) {
+  scheduleAiringDashboardRender({ timeout = 2500, cacheOnly = false } = {}) {
     if (typeof document === 'undefined') return;
     const statuses = ['planned', 'watching'];
     this.getAiringDashboardAdapter().scheduleUpdate(
       () => this.getWatchlistLifecycle().getEntries({ statuses }),
       () => this.getAiringDashboardAnimeItems({ statuses }),
-      { timeout }
+      { timeout, ...(cacheOnly ? { cacheOnly: true } : {}) }
     );
   },
 
@@ -633,8 +637,12 @@ const App = {
     if (!result) return null;
     if (!result.changed) return result.compatibilityResult;
     this.applyWatchlistTransition(result.transition);
+    this.renderContinueWatching();
     if (result.transition?.render?.watchlist?.shouldRender) {
       this.renderWatchlist();
+    }
+    if (result.transition?.operation === 'import' && document.getElementById('watchlist-grid')?.dataset.renderer !== 'watchlist-page') {
+      this.scheduleAiringDashboardRender({ timeout: result.transition.dashboard.timeout, cacheOnly: true });
     }
     if (result.effects?.refreshTasteProfile) {
       this.refreshTasteProfileEvidence();
@@ -683,6 +691,7 @@ const App = {
     const settingsContent = document.getElementById('settings-content');
     if (settingsContent) {
       setHTML(settingsContent, this.renderSettingsPanel({ includeTitle: false }));
+      updateBackupStatus();
     }
   },
 
@@ -711,6 +720,7 @@ const App = {
   },
 
   exportPersonalData() {
+    if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
     const payload = this.getTasteProfileStore().exportData(this.getWatchlistLifecycle().getEntries());
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -721,6 +731,7 @@ const App = {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
+    recordBackupExport();
     this.showToast('Personal data export started.');
   },
 
@@ -750,7 +761,9 @@ const App = {
       if (result.mode === 'full') {
         this.renderWatchlist();
         if (this.currentAnimeId) this.updateWatchlistControls(this.currentAnimeId);
-        this.scheduleAiringDashboardRender();
+        if (document.getElementById('watchlist-grid')?.dataset.renderer !== 'watchlist-page') this.scheduleAiringDashboardRender();
+        this.emitAppEvent('rekonime:watchlist-updated', { id: '', removed: false, changedIds: this.getWatchlistLifecycle().getEntries().map(entry => entry.id) });
+        this.renderContinueWatching();
       }
       this.showToast('Personal data restored.');
       return result;
@@ -761,100 +774,118 @@ const App = {
   },
 
   renderMalWatchlistImport() {
-    const state = this.malImportState || { stage: 'choose', fileName: '', plan: null };
-    const summary = state.plan?.summary;
-    const status = '<p class="visually-hidden" id="mal-import-status" role="status" aria-live="polite" aria-atomic="true"></p>';
-    if (state.stage === 'success' && summary) {
-      return `
-        <section class="mal-watchlist-import" aria-labelledby="mal-import-success-heading">
-          <span class="mal-import-eyebrow">Import complete</span>
-          <h3 id="mal-import-success-heading" tabindex="-1">${summary.creates} Watchlist entries imported</h3>
-          <p class="settings-description">Your Watchlist and Taste Profile now include the matched MyAnimeList progress.</p>
-          <button class="btn btn-outline btn-sm" type="button" data-action="cancel-mal-watchlist-import">Import another XML</button>
-          ${status}
-        </section>`;
-    }
-    if (state.stage === 'review' && summary) {
-      return `
-        <section class="mal-watchlist-import" aria-labelledby="mal-import-review-heading">
-          <span class="mal-import-eyebrow">Watchlist import · ${this.escapeHtml(state.fileName)}</span>
-          <h3 id="mal-import-review-heading" tabindex="-1">${summary.sourceRows} rows are ready to review</h3>
-          <p class="settings-description">Nothing changes until you confirm. Matches use exact MyAnimeList IDs from the full Rekonime catalog.</p>
-          <div class="mal-import-counts" aria-label="Import summary">
-            <div><strong>${summary.sourceRows}</strong><span>rows</span></div>
-            <div><strong data-mal-count="matched">${summary.matched}</strong><span>matched</span></div>
-            <div><strong>${summary.creates}</strong><span>new</span></div>
-            <div><strong data-mal-count="unmatched">${summary.unmatched}</strong><span>unmatched</span></div>
-            <div><strong data-mal-count="skipped">${summary.skipped}</strong><span>skipped</span></div>
-          </div>
-          <div class="mal-import-actions">
-            <button class="btn btn-outline" type="button" data-action="cancel-mal-watchlist-import">Cancel import</button>
-            <button class="btn btn-primary" type="button" data-action="confirm-mal-watchlist-import">Review ${summary.creates} Watchlist changes</button>
-          </div>
-          <dialog class="mal-import-dialog" id="mal-import-confirmation" aria-labelledby="mal-import-confirm-title" aria-describedby="mal-import-confirm-description">
-            <form method="dialog">
-              <h3 id="mal-import-confirm-title">Apply ${summary.creates} Watchlist changes?</h3>
-              <p id="mal-import-confirm-description">This adds ${summary.creates} matched entries, skips ${summary.skipped} rows, then refreshes your Taste Profile once.</p>
-              <p><strong>You cannot undo this as one action.</strong> Export a Rekonime backup first if you may need to restore the current state.</p>
-              <div class="mal-import-actions"><button class="btn btn-outline" value="cancel">Go back</button><button class="btn btn-primary" value="apply" data-action="apply-mal-watchlist-import">Apply Watchlist changes</button></div>
-            </form>
-          </dialog>
-          ${status}
-        </section>`;
-    }
-    return `
-      <section class="mal-watchlist-import" aria-labelledby="mal-import-heading">
-        <span class="mal-import-eyebrow">Watchlist import</span>
-        <h3 id="mal-import-heading" tabindex="-1">Bring progress in from MyAnimeList</h3>
-        <p class="settings-description">Choose your MyAnimeList XML export. Rekonime reads it locally and changes nothing until you confirm.</p>
-        <input id="mal-watchlist-import-file" class="mal-import-file" type="file" aria-label="MyAnimeList XML export" accept=".xml,application/xml,text/xml" data-action="mal-watchlist-file">
-        <p class="settings-description">This merges Watchlist progress only. Rekonime JSON backup and restore remains separate below.</p>
-        ${status}
-      </section>`;
+    return renderMalImport(this.malImportState, value => this.escapeHtml(value), value => this.escapeAttr(value));
   },
 
-  rerenderMalWatchlistImport(focusId = '') {
+  rerenderMalWatchlistImport(focusId = '', announcement = '') {
     const container = document.getElementById('settings-content');
     if (!container) return;
     setHTML(container, this.renderSettingsPanel({ includeTitle: false }));
     this.updateSettingsUi();
     this.settingsRendered = true;
-    if (focusId) requestAnimationFrame(() => document.getElementById(focusId)?.focus());
+    updateBackupStatus();
+    requestAnimationFrame(() => {
+      if (focusId) document.getElementById(focusId)?.focus();
+      const status = document.getElementById('mal-import-status');
+      if (status && announcement) status.textContent = announcement;
+    });
   },
 
   async importMalWatchlistFile(file) {
     if (!file) return;
-    const text = await file.text();
-    const catalogReady = this.isFullDataLoaded || await this.getCatalogRuntime().loadFullCatalog();
-    if (!catalogReady || !this.isFullDataLoaded) return;
-    const plan = planMalWatchlistImport({
-      parseResult: parseMalWatchlistXml(text),
-      fullCatalog: this.animeData,
-      currentEntries: this.getWatchlistLifecycle().getEntries()
+    if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
+    const requestId = (this.malImportRequestId || 0) + 1;
+    this.malImportRequestId = requestId;
+    this.malImportState = { stage: 'loading', file, fileName: file.name || 'MyAnimeList XML', choices: {} };
+    this.rerenderMalWatchlistImport('mal-import-loading', 'Preparing import review.');
+    try {
+      let parseResult;
+      try { parseResult = parseMalWatchlistXml(await file.text()); }
+      catch { if (this.malImportRequestId === requestId) this.malImportState.fileReadFailed = true; throw new Error('We could not read this file. Try again or choose another XML export.'); }
+      if (this.malImportRequestId !== requestId) return;
+      this.malImportState.parseResult = parseResult;
+      if (!parseResult.ok) throw new Error('This XML export cannot be imported. Check for malformed XML, repeated IDs, or unsupported document declarations, then choose a corrected file.');
+      const catalogReady = this.isFullDataLoaded || await this.getCatalogRuntime().loadFullCatalog();
+      if (this.malImportRequestId !== requestId) return;
+      if (!catalogReady || !this.isFullDataLoaded) throw new Error('The full catalog is unavailable. Retry this review when your connection is ready.');
+      this.malImportState.reviewEntries = JSON.parse(JSON.stringify(this.getWatchlistLifecycle().getEntries()));
+      this.malImportState.plan = planMalWatchlistImport({ parseResult, fullCatalog: this.animeData, currentEntries: this.malImportState.reviewEntries });
+      if (!this.malImportState.plan.ok) throw new Error('The import review could not be prepared. Your Watchlist is unchanged.');
+      this.malImportState.stage = 'review';
+      this.rerenderMalWatchlistImport('mal-import-review-heading', 'Import review ready. Nothing has changed.');
+    } catch (error) {
+      if (this.malImportRequestId !== requestId) return;
+      this.malImportState = { ...this.malImportState, stage: 'error', error: error.message };
+      this.rerenderMalWatchlistImport('mal-import-error');
+    }
+  },
+
+  changeMalImportChoice(id, useMal) {
+    const state = this.malImportState;
+    if (state?.stage !== 'review') return;
+    state.choices = { ...state.choices, [id]: useMal };
+    state.plan = planMalWatchlistImport({ parseResult: state.parseResult, fullCatalog: this.animeData,
+      currentEntries: state.reviewEntries, choices: state.choices });
+    const value = useMal ? 'mal' : 'keep';
+    this.rerenderMalWatchlistImport('', `${state.plan.summary.creates + state.plan.summary.updates} changes selected, ${state.plan.summary.skipped} rows skipped.`);
+    requestAnimationFrame(() => {
+      [...document.querySelectorAll('[data-action="mal-conflict-choice"]')].find(input => input.dataset.animeId === id && input.value === value)?.focus({ preventScroll: true });
     });
-    if (!plan.ok) return;
-    this.malImportState = { stage: 'review', fileName: file.name || 'MyAnimeList XML', plan };
-    this.rerenderMalWatchlistImport('mal-import-review-heading');
   },
 
   cancelMalWatchlistImport() {
-    this.malImportState = { stage: 'choose', fileName: '', plan: null };
-    this.rerenderMalWatchlistImport('mal-import-heading');
+    this.malImportRequestId = (this.malImportRequestId || 0) + 1;
+    this.malImportState = { stage: 'choose' };
+    this.rerenderMalWatchlistImport('mal-watchlist-import-file', 'Import cancelled. Your Watchlist is unchanged.');
   },
 
   openMalWatchlistConfirmation() {
     const dialog = document.getElementById('mal-import-confirmation');
     dialog?.showModal?.();
+    if (dialog && !dialog.dataset.cancelFocusBound) {
+      dialog.dataset.cancelFocusBound = 'true';
+      dialog.addEventListener('keydown', event => {
+        if (event.key === 'Escape') event.stopPropagation();
+      });
+      dialog.addEventListener('close', () => {
+        if (this.malImportState?.stage === 'review') document.querySelector('[data-action="confirm-mal-watchlist-import"]')?.focus();
+      });
+    }
     requestAnimationFrame(() => dialog?.querySelector('[value="cancel"]')?.focus());
   },
 
+  retryMalRecommendations() {
+    try {
+      this.refreshTasteProfileEvidence();
+      this.updateTasteProfileUi();
+      this.renderRecommendations();
+      this.malImportState = { ...this.malImportState, stage: 'success' };
+      this.rerenderMalWatchlistImport('mal-import-success-heading', 'Watchlist imported and recommendations refreshed.');
+    } catch {
+      this.malImportState = { ...this.malImportState, stage: 'partial-success' };
+      this.rerenderMalWatchlistImport('mal-import-success-heading', 'Watchlist imported; recommendations need refresh.');
+    }
+  },
+
   applyMalWatchlistPlan() {
+    if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
     const result = this.getWatchlistLifecycleRuntime().applyImport(this.malImportState?.plan);
-    this.applyWatchlistRuntimeResult(result);
-    if (result.changed) {
-      const plan = this.malImportState.plan;
-      this.malImportState = { ...this.malImportState, stage: 'success', plan };
-      this.rerenderMalWatchlistImport('mal-import-success-heading');
+    document.getElementById('mal-import-confirmation')?.close?.();
+    if (result.compatibilityResult?.status === 'rejected') {
+      const stale = result.compatibilityResult.reason === 'stale-plan';
+      this.malImportState = { ...this.malImportState, stage: stale ? 'error' : 'review',
+        error: stale ? 'Your Watchlist changed after this review. Retry to review the latest values.'
+          : 'Changes could not be saved. Your previous Watchlist is intact. Try applying again.' };
+      this.rerenderMalWatchlistImport('mal-import-error');
+      return result;
+    }
+    this.malImportState = { ...this.malImportState, stage: 'success', error: '', noChanges: !result.changed };
+    try {
+      this.applyWatchlistRuntimeResult(result);
+      this.rerenderMalWatchlistImport('mal-import-success-heading', result.changed ? 'Watchlist import complete.' : 'No Watchlist changes were needed.');
+    } catch {
+      this.malImportState.stage = 'partial-success';
+      this.rerenderMalWatchlistImport('mal-import-success-heading', 'Watchlist imported; recommendations need refresh.');
     }
     return result;
   },
@@ -867,10 +898,10 @@ const App = {
     if (transition.event) {
       this.emitAppEvent(transition.event.name, transition.event.payload);
     }
-    if (transition.dashboard?.shouldSchedule) {
+    if (transition.operation !== 'import' && transition.dashboard?.shouldSchedule && document.getElementById('watchlist-grid')?.dataset.renderer !== 'watchlist-page') {
       this.scheduleAiringDashboardRender({ timeout: transition.dashboard.timeout });
     }
-    if (transition.feedback) {
+    if (transition.feedback && transition.operation !== 'import') {
       this.showToast(transition.feedback.message, {
         action: transition.feedback.action,
         key: 'watchlist',
@@ -1300,7 +1331,7 @@ const App = {
     const section = document.getElementById('watchlist-section');
     const grid = document.getElementById('watchlist-grid');
     const empty = document.getElementById('watchlist-empty');
-    if (!section || !grid || !empty) return;
+    if (!section || !grid || !empty || grid.dataset.renderer === 'watchlist-page') return;
 
     const items = this.getWatchlistDisplayItems();
     if (items.length === 0) {
@@ -1311,6 +1342,19 @@ const App = {
 
     section.classList.remove('is-empty');
     grid.replaceChildren(this.renderAnimeCardsDom(items, { startIndex: 0 }));
+  },
+
+  renderContinueWatching() {
+    const section = document.getElementById('continue-watching-section');
+    const grid = document.getElementById('continue-watching-grid');
+    if (!section || !grid) return;
+    const items = buildContinueWatchingModel(this.getWatchlistLifecycle().getEntries(), this.animeData);
+    section.hidden = items.length === 0;
+    setHTML(grid, items.map(item => `<article class="continue-card">
+      <button class="continue-title" type="button" data-action="open-anime" data-anime-id="${this.escapeAttr(item.id)}">${this.escapeHtml(item.title)}</button>
+      <p>${item.progress}${item.episodeCount ? ` / ${item.episodeCount}` : ''} episodes watched</p>
+      <button class="btn btn-outline btn-sm" type="button" data-action="continue-progress" data-anime-id="${this.escapeAttr(item.id)}" aria-label="${this.escapeAttr(item.complete ? `Mark ${item.title} finished` : `Mark episode ${item.progress + 1} of ${item.title} watched`)}">${item.complete ? 'Mark finished' : `Watched episode ${item.progress + 1}`}</button>
+    </article>`).join(''));
   },
 
   // Pagination state
@@ -1347,6 +1391,7 @@ const App = {
       if (!restoreRecovery.ok) throw new Error('Personal Data Restore recovery failed');
       this.loadWatchlist();
       this.getWatchlistLifecycle().migrateLegacy();
+      this.refreshTasteProfileEvidence();
       this.loadSettings();
       this.updateGridPageSize();
       this.applyPerformancePreferences();
@@ -1357,6 +1402,8 @@ const App = {
         Onboarding.startTour();
       }
 
+      this.syncSearchWithUrl();
+      this.setupEventListeners();
       const isCatalogPage = this.isCatalogPage();
       const requestedAnimeId = this.getAnimeIdFromUrl();
 
@@ -1376,7 +1423,6 @@ const App = {
         }
       }
 
-      this.setupEventListeners();
       this.setupFullCatalogInteractionTriggers();
       this.getRuntimeCapabilities().queueIdleTask(() => this.setupHealthMonitoring(), { timeout: 2000 });
       this.getRuntimeCapabilities().queueIdleTask(() => this.setupIntelligentPrefetching(), { timeout: 2000 });
@@ -1386,7 +1432,6 @@ const App = {
       // Only sync modal with URL if not handling deep link
       // (deep link is already handled above)
       if (!requestedAnimeId) {
-        this.syncSearchWithUrl();
         this.syncModalWithUrl();
       }
       this.updateMetaForFilters();
@@ -2107,6 +2152,7 @@ const App = {
       const target = event.target;
       if (!target) return;
 
+      if (target.closest?.('[data-renderer="watchlist-page"]')) return;
       const action = target.dataset?.action;
       if (action === 'watch-status') {
         const animeId = target.dataset.animeId || this.currentAnimeId;
@@ -2122,6 +2168,11 @@ const App = {
         if (!animeId) return;
         const episodeCount = this.getEpisodeLimitForAnime(animeId);
         this.setWatchProgress(animeId, target.value, { episodeCount });
+        return;
+      }
+
+      if (action === 'mal-conflict-choice') {
+        this.changeMalImportChoice(target.dataset.animeId, target.value === 'mal');
         return;
       }
 
@@ -2915,7 +2966,9 @@ const App = {
       || this.getActiveFilterCount()
       || this.getCatalogSearchQuery()
     );
-    document.getElementById('discovery-garden')?.classList.toggle('is-hidden', shouldHide);
+    const hero = document.getElementById('discovery-garden');
+    hero?.classList.toggle('is-hidden', shouldHide);
+    hero?.classList.toggle('is-returning', Onboarding.hasCompleted() || this.getWatchlistLifecycle().getEntries().length > 0);
   },
 
   renderViewingIntents() {
@@ -2968,7 +3021,8 @@ const App = {
     const source = this.getTasteProfileStore().prepareDiscoverySource(this.animeData, {
       excludedIds: this.getWatchlistLifecycle().getIds()
     });
-    const surprise = Discovery.getSurpriseMe(source);
+    const eligible = new Set(prepareDiscoveryCandidates(source.map(entry => entry.anime), this.getWatchlistLifecycle().getEntries()).map(anime => anime.id));
+    const surprise = Discovery.getSurpriseMe(source.filter(entry => eligible.has(entry.anime.id)));
     if (!surprise) return null;
     Discovery.recordSurprise(surprise.id);
     this.showAnimeDetail(surprise.id);
@@ -3168,6 +3222,7 @@ const App = {
    */
   render({ refreshRecommendations = false } = {}) {
     this.renderActiveFilters();
+    this.renderContinueWatching();
     this.renderWatchlist();
     if (this.deferFilterUiOnce) {
       this.scheduleDeferredFilterUi();
@@ -3400,7 +3455,8 @@ const App = {
     const { recommendations, basedOn } = Recommendations.getBecauseYouWatched(
       this.animeData,
       seedIds,
-      6
+      6,
+      this.getWatchlistLifecycle().getEntries()
     );
 
     if (recommendations.length === 0) {
@@ -3984,7 +4040,7 @@ const App = {
 
         ${this.renderMalWatchlistImport()}
 
-        <div class="filter-section-title filter-section-title--spaced">Taste Profile</div>
+        <h3 class="filter-section-title filter-section-title--spaced" id="taste-profile-heading" tabindex="-1">Taste Profile</h3>
         <div class="taste-profile-panel">
           <p class="settings-description">Recommendation feedback and watchlist history stay editable here.</p>
           <div class="taste-profile-group">
@@ -4001,10 +4057,12 @@ const App = {
           </div>
           <div class="taste-profile-actions">
             <button class="btn btn-outline btn-sm" type="button" data-action="reset-taste-profile">Reset profile</button>
-            <button class="btn btn-outline btn-sm" type="button" data-action="export-personal-data">Export data</button>
-            <button class="btn btn-outline btn-sm" type="button" data-action="restore-personal-data">Restore data</button>
+            <button class="btn btn-outline btn-sm" type="button" data-action="export-personal-data">Export backup</button>
+            <button class="btn btn-outline btn-sm" type="button" data-action="restore-personal-data">Restore backup</button>
             <input class="visually-hidden" id="personal-data-restore" type="file" aria-label="Rekonime JSON backup" accept="application/json" data-action="personal-data-file">
           </div>
+          <p class="settings-description" data-backup-status>No backup export recorded in this browser.</p>
+          <p class="settings-description">Restore replaces the saved data included in your backup. MAL import merges progress separately.</p>
           <p class="settings-description">${this.escapeHtml(tasteProfile.hiddenCount)} hidden recommendation ${tasteProfile.hiddenCount === 1 ? 'title' : 'titles'}.</p>
         </div>
         
@@ -4117,9 +4175,12 @@ const App = {
     const decision = Recommendations.getRecommendationDecision(recommendationSource, {
       viewingIntent: activeIntent,
       modeKey: Recommendations.currentMode,
-      limit: recommendationLimit
+      limit: recommendationLimit,
+      watchlistEntries: this.getWatchlistLifecycle().getEntries()
     });
     const recommendations = decision.items;
+    const heading = document.getElementById('recommendations-heading');
+    if (heading) heading.textContent = recommendations.some(anime => anime.tasteReason) ? 'Picks for your taste' : activeIntent ? 'Picks for this session' : 'Explore something new';
     const contextEl = document.getElementById('recommendations-context');
     if (contextEl && contextEl.textContent.trim() !== decision.context) {
       contextEl.textContent = decision.context;
@@ -4129,6 +4190,7 @@ const App = {
 
     if (recommendations.length === 0) {
       setHTML(container, '<p class="no-data">No recommendations available</p>');
+      document.getElementById('quick-filters')?.removeAttribute('inert');
       return;
     }
 
@@ -4139,7 +4201,7 @@ const App = {
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
       const cues = anime.experienceCues;
-      const safeReason = this.escapeHtml(cues[0] || anime.reason || '');
+      const safeReason = this.escapeHtml(anime.fitReason || anime.reason || '');
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
       const decision = this.getCardDecisionData(anime);
@@ -4189,7 +4251,8 @@ const App = {
               </span>
               </div>`}
               </div>
-              <div class="recommendation-reason experience-cue">${safeReason}</div>
+              <div class="recommendation-fit-label">${this.escapeHtml(anime.fitLabel)}</div>
+              <div class="recommendation-reason">${safeReason}</div>
               <div class="recommendation-quick-actions">
                 <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
               </div>
@@ -4203,6 +4266,7 @@ const App = {
         </div>
       `;
     }).join(''));
+    document.getElementById('quick-filters')?.removeAttribute('inert');
   },
 
   getTopAnimeByMetric(animeList, metric) {
@@ -4585,6 +4649,7 @@ const App = {
       const actionEl = event.target.closest('[data-action]');
       if (!actionEl) return;
 
+      if (actionEl.closest('[data-renderer="watchlist-page"]')) return;
       const action = actionEl.dataset.action;
       if (action === 'home-shortcut') {
         if (this.isCatalogPage()) {
@@ -4689,6 +4754,33 @@ const App = {
         return;
       }
 
+      if (action === 'continue-progress') {
+        const entry = this.getWatchlistLifecycle().getEntry(actionEl.dataset.animeId);
+        if (entry) {
+          const total = this.getEpisodeLimitForAnime(entry.id) || entry.snapshot?.stats?.episodeCount;
+          if (total && entry.progress >= total) this.setWatchStatus(entry.id, 'completed', { episodeCount: total });
+          else this.adjustWatchProgress(entry.id, 1);
+        }
+        return;
+      }
+
+      if (action === 'choose-viewing-goal') {
+        this.viewingIntentExpanded = true;
+        this.renderViewingIntents();
+        document.getElementById('viewing-intent-section')?.scrollIntoView({ block: 'start' });
+        document.querySelector('.viewing-intent-option')?.focus({ preventScroll: true });
+        return;
+      }
+
+      if (action === 'edit-taste-profile') {
+        this.ensureSettingsRendered();
+        this.getRuntimeCapabilities().setModalVisibility('settings-modal', true, { initialFocusSelector: '#taste-profile-heading' });
+        const heading = document.getElementById('taste-profile-heading');
+        heading?.scrollIntoView({ block: 'start' });
+        requestAnimationFrame(() => document.getElementById('taste-profile-heading')?.focus({ preventScroll: true }));
+        return;
+      }
+
       if (action === 'reset-taste-profile') {
         this.resetTasteProfile();
         return;
@@ -4701,6 +4793,20 @@ const App = {
 
       if (action === 'restore-personal-data') {
         document.getElementById('personal-data-restore')?.click();
+        return;
+      }
+
+      if (action === 'retry-mal-watchlist-import') {
+        if (this.malImportState?.fileReadFailed) {
+          document.getElementById('mal-watchlist-import-file')?.focus();
+          return;
+        }
+        void this.importMalWatchlistFile(this.malImportState?.file);
+        return;
+      }
+
+      if (action === 'retry-mal-recommendations') {
+        this.retryMalRecommendations();
         return;
       }
 
@@ -5144,7 +5250,7 @@ const App = {
     const content = `
       <div class="recommendations-help">
         <h3>Why These Recommendations Stand Out</h3>
-        <p>Rekonime balances two signals to keep suggestions both useful and trustworthy:</p>
+        <p>Rekonime starts with audience ratings, then considers your viewing goal and saved taste:</p>
         <div class="help-factor">
           <strong>Episode Rating Strength</strong>
           <p>A score out of 100 based on episode ratings, their pattern, and available coverage. Small samples are pulled toward the neutral midpoint. It is not a measured retention rate or a completion probability.</p>
@@ -5153,6 +5259,7 @@ const App = {
           <strong>Community Score</strong>
           <p>Community sentiment from MyAnimeList that reflects how strongly viewers rated it.</p>
         </div>
+        <div class="help-factor"><strong>Your goal and taste</strong><p>Session goals use genre and theme suggestions. Saved preferences and watchlist evidence adjust ranking. Each pick labels the reason used. Series continuations require completed entries in the catalog watch order, with one pick per known franchise.</p></div>
         <p class="help-note">Their weights depend on the selected mode. Limited data means ratings are sparse, episode positions are unknown, or known vote counts are low. Unknown completion status and missing voter counts are shown in details.</p>
       </div>
     `;

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWatchlistLifecycleRuntime } from '../../src/features/watchlist/watchlist-lifecycle-runtime.ts';
+import { parseMalWatchlistXml, planMalWatchlistImport } from '../../src/features/watchlist/mal-watchlist-import.ts';
 import { createWatchlistLifecycle } from '../../src/features/watchlist/watchlist-state.js';
 
 const createMemoryStorage = () => {
@@ -114,6 +115,8 @@ test('Watchlist Lifecycle Runtime applies one imported batch and returns one eff
   const result = runtime.applyImport({
     ok: true,
     catalogScope: 'full',
+    fingerprint: '[]', errors: [],
+    conflicts: [], invalidRows: [], unmatchedRows: [], warnings: [],
     proposedEntries: [{
       id: 'show-1',
       status: 'watching',
@@ -121,7 +124,7 @@ test('Watchlist Lifecycle Runtime applies one imported batch and returns one eff
       updatedAt: 'apply-time',
       snapshot: { id: 'show-1', title: 'Show 1', cover: 'cover.jpg' }
     }],
-    summary: { sourceRows: 1, matched: 1, creates: 1, skipped: 0, unmatched: 0 }
+    summary: { sourceRows: 1, valid: 1, invalid: 0, matched: 1, creates: 1, updates: 0, conflicts: 0, unchanged: 0, skipped: 0, unmatched: 0 }
   });
 
   assert.equal(lifecycle.getEntry('show-1').updatedAt, 1000);
@@ -135,4 +138,59 @@ test('Watchlist Lifecycle Runtime applies one imported batch and returns one eff
     renderRecommendations: true,
     updateTasteProfileUi: true
   });
+});
+
+const importPlan = (currentEntries = []) => planMalWatchlistImport({
+  parseResult: parseMalWatchlistXml('<myanimelist><anime><series_animedb_id>1</series_animedb_id><series_title>Show 1</series_title><my_status>Watching</my_status><my_watched_episodes>3</my_watched_episodes></anime></myanimelist>'),
+  fullCatalog: [{ id: 'show-1', malId: 1, title: 'Show 1', cover: 'cover.jpg', episodeCount: 12 }], currentEntries
+});
+
+test('import refuses cross-tab stale reviews and repeated identical imports have no effects', () => {
+  const { lifecycle, runtime } = createRuntimeHarness();
+  const plan = importPlan();
+  assert.equal(runtime.applyImport(plan).changed, true);
+  assert.equal(runtime.applyImport(plan).compatibilityResult.reason, 'stale-plan');
+  const repeat = runtime.applyImport(importPlan(lifecycle.getEntries()));
+  assert.equal(repeat.changed, false);
+  assert.equal(repeat.compatibilityResult.status, 'no-changes');
+  assert.deepEqual(repeat.effects, {});
+});
+
+test('import storage refusal, throw, serialization, and invalid candidates leave live and persisted data intact', () => {
+  for (const failure of ['false', 'throw', 'circular', 'date']) {
+    const storage = createMemoryStorage();
+    const lifecycle = createWatchlistLifecycle({ storage, now: () => 1000 });
+    lifecycle.setStatus('saved', 'planned', { snapshot: { id: 'saved', title: 'Saved', cover: 'saved.jpg' } });
+    const before = storage.getItem('rekonime.watchlist');
+    const live = JSON.stringify(lifecycle.getEntries());
+    const plan = importPlan(lifecycle.getEntries());
+    if (failure === 'circular') plan.proposedEntries[0].snapshot.circular = plan.proposedEntries[0].snapshot;
+    if (failure === 'date') plan.proposedEntries[0].startedAt = NaN;
+    if (failure === 'false') storage.setItem = () => false;
+    if (failure === 'throw') storage.setItem = () => { throw new Error('Storage unavailable'); };
+    const runtime = createWatchlistLifecycleRuntime({ getLifecycle: () => lifecycle, now: () => 2000 });
+    const result = runtime.applyImport(plan);
+    assert.equal(result.changed, false, failure);
+    assert.equal(result.compatibilityResult.status, 'rejected', failure);
+    assert.deepEqual(result.effects, {});
+    assert.equal(result.transition, null);
+    assert.equal(storage.getItem('rekonime.watchlist'), before, failure);
+    assert.equal(JSON.stringify(lifecycle.getEntries()), live, failure);
+  }
+});
+
+test('import fingerprint observes a second lifecycle writing to the same persistent store', () => {
+  const storage = createMemoryStorage();
+  const local = createWatchlistLifecycle({ storage, now: () => 1000 });
+  local.setStatus('saved', 'watching', { snapshot: { id: 'saved', title: 'Saved', cover: 'saved.jpg' } });
+  const plan = importPlan(local.getEntries());
+  const otherTab = createWatchlistLifecycle({ storage, now: () => 2000 });
+  otherTab.load();
+  otherTab.setProgress('saved', 5);
+  const raw = storage.getItem('rekonime.watchlist');
+  const runtime = createWatchlistLifecycleRuntime({ getLifecycle: () => local });
+  const result = runtime.applyImport(plan);
+  assert.equal(result.compatibilityResult.reason, 'stale-plan');
+  assert.equal(storage.getItem('rekonime.watchlist'), raw);
+  assert.equal(local.getEntry('saved').progress, 5);
 });
