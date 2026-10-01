@@ -1,10 +1,11 @@
 // @ts-nocheck
+import { IMAGE_PLACEHOLDER } from '../../shared/runtime/image-placeholder.js';
 import { CacheManager } from '../../shared/services/cache-manager.ts';
 import { Logger } from '../../shared/services/logger.ts';
 import { sanitizeImageUrl as sanitizeSafeImageUrl } from '../../shared/security/urlSanitizer.ts';
 
 export const AIRING_REFRESH_INTERVAL_MS = 60 * 1000;
-export const PLACEHOLDER_COVER = 'https://via.placeholder.com/120x170?text=No+Image';
+export const PLACEHOLDER_COVER = IMAGE_PLACEHOLDER;
 
 const AIRING_CACHE_PREFIX = 'rekonime.airing-schedule.v1';
 const AIRING_CACHE_TTL_MS = 90 * 60 * 1000;

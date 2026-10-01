@@ -106,6 +106,7 @@
 - Outputs: complete image-delivery decision, proxy status, availability checks, and fallback transition
 - Interface: resolve primary URL, fallback chain, dimensions, loading hints, and proxy use through one decision; apply image failures through the same module
 - Side effects: localStorage reads/writes for proxy health status
+- Fresh visits use original covers until the proxy health check succeeds. Failed proxies retry the original cover; unavailable covers end at the embedded `image-placeholder.js` image without another network request. Fallback transitions clear responsive image candidates and stop at the embedded image.
 
 ### Runtime Calculations
 - Stable TypeScript entry points: `src/features/discovery/stats.ts`, `src/features/discovery/recommendations.ts`, `src/features/discovery/filterPresets.ts`

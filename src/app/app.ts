@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { IMAGE_PLACEHOLDER } from '../shared/runtime/image-placeholder.js';
 import { Recommendations } from '../features/discovery/recommendations.ts';
 import { Discovery } from '../features/discovery/discovery.js';
 import { FilterPresets } from '../features/discovery/filterPresets.ts';
@@ -2703,7 +2704,7 @@ const App = {
       const safeCover = this.escapeAttr(searchSrc || this.sanitizeImageUrl(anime.cover));
       const searchFallbackAttrs = this.getImageFallbackAttrs({
         fallbackSrc: searchFallback,
-        placeholder: 'https://via.placeholder.com/40x56?text=No'
+        placeholder: IMAGE_PLACEHOLDER
       });
       const safeYear = this.escapeHtml(anime.year ?? 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio ?? 'Unknown');
@@ -3474,7 +3475,7 @@ const App = {
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       const seedFallbackAttrs = this.getImageFallbackAttrs({
         fallbackSrc: fallback,
-        placeholder: 'https://via.placeholder.com/32x45?text=No'
+        placeholder: IMAGE_PLACEHOLDER
       });
       const seedLoadAttrs = this.getImageLoadingAttrs(0, { eagerCount: 1, priorityCount: 0 });
       const seedPriorityAttr = seedLoadAttrs.fetchpriority ? `fetchpriority="${seedLoadAttrs.fetchpriority}"` : '';
@@ -3500,7 +3501,7 @@ const App = {
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       const recFallbackAttrs = this.getImageFallbackAttrs({
         fallbackSrc: fallback,
-        placeholder: 'https://via.placeholder.com/180x120?text=No+Image'
+        placeholder: IMAGE_PLACEHOLDER
       });
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 1, priorityCount: 0 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
@@ -3550,7 +3551,7 @@ const App = {
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       const trendFallbackAttrs = this.getImageFallbackAttrs({
         fallbackSrc: fallback,
-        placeholder: 'https://via.placeholder.com/280x140?text=No+Image'
+        placeholder: IMAGE_PLACEHOLDER
       });
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
@@ -3647,7 +3648,7 @@ const App = {
     setHTML(template, `
       <div class="anime-card" data-action="open-anime" role="button" tabindex="0" aria-label="View details">
         <div class="card-media">
-          <img class="card-cover" ${cardDimAttrs} loading="lazy" data-fallback-src="https://via.placeholder.com/120x170?text=No+Image">
+          <img class="card-cover" ${cardDimAttrs} loading="lazy" data-fallback-src="${IMAGE_PLACEHOLDER}">
         </div>
         <div class="card-body">
           <div class="card-title-row">
@@ -3703,7 +3704,7 @@ const App = {
     const coverUrl = src || this.sanitizeImageUrl(anime.cover);
     const fallbackSources = this.getImageFallbackSources({
       fallbackSrc: fallback,
-      placeholder: 'https://via.placeholder.com/120x170?text=No+Image'
+      placeholder: IMAGE_PLACEHOLDER
     });
 
     const img = card.querySelector('.card-cover');
@@ -3887,7 +3888,7 @@ const App = {
       const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
       const cardFallbackAttrs = this.getImageFallbackAttrs({
         fallbackSrc: fallback,
-        placeholder: 'https://via.placeholder.com/120x170?text=No+Image'
+        placeholder: IMAGE_PLACEHOLDER
       });
 
       const index = startIndex + localIndex;
@@ -4219,7 +4220,7 @@ const App = {
       const recSizesAttr = recSizes ? `sizes="${this.escapeAttr(recSizes)}"` : '';
       const recFallbackAttrs = this.getImageFallbackAttrs({
         fallbackSrc: recFallback,
-        placeholder: 'https://via.placeholder.com/180x120?text=No+Image'
+        placeholder: IMAGE_PLACEHOLDER
       });
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
@@ -4375,7 +4376,7 @@ const App = {
     const rankSizesAttr = rankSizes ? `sizes="${this.escapeAttr(rankSizes)}"` : '';
     const rankFallbackAttrs = this.getImageFallbackAttrs({
       fallbackSrc: rankFallback,
-      placeholder: 'https://via.placeholder.com/60x85?text=No+Image'
+      placeholder: IMAGE_PLACEHOLDER
     });
     const loadAttrs = this.getImageLoadingAttrs(0, { eagerCount: 1, priorityCount: 1 });
     const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
@@ -5171,7 +5172,7 @@ const App = {
       const simSizesAttr = simSizes ? `sizes="${this.escapeAttr(simSizes)}"` : '';
       const simFallbackAttrs = this.getImageFallbackAttrs({
         fallbackSrc: simFallback,
-        placeholder: 'https://via.placeholder.com/200x140?text=No+Image'
+        placeholder: IMAGE_PLACEHOLDER
       });
       return `
                 <div class="similar-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
@@ -5357,7 +5358,7 @@ const App = {
     const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
     const cardFallbackAttrs = this.getImageFallbackAttrs({
       fallbackSrc: fallback,
-      placeholder: 'https://via.placeholder.com/120x170?text=No+Image'
+      placeholder: IMAGE_PLACEHOLDER
     });
 
     const loadingAttrs = this.getImageLoadingAttrs(index);

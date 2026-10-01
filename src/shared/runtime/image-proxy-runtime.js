@@ -7,6 +7,7 @@ import {
   probeImageProxyAvailability
 } from './image-proxy.js';
 import { queueIdleTask } from './runtime-capabilities.ts';
+import { IMAGE_PLACEHOLDER } from './image-placeholder.js';
 
 const createImageProxyRuntime = ({
   storageKey,
@@ -64,7 +65,7 @@ const createImageProxyRuntime = ({
 
     isProxyImageUrl,
 
-    getFallbacks({ fallbackSrc = '', placeholder = '' } = {}) {
+    getFallbacks({ fallbackSrc = '', placeholder = IMAGE_PLACEHOLDER } = {}) {
       return {
         primary: fallbackSrc || placeholder || '',
         secondary: fallbackSrc && placeholder && fallbackSrc !== placeholder ? placeholder : ''
@@ -122,7 +123,7 @@ const createImageProxyRuntime = ({
       const nextStatus = runtime.getStatus();
       if (nextStatus === null) {
         runtime.scheduleCheck();
-        return true;
+        return false;
       }
       return nextStatus === true;
     },
@@ -136,7 +137,7 @@ const createImageProxyRuntime = ({
       sizeKey = '',
       width,
       height,
-      placeholder = '',
+      placeholder = IMAGE_PLACEHOLDER,
       index = 0,
       eagerCount = 0,
       priorityCount = 0,
@@ -177,12 +178,16 @@ const createImageProxyRuntime = ({
 
     handleImageError(img) {
       if (!img || img.tagName !== 'IMG') return false;
+      if (!img.hasAttribute('data-fallback-src') || img.src === IMAGE_PLACEHOLDER) return false;
       if (isProxyImageUrl(img.currentSrc || img.src)) runtime.markFailed();
-      if (img.dataset.fallbackApplied) return false;
-      const fallback = img.dataset.fallbackSrc;
-      if (!fallback) return false;
+      const fallback = !img.dataset.fallbackApplied && img.dataset.fallbackSrc
+        ? img.dataset.fallbackSrc
+        : IMAGE_PLACEHOLDER;
       img.dataset.fallbackApplied = 'true';
-      img.src = fallback;
+      // A responsive candidate takes precedence over src unless it is removed.
+      img.removeAttribute('srcset');
+      img.removeAttribute('sizes');
+      img.src = fallback === img.src ? IMAGE_PLACEHOLDER : fallback;
       if (img.dataset.fallbackSecondary) {
         img.dataset.fallbackSrc = img.dataset.fallbackSecondary;
         delete img.dataset.fallbackSecondary;

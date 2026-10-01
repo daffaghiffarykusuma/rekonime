@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { IMAGE_PLACEHOLDER } from '../../shared/runtime/image-placeholder.js';
 import { Recommendations } from '../discovery/recommendations.ts';
 
 const renderDetailSkeleton = () => `
@@ -244,7 +245,7 @@ const renderDetailContent = (anime, {
   const detailDimAttrs = detailDims ? `width="${detailDims.width}" height="${detailDims.height}"` : '';
   const detailFallbackAttrs = getImageFallbackAttrs({
     fallbackSrc: detailFallback,
-    placeholder: 'https://via.placeholder.com/150x210?text=No+Image'
+    placeholder: IMAGE_PLACEHOLDER
   });
   const decision = buildDetailDecisionData(anime, { episodeCount });
   const detailDecisionClass = sanitizeClassList('detail-verdict', decision.className);

@@ -1,3 +1,4 @@
+import { IMAGE_PLACEHOLDER } from '../../shared/runtime/image-placeholder.js';
 const WATCH_STATUS_VALUES = ['planned', 'watching', 'completed', 'dropped'];
 const WATCH_STATUS_DISPLAY_OPTIONS = [
   { value: '', label: 'Not saved' },
@@ -9,7 +10,7 @@ const WATCH_STATUS_DISPLAY_OPTIONS = [
 const WATCHLIST_STORAGE_KEY = 'rekonime.watchlist';
 const LEGACY_WATCHLIST_STORAGE_KEY = 'rekonime.bookmarks';
 const WATCHLIST_VERSION = 1;
-const DEFAULT_PLACEHOLDER_COVER = 'https://via.placeholder.com/120x170?text=No+Image';
+const DEFAULT_PLACEHOLDER_COVER = IMAGE_PLACEHOLDER;
 
 const normalizeWatchStatus = (value, { fallback = 'planned' } = {}) => {
   const status = String(value || '').trim().toLowerCase();

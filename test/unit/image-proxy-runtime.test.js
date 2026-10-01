@@ -30,7 +30,7 @@ test('image proxy runtime schedules probe and persists healthy status', async ()
     waitForLoad: false
   });
 
-  assert.equal(runtime.shouldUseProxy(), true);
+  assert.equal(runtime.shouldUseProxy(), false);
   await new Promise((resolve) => setTimeout(resolve, 5));
   assert.equal(runtime.getStatus(), true);
   const persisted = JSON.parse(localStorage.getItem(storageKey));
@@ -81,4 +81,45 @@ test('image proxy runtime resolves complete image delivery and failure transitio
   assert.equal(img.src, 'https://cdn.myanimelist.net/show.jpg');
   assert.equal(img.dataset.fallbackSrc, 'https://via.placeholder.com/cover.jpg');
   assert.equal(runtime.getStatus(), false);
+  assert.equal(runtime.handleImageError(img), true);
+  assert.equal(img.src, 'https://via.placeholder.com/cover.jpg');
+  assert.equal(runtime.handleImageError(img), true);
+  assert.match(img.src, /^data:image\/svg\+xml,/);
+  assert.equal(runtime.handleImageError(img), false);
+});
+
+test('exhausted cover fallbacks recover without another network request and stop retrying', () => {
+  setupDom('<img id="cover" alt="Anime title">');
+  const runtime = createImageProxyRuntime({ enabled: false });
+  const img = document.getElementById('cover');
+  img.src = 'https://via.placeholder.com/120x170?text=No+Image';
+  img.dataset.fallbackSrc = img.src;
+  img.dataset.fallbackApplied = 'true';
+
+  assert.equal(runtime.handleImageError(img), true);
+  assert.match(img.src, /^data:image\/svg\+xml,/);
+  assert.equal(img.alt, 'Anime title');
+  const terminalSource = img.src;
+  assert.equal(runtime.handleImageError(img), false);
+  assert.equal(img.src, terminalSource);
+});
+
+test('missing covers get a built-in image without requesting the page itself', () => {
+  setupDom();
+  const runtime = createImageProxyRuntime({ enabled: false });
+  assert.match(runtime.resolveImage({ coverUrl: '' }).src, /^data:image\/svg\+xml,/);
+});
+
+test('fallback removes responsive sources so the browser can load the replacement', () => {
+  setupDom('<img id="cover">');
+  const runtime = createImageProxyRuntime({ enabled: false });
+  const img = document.getElementById('cover');
+  img.src = 'https://example.com/missing.jpg';
+  img.srcset = 'https://example.com/missing-large.jpg 2x';
+  img.sizes = '100vw';
+  img.dataset.fallbackSrc = 'https://example.com/original.jpg';
+  assert.equal(runtime.handleImageError(img), true);
+  assert.equal(img.src, 'https://example.com/original.jpg');
+  assert.equal(img.hasAttribute('srcset'), false);
+  assert.equal(img.hasAttribute('sizes'), false);
 });

@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { IMAGE_PLACEHOLDER } from '../shared/runtime/image-placeholder.js';
 import { ThemeManager } from '../shared/ui/themeManager.js';
 import { updateBackupStatus } from '../features/preferences/backup-status.ts';
 import { SidebarPreference } from '../shared/ui/sidebar-preference.ts';
@@ -21,7 +22,7 @@ import { createWatchlistPageRuntime } from '../features/watchlist/watchlist-page
 import { showToast } from '../shared/ui/toast.ts';
 import './bootstrap/watchlist-cover-preload.js';
 
-const PLACEHOLDER_COVER = 'https://via.placeholder.com/120x170?text=No+Image';
+const PLACEHOLDER_COVER = IMAGE_PLACEHOLDER;
 const CARD_DIMENSIONS = { width: 240, height: 360 };
 const ALLOWED_IMAGE_HOSTS = [
   'cdn.myanimelist.net',
