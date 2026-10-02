@@ -3,6 +3,9 @@
 Rekonime is a static, browser-based anime dashboard that highlights how likely a show is to keep viewers watching, paired with community satisfaction. Each title has a detailed modal with scores, synopsis, trailers, and reviews.
 
 ## Quick start
+
+Use Node.js 24.x and Bun. The Node version is declared in `.nvmrc` for local version managers and CI, and in `package.json` for Vercel builds.
+
 1. Install dependencies: `bun install`
 2. Run local dev server: `bun run dev`
 3. Optional: install git hooks for pre-commit/pre-push checks:
