@@ -12,7 +12,7 @@ Reach a decision-complete implementation plan for importing a MyAnimeList XML ex
 ## Notes
 
 - Planning only. Implementation starts after the map has no unresolved decisions.
-- Use `CONTEXT.md` and `docs/module-contracts.md` as the domain boundary: progress belongs to the Watchlist Lifecycle; the Taste Profile interprets the resulting evidence.
+- Use `GLOSSARY.md` and `docs/module-contracts.md` as the domain boundary: progress belongs to the Watchlist Lifecycle; the Taste Profile interprets the resulting evidence.
 - Ground compatibility decisions in the retained aggregate audit record, the privacy-safe fixture in `test/helpers/mal-watchlist-fixture.js`, and the current Catalog Payload.
 - Preserve existing local Watchlist Entries unless an explicitly resolved merge rule says otherwise.
 - Keep parsing local in the browser unless a ticket establishes a necessary alternative.

@@ -32,7 +32,7 @@ These capabilities come from Effect's [error model](https://effect.website/docs/
 
 Rekonime currently declares only development dependencies. Its app runs in the browser through Vite, while JavaScript/Bun tooling and Python handle data work. Effect would introduce a new programming model and, if imported by browser code, a runtime dependency. [package.json](../package.json).
 
-The app already has explicit owners for Catalog Runtime, Airing Schedule, Detail Experience, Watchlist Lifecycle, and Personal Data Restore. Their public interfaces provide places to contain an experiment without spreading Effect types through the app shell. [Module contracts](module-contracts.md), [product language](../CONTEXT.md).
+The app already has explicit owners for Catalog Runtime, Airing Schedule, Detail Experience, Watchlist Lifecycle, and Personal Data Restore. Their public interfaces provide places to contain an experiment without spreading Effect types through the app shell. [Module contracts](module-contracts.md), [product language](../GLOSSARY.md).
 
 Several likely candidates use `@ts-nocheck`, including [Catalog Runtime](../src/features/catalog/catalog-loader.ts), [Airing Schedule](../src/features/airing/airing-schedule.ts), and [Detail Experience](../src/features/detail/detail-experience.ts). [Reviews](../src/features/detail/reviews.js) is JavaScript; [tsconfig.json](../tsconfig.json) enables `allowJs` without `checkJs`. A checked TypeScript pilot is necessary to assess the typed-error benefit. Adding Effect to unchecked code would still supply runtime operators, but would not deliver the same compiler feedback.
 
