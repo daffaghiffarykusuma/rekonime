@@ -31,7 +31,10 @@ Use Node.js 24.x and Bun. The Node version is declared in `.nvmrc` for local ver
 - Production builds also emit a runtime full index (`dist/data/anime.full.index.json`) plus per-title detail chunks (`dist/data/anime.detail/*.json`) so the browser does not need the monolithic full catalog for every detail view.
 - A compact fallback dataset is embedded in `public/js/data.js` for `file://` browsing and fetch failures.
 
-If you want to refresh data:
+Use `bun tools/refresh-season-scores.js --date 2026-10-04 --dry-run` to confirm the Fall 2026 and Summer 2026 targets. Remove `--dry-run` to refresh scores and rebuild the catalogs. If Jikan is unavailable, add `--score-source mal` to fetch community scores directly from MyAnimeList. The default, `auto`, tries Jikan first and falls back to MAL.
+
+For imports and other data changes:
+
 1) Update or merge source data in `data/anime.json`.
 2) Build the preview/full catalogs:
    - `bun run data:build`
@@ -153,7 +156,7 @@ flowchart TD
   app --> preview[data/anime.preview.json]
   app --> full[data/anime.full.json]
   full --> embed[public/js/data.js]
-  reviews --> jikan[Jikan API (MyAnimeList)]
+  reviews --> jikan["Jikan API (MyAnimeList)"]
   serviceWorkerManager --> sw[sw.js]
 ```
 

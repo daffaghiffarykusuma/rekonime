@@ -13,7 +13,8 @@ const kib = 1024;
 const totalBudgetBytes = 27 * mib;
 const fileBudgets = new Map([
   ['js/data.js', 1.5 * mib],
-  ['data/anime.full.index.json', 4 * mib],
+  // Allow the 3,649-title catalog after the Fall 2026 import.
+  ['data/anime.full.index.json', 4.1 * mib],
   ['data/franchise-map.json', 2.5 * mib],
   ['js/app.ts', 225 * kib],
   ['css/styles.css', 170 * kib],

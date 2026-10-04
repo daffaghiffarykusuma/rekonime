@@ -25,3 +25,20 @@ test('community score keeps MAL N/A as missing', async () => {
 
   assert.equal(await fetchCommunityScore(62495, request), null);
 });
+
+test('explicit MAL source skips unavailable Jikan and preserves unrated titles', async () => {
+  const urls = [];
+  const request = async (url) => {
+    urls.push(url);
+    return new Response(url.endsWith('/61987')
+      ? '<span itemprop="ratingValue">8.65</span>'
+      : '<span class="score-label score-na">N/A</span>');
+  };
+
+  assert.equal(await fetchCommunityScore(61987, request, 'mal'), 8.65);
+  assert.equal(await fetchCommunityScore(62495, request, 'mal'), null);
+  assert.deepEqual(urls, [
+    'https://myanimelist.net/anime/61987',
+    'https://myanimelist.net/anime/62495'
+  ]);
+});

@@ -9,7 +9,11 @@ export const parseMalCommunityScore = (html) => {
   return Number.isFinite(score) ? score : null;
 };
 
-export const fetchCommunityScore = async (malId, request) => {
+export const fetchCommunityScore = async (malId, request, source = 'auto') => {
+  if (source === 'mal') {
+    const response = await request(`https://myanimelist.net/anime/${malId}`, { headers: HEADERS });
+    return parseMalCommunityScore(await response.text());
+  }
   try {
     const response = await request(`https://api.jikan.moe/v4/anime/${malId}`, { headers: HEADERS });
     const score = Number((await response.json())?.data?.score);

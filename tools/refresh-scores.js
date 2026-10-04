@@ -28,7 +28,8 @@ const parseArgs = (argv) => {
     malDelayMs: DEFAULT_MAL_DELAY_MS,
     jikanDelayMs: DEFAULT_JIKAN_DELAY_MS,
     concurrency: DEFAULT_CONCURRENCY,
-    malIds: null
+    malIds: null,
+    scoreSource: 'auto'
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -41,7 +42,10 @@ const parseArgs = (argv) => {
 
     if (value !== null) i += 1;
 
-    if (key === 'data' && value) {
+    if (key === 'score-source') {
+      if (!['auto', 'mal'].includes(value)) throw new Error('--score-source must be auto or mal');
+      options.scoreSource = value;
+    } else if (key === 'data' && value) {
       options.dataPath = path.resolve(process.cwd(), value);
     } else if (key === 'limit' && value) {
       const parsed = Number(value);
@@ -259,6 +263,7 @@ const main = async () => {
     console.log(`Mode: filtered MAL IDs (${options.malIds.size})`);
   }
   console.log(`Data path: ${path.relative(process.cwd(), options.dataPath)}`);
+  console.log(`Community score source: ${options.scoreSource}`);
   console.log(`MAL delay: ${options.malDelayMs}ms | Jikan delay: ${options.jikanDelayMs}ms | Save interval: ${options.saveInterval} | Concurrency: ${options.concurrency}`);
 
   const request = createScoreRefreshRequest(options);
@@ -280,7 +285,7 @@ const main = async () => {
     }
 
     const [communityResult, episodesResult] = await Promise.allSettled([
-      fetchCommunityScore(malId, request),
+      fetchCommunityScore(malId, request, options.scoreSource),
       fetchEpisodeScores(malId, slug, request)
     ]);
 

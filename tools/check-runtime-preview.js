@@ -12,7 +12,8 @@ const runtimeFullIndexPath = path.join(dist, 'data', 'anime.full.index.json');
 const runtimeFullPath = path.join(dist, 'data', 'anime.full.json');
 const detailDir = path.join(dist, 'data', 'anime.detail');
 
-const fullIndexRawBudgetBytes = 4 * 1024 * 1024;
+// Allow the 3,649-title catalog after the Fall 2026 import.
+const fullIndexRawBudgetBytes = 4.1 * 1024 * 1024;
 const detailChunkRawBudgetBytes = 128 * 1024;
 
 const formatBytes = (bytes) => {

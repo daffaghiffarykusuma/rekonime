@@ -16,6 +16,7 @@ const SEASONS = [
 ];
 
 const REFRESH_PASS_THROUGH_ARGS = new Set([
+  '--score-source',
   '--save-interval',
   '--mal-delay-ms',
   '--jikan-delay-ms',
