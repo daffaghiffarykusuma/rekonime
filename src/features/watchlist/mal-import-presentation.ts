@@ -1,4 +1,4 @@
-import type { MalImportPlan } from './mal-watchlist-import.ts';
+import type { MalImportPlan } from './mal-import-plan.ts';
 
 const statusLabel = { planned: 'Want to watch', watching: 'Watching now', completed: 'Finished', dropped: 'Stopped' };
 const issueLabel = (reason: string) => ({

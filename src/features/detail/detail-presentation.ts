@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { IMAGE_PLACEHOLDER } from '../../shared/runtime/image-placeholder.js';
 import { Recommendations } from '../discovery/recommendations.ts';
+import { buildDetailDecisionData } from '../discovery/decision-signal.ts';
 
 const renderDetailSkeleton = () => `
   <div class="detail-skeleton">
@@ -38,42 +39,6 @@ const renderReviewsLoading = () => `
     <div class="reviews-loading"><div class="loading-spinner"></div><p>Loading reviews...</p></div>
   </div>
 `;
-
-const buildDetailDecisionData = (anime, { episodeCount = 0 } = {}) => {
-  const hasEpisodes = episodeCount > 0;
-  const retention = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
-    ? Math.round(anime.stats.retentionScore)
-    : null;
-  const satisfaction = Number.isFinite(anime?.communityScore)
-    ? anime.communityScore
-    : null;
-
-  if (retention !== null) {
-    const note = Recommendations.getRatingEvidenceLabel(anime);
-    return {
-      value: `${retention}/100`,
-      label: 'Episode rating strength',
-      note,
-      className: Recommendations.getRetentionClass(retention)
-    };
-  }
-
-  if (satisfaction !== null) {
-    return {
-      value: satisfaction.toFixed(1),
-      label: 'Community score',
-      note: 'Use genre fit to decide',
-      className: Recommendations.getMalSatisfactionClass(satisfaction)
-    };
-  }
-
-  return {
-    value: 'N/A',
-    label: 'Decision signal',
-    note: 'Open details for more context',
-    className: 'score-low'
-  };
-};
 
 const renderTagList = (values, { escapeHtml }) => Array.isArray(values) && values.length > 0
   ? values.map(value => `<span class="detail-tag">${escapeHtml(value)}</span>`).join('')

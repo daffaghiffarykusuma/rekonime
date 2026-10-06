@@ -13,8 +13,7 @@ import { CatalogPayload } from '../features/catalog/catalog-payload.ts';
 import { Logger } from '../shared/services/logger.ts';
 import { HealthMonitor } from '../shared/runtime/healthMonitor.js';
 import { createImageProxyRuntime } from '../shared/runtime/image-proxy-runtime.js';
-import { createDetailExperience } from '../features/detail/detail-experience.ts';
-import { buildDetailDecisionData } from '../features/detail/detail-presentation.ts';
+import { buildDetailDecisionData } from '../features/discovery/decision-signal.ts';
 import { createRuntimeCapabilities } from '../shared/runtime/runtime-capabilities.ts';
 import { createViewingIntentRuntime } from '../features/discovery/viewing-intent.ts';
 import {
@@ -46,10 +45,6 @@ import {
   restorePersonalData
 } from '../features/preferences/personal-data-restore.ts';
 import { dismissToast as dismissToastNotification, showToast as showToastNotification } from '../shared/ui/toast.ts';
-import {
-  parseMalWatchlistXml,
-  planMalWatchlistImport
-} from '../features/watchlist/mal-watchlist-import.ts';
 
 /**
  * Main application logic for Anime Scoring Dashboard
@@ -175,13 +170,29 @@ const App = {
     return this.catalogRuntime;
   },
 
-  getDetailExperience() {
-    if (!this.detailExperience) {
-      this.detailExperience = createDetailExperience(this, {
-        catalogRuntime: this.getCatalogRuntime()
-      });
+  async loadDetailExperience() {
+    if (this.detailExperience) return this.detailExperience;
+    if (!this.detailExperiencePromise) {
+      this.detailExperiencePromise = import('../features/detail/detail-experience.ts')
+        .then(({ createDetailExperience }) => {
+          this.detailExperience = createDetailExperience(this, {
+            catalogRuntime: this.getCatalogRuntime()
+          });
+          return this.detailExperience;
+        })
+        .finally(() => { this.detailExperiencePromise = null; });
     }
-    return this.detailExperience;
+    return this.detailExperiencePromise;
+  },
+
+  async loadMalImport() {
+    if (this.malImportModule) return this.malImportModule;
+    if (!this.malImportPromise) {
+      this.malImportPromise = import('../features/watchlist/mal-watchlist-import.ts')
+        .then(module => { this.malImportModule = module; return module; })
+        .finally(() => { this.malImportPromise = null; });
+    }
+    return this.malImportPromise;
   },
 
   getRuntimeCapabilities() {
@@ -800,6 +811,10 @@ const App = {
     this.malImportState = { stage: 'loading', file, fileName: file.name || 'MyAnimeList XML', choices: {} };
     this.rerenderMalWatchlistImport('mal-import-loading', 'Preparing import review.');
     try {
+      const { parseMalWatchlistXml, planMalWatchlistImport } = await this.loadMalImport().catch(() => {
+        throw new Error('The import tools could not load. Check your connection and retry this review.');
+      });
+      if (this.malImportRequestId !== requestId) return;
       let parseResult;
       try { parseResult = parseMalWatchlistXml(await file.text()); }
       catch { if (this.malImportRequestId === requestId) this.malImportState.fileReadFailed = true; throw new Error('We could not read this file. Try again or choose another XML export.'); }
@@ -825,7 +840,7 @@ const App = {
     const state = this.malImportState;
     if (state?.stage !== 'review') return;
     state.choices = { ...state.choices, [id]: useMal };
-    state.plan = planMalWatchlistImport({ parseResult: state.parseResult, fullCatalog: this.animeData,
+    state.plan = this.malImportModule.planMalWatchlistImport({ parseResult: state.parseResult, fullCatalog: this.animeData,
       currentEntries: state.reviewEntries, choices: state.choices });
     const value = useMal ? 'mal' : 'keep';
     this.rerenderMalWatchlistImport('', `${state.plan.summary.creates + state.plan.summary.updates} changes selected, ${state.plan.summary.skipped} rows skipped.`);
@@ -1275,7 +1290,7 @@ const App = {
 
     // Refresh trailer if relevant setting changed
     if (['trailerAutoplay', 'dataSaver'].includes(key)) {
-      this.getDetailExperience().refreshTrailerSection();
+      this.detailExperience?.refreshTrailerSection();
     }
   },
 
@@ -1420,7 +1435,7 @@ const App = {
           throw new Error('Failed to load catalog');
         }
         if (requestedAnimeId) {
-          await this.getDetailExperience().handleDeepLink(requestedAnimeId);
+          await this.showAnimeDetail(requestedAnimeId, { deepLink: true, updateUrl: false });
         }
       }
 
@@ -2384,7 +2399,12 @@ const App = {
    * Sync modal state to the current URL.
    */
   syncModalWithUrl({ updateUrl = true } = {}) {
-    return this.getDetailExperience().syncWithUrl({ updateUrl });
+    const animeId = this.getAnimeIdFromUrl();
+    if (animeId) {
+      if (this.currentAnimeId !== animeId) return this.showAnimeDetail(animeId, { updateUrl });
+    } else if (this.currentAnimeId) {
+      return this.closeDetailModal({ updateUrl });
+    }
   },
 
   getAnimeIdFromUrl() {
@@ -4916,7 +4936,7 @@ const App = {
       }
 
       if (action === 'toggle-trailer') {
-        this.getDetailExperience().toggleTrailerPlayback();
+        this.detailExperience?.toggleTrailerPlayback();
         return;
       }
 
@@ -4964,7 +4984,7 @@ const App = {
       }
 
       if (action === 'retry-reviews') {
-        void this.getDetailExperience().refreshCommunityReviews();
+        void this.detailExperience?.refreshCommunityReviews();
         return;
       }
     });
@@ -5202,15 +5222,38 @@ const App = {
   /**
    * Show anime detail modal
    */
-  showAnimeDetail(animeId, options = {}) {
-    return this.getDetailExperience().open(animeId, options);
+  async showAnimeDetail(animeId, { deepLink = false, ...options } = {}) {
+    const requestId = (this.detailOpenRequestId || 0) + 1;
+    this.detailOpenRequestId = requestId;
+    this.currentAnimeId = animeId;
+    const content = document.getElementById('detail-content');
+    if (!this.detailExperience && content) {
+      setHTML(content, '<p role="status">Loading details...</p>');
+      this.getRuntimeCapabilities().setModalVisibility('detail-modal', true, {
+        initialFocusSelector: '#close-detail'
+      });
+    }
+    try {
+      const detail = await this.loadDetailExperience();
+      if (this.detailOpenRequestId !== requestId) return;
+      return deepLink ? await detail.handleDeepLink(animeId) : detail.open(animeId, options);
+    } catch (error) {
+      if (this.detailOpenRequestId !== requestId) return;
+      this.getLogger()?.warn?.('Unable to load details', { error });
+      if (content) setHTML(content, `<p role="alert">Details could not load. Check your connection and try again.</p><button type="button" class="btn btn-primary" data-action="open-anime" data-anime-id="${this.escapeAttr(animeId)}">Retry details</button>`);
+    }
   },
 
   /**
    * Close detail modal
    */
   closeDetailModal({ updateUrl = true } = {}) {
-    return this.getDetailExperience().close({ updateUrl });
+    this.detailOpenRequestId = (this.detailOpenRequestId || 0) + 1;
+    if (this.detailExperience) return this.detailExperience.close({ updateUrl });
+    this.getRuntimeCapabilities().setModalVisibility('detail-modal', false);
+    this.currentAnimeId = null;
+    if (updateUrl) this.updateUrlForAnime(null);
+    this.updateMetaForFilters();
   },
 
   /**

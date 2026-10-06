@@ -129,7 +129,7 @@ const getEpisodeCount = (anime) => {
   return Math.max(directCount, listCount, statsCount);
 };
 
-const normalizeAnimeData = (animeList = []) => {
+const normalizeAnimeData = (animeList = [], { deferSearchIndex = false } = {}) => {
   if (!Array.isArray(animeList)) return [];
 
   return animeList.map(anime => {
@@ -158,7 +158,7 @@ const normalizeAnimeData = (animeList = []) => {
     const communityScore = Number.isFinite(Number(rawCommunityScore)) ? Number(rawCommunityScore) : null;
     const source = anime?.metadata ? anime.metadata : anime;
     const resolvedTitle = anime?.metadata ? (anime.metadata.title || anime.title) : anime?.title;
-    const shouldBuildSearchIndex = !existingSearchIndex && !existingSearchText;
+    const shouldBuildSearchIndex = !deferSearchIndex && !existingSearchIndex && !existingSearchText;
     const searchIndex = shouldBuildSearchIndex
       ? buildSearchIndex(resolvedTitle, normalizedTitleEnglish, normalizedTitleJapanese)
       : existingSearchIndex;
@@ -233,7 +233,9 @@ const prepareCatalogPayloadState = (
     defaultActiveFilters = DEFAULT_ACTIVE_FILTERS
   } = {}
 ) => {
-  const animeData = normalizeAnimeData(payload?.anime || []);
+  // BrowseFiltering builds title variants when search is first used. Keep that
+  // work off startup even when the compact index omits serialized searchText.
+  const animeData = normalizeAnimeData(payload?.anime || [], { deferSearchIndex: true });
   const scoreProfile = isValidScoreProfile(payload?.scoreProfile) ? payload.scoreProfile : null;
 
   return {

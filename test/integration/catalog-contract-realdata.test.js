@@ -3,6 +3,28 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Stats } from '../../src/features/discovery/stats.ts';
+import { CatalogPayload } from '../../src/features/catalog/catalog-payload.ts';
+import { BrowseFiltering } from '../../src/features/discovery/browse-filtering.ts';
+
+test('compact catalogs preserve title variants, search ranking, and genre search', () => {
+  const full = readCatalog('anime.full.json').anime;
+  const original = CatalogPayload.normalizeAnimeData(full);
+  const compact = CatalogPayload.prepareState({ anime: full.map(({ searchText, detailPath, ...anime }) => anime) }).animeData;
+  for (let i = 0; i < original.length; i += 1) {
+    assert.deepEqual(compact[i].searchIndex, original[i].searchIndex, original[i].id);
+  }
+  const ids = entries => entries.map(anime => anime.id);
+  for (const query of ['Doraemon', 'ドラえもん', 'Fullmetal Alchemist', '2.5-jigen', 'Steins Gate', '進撃の巨人', 'Action', 'School']) {
+    assert.deepEqual(
+      ids(BrowseFiltering.findSearchMatches({ animeData: compact, query })),
+      ids(BrowseFiltering.findSearchMatches({ animeData: original, query })), query
+    );
+    assert.deepEqual(
+      ids(BrowseFiltering.applyFilters({ animeData: compact, searchQuery: query }).filteredData),
+      ids(BrowseFiltering.applyFilters({ animeData: original, searchQuery: query }).filteredData), query
+    );
+  }
+});
 
 test('Python-built rating strength and evidence agree with browser calculations', () => {
   const catalog = readCatalog('anime.full.json');

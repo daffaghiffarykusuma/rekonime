@@ -5,7 +5,7 @@ import { setupDom } from '../helpers/dom.js';
 
 const fullIndexPayload = {
   anime: [
-    { id: 'full-entry', title: 'Full Entry', detailPath: 'data/anime.detail/full-entry.json' }
+    { id: 'full-entry', title: 'Full Entry' }
   ]
 };
 const jsonResponse = (payload, status = 200) => new Response(JSON.stringify(payload), {
@@ -46,6 +46,20 @@ const createRuntimeHarness = (overrides = {}) => {
 
   return { runtime, session, state, events, applied };
 };
+
+test('Catalog runtime derives encoded detail URLs without serialized paths', async () => {
+  const id = 'title / 日本語';
+  const paths = [];
+  const { runtime, state } = createRuntimeHarness({
+    fetchFn: async path => {
+      paths.push(path);
+      return jsonResponse({ anime: [{ id, title: 'Title', synopsis: 'Detail loaded', episodes: [] }] });
+    }
+  });
+  state.animeData = [{ id, title: 'Title' }];
+  assert.equal((await runtime.loadAnimeDetailChunk(id)).synopsis, 'Detail loaded');
+  assert.deepEqual(paths, [`data/anime.detail/${encodeURIComponent(id)}.json`]);
+});
 
 test('Catalog runtime loadInitialData applies the full index directly', async () => {
   setupDom(undefined, { url: 'https://example.com/' });

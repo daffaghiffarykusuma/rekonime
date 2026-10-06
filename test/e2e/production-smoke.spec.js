@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { buildPrivacySafeMalExport } from '../helpers/mal-watchlist-fixture.js';
 
 const ignoredConsoleErrorPatterns = [
   /favicon/i
@@ -49,6 +51,7 @@ test('mobile filters, menu, and sidebar work with touch', async ({ browser, base
   await page.locator('.header-more-toggle').tap();
   await expect(page.locator('.header-controls .watchlist-link:visible, .mobile-watchlist-link:visible')).toHaveCount(1);
   await expect(page.locator('.header-more .help-label')).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('mobile-catalog.png') });
 
   for (const path of ['/', '/watchlist.html']) {
     for (const mode of ['auto-hide', 'compact', 'expanded']) {
@@ -76,6 +79,7 @@ test('mobile filters, menu, and sidebar work with touch', async ({ browser, base
 test('production build supports browse, full catalog, search, details, and watchlist', async ({ page, context }) => {
   const failures = installFailureCollectors(page);
   const catalogRequests = [];
+  const scriptRequests = [];
 
   await context.route('https://api.jikan.moe/**', (route) => {
     const isReviewsRequest = route.request().url().includes('/reviews');
@@ -104,6 +108,7 @@ test('production build supports browse, full catalog, search, details, and watch
     if (url.pathname.startsWith('/data/')) {
       catalogRequests.push(url.pathname);
     }
+    if (url.pathname.startsWith('/js/')) scriptRequests.push(url.pathname);
   });
 
   await page.goto('/');
@@ -119,6 +124,9 @@ test('production build supports browse, full catalog, search, details, and watch
   expect(catalogRequests).toContain('/data/anime.full.index.json');
   expect(catalogRequests).not.toContain('/data/anime.preview.json');
   expect(catalogRequests).not.toContain('/data/anime.full.json');
+  expect(scriptRequests).not.toContain('/js/detail-experience.js');
+  expect(scriptRequests).not.toContain('/js/mal-watchlist-import.js');
+  await page.screenshot({ path: test.info().outputPath('desktop-catalog.png') });
 
   const searchInput = page.locator('#header-search');
   await searchInput.click();
@@ -132,6 +140,7 @@ test('production build supports browse, full catalog, search, details, and watch
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
   await expect(page.locator('#detail-modal.visible')).toContainText(/Episodes|Franchise|Finish Rate/i);
   await page.waitForSelector('#watchlist-select');
+  expect(scriptRequests).toContain('/js/detail-experience.js');
   await page.selectOption('#watchlist-select', 'planned');
 
   await page.goto('/watchlist.html');
@@ -139,4 +148,39 @@ test('production build supports browse, full catalog, search, details, and watch
   await expect(page.locator('#watchlist-grid .anime-card').first()).toBeVisible();
 
   expect(failures).toEqual([]);
+});
+
+test('production deep links load detail code and close back to browsing', async ({ page }) => {
+  const anime = JSON.parse(readFileSync('dist/data/anime.full.index.json', 'utf8')).anime[0];
+  await page.goto(`/?anime=${encodeURIComponent(anime.id)}`);
+  await expect(page.locator('#detail-content')).toContainText(anime.title);
+  await expect(page.locator('#detail-modal')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => performance.getEntriesByType('resource')
+    .some(entry => entry.name.endsWith('/js/detail-experience.js')))).toBe(true);
+  await page.locator('#close-detail').click();
+  await expect(page.locator('#detail-modal')).not.toBeVisible();
+  expect(new URL(page.url()).searchParams.has('anime')).toBe(false);
+});
+
+test('production MAL import loads tools on file selection and applies a reviewed batch', async ({ page }) => {
+  const scripts = [];
+  page.on('request', request => scripts.push(new URL(request.url()).pathname));
+  const catalog = JSON.parse(readFileSync('dist/data/anime.full.index.json', 'utf8')).anime;
+  const xml = buildPrivacySafeMalExport(catalog, { matched: 1, unmatched: 1 });
+  await page.goto('/watchlist.html');
+  await page.getByRole('button', { name: 'Import from MAL', exact: true }).click();
+  await expect(page.locator('#mal-watchlist-import-file')).toBeVisible();
+  expect(scripts).not.toContain('/js/mal-watchlist-import.js');
+  await page.locator('#mal-watchlist-import-file').setInputFiles({
+    name: 'watchlist.xml', mimeType: 'application/xml', buffer: Buffer.from(xml)
+  });
+  await expect(page.getByRole('heading', { name: '2 rows are ready to review' })).toBeVisible();
+  expect(scripts).toContain('/js/mal-watchlist-import.js');
+  await expect(page.locator('[data-mal-count="matched"]')).toHaveText('1');
+  await expect(page.locator('[data-mal-count="unmatched"]')).toHaveText('1');
+  expect(await page.evaluate(() => localStorage.getItem('rekonime.watchlist'))).toBeNull();
+  await page.getByRole('button', { name: 'Review 1 Watchlist changes' }).click();
+  await page.getByRole('button', { name: 'Apply Watchlist changes' }).click();
+  await expect(page.getByRole('heading', { name: '1 Watchlist entries imported' })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')).entries.length)).toBe(1);
 });

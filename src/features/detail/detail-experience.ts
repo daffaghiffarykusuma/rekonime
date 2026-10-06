@@ -226,6 +226,7 @@ const createDetailExperience = (app, dependencies = {}) => {
   };
 
   const handleDeepLink = async (animeId) => {
+    const requestId = app.detailOpenRequestId;
     const { modal, content } = getDetailElements();
 
     if (!modal || !content) return false;
@@ -239,6 +240,7 @@ const createDetailExperience = (app, dependencies = {}) => {
 
     if (!anime && !app.isFullDataLoaded) {
       const fullLoaded = await catalogRuntime.loadFullCatalog();
+      if (app.detailOpenRequestId !== requestId) return false;
       if (fullLoaded) {
         anime = app.animeData.find(entry => entry?.id === animeId) || null;
       }

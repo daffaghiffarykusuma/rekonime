@@ -3,7 +3,7 @@ import {
   buildWatchlistTransitionEnvelope,
   normalizeWatchId
 } from './watchlist-state.js';
-import { fingerprintWatchlist, validateMalImportPlan } from './mal-watchlist-import.ts';
+import { fingerprintWatchlist, validateMalImportPlan } from './mal-import-plan.ts';
 
 const createWatchlistLifecycleRuntime = ({
   buildSnapshot,

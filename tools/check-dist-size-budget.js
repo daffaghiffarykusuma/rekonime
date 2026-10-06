@@ -14,10 +14,10 @@ const totalBudgetBytes = 27 * mib;
 const fileBudgets = new Map([
   ['js/data.js', 1.5 * mib],
   // Allow the 3,649-title catalog after the Fall 2026 import.
-  ['data/anime.full.index.json', 4.1 * mib],
+  ['data/anime.full.index.json', 3.6 * mib],
   ['data/franchise-map.json', 2.5 * mib],
-  ['js/app.ts', 225 * kib],
-  ['css/styles.css', 170 * kib],
+  ['js/app.js', 190 * kib],
+  ['fonts/phosphor-icons.woff2', 8 * kib],
   [/^css\/main-[A-Za-z0-9_-]+\.css$/, 125 * kib],
   ['css/watchlist.css', 100 * kib]
 ]);
@@ -59,14 +59,18 @@ const main = () => {
   }
 
   for (const [fileMatcher, budgetBytes] of fileBudgets) {
-    const file = files.find((entry) => (
+    const matches = files.filter((entry) => (
       fileMatcher instanceof RegExp
         ? fileMatcher.test(entry.relativePath)
         : entry.relativePath === fileMatcher
     ));
-    if (!file) continue;
-    if (file.size > budgetBytes) {
-      failures.push(`${file.relativePath} is ${formatBytes(file.size)}, above budget ${formatBytes(budgetBytes)}.`);
+    if (!matches.length) {
+      failures.push(`Required budgeted asset is missing: ${fileMatcher}.`);
+    }
+    for (const file of matches) {
+      if (file.size > budgetBytes) {
+        failures.push(`${file.relativePath} is ${formatBytes(file.size)}, above budget ${formatBytes(budgetBytes)}.`);
+      }
     }
   }
 

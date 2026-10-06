@@ -19,6 +19,7 @@
 - App handoff: `src/app/app.ts` (`applyCatalogPayload`, render/filter/meta refresh); App and Detail Experience call Catalog Runtime directly rather than mirroring its commands
 - Inputs: catalog JSON payloads (full index, detail chunks, embedded fallback)
 - Outputs: normalized `App.animeData`, filter options, score profile
+- Runtime index omits `searchText` and `detailPath`; normalization builds search variants from all title fields, and Catalog Runtime derives detail URLs from the encoded anime ID. Build checks verify each derived chunk exists and enforce raw and gzip index budgets.
 - Interface: load the initial/full catalog, track scheduled and active loads, and enrich a requested anime through detail chunks; Catalog Runtime owns detail readiness, request deduplication, requested-title acceptance, Catalog Payload normalization, merging into the current catalog, and accepted-detail bookkeeping. Network fetching and full-catalog cache access stay private to the runtime.
 - Detail enrichment effects: one App adapter callback invalidates detail and grid caches and refreshes Watchlist Snapshots after acceptance. Rejected chunks remain retryable; accepted empty-episode chunks are remembered. Detail Experience refreshes only when enrichment returns a different record for the still-open title.
 - Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `src/features/catalog/catalog-payload.ts` owns payload acceptance, normalization, score-profile validation, validation handoff, render-ready catalog state, and downstream refresh intent; the App Shell applies document, cache, Snapshot, Airing Schedule, and filter effects from that intent
@@ -76,6 +77,7 @@
 
 ### Detail Experience
 - Stable TypeScript entry point: `src/features/detail/detail-experience.ts`
+- Loaded on the first detail request. App Shell shows a loading message while the module downloads, ignores cancelled or superseded opens, and allows failed downloads to be retried. `src/features/discovery/decision-signal.ts` owns the score summary shared by browse cards and detail presentation without loading the modal implementation.
 - Media module: `src/features/detail/detail-media.ts`
 - Private Reviews implementation: `src/features/detail/reviews.js`, lazy-loaded by Detail Experience with Jikan and AniList as external adapters
 - Presentation module: `src/features/detail/detail-presentation.ts`

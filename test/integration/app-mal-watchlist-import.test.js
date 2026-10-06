@@ -4,6 +4,36 @@ import { readFileSync } from 'node:fs';
 import { App } from '../../src/app/app.ts';
 import { setupDom } from '../helpers/dom.js';
 
+test('cancelling an import while tools load prevents file reads and review changes', async () => {
+  setupDom('<div id="settings-content"></div>');
+  const original = App.loadMalImport;
+  let resolve;
+  App.loadMalImport = () => new Promise(done => { resolve = done; });
+  let read = false;
+  try {
+    const pending = App.importMalWatchlistFile({ name: 'cancel.xml', text: async () => { read = true; return ''; } });
+    App.cancelMalWatchlistImport();
+    resolve({});
+    await pending;
+    assert.equal(read, false);
+    assert.equal(App.malImportState.stage, 'choose');
+  } finally { App.loadMalImport = original; }
+});
+
+test('import tool download failures preserve the file for retry without writing watchlist data', async () => {
+  setupDom('<div id="settings-content"></div>');
+  const original = App.loadMalImport;
+  App.loadMalImport = async () => { throw new Error('Offline'); };
+  const file = { name: 'retry.xml', text: async () => '' };
+  const before = localStorage.getItem('rekonime.watchlist');
+  try {
+    await App.importMalWatchlistFile(file);
+    assert.equal(App.malImportState.file, file);
+    assert.match(App.malImportState.error, /import tools could not load/);
+    assert.equal(localStorage.getItem('rekonime.watchlist'), before);
+  } finally { App.loadMalImport = original; }
+});
+
 test('App reviews and applies a MAL export as one first-import batch', async () => {
   setupDom('<div id="settings-content"></div>');
   App.animeData = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;

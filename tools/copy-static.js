@@ -56,10 +56,8 @@ const toFullIndexAnime = (anime) => ({
   demographic: anime.demographic,
   communityScore: anime.communityScore,
   episodeCount: anime.episodeCount,
-  searchText: anime.searchText,
   stats: toRuntimeStatsSummary(anime.stats),
-  colorIndex: anime.colorIndex,
-  detailPath: `data/anime.detail/${detailFileName(anime.id)}`
+  colorIndex: anime.colorIndex
 });
 
 const toAnimeDetailChunk = (anime) => ({

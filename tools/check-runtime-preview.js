@@ -13,7 +13,8 @@ const runtimeFullPath = path.join(dist, 'data', 'anime.full.json');
 const detailDir = path.join(dist, 'data', 'anime.detail');
 
 // Allow the 3,649-title catalog after the Fall 2026 import.
-const fullIndexRawBudgetBytes = 4.1 * 1024 * 1024;
+const fullIndexRawBudgetBytes = 3.6 * 1024 * 1024;
+const fullIndexGzipBudgetBytes = 540 * 1024;
 const detailChunkRawBudgetBytes = 128 * 1024;
 
 const formatBytes = (bytes) => {
@@ -55,6 +56,12 @@ const main = () => {
     if (indexBytes.length > fullIndexRawBudgetBytes) {
       failures.push(`Runtime full index raw size ${formatBytes(indexBytes.length)} exceeds budget ${formatBytes(fullIndexRawBudgetBytes)}.`);
     }
+    if (zlib.gzipSync(indexBytes).length > fullIndexGzipBudgetBytes) {
+      failures.push(`Runtime full index exceeds gzip budget ${formatBytes(fullIndexGzipBudgetBytes)}.`);
+    }
+    if (indexAnime.some(anime => 'searchText' in anime || 'detailPath' in anime)) {
+      failures.push('Runtime full index contains redundant searchText or detailPath fields.');
+    }
     const entriesWithFullEpisodes = indexAnime
       .filter((anime) => hasPopulatedArray(anime?.episodes))
       .slice(0, 5)
@@ -69,12 +76,12 @@ const main = () => {
     if (entriesWithRollingAverages.length) {
       failures.push(`Runtime full index contains detailed rolling averages: ${entriesWithRollingAverages.join(', ')}.`);
     }
-    const entriesWithoutDetailPath = indexAnime
-      .filter((anime) => typeof anime?.detailPath !== 'string' || !anime.detailPath)
+    const entriesWithoutDetailChunk = indexAnime
+      .filter((anime) => !anime?.id || !fs.existsSync(path.join(detailDir, `${encodeURIComponent(String(anime.id))}.json`)))
       .slice(0, 5)
       .map((anime) => anime.id || anime.title || 'unknown');
-    if (entriesWithoutDetailPath.length) {
-      failures.push(`Runtime full index entries are missing detail paths: ${entriesWithoutDetailPath.join(', ')}.`);
+    if (entriesWithoutDetailChunk.length) {
+      failures.push(`Runtime full index entries are missing detail chunks: ${entriesWithoutDetailChunk.join(', ')}.`);
     }
   }
 
