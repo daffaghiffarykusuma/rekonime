@@ -159,6 +159,7 @@ const App = {
   airingDashboardAdapter: null,
   catalogRuntime: null,
   watchlistLifecycleRuntime: null,
+  chosenRecommendation: null,
 
   getCache() {
     return CacheManager;
@@ -4137,6 +4138,60 @@ const App = {
   /**
    * Render recommendations section
    */
+  renderChosenTitle(grid) {
+    let panel = document.getElementById('chosen-title');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'chosen-title';
+      panel.className = 'chosen-title';
+      panel.setAttribute('aria-label', 'Your chosen title');
+      grid.before(panel);
+    }
+    const selection = this.chosenRecommendation;
+    const entry = selection && this.getWatchlistLifecycle().getEntry(selection.id);
+    panel.hidden = !entry;
+    if (!entry) { setHTML(panel, ''); return; }
+    const title = this.escapeHtml(selection.title);
+    setHTML(panel, `
+      <p class="chosen-title-confirmation">${entry.status === 'planned' ? 'Saved to Want to watch' : 'Saved in your Watchlist'}</p>
+      <button class="recommendation-title" type="button" data-action="open-anime" data-anime-id="${this.escapeAttr(selection.id)}" aria-label="View details for ${this.escapeAttr(selection.title)}">${title}</button>
+      <div class="chosen-title-actions">
+        <button class="btn btn-secondary btn-sm" type="button" data-action="undo-recommendation-selection" aria-label="Undo saving ${this.escapeAttr(selection.title)}">Undo</button>
+        <a class="btn btn-primary btn-sm" href="/watchlist.html">View watchlist</a>
+      </div>
+    `);
+  },
+
+  selectRecommendation(anime) {
+    const result = this.getWatchlistLifecycleRuntime().selectForLater(anime.id, { episodeCount: CatalogPayload.getEpisodeCount(anime) });
+    if (result?.changed) this.chosenRecommendation = { id: String(anime.id), title: anime.title, undoToken: result.undoToken };
+    this.applyWatchlistRuntimeResult(result);
+    if (result?.changed) {
+      const status = document.getElementById('recommendations-status');
+      if (status) status.textContent = `Saved ${anime.title} to Want to watch. You can undo this selection or view your Watchlist.`;
+      document.querySelector('#chosen-title button[data-action="undo-recommendation-selection"]')?.focus();
+    }
+  },
+
+  undoRecommendationSelection() {
+    const selection = this.chosenRecommendation;
+    if (!selection) return;
+    const result = this.getWatchlistLifecycleRuntime().undoSelection(selection.undoToken);
+    if (result?.changed) this.chosenRecommendation = null;
+    this.applyWatchlistRuntimeResult(result);
+    const status = document.getElementById('recommendations-status');
+    if (result?.changed) {
+      if (status) status.textContent = `Undid saving ${selection.title}. Your other Watchlist entries are unchanged.`;
+      const save = [...document.querySelectorAll('[data-action="quick-save-recommendation"]')].find(button => button.dataset.animeId === selection.id);
+      const focusTarget = save || document.querySelector('#recommendations-grid .recommendation-title') || document.getElementById('recommendations-heading');
+      if (focusTarget?.tagName === 'H2') focusTarget.setAttribute('tabindex', '-1');
+      focusTarget?.focus();
+    } else if (result?.compatibilityResult?.reason === 'stale-selection') {
+      if (status) status.textContent = `Couldn't undo saving ${selection.title} because its Watchlist entry changed. Your newer changes are preserved.`;
+      this.showToast("Couldn't undo this selection because its Watchlist entry changed. Your newer changes are preserved.", { key: 'watchlist', type: 'error' });
+    }
+  },
+
   renderSessionDismissals(grid) {
     let panel = document.getElementById('session-dismissals');
     if (!panel) {
@@ -4184,6 +4239,7 @@ const App = {
     const container = document.getElementById('recommendations-grid');
     if (!container) return;
     this.renderSessionDismissals(container);
+    this.renderChosenTitle(container);
     container.classList.remove('is-loading');
     container.removeAttribute('aria-busy');
     const recDims = this.getImageProxyRuntime().getDimensions('recommendation');
@@ -4792,8 +4848,15 @@ const App = {
         const animeId = actionEl.dataset.animeId;
         const anime = this.animeData.find(item => String(item?.id) === String(animeId));
         if (anime) {
-          this.setWatchStatus(anime.id, 'planned', { episodeCount: CatalogPayload.getEpisodeCount(anime) });
+          this.selectRecommendation(anime);
         }
+        return;
+      }
+
+      if (action === 'undo-recommendation-selection') {
+        event.preventDefault();
+        event.stopPropagation();
+        this.undoRecommendationSelection();
         return;
       }
 

@@ -17,6 +17,8 @@ const createWatchlistLifecycleRuntime = ({
   renderMode = 'controls',
   normalizeId = normalizeWatchId
 }) => {
+  const selections = new WeakMap();
+
   const getReadyLifecycle = () => {
     const lifecycle = getLifecycle();
     if (loadBeforeTransition) lifecycle.load();
@@ -158,6 +160,48 @@ const createWatchlistLifecycleRuntime = ({
     return buildChangedResult(result, { refreshTasteProfile: true });
   };
 
+  const selectForLater = (animeId, options = {}) => {
+    const lifecycle = getReadyLifecycle();
+    lifecycle.load();
+    const previousEntry = lifecycle.getEntry(animeId);
+    const result = setStatus(animeId, 'planned', options);
+    if (!result?.changed) return result;
+    const undoToken = {};
+    selections.set(undoToken, {
+      id: normalizeId(animeId),
+      previousEntry: previousEntry ? structuredClone(previousEntry) : null,
+      savedEntry: structuredClone(result.transition.entry)
+    });
+    return { ...result, undoToken };
+  };
+
+  const undoSelection = (undoToken) => {
+    const receipt = selections.get(undoToken);
+    const reject = (reason) => buildChangedResult({ changed: false, id: receipt?.id, reason });
+    if (!receipt) return reject('stale-selection');
+    const lifecycle = getReadyLifecycle();
+    lifecycle.load();
+    const current = lifecycle.getEntry(receipt.id);
+    // Catalog enrichment can refresh the Snapshot without changing the user's selection.
+    const selectionState = (entry) => {
+      if (!entry) return null;
+      const { snapshot, ...state } = entry;
+      return state;
+    };
+    if (JSON.stringify(selectionState(current)) !== JSON.stringify(selectionState(receipt.savedEntry))) return reject('stale-selection');
+    const candidate = new Map(lifecycle.getEntries().map(entry => [entry.id, entry]));
+    if (receipt.previousEntry) candidate.set(receipt.id, { ...receipt.previousEntry, snapshot: current.snapshot });
+    else candidate.delete(receipt.id);
+    if (!lifecycle.commitEntries(candidate)) return reject('storage-failed');
+    selections.delete(undoToken);
+    const result = buildChangedResult({
+      changed: true, id: receipt.id, entry: lifecycle.getEntry(receipt.id),
+      removed: !receipt.previousEntry, previousEntry: current, operation: 'selection-undo'
+    }, { refreshTasteProfile: true, renderRecommendations: true });
+    result.transition.feedback = { message: 'Undid Watchlist selection' };
+    return result;
+  };
+
   const setLoved = (animeId, loved) => {
     const lifecycle = getReadyLifecycle();
     const context = resolveAnimeContext(lifecycle, animeId);
@@ -183,6 +227,8 @@ const createWatchlistLifecycleRuntime = ({
   };
 
   return {
+    selectForLater,
+    undoSelection,
     adjustProgress,
     applyImport,
     setLoved,
