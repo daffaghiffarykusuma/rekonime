@@ -86,3 +86,50 @@ test('Viewing Intent persists in session storage and expires after four hours of
   now += (4 * 60 * 60 * 1000) + 1;
   assert.equal(runtime.getActive(), null);
 });
+
+test('Session Dismissal survives reload and goal changes without needing a Viewing Intent', () => {
+  const storage = createStorage();
+  const runtime = createViewingIntentRuntime({ storage, now: () => 100 });
+  assert.equal(runtime.dismiss({ id: 42, title: 'A quiet afternoon' }).changed, true);
+  assert.equal(runtime.getActive(), null);
+  const reloaded = createViewingIntentRuntime({ storage, now: () => 200 });
+  assert.deepEqual(reloaded.getDismissed(), [{ id: '42', title: 'A quiet afternoon' }]);
+  reloaded.apply('energy');
+  assert.deepEqual(reloaded.getDismissed(), [{ id: '42', title: 'A quiet afternoon' }]);
+  reloaded.clear();
+  assert.equal(reloaded.getDismissed().length, 1);
+  assert.equal(reloaded.restore('42').changed, true);
+  assert.deepEqual(reloaded.getDismissed(), []);
+});
+
+test('Discovery rendering does not renew dismissals; activity slides expiry and expired state cannot revive', () => {
+  const storage = createStorage();
+  let now = 100;
+  const runtime = createViewingIntentRuntime({ storage, now: () => now });
+  runtime.dismiss({ id: 1, title: 'First pick' });
+  now += (4 * 60 * 60 * 1000) - 1;
+  assert.equal(runtime.getDismissed().length, 1);
+  runtime.recordActivity();
+  now += (4 * 60 * 60 * 1000) - 1;
+  assert.equal(runtime.getDismissed().length, 1);
+  runtime.getActive({ recordActivity: false });
+  now += 1;
+  runtime.recordActivity();
+  assert.deepEqual(runtime.getDismissed(), []);
+  runtime.apply('unwind');
+  assert.deepEqual(runtime.getDismissed(), []);
+  assert.deepEqual(createViewingIntentRuntime({ storage: createStorage() }).getDismissed(), []);
+});
+
+test('Session Dismissal rejects unavailable storage without claiming a skip or restore', () => {
+  let refuse = false;
+  const storage = createStorage();
+  const setItem = storage.setItem;
+  storage.setItem = (...args) => { if (refuse) throw new Error('Storage refused'); return setItem(...args); };
+  const runtime = createViewingIntentRuntime({ storage });
+  runtime.dismiss({ id: 1, title: 'First pick' });
+  refuse = true;
+  assert.equal(runtime.restore('1').changed, false);
+  assert.equal(runtime.dismiss({ id: 2, title: 'Second pick' }).changed, false);
+  assert.deepEqual(runtime.getDismissed(), [{ id: '1', title: 'First pick' }]);
+});

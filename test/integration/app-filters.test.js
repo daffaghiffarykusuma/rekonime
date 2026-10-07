@@ -147,12 +147,12 @@ test('App active filter summary reports matches and keeps clear available', () =
   }
 });
 
-test('App shows six recommendations on desktop and three on mobile', () => {
+test('App starts with three recommendations on desktop and mobile', () => {
   setupDom();
   window.matchMedia = query => ({
     matches: query.includes('max-width: 640px') ? false : false
   });
-  assert.equal(App.getRecommendationDisplayLimit(), 6);
+  assert.equal(App.getRecommendationDisplayLimit(), 3);
   assert.equal(App.initialGridBatchSize, 6);
 
   window.matchMedia = query => ({

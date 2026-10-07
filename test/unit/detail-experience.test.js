@@ -27,7 +27,7 @@ const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
     getWatchlistSnapshot: () => null,
     loadAnimeDetailChunk: async () => null,
     getSynopsisForAnime: (anime) => anime.synopsis || '',
-    renderFranchiseHubSection: () => '',
+    sanitizeClassToken: (value) => String(value).replace(/[^a-zA-Z0-9_-]/g, ''),
     sanitizeClassList: (...classes) => classes.filter(Boolean).join(' '),
     buildImageSrcset: (cover) => ({ src: cover || '', srcset: '', sizes: '', fallback: '' }),
     sanitizeImageUrl: (value) => value || '',
@@ -42,7 +42,6 @@ const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
       getDimensions: () => ({ width: 150, height: 210 })
     }),
     getImageFallbackAttrs: () => '',
-    renderSimilarAnimeSection: () => '<div class="similar-empty"></div>',
     renderWatchlistControls: () => '<div class="watchlist-controls"></div>',
     updateWatchlistControls: (...args) => calls.push(['updateWatchlistControls', ...args]),
     updatePrefetchObserving: () => calls.push(['updatePrefetchObserving']),

@@ -316,6 +316,11 @@ test('light-theme Airing Schedule keeps readable foreground contrast', async ({ 
 });
 
 test('tertiary review attribution remains readable in both themes and narrow layouts', async ({ page }) => {
+  // This checks attribution contrast, not the availability of the review API.
+  await page.route('https://api.jikan.moe/v4/anime/**', route => route.fulfill({
+    json: new URL(route.request().url()).pathname.endsWith('/reviews')
+      ? { data: [] } : { data: { synopsis: 'Catalog synopsis for the contrast check.' } }
+  }));
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
   await page.locator('#anime-grid .anime-card').first().click();
@@ -425,6 +430,47 @@ test('open detail modal from grid', async ({ page }) => {
   await page.locator('#anime-grid .anime-card').first().click();
   await page.waitForSelector('#detail-modal.visible');
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
+});
+
+test('an early detail choice survives catalog-cache completion while detail code is loading', async ({ page }) => {
+  await page.addInitScript(() => {
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (...args) {
+      const request = put.apply(this, args);
+      if (this.name !== 'catalogs') return request;
+      let success;
+      Object.defineProperty(request, 'onsuccess', { set: callback => { success = callback; } });
+      request.addEventListener('success', event => {
+        window.releaseCatalogCache = () => success?.call(request, event);
+      });
+      return request;
+    };
+  });
+  let releaseDetail;
+  const detailReady = new Promise(resolve => { releaseDetail = resolve; });
+  await page.route('**/src/features/detail/detail-presentation.ts', async route => {
+    await detailReady;
+    await route.continue();
+  });
+  await page.goto('/');
+  await page.waitForFunction(() => typeof window.releaseCatalogCache === 'function');
+  const title = page.locator('#anime-grid').getByRole('heading').first();
+  const chosen = await title.textContent();
+  await title.click();
+  await expect(page.locator('#detail-modal')).toBeVisible();
+  await page.evaluate(() => {
+    window.releaseCatalogCache();
+    // Drain the cache completion and boot continuation before releasing detail code.
+    return new Promise(resolve => setTimeout(resolve, 0));
+  });
+  try {
+    await expect(page.locator('#detail-modal')).toBeVisible();
+  } finally {
+    releaseDetail();
+  }
+  await expect(page.locator('#detail-modal')).toContainText(chosen);
+  await page.getByRole('button', { name: 'Close details' }).click();
+  await expect(page.locator('#detail-modal')).not.toBeVisible();
 });
 
 test('header search shows dropdown state', async ({ page }) => {

@@ -210,10 +210,15 @@ const createTasteProfileStore = ({
   now = Date.now
 } = {}) => {
   let profile = emptyProfile();
+  const feedbackReceipts = new Map();
+  let nextReceipt = 0;
+  let persistedRaw = readStorageRaw(storage, storageKey);
 
   const save = (nextProfile = profile) => {
+    feedbackReceipts.clear();
     profile = normalizeProfile({ ...nextProfile, updatedAt: now() });
     writeStorageJSON(storage, storageKey, { ...profile, inferred: undefined });
+    persistedRaw = readStorageRaw(storage, storageKey);
     return profile;
   };
 
@@ -224,6 +229,7 @@ const createTasteProfileStore = ({
       return false;
     }
     profile = normalized;
+    persistedRaw = readStorageRaw(storage, storageKey);
     return true;
   };
 
@@ -234,7 +240,9 @@ const createTasteProfileStore = ({
   };
 
   const load = () => {
+    feedbackReceipts.clear();
     const saved = readStorageJSON(storage, storageKey);
+    persistedRaw = readStorageRaw(storage, storageKey);
     profile = normalizeProfile(saved && { ...saved, inferred: undefined });
     return profile;
   };
@@ -244,65 +252,104 @@ const createTasteProfileStore = ({
     inferred: buildTasteProfileFromWatchlist(watchlistEntries)
   });
 
-  const update = (mapper) => save(mapper(normalizeProfile(profile)));
+  const proposeEvidence = (updates) => {
+    const next = normalizeProfile(profile);
+    const touched = [];
+    updates.forEach(([field, value, present]) => {
+      next.explicit[field] = present
+        ? addUnique(next.explicit[field], value)
+        : removeValue(next.explicit[field], value);
+      // Even an already-present value represents newer intent for Undo safety.
+      touched.push(`${field}:${normalizeTag(value).toLowerCase()}`);
+    });
+    return { next, touched };
+  };
 
-  const addMoreLike = (anime) => update((current) => ({
-    ...current,
-    explicit: {
-      ...current.explicit,
-      moreLikeTitleIds: addUnique(current.explicit.moreLikeTitleIds, anime?.id),
-      preferredGenres: unique([...current.explicit.preferredGenres, ...(anime?.genres || []).slice(0, 2)]),
-      preferredThemes: unique([...current.explicit.preferredThemes, ...(anime?.themes || []).slice(0, 2)]),
-      notForMeTitleIds: removeValue(current.explicit.notForMeTitleIds, anime?.id)
-    }
-  }));
+  const addMoreLike = (anime) => proposeEvidence([
+    ['moreLikeTitleIds', anime.id, true],
+    ['notForMeTitleIds', anime.id, false],
+    ...(anime.genres || []).slice(0, 2).map(value => ['preferredGenres', value, true]),
+    ...(anime.themes || []).slice(0, 2).map(value => ['preferredThemes', value, true])
+  ]);
 
-  const addNotForMe = (anime) => update((current) => ({
-    ...current,
-    explicit: {
-      ...current.explicit,
-      notForMeTitleIds: addUnique(current.explicit.notForMeTitleIds, anime?.id),
-      moreLikeTitleIds: removeValue(current.explicit.moreLikeTitleIds, anime?.id)
-    }
-  }));
+  const addNotForMe = (anime) => proposeEvidence([
+    ['notForMeTitleIds', anime.id, true],
+    ['moreLikeTitleIds', anime.id, false]
+  ]);
 
-  const reduceGenre = (genre) => update((current) => ({
-    ...current,
-    explicit: {
-      ...current.explicit,
-      reducedGenres: addUnique(current.explicit.reducedGenres, genre),
-      preferredGenres: removeValue(current.explicit.preferredGenres, genre)
-    }
-  }));
+  const reduceGenre = (genre) => proposeEvidence([
+    ['reducedGenres', genre, true], ['preferredGenres', genre, false]
+  ]);
 
-  const reduceTheme = (theme) => update((current) => ({
-    ...current,
-    explicit: {
-      ...current.explicit,
-      reducedThemes: addUnique(current.explicit.reducedThemes, theme),
-      preferredThemes: removeValue(current.explicit.preferredThemes, theme)
-    }
-  }));
+  const reduceTheme = (theme) => proposeEvidence([
+    ['reducedThemes', theme, true], ['preferredThemes', theme, false]
+  ]);
 
   const applyRecommendationFeedback = (action, anime, { genre = '', theme = '' } = {}) => {
     if (!anime) return { changed: false, message: '' };
+    if (readStorageRaw(storage, storageKey) !== persistedRaw) {
+      const inferred = profile.inferred;
+      load();
+      profile.inferred = inferred;
+    }
+    let proposal;
+    let message;
     if (action === 'rec-more-like') {
-      addMoreLike(anime);
-      return { changed: true, message: `More like ${anime.title} added to your Taste Profile.` };
+      proposal = addMoreLike(anime);
+      message = `More like ${anime.title} added to your Taste Profile.`;
+    } else if (action === 'rec-not-for-me') {
+      proposal = addNotForMe(anime);
+      message = `${anime.title} hidden from future recommendations. This preference stays saved.`;
+    } else if (action === 'rec-less-tag' && genre) {
+      proposal = reduceGenre(genre);
+      message = `Showing less ${genre}.`;
+    } else if (action === 'rec-less-tag' && theme) {
+      proposal = reduceTheme(theme);
+      message = `Showing less ${theme}.`;
+    } else {
+      return { changed: false, message: '' };
     }
-    if (action === 'rec-not-for-me') {
-      addNotForMe(anime);
-      return { changed: true, message: `${anime.title} hidden from recommendations.` };
+    const { next, touched } = proposal;
+    const changes = [];
+    Object.keys(profile.explicit).forEach(field => {
+      const before = profile.explicit[field];
+      const after = next.explicit[field];
+      unique([...before, ...after]).forEach(value => {
+        const had = before.some(item => item.toLowerCase() === value.toLowerCase());
+        const has = after.some(item => item.toLowerCase() === value.toLowerCase());
+        if (had !== has) changes.push({ field, value, before: had, after: has });
+      });
+    });
+    if (!commitProfile(next)) return { changed: false, message: "Couldn't save your taste preference. Try again." };
+    feedbackReceipts.forEach(receipt => {
+      if (receipt.changes.some(change => touched.includes(`${change.field}:${change.value.toLowerCase()}`))) receipt.conflicted = true;
+    });
+    const undoToken = ++nextReceipt;
+    feedbackReceipts.set(undoToken, { changes, conflicted: false });
+    return { changed: true, message, undoToken };
+  };
+
+  const undoRecommendationFeedback = (undoToken) => {
+    if (readStorageRaw(storage, storageKey) !== persistedRaw) {
+      const inferred = profile.inferred;
+      load();
+      profile.inferred = inferred;
+      return { changed: false, message: 'Your taste preferences changed. Undo was not applied.' };
     }
-    if (action === 'rec-less-tag' && genre) {
-      reduceGenre(genre);
-      return { changed: true, message: `Showing less ${genre}.` };
+    const receipt = feedbackReceipts.get(undoToken);
+    if (!receipt) return { changed: false, message: 'This preference can no longer be undone.' };
+    if (receipt.conflicted) return { changed: false, message: 'Your taste preferences changed. Undo was not applied.' };
+    const { changes } = receipt;
+    const next = normalizeProfile(profile);
+    for (const change of changes) {
+      const values = next.explicit[change.field];
+      const has = values.some(value => value.toLowerCase() === change.value.toLowerCase());
+      if (has !== change.after) return { changed: false, message: 'Your taste preferences changed. Undo was not applied.' };
+      next.explicit[change.field] = change.before ? addUnique(values, change.value) : removeValue(values, change.value);
     }
-    if (action === 'rec-less-tag' && theme) {
-      reduceTheme(theme);
-      return { changed: true, message: `Showing less ${theme}.` };
-    }
-    return { changed: false, message: '' };
+    if (!commitProfile(next)) return { changed: false, message: "Couldn't save Undo. Try again." };
+    feedbackReceipts.delete(undoToken);
+    return { changed: true, message: 'Taste preference undone.' };
   };
 
   const prepareTasteCandidates = (animeList, { excludedIds = [] } = {}) => {
@@ -362,7 +409,11 @@ const createTasteProfileStore = ({
 
   const store = {
     load,
-    commitProfile,
+    commitProfile: (next) => {
+      if (!commitProfile(next)) return false;
+      feedbackReceipts.clear();
+      return true;
+    },
     getPersistedRaw: () => readStorageRaw(storage, storageKey),
     restorePersistedRaw,
     reset,
@@ -378,6 +429,7 @@ const createTasteProfileStore = ({
       watchlist: Array.isArray(watchlistEntries) ? watchlistEntries : []
     }),
     applyRecommendationFeedback,
+    undoRecommendationFeedback,
     prepareRecommendationSource,
     prepareDiscoverySource,
     getSettingsSummary

@@ -1,0 +1,52 @@
+import { test, expect } from '@playwright/test';
+
+test('Skip for now offers keyboard Undo and same-tab recovery without changing saved data', async ({ page, context }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('rekonime.onboarding', 'completed');
+    localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  const card = page.locator('.recommendation-card[data-anime-id]').first();
+  await expect(card).toBeVisible();
+  const id = await card.getAttribute('data-anime-id');
+  const title = await card.locator('.recommendation-title').innerText();
+  const enduringBefore = await page.evaluate(() => ({ watchlist: localStorage.getItem('rekonime.watchlist'), taste: localStorage.getItem('rekonime.tasteProfile') }));
+  const skip = card.getByRole('button', { name: 'Skip for now', exact: true });
+  await skip.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator(`.recommendation-card[data-anime-id="${id}"]`)).toHaveCount(0);
+  const undo = page.getByRole('button', { name: `Undo skip ${title}`, exact: true });
+  await expect(undo).toBeFocused();
+  await expect(page.locator('#recommendations-status')).toContainText('Skipped for now');
+  await page.keyboard.press('Enter');
+  await expect(page.locator(`.recommendation-card[data-anime-id="${id}"]`)).toBeVisible();
+  await page.locator(`.recommendation-card[data-anime-id="${id}"]`).getByRole('button', { name: 'Skip for now', exact: true }).click();
+  await page.reload();
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  await expect(page.locator('.recommendation-card[data-anime-id]').first()).toBeVisible();
+  await expect(page.locator(`.recommendation-card[data-anime-id="${id}"]`)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Help me unwind', exact: false }).first().click();
+  await expect(page.locator(`.recommendation-card[data-anime-id="${id}"]`)).toHaveCount(0);
+  const review = page.getByText('Review skipped titles (1)', { exact: true });
+  await review.focus();
+  await page.keyboard.press('Enter');
+  const restore = page.getByRole('button', { name: `Restore ${title}`, exact: true });
+  await expect(restore).toBeVisible();
+  const box = await restore.boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await restore.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#session-dismissals')).toBeHidden();
+  await expect(page.locator('#recommendations-status')).toContainText('Restored');
+  expect(await page.evaluate(() => ({ watchlist: localStorage.getItem('rekonime.watchlist'), taste: localStorage.getItem('rekonime.tasteProfile') }))).toEqual(enduringBefore);
+
+  await page.locator('.recommendation-card[data-anime-id]').first().getByRole('button', { name: 'Skip for now', exact: true }).click();
+  const fresh = await context.newPage();
+  await fresh.goto('/');
+  await fresh.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  await expect(fresh.locator('.recommendation-card[data-anime-id]').first()).toBeVisible();
+  await expect(fresh.locator('#session-dismissals')).toBeHidden();
+});

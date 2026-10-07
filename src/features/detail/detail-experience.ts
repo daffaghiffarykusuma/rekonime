@@ -81,21 +81,21 @@ const createDetailExperience = (app, dependencies = {}) => {
     };
   };
   const renderContent = (anime, synopsis = '') => presentation.renderDetailContent(anime, {
+    animeData: app.animeData,
     synopsis,
     escapeHtml: app.escapeHtml.bind(app),
     escapeAttr: app.escapeAttr.bind(app),
     sanitizeImageUrl: app.sanitizeImageUrl.bind(app),
     sanitizeClassList: app.sanitizeClassList.bind(app),
+    sanitizeClassToken: app.sanitizeClassToken.bind(app),
     buildImageSrcset: app.buildImageSrcset.bind(app),
     getImageDimensions: (kind) => app.getImageProxyRuntime().getDimensions(kind),
     getImageFallbackAttrs: app.getImageFallbackAttrs.bind(app),
     getEpisodeCount: (anime) => CatalogPayload.getEpisodeCount(anime),
     renderSynopsis: app.renderSynopsis.bind(app),
     renderSynopsisLoading: presentation.renderSynopsisLoading,
-    renderFranchiseHubSection: app.renderFranchiseHubSection.bind(app),
     renderTrailerSection: media.render,
     renderReviewsLoading: presentation.renderReviewsLoading,
-    renderSimilarAnimeSection: app.renderSimilarAnimeSection.bind(app),
     renderWatchlistControls: app.renderWatchlistControls.bind(app)
   });
 

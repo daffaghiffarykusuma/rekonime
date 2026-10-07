@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { App } from '../../src/app/app.ts';
+import { renderFranchiseHubSection } from '../../src/features/detail/detail-presentation.ts';
 import { setupDom } from '../helpers/dom.js';
 
-test('App renders franchise hub guidance with safe catalog actions', () => {
+test('Detail Presentation renders franchise hub guidance with safe catalog actions', () => {
   setupDom(undefined, { url: 'https://example.com/' });
 
   const anime = {
@@ -66,7 +67,11 @@ test('App renders franchise hub guidance with safe catalog actions', () => {
     }
   };
 
-  const html = App.renderFranchiseHubSection(anime);
+  const html = renderFranchiseHubSection(anime, {
+    escapeHtml: App.escapeHtml.bind(App),
+    escapeAttr: App.escapeAttr.bind(App),
+    sanitizeClassToken: App.sanitizeClassToken.bind(App)
+  });
 
   assert.match(html, /Franchise Hub/);
   assert.match(html, /Start with Example Season 1\. This title is step 2 of 2 in the main story\./);

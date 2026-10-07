@@ -3425,6 +3425,26 @@ h4 {
   margin-top: 0.75rem;
 }
 
+.recommendation-taste {
+  margin-block: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.recommendation-taste summary {
+  cursor: pointer;
+  padding-block: 0.65rem;
+}
+
+.recommendation-taste-note {
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.recommendation-taste .rec-feedback-btn {
+  min-height: 2.75rem;
+}
+
 .rec-feedback-btn {
   border: 1px solid var(--border-color);
   border-radius: 999px;
@@ -7014,14 +7034,21 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
   font-weight: 800;
 }
 
+button.toast-action {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
 .toast--success {
   border-color: var(--success);
-  background: var(--success-bg);
 }
 
 .toast--error {
   border-color: var(--error);
-  background: var(--error-bg);
 }
 
 @media (max-width: 640px) {
@@ -7789,3 +7816,19 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
     grid-template-columns: minmax(0, 1fr) 2.75rem 2.75rem;
   }
 }
+
+
+.session-dismissals { margin-block: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.75rem; overflow-wrap: anywhere; }
+.session-dismissals[hidden] { display: none; }
+.chosen-title { margin-block: 1rem; padding: 1rem; border: 1px solid var(--accent-primary); border-radius: 0.75rem; overflow-wrap: anywhere; }
+.chosen-title[hidden] { display: none; }
+.chosen-title-confirmation { margin-bottom: 0.5rem; }
+.chosen-title-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; }
+.chosen-title .btn { min-height: 2.75rem; white-space: normal; }
+.session-dismissals summary { cursor: pointer; min-height: 2.75rem; padding-block: 0.75rem; }
+.session-dismissals ul { list-style: none; padding: 0; }
+.session-dismissals li, .session-dismissals > p { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+.session-dismissals li { margin-block: 0.75rem; }
+.session-dismissals li span { flex: 1 1 12rem; }
+.session-dismissals .btn { min-height: 2.75rem; white-space: normal; }
+.recommendation-quick-actions { gap: 0.5rem; flex-wrap: wrap; }

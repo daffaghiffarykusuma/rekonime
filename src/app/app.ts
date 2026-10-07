@@ -112,6 +112,7 @@ const App = {
     themes: { expanded: false }
   },
   viewingIntentRuntime: null,
+  recommendationDisplayLimit: 3,
   lastRecommendationIds: new Set(),
   headerSearchState: {
     query: '',
@@ -158,6 +159,7 @@ const App = {
   airingDashboardAdapter: null,
   catalogRuntime: null,
   watchlistLifecycleRuntime: null,
+  chosenRecommendation: null,
 
   getCache() {
     return CacheManager;
@@ -656,7 +658,17 @@ const App = {
 
   applyWatchlistRuntimeResult(result) {
     if (!result) return null;
-    if (!result.changed) return result.compatibilityResult;
+    if (!result.changed) {
+      if (result.compatibilityResult?.reason === 'storage-failed') {
+        this.updateWatchlistControls(result.compatibilityResult.id);
+        this.showToast("Couldn't save your Watchlist change. Nothing changed. Try again; if it keeps failing, check browser storage.", {
+          key: 'watchlist',
+          type: 'error',
+          duration: 10000
+        });
+      }
+      return result.compatibilityResult;
+    }
     this.applyWatchlistTransition(result.transition);
     this.renderContinueWatching();
     if (result.transition?.render?.watchlist?.shouldRender) {
@@ -726,8 +738,32 @@ const App = {
         genre: actionEl?.dataset?.genre || '',
         theme: actionEl?.dataset?.theme || ''
       });
-      if (!result.changed) return;
-      this.showToast(result.message);
+      if (!result.changed) {
+        this.showToast(result.message, { type: 'error' });
+        return;
+      }
+      const toastId = this.showToast(result.message, {
+        key: 'taste-feedback',
+        duration: 0,
+        action: { label: 'Undo', onClick: (id) => {
+          const undone = this.getTasteProfileStore().undoRecommendationFeedback(result.undoToken);
+          if (!undone.changed) {
+            this.showToast(undone.message, { type: 'error', key: 'taste-feedback-error' });
+            return;
+          }
+          this.dismissToast(id);
+          this.updateTasteProfileUi();
+          this.renderRecommendations();
+          this.showToast(undone.message);
+          const restored = [...document.querySelectorAll('.recommendation-card')]
+            .find(card => card.dataset.animeId === animeId);
+          (restored?.querySelector('.recommendation-taste summary') || document.querySelector('#recommendations-grid .recommendation-title'))?.focus();
+        } }
+      });
+      this.updateTasteProfileUi();
+      this.renderRecommendations();
+      document.getElementById(toastId)?.querySelector('button')?.focus();
+      return;
     }
     this.updateTasteProfileUi();
     this.renderRecommendations();
@@ -1375,9 +1411,9 @@ const App = {
       this.initSeo();
       this.updateHomeLinks();
 
-      // Only sync modal with URL if not handling deep link
-      // (deep link is already handled above)
-      if (!requestedAnimeId) {
+      // A user can open details while the initial catalog cache write finishes.
+      // That opening owns the modal even if its lazy view has not updated the URL.
+      if (!requestedAnimeId && !this.currentAnimeId) {
         this.syncModalWithUrl();
       }
       this.updateMetaForFilters();
@@ -1585,7 +1621,7 @@ const App = {
     if (recommendations) {
       recommendations.classList.add('is-loading');
       recommendations.setAttribute('aria-busy', 'true');
-      setHTML(recommendations, Array.from({ length: 6 }, () => this.renderCardSkeleton('recommendation')).join(''));
+      setHTML(recommendations, Array.from({ length: 3 }, () => this.renderCardSkeleton('recommendation')).join(''));
     }
 
     if (grid) {
@@ -2892,7 +2928,7 @@ const App = {
   },
 
   getActiveViewingIntent() {
-    return this.getViewingIntentRuntime().getActive();
+    return this.getViewingIntentRuntime().getActive({ recordActivity: false });
   },
 
   applyViewingIntentEffects({ effects = {} } = {}) {
@@ -2952,6 +2988,7 @@ const App = {
   },
 
   applyViewingIntent(intentKey) {
+    this.recommendationDisplayLimit = 3;
     const result = this.getViewingIntentRuntime().apply(intentKey);
     this.applyViewingIntentEffects(result);
     return result.changed;
@@ -4084,10 +4121,7 @@ const App = {
   },
 
   getRecommendationDisplayLimit() {
-    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)')?.matches) {
-      return 3;
-    }
-    return 6;
+    return this.recommendationDisplayLimit;
   },
 
   renderCardScoreValue(value) {
@@ -4104,9 +4138,108 @@ const App = {
   /**
    * Render recommendations section
    */
+  renderChosenTitle(grid) {
+    let panel = document.getElementById('chosen-title');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'chosen-title';
+      panel.className = 'chosen-title';
+      panel.setAttribute('aria-label', 'Your chosen title');
+      grid.before(panel);
+    }
+    const selection = this.chosenRecommendation;
+    const entry = selection && this.getWatchlistLifecycle().getEntry(selection.id);
+    panel.hidden = !entry;
+    if (!entry) { setHTML(panel, ''); return; }
+    const title = this.escapeHtml(selection.title);
+    setHTML(panel, `
+      <p class="chosen-title-confirmation">${entry.status === 'planned' ? 'Saved to Want to watch' : 'Saved in your Watchlist'}</p>
+      <button class="recommendation-title" type="button" data-action="open-anime" data-anime-id="${this.escapeAttr(selection.id)}" aria-label="View details for ${this.escapeAttr(selection.title)}">${title}</button>
+      <div class="chosen-title-actions">
+        <button class="btn btn-secondary btn-sm" type="button" data-action="undo-recommendation-selection" aria-label="Undo saving ${this.escapeAttr(selection.title)}">Undo</button>
+        <a class="btn btn-primary btn-sm" href="/watchlist.html">View watchlist</a>
+      </div>
+    `);
+  },
+
+  selectRecommendation(anime) {
+    const result = this.getWatchlistLifecycleRuntime().selectForLater(anime.id, { episodeCount: CatalogPayload.getEpisodeCount(anime) });
+    if (result?.changed) this.chosenRecommendation = { id: String(anime.id), title: anime.title, undoToken: result.undoToken };
+    this.applyWatchlistRuntimeResult(result);
+    if (result?.changed) {
+      const status = document.getElementById('recommendations-status');
+      if (status) status.textContent = `Saved ${anime.title} to Want to watch. You can undo this selection or view your Watchlist.`;
+      document.querySelector('#chosen-title button[data-action="undo-recommendation-selection"]')?.focus();
+    }
+  },
+
+  undoRecommendationSelection() {
+    const selection = this.chosenRecommendation;
+    if (!selection) return;
+    const result = this.getWatchlistLifecycleRuntime().undoSelection(selection.undoToken);
+    if (result?.changed) this.chosenRecommendation = null;
+    this.applyWatchlistRuntimeResult(result);
+    const status = document.getElementById('recommendations-status');
+    if (result?.changed) {
+      if (status) status.textContent = `Undid saving ${selection.title}. Your other Watchlist entries are unchanged.`;
+      const save = [...document.querySelectorAll('[data-action="quick-save-recommendation"]')].find(button => button.dataset.animeId === selection.id);
+      const focusTarget = save || document.querySelector('#recommendations-grid .recommendation-title') || document.getElementById('recommendations-heading');
+      if (focusTarget?.tagName === 'H2') focusTarget.setAttribute('tabindex', '-1');
+      focusTarget?.focus();
+    } else if (result?.compatibilityResult?.reason === 'stale-selection') {
+      if (status) status.textContent = `Couldn't undo saving ${selection.title} because its Watchlist entry changed. Your newer changes are preserved.`;
+      this.showToast("Couldn't undo this selection because its Watchlist entry changed. Your newer changes are preserved.", { key: 'watchlist', type: 'error' });
+    }
+  },
+
+  renderSessionDismissals(grid) {
+    let panel = document.getElementById('session-dismissals');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'session-dismissals';
+      panel.className = 'session-dismissals';
+      panel.setAttribute('aria-label', 'Skipped recommendations');
+      grid.before(panel);
+    }
+    const dismissed = this.getViewingIntentRuntime().getDismissed();
+    panel.hidden = dismissed.length === 0;
+    if (!dismissed.length) { setHTML(panel, ''); return; }
+    const expanded = Boolean(panel.querySelector('details[open]'));
+    const latest = dismissed[dismissed.length - 1];
+    setHTML(panel, `
+      <p>Skipped for now: ${this.escapeHtml(latest.title)}
+        <button class="btn btn-secondary btn-sm" type="button" data-action="restore-session-dismissal" data-anime-id="${this.escapeAttr(latest.id)}" aria-label="Undo skip ${this.escapeAttr(latest.title)}">Undo</button>
+      </p>
+      <details ${expanded ? 'open' : ''}>
+        <summary data-action="review-session-dismissals">Review skipped titles (${dismissed.length})</summary>
+        <p>These skips apply to this tab's session. They expire after four hours without activity.</p>
+        <ul>${dismissed.map(item => `<li><span>${this.escapeHtml(item.title)}</span> <button class="btn btn-secondary btn-sm" type="button" data-action="restore-session-dismissal" data-anime-id="${this.escapeAttr(item.id)}" aria-label="Restore ${this.escapeAttr(item.title)}">Restore</button></li>`).join('')}</ul>
+      </details>
+    `);
+  },
+
+  handleSessionDismissal(action, animeId) {
+    const runtime = this.getViewingIntentRuntime();
+    const anime = this.animeData.find(item => String(item?.id) === String(animeId));
+    const title = anime?.title || runtime.getDismissed().find(item => item.id === String(animeId))?.title || 'Title';
+    const skipping = action === 'skip-recommendation';
+    const result = skipping ? runtime.dismiss({ id: animeId, title }) : runtime.restore(animeId);
+    this.renderRecommendations();
+    const status = document.getElementById('recommendations-status');
+    if (status) status.textContent = result.changed
+      ? `${skipping ? 'Skipped for now' : 'Restored'}: ${title}. ${skipping ? 'Your taste and Watchlist are unchanged.' : 'This title can appear in recommendations again.'}`
+      : 'Could not update this session. It may have expired or browser storage may be unavailable. Try again.';
+    const focusTarget = skipping && result.changed
+      ? document.querySelector('#session-dismissals > p button')
+      : document.querySelector('#session-dismissals:not([hidden]) summary') || document.querySelector('#recommendations-grid .recommendation-title') || document.getElementById('recommendations-heading');
+    if (focusTarget) { if (!focusTarget.hasAttribute('tabindex') && focusTarget.tagName === 'H2') focusTarget.setAttribute('tabindex', '-1'); focusTarget.focus(); }
+  },
+
   renderRecommendations() {
     const container = document.getElementById('recommendations-grid');
     if (!container) return;
+    this.renderSessionDismissals(container);
+    this.renderChosenTitle(container);
     container.classList.remove('is-loading');
     container.removeAttribute('aria-busy');
     const recDims = this.getImageProxyRuntime().getDimensions('recommendation');
@@ -4116,7 +4249,7 @@ const App = {
     const recommendationLimit = this.getRecommendationDisplayLimit();
     const activeIntent = this.getActiveViewingIntent();
     const recommendationSource = this.getTasteProfileStore().prepareRecommendationSource(this.filteredData, {
-      excludedIds: this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] })
+      excludedIds: [...this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] }), ...this.getViewingIntentRuntime().getDismissed().map(item => item.id)]
     });
     const decision = Recommendations.getRecommendationDecision(recommendationSource, {
       viewingIntent: activeIntent,
@@ -4125,6 +4258,8 @@ const App = {
       watchlistEntries: this.getWatchlistLifecycle().getEntries()
     });
     const recommendations = decision.items;
+    const moreButton = document.getElementById('more-recommendations');
+    if (moreButton) moreButton.hidden = !decision.hasMore;
     const heading = document.getElementById('recommendations-heading');
     if (heading) heading.textContent = recommendations.some(anime => anime.tasteReason) ? 'Picks for your taste' : activeIntent ? 'Picks for this session' : 'Explore something new';
     const contextEl = document.getElementById('recommendations-context');
@@ -4135,18 +4270,17 @@ const App = {
 
 
     if (recommendations.length === 0) {
-      setHTML(container, '<p class="no-data">No recommendations available</p>');
+      setHTML(container, `<p class="no-data">${decision.noCloseMatches ? 'No close matches for this goal. ' : ''}No recommendations available. Try changing your goal or browsing the catalog.</p>`);
       document.getElementById('quick-filters')?.removeAttribute('inert');
       return;
     }
 
-    setHTML(container, recommendations.map((anime, index) => {
+    setHTML(container, `${decision.noCloseMatches ? '<p class="recommendation-group-heading">No close matches for this goal. These are general alternatives.</p>' : ''}` + recommendations.map((anime, index) => {
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const satisfactionTooltipTitle = this.escapeHtml('Community Score');
       const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const cues = anime.experienceCues;
       const safeReason = this.escapeHtml(anime.fitReason || anime.reason || '');
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
@@ -4169,7 +4303,10 @@ const App = {
       });
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
+      const groupHeading = anime.group !== recommendations[index - 1]?.group && anime.group !== 'general'
+        ? `<h3 class="recommendation-group-heading">${anime.group === 'intent' ? 'Suggestions for this goal' : 'General alternatives'}</h3>` : '';
       return `
+        ${groupHeading}
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="group" tabindex="-1" aria-label="${safeTitle}">
           <div class="recommendation-media">
             <span class="recommendation-rank">#${index + 1}</span>
@@ -4178,6 +4315,11 @@ const App = {
           <div class="recommendation-info">
             <button class="recommendation-title" type="button" data-action="open-anime" data-anime-id="${safeId}" aria-label="${cardLabel}">${safeTitle}</button>
             <div class="recommendation-submeta">${safeYear} &bull; ${safeStudio}</div>
+            <div class="recommendation-fit-label">${this.escapeHtml(anime.fitLabel)}</div>
+            <div class="recommendation-reason">${safeReason}</div>
+            <div class="recommendation-episodes">${this.escapeHtml(anime.episodeSummary)}</div>
+            <details class="recommendation-ratings" data-action="recommendation-ratings">
+            <summary>Ratings and evidence</summary>
             <div class="recommendation-scoreboard">
             <div class="${decisionClass}">
               <div class="recommendation-primary-score">
@@ -4197,17 +4339,22 @@ const App = {
               </span>
               </div>`}
               </div>
-              <div class="recommendation-fit-label">${this.escapeHtml(anime.fitLabel)}</div>
-              <div class="recommendation-reason">${safeReason}</div>
+              <p class="recommendation-rating-explanation">Episode strength is an episode-rating index adjusted for coverage and sample size, not a completion probability. Community scores are audience ratings from MyAnimeList.</p>
+              </details>
               <div class="recommendation-quick-actions">
                 <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
+                <button class="btn btn-secondary btn-sm" type="button" data-action="skip-recommendation" data-anime-id="${safeId}">Skip for now</button>
               </div>
-              <div class="recommendation-feedback" aria-label="Tune recommendations for ${safeTitle}">
+              <details class="recommendation-taste" data-action="taste-preferences">
+                <summary>Taste preferences</summary>
+                <p class="recommendation-taste-note">These preferences stay saved. Not for me: Hide this title from future recommendations.</p>
+                <div class="recommendation-feedback" aria-label="Tune recommendations for ${safeTitle}">
                 <button class="rec-feedback-btn" type="button" data-action="rec-more-like" data-anime-id="${safeId}">More like this</button>
                 <button class="rec-feedback-btn" type="button" data-action="rec-not-for-me" data-anime-id="${safeId}">Not for me</button>
                 ${lessLabel ? `<button class="rec-feedback-btn" type="button" data-action="rec-less-tag" data-anime-id="${safeId}" data-genre="${this.escapeAttr(lessGenre)}" data-theme="${this.escapeAttr(lessTheme)}">Less ${this.escapeHtml(lessLabel)}</button>` : ''}
-                <button class="rec-feedback-btn" type="button" data-action="rec-already-seen" data-anime-id="${safeId}">Already seen</button>
-              </div>
+                </div>
+              </details>
+              <button class="rec-feedback-btn" type="button" data-action="rec-already-seen" data-anime-id="${safeId}">Already seen</button>
             </div>
         </div>
       `;
@@ -4597,6 +4744,22 @@ const App = {
 
       if (actionEl.closest('[data-renderer="watchlist-page"]')) return;
       const action = actionEl.dataset.action;
+      this.getViewingIntentRuntime().recordActivity();
+      if (action === 'skip-recommendation' || action === 'restore-session-dismissal') {
+        event.preventDefault();
+        event.stopPropagation();
+        this.handleSessionDismissal(action, actionEl.dataset.animeId);
+        return;
+      }
+      if (action === 'more-recommendations') {
+        const previousCount = document.querySelectorAll('#recommendations-grid .recommendation-card').length;
+        this.recommendationDisplayLimit += 3;
+        this.renderRecommendations();
+        document.querySelectorAll('#recommendations-grid .recommendation-title')[previousCount]?.focus();
+        const status = document.getElementById('recommendations-status');
+        if (status) status.textContent = 'More picks shown.';
+        return;
+      }
       if (action === 'home-shortcut') {
         if (this.isCatalogPage()) {
           event.preventDefault();
@@ -4685,8 +4848,15 @@ const App = {
         const animeId = actionEl.dataset.animeId;
         const anime = this.animeData.find(item => String(item?.id) === String(animeId));
         if (anime) {
-          this.setWatchStatus(anime.id, 'planned', { episodeCount: CatalogPayload.getEpisodeCount(anime) });
+          this.selectRecommendation(anime);
         }
+        return;
+      }
+
+      if (action === 'undo-recommendation-selection') {
+        event.preventDefault();
+        event.stopPropagation();
+        this.undoRecommendationSelection();
         return;
       }
 
@@ -4880,6 +5050,7 @@ const App = {
       if (action === 'set-rec-mode') {
         const modeKey = actionEl.dataset.mode;
         if (modeKey && Recommendations.setMode(modeKey)) {
+          this.recommendationDisplayLimit = 3;
           this.renderRecommendationModes();
           this.renderRecommendations();
         }
@@ -4926,218 +5097,6 @@ const App = {
     }, true);
   },
 
-  getFranchiseData(anime) {
-    const franchise = anime?.franchise;
-    if (!franchise || typeof franchise !== 'object') return null;
-    if (!Array.isArray(franchise.items) || franchise.items.length < 2) return null;
-    return franchise;
-  },
-
-  getFranchiseRelationLabel(relationType) {
-    switch (String(relationType || '').toUpperCase()) {
-      case 'ENTRY':
-        return 'Start here';
-      case 'SEQUEL':
-        return 'Sequel';
-      case 'SIDE_STORY':
-        return 'Side story';
-      case 'SPIN_OFF':
-        return 'Spin-off';
-      case 'ALTERNATIVE':
-        return 'Alt cut';
-      case 'SUMMARY':
-        return 'Recap';
-      default:
-        return 'Related';
-    }
-  },
-
-  getFranchiseModeLabel(mode) {
-    switch (String(mode || '').toLowerCase()) {
-      case 'linear':
-        return 'Linear path';
-      case 'branched':
-        return 'Branching franchise';
-      default:
-        return 'Related releases';
-    }
-  },
-
-  renderFranchiseHubSection(anime) {
-    const franchise = this.getFranchiseData(anime);
-    if (!franchise) return '';
-
-    const currentItem = franchise.items.find(item => item?.animeId === anime.id) || null;
-    const mainItems = franchise.items.filter(item => item?.bucket === 'main');
-    const entryItem = franchise.items.find(item => item?.isEntry) || mainItems[0] || franchise.items[0];
-    const currentMainIndex = currentItem?.bucket === 'main'
-      ? mainItems.findIndex(item => item === currentItem) + 1
-      : null;
-    const currentRoleLabel = currentItem ? this.getFranchiseRelationLabel(currentItem.relationType) : 'Related';
-    const modeLabel = this.getFranchiseModeLabel(franchise.mode);
-    const catalogCount = Number.isFinite(franchise.catalogCount) ? franchise.catalogCount : franchise.items.filter(item => item?.isInCatalog).length;
-    const totalCount = Number.isFinite(franchise.totalCount) ? franchise.totalCount : franchise.items.length;
-    const mainCount = Number.isFinite(franchise.mainCount) ? franchise.mainCount : mainItems.length;
-
-    let summary = `Start with ${entryItem?.title || franchise.entryTitle || franchise.title}, then use the order below.`;
-    if (currentItem?.isEntry) {
-      summary = 'This is the cleanest starting point in the current franchise map.';
-    } else if (currentItem?.bucket === 'main' && currentMainIndex > 1 && entryItem?.title) {
-      summary = `Start with ${entryItem.title}. This title is step ${currentMainIndex} of ${mainCount} in the main story.`;
-    } else if (currentItem?.bucket !== 'main' && currentItem?.anchorTitle && entryItem?.title) {
-      summary = `Start with ${entryItem.title}. This ${currentRoleLabel.toLowerCase()} fits best after ${currentItem.anchorTitle}.`;
-    }
-
-    return `
-      <section class="franchise-hub" id="franchise-hub-section">
-        <div class="detail-section-header">
-          <h3>Franchise Hub</h3>
-          <span class="detail-section-note">${this.escapeHtml(modeLabel)}</span>
-        </div>
-        <div class="franchise-summary">
-          <div class="franchise-summary-copy">
-            <span class="franchise-eyebrow">Best place to start</span>
-            <strong class="franchise-entry-title">${this.escapeHtml(entryItem?.title || franchise.entryTitle || franchise.title)}</strong>
-            <p class="franchise-summary-text">${this.escapeHtml(summary)}</p>
-          </div>
-          <div class="franchise-summary-meta" aria-label="Franchise stats">
-            <span class="franchise-summary-pill">${this.escapeHtml(`${mainCount} main story ${mainCount === 1 ? 'entry' : 'entries'}`)}</span>
-            <span class="franchise-summary-pill">${this.escapeHtml(`${catalogCount} in catalog`)}</span>
-            <span class="franchise-summary-pill">${this.escapeHtml(`${totalCount} total related titles`)}</span>
-          </div>
-        </div>
-        <div class="franchise-list" role="list">
-          ${franchise.items.map(item => {
-      const isCurrent = item?.animeId === anime.id;
-      const safeTitle = this.escapeHtml(item?.title || 'Untitled');
-      const safeRelation = this.escapeHtml(this.getFranchiseRelationLabel(item?.relationType));
-      const safeYear = Number.isInteger(item?.year) ? String(item.year) : 'Year unknown';
-      const safeFormat = this.escapeHtml(item?.format || 'ANIME');
-      const safeMeta = this.escapeHtml(item?.isInCatalog ? `${safeFormat} • ${safeYear} • In catalog` : `${safeFormat} • ${safeYear} • Outside current catalog`);
-      const rawMainOrder = Number(item?.mainOrder);
-      const mainOrderValue = Number.isInteger(rawMainOrder) && rawMainOrder > 0 ? rawMainOrder : null;
-      const safeContext = item?.bucket === 'main' && mainOrderValue
-        ? `Main story step ${mainOrderValue}${mainCount > 0 ? ` of ${mainCount}` : ''}`
-        : (item?.anchorTitle ? `Best after ${item.anchorTitle}` : 'Related franchise title');
-      const bucketToken = this.sanitizeClassToken(String(item?.bucket || 'related').replace(/_/g, '-')) || 'related';
-      const classes = ['franchise-card', `franchise-card--${bucketToken}`];
-      if (isCurrent) classes.push('is-current');
-      if (item?.isEntry) classes.push('is-entry');
-      if (!item?.isInCatalog) classes.push('is-external');
-      const buttonLabel = item?.animeId && !isCurrent
-        ? `<button class="btn btn-outline btn-sm franchise-card-action" data-action="open-anime" data-anime-id="${this.escapeAttr(item.animeId)}" type="button">Open details</button>`
-        : `<span class="franchise-card-status">${isCurrent ? 'Viewing now' : (item?.isInCatalog ? 'In catalog' : 'Not in catalog')}</span>`;
-
-      return `
-              <article class="${classes.join(' ')}" role="listitem">
-                <div class="franchise-card-step" aria-hidden="true">${this.escapeHtml(item?.bucket === 'main' && mainOrderValue ? String(mainOrderValue) : '•')}</div>
-                <div class="franchise-card-body">
-                  <div class="franchise-card-top">
-                    <div class="franchise-card-copy">
-                      <div class="franchise-card-badges">
-                        ${item?.isEntry ? '<span class="franchise-badge franchise-badge--entry">Start</span>' : ''}
-                        ${isCurrent ? '<span class="franchise-badge franchise-badge--current">You\'re here</span>' : ''}
-                        <span class="franchise-badge franchise-badge--relation">${safeRelation}</span>
-                      </div>
-                      <h4 class="franchise-card-title">${safeTitle}</h4>
-                      <div class="franchise-card-meta">${safeMeta}</div>
-                    </div>
-                    ${buttonLabel}
-                  </div>
-                  <p class="franchise-card-context">${this.escapeHtml(safeContext)}</p>
-                </div>
-              </article>
-            `;
-    }).join('')}
-        </div>
-      </section>
-    `;
-  },
-
-  /**
-   * Render similar anime section for the detail modal
-   * @param {Object} anime - Current anime
-   * @returns {string} HTML string
-   */
-  renderSimilarAnimeSection(anime) {
-    const similarResults = Recommendations.getSimilarAnime(this.animeData, anime, 6);
-    const hasGenres = Array.isArray(anime?.genres) && anime.genres.length > 0;
-    const hasThemes = Array.isArray(anime?.themes) && anime.themes.length > 0;
-    const canMatch = hasGenres && hasThemes;
-    const simDims = this.getImageProxyRuntime().getDimensions('similar');
-    const simDimAttrs = simDims ? `width="${simDims.width}" height="${simDims.height}"` : '';
-
-    const formatTags = (tags, max = 2) => {
-      if (!Array.isArray(tags) || tags.length === 0) return 'None';
-      const trimmed = tags.slice(0, max);
-      const extra = tags.length - trimmed.length;
-      return extra > 0 ? `${trimmed.join(', ')} +${extra}` : trimmed.join(', ');
-    };
-
-    const emptyMessage = canMatch
-      ? 'No similar anime found yet.'
-      : 'Similar anime needs both genre and theme tags for this title.';
-
-    return `
-      <div class="similar-anime">
-        <div class="detail-section-header">
-          <h3>Similar Anime</h3>
-          <span class="detail-section-note">Shared genre + theme, aligned episode rating strength and satisfaction</span>
-        </div>
-        ${similarResults.length > 0 ? `
-          <div class="similar-grid">
-            ${similarResults.map(result => {
-      const similar = result.anime;
-      const episodeCount = CatalogPayload.getEpisodeCount(similar);
-      const hasEpisodes = episodeCount > 0;
-      const rawRetention = similar?.stats?.retentionScore;
-      const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
-      const satisfactionScore = Number.isFinite(similar?.communityScore) ? similar.communityScore : null;
-      const retentionClass = Recommendations.getRetentionClass(retentionScore);
-      const satisfactionClass = Recommendations.getMalSatisfactionClass(satisfactionScore);
-      const sharedGenres = formatTags(result.sharedGenres);
-      const sharedThemes = formatTags(result.sharedThemes);
-      const safeId = this.escapeAttr(similar.id);
-      const safeTitle = this.escapeHtml(similar.title);
-      const safeCover = this.escapeAttr(this.sanitizeImageUrl(similar.cover));
-      const safeGenres = this.escapeHtml(sharedGenres);
-      const safeThemes = this.escapeHtml(sharedThemes);
-      const labelTitle = similar.title || 'this anime';
-      const labelYear = similar.year ? `, ${similar.year}` : '';
-      const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
-
-      const { src: simSrc, srcset: simSrcset, sizes: simSizes, fallback: simFallback } = this.buildImageSrcset(similar.cover, { sizeKey: 'similar' });
-      const safeSimCover = this.escapeAttr(simSrc || this.sanitizeImageUrl(similar.cover));
-      const simSrcsetAttr = simSrcset ? `srcset="${this.escapeAttr(simSrcset)}"` : '';
-      const simSizesAttr = simSizes ? `sizes="${this.escapeAttr(simSizes)}"` : '';
-      const simFallbackAttrs = this.getImageFallbackAttrs({
-        fallbackSrc: simFallback,
-        placeholder: IMAGE_PLACEHOLDER
-      });
-      return `
-                <div class="similar-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
-                  <img src="${safeSimCover}" ${simSrcsetAttr} ${simSizesAttr} alt="${safeTitle}" class="similar-cover" ${simDimAttrs} ${simFallbackAttrs}>
-                  <div class="similar-info">
-                    <div class="similar-title">${safeTitle}</div>
-                    <div class="similar-tags">
-                      <span class="similar-tag">Genres: ${safeGenres}</span>
-                      <span class="similar-tag">Themes: ${safeThemes}</span>
-                    </div>
-                    <div class="similar-stats">
-                      <span class="similar-stat ${retentionClass}">Episode Rating Strength ${retentionScore !== null ? `${retentionScore}/100` : 'N/A'}</span><span>${this.escapeHtml(Recommendations.getRatingEvidenceLabel(similar))}</span>
-                      <span class="similar-stat ${satisfactionClass}">Satisfaction (MAL) ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              `;
-    }).join('')}
-          </div>
-        ` : `
-          <p class="similar-empty">${emptyMessage}</p>
-        `}
-      </div>
-    `;
-  },
 
   /**
    * Show anime detail modal

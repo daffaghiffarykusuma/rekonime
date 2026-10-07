@@ -46,10 +46,7 @@ test('taste profile owns feedback, recommendation preparation, and settings summ
   const blocked = { id: 'blocked', title: 'Blocked', genres: ['Action'], themes: [] };
   const neutral = { id: 'neutral', title: 'Neutral', genres: ['Drama'], themes: [] };
 
-  assert.deepEqual(store.applyRecommendationFeedback('rec-more-like', liked), {
-    changed: true,
-    message: 'More like Liked added to your Taste Profile.'
-  });
+  assert.equal(store.applyRecommendationFeedback('rec-more-like', liked).changed, true);
   store.applyRecommendationFeedback('rec-not-for-me', blocked);
   store.applyRecommendationFeedback('rec-less-tag', neutral, { genre: 'Drama' });
 
@@ -70,6 +67,26 @@ test('taste profile owns feedback, recommendation preparation, and settings summ
     inferredTags: [],
     hiddenCount: 1
   });
+});
+
+test('lasting feedback Undo restores only affected evidence and persists the result', () => {
+  const storage = createMemoryStorage();
+  const store = createTasteProfileStore({ storage });
+  store.load();
+  const title = { id: 'chosen', title: 'Chosen', genres: ['Action'], themes: ['School'] };
+  store.applyRecommendationFeedback('rec-more-like', title);
+  const hidden = store.applyRecommendationFeedback('rec-not-for-me', title);
+  store.applyRecommendationFeedback('rec-less-tag', { id: 'other' }, { genre: 'Horror' });
+  store.updateInferredFromWatchlist([{ id: 'seen', status: 'completed', snapshot: { genres: ['Drama'] } }]);
+  assert.equal(store.prepareRecommendationSource([title]).length, 0);
+  assert.equal(store.undoRecommendationFeedback(hidden.undoToken).changed, true);
+  assert.deepEqual(store.getSettingsSummary(), {
+    preferredTags: ['Action', 'School'], reducedTags: ['Horror'], inferredTags: ['Drama'], hiddenCount: 0
+  });
+  const reloaded = createTasteProfileStore({ storage });
+  reloaded.load();
+  assert.equal(reloaded.prepareRecommendationSource([title])[0].id, 'chosen');
+  assert.deepEqual(reloaded.getProfile().explicit.moreLikeTitleIds, ['chosen']);
 });
 
 test('Taste Profile prepares weighted Discovery candidates from Watchlist Lifecycle evidence', () => {
@@ -95,6 +112,65 @@ test('Taste Profile prepares weighted Discovery candidates from Watchlist Lifecy
     { id: 'neutral', weight: 0.1 }
   ]);
 });
+
+test('Undo preserves newer feedback that shares preference evidence even when membership is unchanged', () => {
+  const store = createTasteProfileStore({ storage: createMemoryStorage() });
+  store.load();
+  const first = store.applyRecommendationFeedback('rec-more-like', { id: 'first', genres: ['Action'] });
+  store.applyRecommendationFeedback('rec-more-like', { id: 'second', genres: ['Action'] });
+  const undone = store.undoRecommendationFeedback(first.undoToken);
+  assert.equal(undone.changed, false);
+  assert.match(undone.message, /changed/);
+  assert.deepEqual(store.getProfile().explicit.preferredGenres, ['Action']);
+  assert.deepEqual(store.getProfile().explicit.moreLikeTitleIds, ['first', 'second']);
+});
+
+test('Undo refuses to replace preferences changed by another store or personal-data restore', () => {
+  const storage = createMemoryStorage();
+  const store = createTasteProfileStore({ storage });
+  store.load();
+  const hidden = store.applyRecommendationFeedback('rec-not-for-me', { id: 'first' });
+  const other = createTasteProfileStore({ storage });
+  other.load();
+  other.applyRecommendationFeedback('rec-more-like', { id: 'second', genres: ['Drama'] });
+  assert.equal(store.undoRecommendationFeedback(hidden.undoToken).changed, false);
+  other.load();
+  assert.deepEqual(other.getProfile().explicit.moreLikeTitleIds, ['second']);
+  store.load();
+  const another = store.applyRecommendationFeedback('rec-not-for-me', { id: 'third' });
+  store.commitProfile(store.getProfile());
+  assert.equal(store.undoRecommendationFeedback(another.undoToken).changed, false);
+});
+
+for (const failure of ['refuse', 'throw']) {
+  test(`feedback and Undo preserve live and persisted preferences when storage will ${failure}`, () => {
+    const storage = createMemoryStorage();
+    const write = storage.setItem;
+    let reject = false;
+    storage.setItem = (key, value) => {
+      if (!reject) return write(key, value);
+      if (failure === 'throw') throw new Error('Storage unavailable');
+      return false;
+    };
+    const store = createTasteProfileStore({ storage });
+    store.load();
+    const title = { id: 'chosen', title: 'Chosen' };
+    reject = true;
+    assert.equal(store.applyRecommendationFeedback('rec-not-for-me', title).changed, false);
+    assert.equal(store.prepareRecommendationSource([title]).length, 1);
+    reject = false;
+    const result = store.applyRecommendationFeedback('rec-not-for-me', title);
+    reject = true;
+    assert.equal(store.undoRecommendationFeedback(result.undoToken).changed, false);
+    assert.equal(store.prepareRecommendationSource([title]).length, 0);
+    const reloaded = createTasteProfileStore({ storage });
+    reloaded.load();
+    assert.equal(reloaded.prepareRecommendationSource([title]).length, 0);
+    reject = false;
+    assert.equal(store.undoRecommendationFeedback(result.undoToken).changed, true);
+    assert.equal(store.applyRecommendationFeedback('rec-already-seen', title).changed, false);
+  });
+}
 
 test('taste profile reset preserves evidence learned from Watchlist Lifecycle', () => {
   const store = createTasteProfileStore({ storage: createMemoryStorage(), now: () => 4000 });
