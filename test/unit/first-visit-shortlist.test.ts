@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { CatalogPayload } from '../../src/features/catalog/catalog-payload.ts';
+import { Stats } from '../../src/features/discovery/stats.ts';
 import { Recommendations } from '../../src/features/discovery/recommendations.ts';
 
 const title = (id: string, overrides = {}) => ({ id, title: id, genres: ['Action'], themes: [], communityScore: 9, stats: { retentionScore: 95 }, ...overrides });
@@ -58,4 +60,19 @@ test('Discovery preserves partial rating evidence without turning normalized epi
   })]);
   assert.equal(decision.items[0].episodeSummary, 'Through episode 7 observed · total unknown');
   assert.equal(Recommendations.getRatingEvidenceLabel(decision.items[0]), 'Limited data · 4 episodes rated · total unknown · Provisional');
+});
+
+
+test('Discovery keeps observed-only totals unknown after catalog normalization and rating recalculation', () => {
+  const [anime] = CatalogPayload.normalizeAnimeData([title('observed-only', {
+    episodes: [{ episode: 7, score: 4 }], stats: null
+  })]);
+  assert.ok(anime);
+  assert.equal(Recommendations.getRecommendationDecision([anime]).items[0].episodeSummary, 'Through episode 7 observed · total unknown');
+  anime.stats = Stats.calculateAllStats(anime, Stats.defaultScoreProfile);
+  const [renormalized] = CatalogPayload.normalizeAnimeData([anime]);
+  const pick = Recommendations.getRecommendationDecision([renormalized]).items[0];
+  assert.equal(pick.episodeSummary, 'Through episode 7 observed · total unknown');
+  assert.equal(pick.stats.ratingEvidence.totalEpisodes, null);
+  assert.match(Recommendations.getRatingEvidenceLabel(pick), /total unknown/);
 });

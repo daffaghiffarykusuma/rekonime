@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { CatalogCache } from './catalog-cache.ts';
-import { isValidCatalogPayload, normalizeAnimeData } from './catalog-payload.ts';
+import { getDeclaredEpisodeCount, isValidCatalogPayload, normalizeAnimeData } from './catalog-payload.ts';
 
 const DEFAULT_FETCH_CONFIG = {
   maxRetries: 3,
@@ -404,7 +404,10 @@ const createCatalogRuntime = ({
       const animeData = getCurrentAnimeData();
       const existingIndex = animeData.findIndex((anime) => String(anime.id) === key);
       const current = existingIndex >= 0 ? animeData[existingIndex] : {};
-      const normalized = normalizeAnimeData([{ ...current, ...detailAnime }])[0];
+      const normalized = normalizeAnimeData([{
+        ...current, ...detailAnime,
+        declaredEpisodeCount: getDeclaredEpisodeCount(detailAnime) ?? getDeclaredEpisodeCount(current)
+      }])[0];
       if (!normalized?.id || String(normalized.id) !== key) return null;
       const merged = { ...current, ...normalized };
       if (existingIndex >= 0) {

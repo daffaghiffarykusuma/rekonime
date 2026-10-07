@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { getDeclaredEpisodeCount } from '../catalog/catalog-payload.ts';
 /**
  * Statistics module for anime scoring calculations
  */
@@ -983,9 +984,7 @@ const Stats = {
 
   getRatingEvidence(anime, episodes) {
     const metadata = anime?.metadata || {};
-    const declared = [anime?.episodeCount, anime?.episodesCount, anime?.episodes_count, metadata.episodeCount, metadata.episodesCount, metadata.episodes_count]
-      .map(Number).filter(n => Number.isInteger(n) && n > 0);
-    const totalEpisodes = declared.length ? Math.max(...declared) : null;
+    const totalEpisodes = getDeclaredEpisodeCount(anime);
     const highest = episodes.reduce((max, ep) => Math.max(max, ep.episode), 0);
     const ratedEpisodes = episodes.length;
     const coverage = ratedEpisodes / Math.max(totalEpisodes || highest, highest, 1);

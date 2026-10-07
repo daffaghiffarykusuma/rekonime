@@ -252,45 +252,38 @@ const createTasteProfileStore = ({
     inferred: buildTasteProfileFromWatchlist(watchlistEntries)
   });
 
-  const update = (mapper) => mapper(normalizeProfile(profile));
+  const proposeEvidence = (updates) => {
+    const next = normalizeProfile(profile);
+    const touched = [];
+    updates.forEach(([field, value, present]) => {
+      next.explicit[field] = present
+        ? addUnique(next.explicit[field], value)
+        : removeValue(next.explicit[field], value);
+      // Even an already-present value represents newer intent for Undo safety.
+      touched.push(`${field}:${normalizeTag(value).toLowerCase()}`);
+    });
+    return { next, touched };
+  };
 
-  const addMoreLike = (anime) => update((current) => ({
-    ...current,
-    explicit: {
-      ...current.explicit,
-      moreLikeTitleIds: addUnique(current.explicit.moreLikeTitleIds, anime?.id),
-      preferredGenres: unique([...current.explicit.preferredGenres, ...(anime?.genres || []).slice(0, 2)]),
-      preferredThemes: unique([...current.explicit.preferredThemes, ...(anime?.themes || []).slice(0, 2)]),
-      notForMeTitleIds: removeValue(current.explicit.notForMeTitleIds, anime?.id)
-    }
-  }));
+  const addMoreLike = (anime) => proposeEvidence([
+    ['moreLikeTitleIds', anime.id, true],
+    ['notForMeTitleIds', anime.id, false],
+    ...(anime.genres || []).slice(0, 2).map(value => ['preferredGenres', value, true]),
+    ...(anime.themes || []).slice(0, 2).map(value => ['preferredThemes', value, true])
+  ]);
 
-  const addNotForMe = (anime) => update((current) => ({
-    ...current,
-    explicit: {
-      ...current.explicit,
-      notForMeTitleIds: addUnique(current.explicit.notForMeTitleIds, anime?.id),
-      moreLikeTitleIds: removeValue(current.explicit.moreLikeTitleIds, anime?.id)
-    }
-  }));
+  const addNotForMe = (anime) => proposeEvidence([
+    ['notForMeTitleIds', anime.id, true],
+    ['moreLikeTitleIds', anime.id, false]
+  ]);
 
-  const reduceGenre = (genre) => update((current) => ({
-    ...current,
-    explicit: {
-      ...current.explicit,
-      reducedGenres: addUnique(current.explicit.reducedGenres, genre),
-      preferredGenres: removeValue(current.explicit.preferredGenres, genre)
-    }
-  }));
+  const reduceGenre = (genre) => proposeEvidence([
+    ['reducedGenres', genre, true], ['preferredGenres', genre, false]
+  ]);
 
-  const reduceTheme = (theme) => update((current) => ({
-    ...current,
-    explicit: {
-      ...current.explicit,
-      reducedThemes: addUnique(current.explicit.reducedThemes, theme),
-      preferredThemes: removeValue(current.explicit.preferredThemes, theme)
-    }
-  }));
+  const reduceTheme = (theme) => proposeEvidence([
+    ['reducedThemes', theme, true], ['preferredThemes', theme, false]
+  ]);
 
   const applyRecommendationFeedback = (action, anime, { genre = '', theme = '' } = {}) => {
     if (!anime) return { changed: false, message: '' };
@@ -299,37 +292,24 @@ const createTasteProfileStore = ({
       load();
       profile.inferred = inferred;
     }
-    let next;
+    let proposal;
     let message;
     if (action === 'rec-more-like') {
-      next = addMoreLike(anime);
+      proposal = addMoreLike(anime);
       message = `More like ${anime.title} added to your Taste Profile.`;
     } else if (action === 'rec-not-for-me') {
-      next = addNotForMe(anime);
+      proposal = addNotForMe(anime);
       message = `${anime.title} hidden from future recommendations. This preference stays saved.`;
     } else if (action === 'rec-less-tag' && genre) {
-      next = reduceGenre(genre);
+      proposal = reduceGenre(genre);
       message = `Showing less ${genre}.`;
     } else if (action === 'rec-less-tag' && theme) {
-      next = reduceTheme(theme);
+      proposal = reduceTheme(theme);
       message = `Showing less ${theme}.`;
     } else {
       return { changed: false, message: '' };
     }
-    const touched = [];
-    const touch = (field, value) => touched.push(`${field}:${normalizeTag(value).toLowerCase()}`);
-    if (action === 'rec-more-like' || action === 'rec-not-for-me') {
-      touch('moreLikeTitleIds', anime.id);
-      touch('notForMeTitleIds', anime.id);
-    }
-    if (action === 'rec-more-like') {
-      (anime.genres || []).slice(0, 2).forEach(value => touch('preferredGenres', value));
-      (anime.themes || []).slice(0, 2).forEach(value => touch('preferredThemes', value));
-    }
-    if (action === 'rec-less-tag') {
-      touch(genre ? 'preferredGenres' : 'preferredThemes', genre || theme);
-      touch(genre ? 'reducedGenres' : 'reducedThemes', genre || theme);
-    }
+    const { next, touched } = proposal;
     const changes = [];
     Object.keys(profile.explicit).forEach(field => {
       const before = profile.explicit[field];

@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { getDeclaredEpisodeCount } from '../catalog/catalog-payload.ts';
 import { prepareDiscoveryCandidates } from './recommendation-eligibility.ts';
 import { getExperienceCues, getExperienceSignals } from './experience-cues.ts';
 import { CacheManager } from '../../shared/services/cache-manager.ts';
@@ -268,10 +269,7 @@ const Recommendations = {
     // Normalized episodeCount includes observed episodes. Rating evidence retains
     // the declared total, so never treat the normalized count as a final total.
     const evidence = anime?.stats?.ratingEvidence;
-    const declared = evidence ? Number(evidence.totalEpisodes) : Math.max(0, ...[
-      anime?.episodeCount, anime?.episodesCount, anime?.episodes_count,
-      anime?.metadata?.episodeCount, anime?.metadata?.episodesCount, anime?.metadata?.episodes_count
-    ].map(value => Number(value) || 0));
+    const declared = evidence ? Number(evidence.totalEpisodes) : getDeclaredEpisodeCount(anime);
     if (Number.isFinite(declared) && declared > 0) return `${Math.floor(declared)} episodes listed`;
     const observed = this.getEpisodeCount(anime);
     return observed > 0 ? `Through episode ${observed} observed · total unknown` : 'Episode count unknown';
