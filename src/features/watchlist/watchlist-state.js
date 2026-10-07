@@ -682,8 +682,11 @@ const createWatchlistLifecycle = ({
     const key = normalizeWatchId(animeId);
     if (!key || !watchlistEntries.has(key)) return { changed: false, removed: false, id: key, operation: 'remove' };
     const previousEntry = watchlistEntries.get(key) || null;
-    watchlistEntries.delete(key);
-    save();
+    const candidate = new Map(watchlistEntries);
+    candidate.delete(key);
+    if (!commitEntries(candidate)) {
+      return { changed: false, removed: false, entry: previousEntry, id: key, operation: 'remove', reason: 'storage-failed' };
+    }
     return {
       changed: true,
       removed: true,
@@ -736,11 +739,14 @@ const createWatchlistLifecycle = ({
       if (normalizedSnapshot) entry.snapshot = normalizedSnapshot;
     }
 
-    watchlistEntries.set(key, entry);
-    save();
+    const candidate = new Map(watchlistEntries);
+    candidate.set(key, entry);
+    if (!commitEntries(candidate)) {
+      return { changed: false, entry: current || null, id: key, operation: 'status', reason: 'storage-failed' };
+    }
     return {
       changed: true,
-      entry,
+      entry: getEntry(key),
       removed: false,
       id: key,
       operation: 'status',
