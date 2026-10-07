@@ -35,6 +35,86 @@ const createRuntimeHarness = ({ lastRecommendationIds = [], storage = createMemo
   return { lifecycle, runtime };
 };
 
+test('a Discovery selection can be undone without deleting another saved title', () => {
+  const { lifecycle, runtime } = createRuntimeHarness();
+  const selected = runtime.selectForLater('show-1');
+  assert.equal(selected.changed, true);
+  assert.equal(lifecycle.getEntry('show-1').status, 'planned');
+  runtime.setStatus('other-title', 'completed');
+  const undone = runtime.undoSelection(selected.undoToken);
+  assert.equal(undone.changed, true);
+  lifecycle.load();
+  assert.equal(lifecycle.getEntry('show-1'), null);
+  assert.equal(lifecycle.getEntry('other-title').status, 'completed');
+  assert.equal(runtime.undoSelection(selected.undoToken).changed, false);
+});
+
+test('selection Undo restores prior progress and affinity while retaining refreshed catalog metadata', () => {
+  const { lifecycle, runtime } = createRuntimeHarness();
+  runtime.setStatus('show-1', 'completed');
+  runtime.setLoved('show-1', true);
+  const before = structuredClone(lifecycle.getEntry('show-1'));
+  const selected = runtime.selectForLater('show-1');
+  lifecycle.refreshSnapshotsFromCatalog([{ id: 'show-1', title: 'Updated title', cover: 'new.jpg' }], { persist: true, replaceExisting: true });
+  const undone = runtime.undoSelection(selected.undoToken);
+  assert.equal(undone.changed, true);
+  lifecycle.load();
+  const restored = lifecycle.getEntry('show-1');
+  assert.equal(restored.status, 'completed');
+  assert.equal(restored.progress, 12);
+  assert.equal(restored.completedAt, before.completedAt);
+  assert.equal(restored.loved, true);
+  assert.equal(restored.snapshot.title, 'Updated title');
+});
+
+test('selection Undo preserves newer changes from another tab and cannot retry a stale reversal', () => {
+  const storage = createMemoryStorage();
+  const { lifecycle, runtime } = createRuntimeHarness({ storage });
+  const selected = runtime.selectForLater('show-1');
+  const otherTab = createWatchlistLifecycle({ storage, now: () => 2000 });
+  otherTab.load();
+  otherTab.setProgress('show-1', 3);
+  otherTab.setStatus('another-title', 'planned');
+  const saved = storage.getItem('rekonime.watchlist');
+  const rejected = runtime.undoSelection(selected.undoToken);
+  assert.equal(rejected.changed, false);
+  assert.equal(rejected.compatibilityResult.reason, 'stale-selection');
+  assert.deepEqual(rejected.effects, {});
+  assert.equal(storage.getItem('rekonime.watchlist'), saved);
+  assert.equal(lifecycle.getEntry('show-1').progress, 3);
+  assert.equal(lifecycle.getEntry('another-title').status, 'planned');
+});
+
+test('failed selection and failed Undo retain persisted state and support retry', () => {
+  for (const failure of ['refused', 'thrown']) {
+    const storage = createMemoryStorage();
+    const write = storage.setItem;
+    const { lifecycle, runtime } = createRuntimeHarness({ storage });
+    const block = () => {
+      storage.setItem = () => { if (failure === 'thrown') throw new Error('Full'); return false; };
+    };
+    block();
+    const failed = runtime.selectForLater('show-1');
+    assert.equal(failed.changed, false);
+    assert.equal(failed.undoToken, undefined);
+    assert.equal(lifecycle.getEntry('show-1'), null);
+    storage.setItem = write;
+    const selected = runtime.selectForLater('show-1');
+    const saved = storage.getItem('rekonime.watchlist');
+    block();
+    const rejected = runtime.undoSelection(selected.undoToken);
+    assert.equal(rejected.compatibilityResult.reason, 'storage-failed');
+    assert.equal(rejected.changed, false);
+    assert.deepEqual(rejected.effects, {});
+    assert.equal(lifecycle.getEntry('show-1').status, 'planned');
+    assert.equal(storage.getItem('rekonime.watchlist'), saved);
+    storage.setItem = write;
+    assert.equal(runtime.undoSelection(selected.undoToken).changed, true);
+    lifecycle.load();
+    assert.equal(lifecycle.getEntry('show-1'), null);
+  }
+});
+
 test('a refused Planned save keeps Watchlist state unchanged and can be retried', () => {
   const storage = createMemoryStorage();
   const write = storage.setItem;
