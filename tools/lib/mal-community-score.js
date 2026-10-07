@@ -1,3 +1,5 @@
+import { ScoreRefreshStoppedError } from './score-refresh-request.js';
+
 const HEADERS = {
   'User-Agent': 'rekonime-refresh-scores/1.0',
   Accept: 'application/json'
@@ -9,7 +11,7 @@ export const parseMalCommunityScore = (html) => {
   return Number.isFinite(score) ? score : null;
 };
 
-export const fetchCommunityScore = async (malId, request, source = 'auto') => {
+export const fetchCommunityScore = async (malId, request, source = 'mal') => {
   if (source === 'mal') {
     const response = await request(`https://myanimelist.net/anime/${malId}`, { headers: HEADERS });
     return parseMalCommunityScore(await response.text());
@@ -18,7 +20,8 @@ export const fetchCommunityScore = async (malId, request, source = 'auto') => {
     const response = await request(`https://api.jikan.moe/v4/anime/${malId}`, { headers: HEADERS });
     const score = Number((await response.json())?.data?.score);
     return Number.isFinite(score) ? score : null;
-  } catch {
+  } catch (error) {
+    if (error instanceof ScoreRefreshStoppedError) throw error;
     const response = await request(`https://myanimelist.net/anime/${malId}`, { headers: HEADERS });
     return parseMalCommunityScore(await response.text());
   }

@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { parseScoreRefreshArgs, refreshScores } from './refresh-scores.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.join(__dirname, '..');
-const DEFAULT_DATA_PATH = path.join(PROJECT_ROOT, 'data', 'anime.json');
 
 const SEASONS = [
   { name: 'Winter', startMonth: 1 },
@@ -15,23 +15,12 @@ const SEASONS = [
   { name: 'Fall', startMonth: 10 }
 ];
 
-const REFRESH_PASS_THROUGH_ARGS = new Set([
-  '--score-source',
-  '--save-interval',
-  '--mal-delay-ms',
-  '--jikan-delay-ms',
-  '--concurrency',
-  '--limit',
-  '--start-index'
-]);
-
 const parseArgs = (argv) => {
   const options = {
-    dataPath: DEFAULT_DATA_PATH,
+    ...parseScoreRefreshArgs(argv),
     date: new Date(),
     dryRun: false,
-    skipBuild: false,
-    refreshArgs: []
+    skipBuild: false
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -39,10 +28,7 @@ const parseArgs = (argv) => {
     const next = argv[i + 1];
     const hasValue = next && !next.startsWith('--');
 
-    if (arg === '--data' && hasValue) {
-      options.dataPath = path.resolve(process.cwd(), next);
-      i += 1;
-    } else if (arg === '--date' && hasValue) {
+    if (arg === '--date' && hasValue) {
       const parsed = new Date(`${next}T00:00:00`);
       if (!Number.isNaN(parsed.getTime())) {
         options.date = parsed;
@@ -52,9 +38,6 @@ const parseArgs = (argv) => {
       options.dryRun = true;
     } else if (arg === '--skip-build') {
       options.skipBuild = true;
-    } else if (REFRESH_PASS_THROUGH_ARGS.has(arg) && hasValue) {
-      options.refreshArgs.push(arg, next);
-      i += 1;
     }
   }
 
@@ -209,14 +192,8 @@ const main = async () => {
     return;
   }
 
-  await runCommand('node', [
-    path.join('tools', 'refresh-scores.js'),
-    '--data',
-    path.relative(PROJECT_ROOT, options.dataPath),
-    '--mal-ids',
-    malIds.join(','),
-    ...options.refreshArgs
-  ]);
+  const result = await refreshScores({ ...options, malIds: new Set(malIds) });
+  if (result.status !== 'completed') return;
 
   if (!options.skipBuild) {
     console.log('\nRebuilding catalog outputs so finish-rate stats reflect refreshed episodes...');

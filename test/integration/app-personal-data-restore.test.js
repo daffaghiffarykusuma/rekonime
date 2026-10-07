@@ -12,7 +12,7 @@ const restoredEntry = {
 
 test('App refreshes Watchlist-dependent UI after Personal Data Restore', async () => {
   const originals = {
-    currentAnimeId: App.currentAnimeId,
+    detailExperience: App.detailExperience,
     getTasteProfileStore: App.getTasteProfileStore,
     getWatchlistLifecycle: App.getWatchlistLifecycle,
     getCache: App.getCache,
@@ -45,7 +45,7 @@ test('App refreshes Watchlist-dependent UI after Personal Data Restore', async (
   };
 
   try {
-    App.currentAnimeId = 'restored';
+    App.detailExperience = { getCurrentAnimeId: () => 'restored' };
     App.getTasteProfileStore = () => tasteProfileStore;
     App.getWatchlistLifecycle = () => watchlistLifecycle;
     App.getCache = () => storage;

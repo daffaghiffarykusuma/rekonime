@@ -12,6 +12,10 @@ _Avoid_: bookmark logic, saved item helper, watch status utility
 A single saved anime record with an id, status, progress, timestamps, and optional snapshot used when catalog data is not loaded.
 _Avoid_: bookmark, saved card, list item
 
+**Watchlist Import**:
+The user-reviewed merge of a MyAnimeList XML export into the Watchlist Lifecycle, with exact catalog matches and explicit choices for conflicting progress. A saved import remains saved if its Taste Profile refresh needs to be retried.
+_Avoid_: list sync, backup restore, XML upload
+
 **Taste Profile**:
 The user's editable, cross-title recommendation preferences and exclusions, derived from explicit feedback and supported by Watchlist Lifecycle evidence. Title-specific status, progress, and affinity remain on the Watchlist Entry.
 _Avoid_: recommendation settings, preference cache, personalization blob
@@ -47,6 +51,10 @@ _Avoid_: filter helper, query utility, chip state
 **Catalog Payload**:
 A validated anime data package, including supported Experience Cues, loaded from preview, full, cached, embedded, or detail-chunk sources before page rendering decisions are applied.
 _Avoid_: JSON blob, response data, raw catalog
+
+**Score Refresh**:
+A single run that updates community and episode scores for a selected set of catalog titles, saves completed work, and identifies where to resume after failures or interruption. Community and episode results are independent, so a failed fetch preserves its existing values while successful results can still be saved.
+_Avoid_: score sync, refresh helper, scraper batch
 
 **Airing Schedule**:
 Live episode release metadata for watchlist entries, including AniList fetch/cache behavior, stale fallback, countdown labels, and local-time formatting.

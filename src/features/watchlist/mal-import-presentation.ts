@@ -1,4 +1,4 @@
-import type { MalImportPlan } from './mal-import-plan.ts';
+import type { WatchlistImportView } from './watchlist-import-workflow.ts';
 
 const statusLabel = { planned: 'Want to watch', watching: 'Watching now', completed: 'Finished', dropped: 'Stopped' };
 const issueLabel = (reason: string) => ({
@@ -11,14 +11,9 @@ const issueLabel = (reason: string) => ({
   'unknown-my_start_date': 'Start date unknown', 'unknown-my_finish_date': 'Finish date unknown'
 } as Record<string, string>)[reason] || 'Missing or repeated required field';
 
-type MalImportPresentationState = { fileName?: string; error?: string; file?: unknown; fileReadFailed?: boolean; noChanges?: boolean } & (
-  { stage: 'choose' | 'error' | 'loading'; plan?: undefined }
-  | { stage: 'review' | 'success' | 'partial-success'; plan: MalImportPlan }
-);
-
-const renderMalImport = (state: MalImportPresentationState | null | undefined, escape: (value: any) => string, escapeAttr: (value: any) => string) => {
-  state ||= { stage: 'choose' };
-  const plan: MalImportPlan | undefined = state.plan;
+const renderMalImport = (state: WatchlistImportView | null | undefined, escape: (value: any) => string, escapeAttr: (value: any) => string) => {
+  state ||= { stage: 'choose', fileName: '', error: '', retry: null, noChanges: false };
+  const plan = state.review;
   const summary = plan?.summary;
   const status = '<p class="visually-hidden" id="mal-import-status" role="status" aria-live="polite" aria-atomic="true"></p>';
   const button = (action: string, text: string) => `<button class="btn btn-outline btn-sm" type="button" data-action="${action}">${text}</button>`;
@@ -64,7 +59,7 @@ const renderMalImport = (state: MalImportPresentationState | null | undefined, e
   return `<section class="mal-watchlist-import" aria-labelledby="mal-import-heading"><span class="mal-import-eyebrow">Watchlist import</span>
     <h3 id="mal-import-heading" tabindex="-1">Bring progress in from MyAnimeList</h3>
     <p>Choose your MyAnimeList XML export. Rekonime reads it locally and changes nothing until you confirm.</p>
-    ${state.error ? `<p id="mal-import-error" role="alert" tabindex="-1">${escape(state.error)}</p>${state.file ? button('retry-mal-watchlist-import', state.fileReadFailed ? 'Retry file selection' : 'Retry import review') : ''}` : ''}
+    ${state.error ? `<p id="mal-import-error" role="alert" tabindex="-1">${escape(state.error)}</p>${state.retry ? button('retry-mal-watchlist-import', state.retry === 'file' ? 'Retry file selection' : 'Retry import review') : ''}` : ''}
     <input id="mal-watchlist-import-file" class="mal-import-file" type="file" aria-label="MyAnimeList XML export" accept=".xml,application/xml,text/xml" data-action="mal-watchlist-file">
     <p>This merges Watchlist progress only. Rekonime JSON backup restore replaces saved personal data and is separate below.</p>${status}</section>`;
 };

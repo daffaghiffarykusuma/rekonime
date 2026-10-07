@@ -10,7 +10,7 @@ test('community score falls back to MyAnimeList when Jikan returns 504', async (
     return new Response('<span itemprop="ratingValue">6.48</span>');
   };
 
-  assert.equal(await fetchCommunityScore(63276, request), 6.48);
+  assert.equal(await fetchCommunityScore(63276, request, 'auto'), 6.48);
   assert.deepEqual(urls, [
     'https://api.jikan.moe/v4/anime/63276',
     'https://myanimelist.net/anime/63276'
@@ -23,10 +23,10 @@ test('community score keeps MAL N/A as missing', async () => {
     return new Response('<span class="score-label score-na">N/A</span>');
   };
 
-  assert.equal(await fetchCommunityScore(62495, request), null);
+  assert.equal(await fetchCommunityScore(62495, request, 'auto'), null);
 });
 
-test('explicit MAL source skips unavailable Jikan and preserves unrated titles', async () => {
+test('default MAL source skips Jikan and preserves unrated titles', async () => {
   const urls = [];
   const request = async (url) => {
     urls.push(url);
@@ -35,8 +35,8 @@ test('explicit MAL source skips unavailable Jikan and preserves unrated titles',
       : '<span class="score-label score-na">N/A</span>');
   };
 
-  assert.equal(await fetchCommunityScore(61987, request, 'mal'), 8.65);
-  assert.equal(await fetchCommunityScore(62495, request, 'mal'), null);
+  assert.equal(await fetchCommunityScore(61987, request), 8.65);
+  assert.equal(await fetchCommunityScore(62495, request), null);
   assert.deepEqual(urls, [
     'https://myanimelist.net/anime/61987',
     'https://myanimelist.net/anime/62495'

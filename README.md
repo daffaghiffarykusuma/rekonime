@@ -31,7 +31,17 @@ Use Node.js 24.x and Bun. The Node version is declared in `.nvmrc` for local ver
 - Production builds emit per-title detail chunks (`dist/data/anime.detail/*.json`), addressed by encoded anime ID. Detail views and the MyAnimeList XML parser/planner load their JavaScript on demand.
 - A compact fallback dataset is embedded in `public/js/data.js` for `file://` browsing and fetch failures.
 
-Use `bun tools/refresh-season-scores.js --date 2026-10-04 --dry-run` to confirm the Fall 2026 and Summer 2026 targets. Remove `--dry-run` to refresh scores and rebuild the catalogs. If Jikan is unavailable, add `--score-source mal` to fetch community scores directly from MyAnimeList. The default, `auto`, tries Jikan first and falls back to MAL.
+Use `bun tools/refresh-season-scores.js --date 2026-10-04 --dry-run` to confirm the Fall 2026 and Summer 2026 targets. Remove `--dry-run` to refresh scores and rebuild the catalogs. Both seasonal and whole-catalog refreshes default to MyAnimeList directly for community scores and episode scores. No Jikan requests or startup probes are made in the default `mal` mode.
+
+To refresh the whole catalog, run `bun run data:refresh-scores`. Both refresh commands default to one anime worker and at least 10 seconds between MAL requests. Community scores, episode pagination, and retries share the same MAL queue. A full refresh can take many hours. Run only one refresh process at a time; queues are shared within a process, not across separate runs.
+
+Rate limiting pauses all queued requests to that provider for at least 60 seconds, respects `Retry-After` seconds or dates, and slows subsequent requests. Repeated rate limits, access-denied responses, or detected security challenges stop the run without attempting a score fallback. Temporary network/server failures use bounded exponential retries; other HTTP errors are not retried.
+
+The optional `--score-source auto` flag retains the old Jikan-first behavior with 3-second Jikan pacing and a MAL fallback. Only in this explicitly selected mode, five consecutive Jikan connection/server failures disable Jikan for that process. Default runs always use MAL. Network retry messages include the error code when available.
+
+Progress is saved every 25 anime and when the run stops on protection or receives Ctrl+C. Existing scores survive failed requests. After a stop, wait until provider access is restored, then repeat the command with the printed `--start-index`, preserving the original data path, filters, and seasonal `--date`. The index starts at the earliest unsuccessful or unfinished title, so some later completed titles can be revisited when using multiple workers. A stopped seasonal run does not rebuild catalogs. After completing a whole-catalog refresh, run `bun run data:build` and `bun run data:regenerate` to update the app's derived data.
+
+Use `--mal-delay-ms 15000` for an even slower run. The existing delay, concurrency, save-interval, and selection flags remain available.
 
 For imports and other data changes:
 

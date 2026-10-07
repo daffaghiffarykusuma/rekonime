@@ -228,7 +228,7 @@ test('App Catalog Runtime applies detail cache and Snapshot effects once', async
   const app = {
     animeData: [{ id: 'one', title: 'One' }],
     getLogger: () => null,
-    detailCache: { delete: () => { cacheDeletes += 1; } },
+    detailExperience: { invalidate: () => { cacheDeletes += 1; } },
     gridSortedCache: ['old'], gridSortedKey: 'old', gridSortedSource: ['old'],
     refreshWatchlistSnapshotsFromCatalog: (options) => {
       assert.deepEqual(options, { persist: true });

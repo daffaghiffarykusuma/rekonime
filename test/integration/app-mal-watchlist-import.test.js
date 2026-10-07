@@ -1,148 +1,79 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { App } from '../../src/app/app.ts';
 import { setupDom } from '../helpers/dom.js';
 
-test('cancelling an import while tools load prevents file reads and review changes', async () => {
-  setupDom('<div id="settings-content"></div>');
-  const original = App.loadMalImport;
-  let resolve;
-  App.loadMalImport = () => new Promise(done => { resolve = done; });
-  let read = false;
-  try {
-    const pending = App.importMalWatchlistFile({ name: 'cancel.xml', text: async () => { read = true; return ''; } });
-    App.cancelMalWatchlistImport();
-    resolve({});
-    await pending;
-    assert.equal(read, false);
-    assert.equal(App.malImportState.stage, 'choose');
-  } finally { App.loadMalImport = original; }
-});
-
-test('import tool download failures preserve the file for retry without writing watchlist data', async () => {
-  setupDom('<div id="settings-content"></div>');
-  const original = App.loadMalImport;
-  App.loadMalImport = async () => { throw new Error('Offline'); };
-  const file = { name: 'retry.xml', text: async () => '' };
-  const before = localStorage.getItem('rekonime.watchlist');
-  try {
-    await App.importMalWatchlistFile(file);
-    assert.equal(App.malImportState.file, file);
-    assert.match(App.malImportState.error, /import tools could not load/);
-    assert.equal(localStorage.getItem('rekonime.watchlist'), before);
-  } finally { App.loadMalImport = original; }
-});
-
-test('App reviews and applies a MAL export as one first-import batch', async () => {
-  setupDom('<div id="settings-content"></div>');
-  App.animeData = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
-  const anime = App.animeData.find(item => Number.isInteger(Number(item.malId)));
-  const xml = `<myanimelist><anime>
-    <series_animedb_id>${anime.malId}</series_animedb_id>
-    <series_title><![CDATA[${anime.title}]]></series_title>
-    <my_watched_episodes>3</my_watched_episodes>
-    <my_status>Watching</my_status>
-  </anime></myanimelist>`;
-  App.isFullDataLoaded = true;
-  App.watchlistEntries = new Map();
-  App.watchlistLifecycleRuntime = null;
-  App.tasteProfileStore = null;
-  App.settingsRendered = false;
-  App.malImportState = { stage: 'choose', fileName: '', plan: null };
-
-  await App.importMalWatchlistFile({
-    name: 'myanimelist.xml',
-    text: async () => xml
+const xml = '<myanimelist><anime><series_animedb_id>1</series_animedb_id><series_title>One</series_title><my_status>Watching</my_status><my_watched_episodes>3</my_watched_episodes></anime></myanimelist>';
+const file = { name: 'list.xml', text: async () => xml };
+const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+const createApp = (watchlistPage = false) => {
+  setupDom(`<div id="settings-content"></div>${watchlistPage ? '<div id="watchlist-grid" data-renderer="watchlist-page"></div>' : ''}`);
+  return Object.assign(Object.create(App), {
+    animeData: [{ id: 'one', malId: 1, title: 'One', episodeCount: 12 }], isFullDataLoaded: true,
+    watchlistEntries: new Map(), watchlistLifecycle: null, watchlistLifecycleRuntime: null,
+    watchlistImportWorkflow: null, tasteProfileStore: null, settingsRendered: false
   });
+};
 
-  assert.match(document.getElementById('settings-content').textContent, /1 rows are ready to review/);
-  assert.equal(document.querySelector('[data-mal-count="matched"]').textContent.trim(), '1');
-  assert.equal(document.querySelector('[data-mal-count="unmatched"]').textContent.trim(), '0');
-  assert.equal(document.querySelector('[data-mal-count="skipped"]').textContent.trim(), '0');
+for (const watchlistPage of [false, true]) {
+  test(`App ${watchlistPage ? 'Watchlist' : 'home'} adapter renders a review and dispatches one persisted batch`, async () => {
+    const app = createApp(watchlistPage);
+    const order = [];
+    app.applyWatchlistTransition = () => order.push('event');
+    app.scheduleAiringDashboardRender = () => order.push('airing');
+    app.refreshTasteProfileEvidence = () => order.push('derive');
+    app.updateTasteProfileUi = () => order.push('taste-ui');
+    app.renderRecommendations = () => order.push('recommendations');
+    const workflow = app.getWatchlistImportWorkflow();
+    await workflow.review(file);
+    await frame();
+    assert.equal(document.activeElement.id, 'mal-import-review-heading');
+    assert.equal(document.querySelector('[data-mal-count="matched"]').textContent.trim(), '1');
+    assert.match(document.getElementById('mal-import-status').textContent, /Nothing has changed/);
+    assert.equal(localStorage.getItem('rekonime.watchlist'), null);
+    assert.equal(workflow.apply().changed, true);
+    await frame();
+    assert.equal(JSON.parse(localStorage.getItem('rekonime.watchlist')).entries[0].progress, 3);
+    assert.equal(document.activeElement.id, 'mal-import-success-heading');
+    assert.match(document.getElementById('mal-import-status').textContent, /import complete/);
+    assert.deepEqual(order, watchlistPage ? ['event', 'derive', 'taste-ui', 'recommendations']
+      : ['event', 'airing', 'derive', 'taste-ui', 'recommendations']);
+  });
+}
 
-  let transitions = 0;
-  let tasteRefreshes = 0;
-  let tasteUiUpdates = 0;
-  let recommendationRenders = 0;
-  const originals = {
-    applyWatchlistTransition: App.applyWatchlistTransition,
-    refreshTasteProfileEvidence: App.refreshTasteProfileEvidence,
-    updateTasteProfileUi: App.updateTasteProfileUi,
-    renderRecommendations: App.renderRecommendations
-  };
-  App.applyWatchlistTransition = () => { transitions += 1; };
-  App.refreshTasteProfileEvidence = () => { tasteRefreshes += 1; };
-  App.updateTasteProfileUi = () => { tasteUiUpdates += 1; };
-  App.renderRecommendations = () => { recommendationRenders += 1; };
-
-  try {
-    const result = App.applyMalWatchlistPlan();
-    assert.equal(result.changed, true);
-    assert.equal(App.watchlistEntries.size, 1);
-    assert.equal(transitions, 1);
-    assert.equal(tasteRefreshes, 1);
-    assert.equal(tasteUiUpdates, 1);
-    assert.equal(recommendationRenders, 1);
-    assert.match(document.getElementById('settings-content').textContent, /1 Watchlist entries imported/);
-  } finally {
-    Object.assign(App, originals);
-  }
-});
-
-test('App retains a committed import through downstream failure and retries only derivation', async () => {
-  setupDom('<div id="settings-content"></div>');
-  App.animeData = [{ id: 'one', malId: 1, title: 'One', episodeCount: 12 }];
-  App.isFullDataLoaded = true;
-  App.watchlistEntries = new Map();
-  App.watchlistLifecycle = null;
-  App.watchlistLifecycleRuntime = null;
-  App.tasteProfileStore = null;
-  await App.importMalWatchlistFile({ name: 'retry.xml', text: async () => '<myanimelist><anime><series_animedb_id>1</series_animedb_id><series_title>One</series_title><my_status>Watching</my_status><my_watched_episodes>3</my_watched_episodes></anime></myanimelist>' });
-  const originals = { applyWatchlistTransition: App.applyWatchlistTransition, refreshTasteProfileEvidence: App.refreshTasteProfileEvidence, updateTasteProfileUi: App.updateTasteProfileUi, renderRecommendations: App.renderRecommendations, scheduleAiringDashboardRender: App.scheduleAiringDashboardRender };
+test('App adapter preserves the commit and retries only failed recommendation effects', async () => {
+  const app = createApp();
   const order = [];
-  App.applyWatchlistTransition = () => order.push('event');
-  App.scheduleAiringDashboardRender = () => order.push('airing');
-  App.refreshTasteProfileEvidence = () => { order.push('derive'); throw new Error('Injected derivation failure'); };
-  App.updateTasteProfileUi = () => order.push('taste-ui');
-  App.renderRecommendations = () => order.push('recommendations');
-  try {
-    assert.equal(App.applyMalWatchlistPlan().changed, true);
-    assert.equal(App.malImportState.stage, 'partial-success');
-    const raw = localStorage.getItem('rekonime.watchlist');
-    assert.equal(JSON.parse(raw).entries[0].progress, 3);
-    assert.deepEqual(order, ['event', 'airing', 'derive']);
-    App.refreshTasteProfileEvidence = () => order.push('derive');
-    App.retryMalRecommendations();
-    assert.equal(App.malImportState.stage, 'success');
-    assert.equal(localStorage.getItem('rekonime.watchlist'), raw);
-    assert.deepEqual(order.slice(3), ['derive', 'taste-ui', 'recommendations']);
-  } finally { Object.assign(App, originals); }
+  app.applyWatchlistTransition = () => order.push('event');
+  app.scheduleAiringDashboardRender = () => order.push('airing');
+  app.refreshTasteProfileEvidence = () => { order.push('derive'); throw new Error('Injected derivation failure'); };
+  app.updateTasteProfileUi = () => order.push('taste-ui');
+  app.renderRecommendations = () => order.push('recommendations');
+  const workflow = app.getWatchlistImportWorkflow();
+  await workflow.review(file);
+  assert.equal(workflow.apply().changed, true);
+  await frame();
+  assert.match(document.activeElement.textContent, /recommendations need refresh/);
+  const raw = localStorage.getItem('rekonime.watchlist');
+  assert.equal(JSON.parse(raw).entries[0].progress, 3);
+  assert.deepEqual(order, ['event', 'airing', 'derive']);
+  app.refreshTasteProfileEvidence = () => order.push('derive');
+  await workflow.retry();
+  await frame();
+  assert.equal(localStorage.getItem('rekonime.watchlist'), raw);
+  assert.match(document.getElementById('mal-import-status').textContent, /recommendations refreshed/);
+  assert.deepEqual(order.slice(3), ['derive', 'taste-ui', 'recommendations']);
 });
 
-test('App file read and catalog failures preserve the selected file and allow review retry without mutation', async () => {
-  setupDom('<div id="settings-content"></div>');
-  const file = { name: 'unreadable.xml', text: async () => { throw new Error('Read failure'); } };
-  const before = localStorage.getItem('rekonime.watchlist');
-  await App.importMalWatchlistFile(file);
-  assert.equal(App.malImportState.stage, 'error');
-  assert.equal(App.malImportState.file, file);
-  assert.equal(localStorage.getItem('rekonime.watchlist'), before);
-  assert.ok(document.querySelector('[data-action="retry-mal-watchlist-import"]'));
-});
-
-test('App retains the selected file when the full catalog cannot load', async () => {
-  setupDom('<div id="settings-content"></div>');
-  const originalRuntime = App.getCatalogRuntime, originalLoaded = App.isFullDataLoaded;
-  App.isFullDataLoaded = false;
-  App.getCatalogRuntime = () => ({ loadFullCatalog: async () => false });
-  const file = { name: 'catalog-retry.xml', text: async () => '<myanimelist><anime><series_animedb_id>1</series_animedb_id><series_title>One</series_title><my_status>Watching</my_status><my_watched_episodes>1</my_watched_episodes></anime></myanimelist>' };
-  const before = localStorage.getItem('rekonime.watchlist');
-  try {
-    await App.importMalWatchlistFile(file);
-    assert.equal(App.malImportState.stage, 'error');
-    assert.equal(App.malImportState.file, file);
-    assert.match(App.malImportState.error, /full catalog is unavailable/i);
-    assert.equal(localStorage.getItem('rekonime.watchlist'), before);
-  } finally { App.getCatalogRuntime = originalRuntime; App.isFullDataLoaded = originalLoaded; }
+test('App adapter directs a failed file-read retry back to the file input', async () => {
+  const app = createApp();
+  const workflow = app.getWatchlistImportWorkflow();
+  await workflow.review({ name: 'unreadable.xml', text: async () => { throw new Error('Read failure'); } });
+  await frame();
+  assert.equal(document.activeElement.id, 'mal-import-error');
+  assert.match(document.querySelector('[data-action="retry-mal-watchlist-import"]').textContent, /file selection/);
+  await workflow.retry();
+  await frame();
+  assert.equal(document.activeElement.id, 'mal-watchlist-import-file');
+  assert.equal(localStorage.getItem('rekonime.watchlist'), null);
 });

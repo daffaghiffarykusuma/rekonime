@@ -8,6 +8,7 @@ import { Onboarding } from '../features/onboarding/onboarding.js';
 import { ThemeManager } from '../shared/ui/themeManager.js';
 import { SidebarPreference } from '../shared/ui/sidebar-preference.ts';
 import { CacheManager } from '../shared/services/cache-manager.ts';
+import { createDetailExperience } from '../features/detail/detail-experience.ts';
 import { createAppCatalogRuntime } from '../features/catalog/catalog-loader.ts';
 import { CatalogPayload } from '../features/catalog/catalog-payload.ts';
 import { Logger } from '../shared/services/logger.ts';
@@ -39,6 +40,7 @@ import { prepareDiscoveryCandidates } from '../features/discovery/recommendation
 import { buildContinueWatchingModel } from '../features/watchlist/continue-watching.ts';
 import { recordBackupExport, updateBackupStatus } from '../features/preferences/backup-status.ts';
 import { renderMalImport } from '../features/watchlist/mal-import-presentation.ts';
+import { createWatchlistImportWorkflow } from '../features/watchlist/watchlist-import-workflow.ts';
 import { createTasteProfileStore } from '../features/preferences/taste-profile.ts';
 import {
   recoverPendingPersonalDataRestore,
@@ -57,7 +59,7 @@ const App = {
   filterPanelOpen: false,
   filterPanelRendered: false,
   filterPanelRenderHandle: null,
-  currentAnimeId: null,
+  get currentAnimeId() { return this.detailExperience?.getCurrentAnimeId() || null; },
   siteName: 'Rekonime',
   preferredHomePath: '/',
   basePageUrl: '',
@@ -98,7 +100,7 @@ const App = {
   watchlistVersion: 1,
   settings: null,
   settingsRendered: false,
-  malImportState: { stage: 'choose', fileName: '', plan: null },
+  watchlistImportWorkflow: null,
   watchlistEntries: new Map(),
   watchlistStatusOptions: WATCH_STATUS_VALUES,
   seoInitialized: false,
@@ -123,8 +125,6 @@ const App = {
   healthMonitorUnsubscribe: null,
   animeCardTemplate: null,
   gridDomCache: new Map(),
-  detailCache: new Map(),
-  detailCacheMaxSize: 10,
   detailExperience: null,
   gridObserver: null,
   visibleCardIds: new Set(),
@@ -170,29 +170,38 @@ const App = {
     return this.catalogRuntime;
   },
 
-  async loadDetailExperience() {
-    if (this.detailExperience) return this.detailExperience;
-    if (!this.detailExperiencePromise) {
-      this.detailExperiencePromise = import('../features/detail/detail-experience.ts')
-        .then(({ createDetailExperience }) => {
-          this.detailExperience = createDetailExperience(this, {
-            catalogRuntime: this.getCatalogRuntime()
-          });
-          return this.detailExperience;
-        })
-        .finally(() => { this.detailExperiencePromise = null; });
+  getDetailExperience() {
+    if (!this.detailExperience) {
+      this.detailExperience = createDetailExperience(this, { catalogRuntime: this.getCatalogRuntime() });
     }
-    return this.detailExperiencePromise;
+    return this.detailExperience;
   },
 
-  async loadMalImport() {
-    if (this.malImportModule) return this.malImportModule;
-    if (!this.malImportPromise) {
-      this.malImportPromise = import('../features/watchlist/mal-watchlist-import.ts')
-        .then(module => { this.malImportModule = module; return module; })
-        .finally(() => { this.malImportPromise = null; });
+  getWatchlistImportWorkflow() {
+    if (!this.watchlistImportWorkflow) {
+      this.watchlistImportWorkflow = createWatchlistImportWorkflow({
+        getFullCatalog: async () => {
+          const ready = this.isFullDataLoaded || await this.getCatalogRuntime().loadFullCatalog();
+          return ready && this.isFullDataLoaded ? this.animeData : null;
+        },
+        getEntries: () => {
+          if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
+          return this.getWatchlistLifecycle().getEntries();
+        },
+        applyPlan: plan => {
+          if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
+          return this.getWatchlistLifecycleRuntime().applyImport(plan);
+        },
+        applyEffects: result => this.applyWatchlistRuntimeResult(result),
+        refreshRecommendations: () => {
+          this.refreshTasteProfileEvidence();
+          this.updateTasteProfileUi();
+          this.renderRecommendations();
+        },
+        onUpdate: update => this.rerenderMalWatchlistImport(update)
+      });
     }
-    return this.malImportPromise;
+    return this.watchlistImportWorkflow;
   },
 
   getRuntimeCapabilities() {
@@ -786,10 +795,11 @@ const App = {
   },
 
   renderMalWatchlistImport() {
-    return renderMalImport(this.malImportState, value => this.escapeHtml(value), value => this.escapeAttr(value));
+    return renderMalImport(this.getWatchlistImportWorkflow().getView(), value => this.escapeHtml(value), value => this.escapeAttr(value));
   },
 
-  rerenderMalWatchlistImport(focusId = '', announcement = '') {
+  rerenderMalWatchlistImport({ focus, announcement = '', closeConfirmation = false }) {
+    if (closeConfirmation) document.getElementById('mal-import-confirmation')?.close?.();
     const container = document.getElementById('settings-content');
     if (!container) return;
     setHTML(container, this.renderSettingsPanel({ includeTitle: false }));
@@ -797,62 +807,18 @@ const App = {
     this.settingsRendered = true;
     updateBackupStatus();
     requestAnimationFrame(() => {
-      if (focusId) document.getElementById(focusId)?.focus();
+      if (typeof focus === 'object') {
+        const value = focus.useMal ? 'mal' : 'keep';
+        [...document.querySelectorAll('[data-action="mal-conflict-choice"]')]
+          .find(input => input.dataset.animeId === focus.conflictId && input.value === value)?.focus({ preventScroll: true });
+      } else {
+        const ids = { loading: 'mal-import-loading', review: 'mal-import-review-heading', error: 'mal-import-error',
+          success: 'mal-import-success-heading', file: 'mal-watchlist-import-file' };
+        document.getElementById(ids[focus])?.focus();
+      }
       const status = document.getElementById('mal-import-status');
       if (status && announcement) status.textContent = announcement;
     });
-  },
-
-  async importMalWatchlistFile(file) {
-    if (!file) return;
-    if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
-    const requestId = (this.malImportRequestId || 0) + 1;
-    this.malImportRequestId = requestId;
-    this.malImportState = { stage: 'loading', file, fileName: file.name || 'MyAnimeList XML', choices: {} };
-    this.rerenderMalWatchlistImport('mal-import-loading', 'Preparing import review.');
-    try {
-      const { parseMalWatchlistXml, planMalWatchlistImport } = await this.loadMalImport().catch(() => {
-        throw new Error('The import tools could not load. Check your connection and retry this review.');
-      });
-      if (this.malImportRequestId !== requestId) return;
-      let parseResult;
-      try { parseResult = parseMalWatchlistXml(await file.text()); }
-      catch { if (this.malImportRequestId === requestId) this.malImportState.fileReadFailed = true; throw new Error('We could not read this file. Try again or choose another XML export.'); }
-      if (this.malImportRequestId !== requestId) return;
-      this.malImportState.parseResult = parseResult;
-      if (!parseResult.ok) throw new Error('This XML export cannot be imported. Check for malformed XML, repeated IDs, or unsupported document declarations, then choose a corrected file.');
-      const catalogReady = this.isFullDataLoaded || await this.getCatalogRuntime().loadFullCatalog();
-      if (this.malImportRequestId !== requestId) return;
-      if (!catalogReady || !this.isFullDataLoaded) throw new Error('The full catalog is unavailable. Retry this review when your connection is ready.');
-      this.malImportState.reviewEntries = JSON.parse(JSON.stringify(this.getWatchlistLifecycle().getEntries()));
-      this.malImportState.plan = planMalWatchlistImport({ parseResult, fullCatalog: this.animeData, currentEntries: this.malImportState.reviewEntries });
-      if (!this.malImportState.plan.ok) throw new Error('The import review could not be prepared. Your Watchlist is unchanged.');
-      this.malImportState.stage = 'review';
-      this.rerenderMalWatchlistImport('mal-import-review-heading', 'Import review ready. Nothing has changed.');
-    } catch (error) {
-      if (this.malImportRequestId !== requestId) return;
-      this.malImportState = { ...this.malImportState, stage: 'error', error: error.message };
-      this.rerenderMalWatchlistImport('mal-import-error');
-    }
-  },
-
-  changeMalImportChoice(id, useMal) {
-    const state = this.malImportState;
-    if (state?.stage !== 'review') return;
-    state.choices = { ...state.choices, [id]: useMal };
-    state.plan = this.malImportModule.planMalWatchlistImport({ parseResult: state.parseResult, fullCatalog: this.animeData,
-      currentEntries: state.reviewEntries, choices: state.choices });
-    const value = useMal ? 'mal' : 'keep';
-    this.rerenderMalWatchlistImport('', `${state.plan.summary.creates + state.plan.summary.updates} changes selected, ${state.plan.summary.skipped} rows skipped.`);
-    requestAnimationFrame(() => {
-      [...document.querySelectorAll('[data-action="mal-conflict-choice"]')].find(input => input.dataset.animeId === id && input.value === value)?.focus({ preventScroll: true });
-    });
-  },
-
-  cancelMalWatchlistImport() {
-    this.malImportRequestId = (this.malImportRequestId || 0) + 1;
-    this.malImportState = { stage: 'choose' };
-    this.rerenderMalWatchlistImport('mal-watchlist-import-file', 'Import cancelled. Your Watchlist is unchanged.');
   },
 
   openMalWatchlistConfirmation() {
@@ -864,46 +830,10 @@ const App = {
         if (event.key === 'Escape') event.stopPropagation();
       });
       dialog.addEventListener('close', () => {
-        if (this.malImportState?.stage === 'review') document.querySelector('[data-action="confirm-mal-watchlist-import"]')?.focus();
+        if (this.getWatchlistImportWorkflow().getView().stage === 'review') document.querySelector('[data-action="confirm-mal-watchlist-import"]')?.focus();
       });
     }
     requestAnimationFrame(() => dialog?.querySelector('[value="cancel"]')?.focus());
-  },
-
-  retryMalRecommendations() {
-    try {
-      this.refreshTasteProfileEvidence();
-      this.updateTasteProfileUi();
-      this.renderRecommendations();
-      this.malImportState = { ...this.malImportState, stage: 'success' };
-      this.rerenderMalWatchlistImport('mal-import-success-heading', 'Watchlist imported and recommendations refreshed.');
-    } catch {
-      this.malImportState = { ...this.malImportState, stage: 'partial-success' };
-      this.rerenderMalWatchlistImport('mal-import-success-heading', 'Watchlist imported; recommendations need refresh.');
-    }
-  },
-
-  applyMalWatchlistPlan() {
-    if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
-    const result = this.getWatchlistLifecycleRuntime().applyImport(this.malImportState?.plan);
-    document.getElementById('mal-import-confirmation')?.close?.();
-    if (result.compatibilityResult?.status === 'rejected') {
-      const stale = result.compatibilityResult.reason === 'stale-plan';
-      this.malImportState = { ...this.malImportState, stage: stale ? 'error' : 'review',
-        error: stale ? 'Your Watchlist changed after this review. Retry to review the latest values.'
-          : 'Changes could not be saved. Your previous Watchlist is intact. Try applying again.' };
-      this.rerenderMalWatchlistImport('mal-import-error');
-      return result;
-    }
-    this.malImportState = { ...this.malImportState, stage: 'success', error: '', noChanges: !result.changed };
-    try {
-      this.applyWatchlistRuntimeResult(result);
-      this.rerenderMalWatchlistImport('mal-import-success-heading', result.changed ? 'Watchlist import complete.' : 'No Watchlist changes were needed.');
-    } catch {
-      this.malImportState.stage = 'partial-success';
-      this.rerenderMalWatchlistImport('mal-import-success-heading', 'Watchlist imported; recommendations need refresh.');
-    }
-    return result;
   },
 
   applyWatchlistTransition(transition) {
@@ -1586,7 +1516,7 @@ const App = {
     if (this.gridSortHandle) this.getRuntimeCapabilities().cancelIdleTask(this.gridSortHandle);
     this.gridSortHandle = null;
     this.gridDomCache.clear();
-    this.detailCache.clear();
+    this.detailExperience?.invalidate();
     this.visibleCardIds.clear();
     this.markCatalogFresh();
     if (state.activeFilters) this.activeFilters = state.activeFilters;
@@ -2188,7 +2118,7 @@ const App = {
       }
 
       if (action === 'mal-conflict-choice') {
-        this.changeMalImportChoice(target.dataset.animeId, target.value === 'mal');
+        this.getWatchlistImportWorkflow().choose(target.dataset.animeId, target.value === 'mal');
         return;
       }
 
@@ -2199,7 +2129,7 @@ const App = {
       }
 
       if (action === 'mal-watchlist-file') {
-        void this.importMalWatchlistFile(target.files?.[0] || null);
+        void this.getWatchlistImportWorkflow().review(target.files?.[0] || null);
         target.value = '';
         return;
       }
@@ -2399,12 +2329,7 @@ const App = {
    * Sync modal state to the current URL.
    */
   syncModalWithUrl({ updateUrl = true } = {}) {
-    const animeId = this.getAnimeIdFromUrl();
-    if (animeId) {
-      if (this.currentAnimeId !== animeId) return this.showAnimeDetail(animeId, { updateUrl });
-    } else if (this.currentAnimeId) {
-      return this.closeDetailModal({ updateUrl });
-    }
+    return this.getDetailExperience().syncWithUrl({ updateUrl });
   },
 
   getAnimeIdFromUrl() {
@@ -4817,22 +4742,13 @@ const App = {
         return;
       }
 
-      if (action === 'retry-mal-watchlist-import') {
-        if (this.malImportState?.fileReadFailed) {
-          document.getElementById('mal-watchlist-import-file')?.focus();
-          return;
-        }
-        void this.importMalWatchlistFile(this.malImportState?.file);
-        return;
-      }
-
-      if (action === 'retry-mal-recommendations') {
-        this.retryMalRecommendations();
+      if (action === 'retry-mal-watchlist-import' || action === 'retry-mal-recommendations') {
+        void this.getWatchlistImportWorkflow().retry();
         return;
       }
 
       if (action === 'cancel-mal-watchlist-import') {
-        this.cancelMalWatchlistImport();
+        this.getWatchlistImportWorkflow().cancel();
         return;
       }
 
@@ -4842,7 +4758,7 @@ const App = {
       }
 
       if (action === 'apply-mal-watchlist-import') {
-        this.applyMalWatchlistPlan();
+        this.getWatchlistImportWorkflow().apply();
         return;
       }
 
@@ -4985,6 +4901,10 @@ const App = {
 
       if (action === 'retry-reviews') {
         void this.detailExperience?.refreshCommunityReviews();
+        return;
+      }
+      if (action === 'retry-detail') {
+        void this.detailExperience?.retry();
         return;
       }
     });
@@ -5222,38 +5142,15 @@ const App = {
   /**
    * Show anime detail modal
    */
-  async showAnimeDetail(animeId, { deepLink = false, ...options } = {}) {
-    const requestId = (this.detailOpenRequestId || 0) + 1;
-    this.detailOpenRequestId = requestId;
-    this.currentAnimeId = animeId;
-    const content = document.getElementById('detail-content');
-    if (!this.detailExperience && content) {
-      setHTML(content, '<p role="status">Loading details...</p>');
-      this.getRuntimeCapabilities().setModalVisibility('detail-modal', true, {
-        initialFocusSelector: '#close-detail'
-      });
-    }
-    try {
-      const detail = await this.loadDetailExperience();
-      if (this.detailOpenRequestId !== requestId) return;
-      return deepLink ? await detail.handleDeepLink(animeId) : detail.open(animeId, options);
-    } catch (error) {
-      if (this.detailOpenRequestId !== requestId) return;
-      this.getLogger()?.warn?.('Unable to load details', { error });
-      if (content) setHTML(content, `<p role="alert">Details could not load. Check your connection and try again.</p><button type="button" class="btn btn-primary" data-action="open-anime" data-anime-id="${this.escapeAttr(animeId)}">Retry details</button>`);
-    }
+  showAnimeDetail(animeId, options = {}) {
+    return this.getDetailExperience().open(animeId, options);
   },
 
   /**
    * Close detail modal
    */
-  closeDetailModal({ updateUrl = true } = {}) {
-    this.detailOpenRequestId = (this.detailOpenRequestId || 0) + 1;
-    if (this.detailExperience) return this.detailExperience.close({ updateUrl });
-    this.getRuntimeCapabilities().setModalVisibility('detail-modal', false);
-    this.currentAnimeId = null;
-    if (updateUrl) this.updateUrlForAnime(null);
-    this.updateMetaForFilters();
+  closeDetailModal(options = {}) {
+    return this.getDetailExperience().close(options);
   },
 
   /**

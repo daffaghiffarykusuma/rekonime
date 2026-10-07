@@ -2,13 +2,6 @@
 import {
   setHTML
 } from '../../shared/security/trusted-types.js';
-import {
-  renderDetailContent,
-  renderDetailSkeleton,
-  renderReviewsLoading,
-  renderSynopsisLoading
-} from './detail-presentation.ts';
-import { createDetailMedia } from './detail-media.ts';
 import { CatalogPayload } from '../catalog/catalog-payload.ts';
 
 const DETAIL_ERROR_MESSAGES = {
@@ -42,11 +35,29 @@ const renderFailedReviews = () => `
 
 const createDetailExperience = (app, dependencies = {}) => {
   const catalogRuntime = dependencies.catalogRuntime;
-  const media = createDetailMedia({
-    escapeAttr: app.escapeAttr.bind(app),
-    shouldEmbedTrailers: app.shouldEmbedTrailers.bind(app),
-    shouldAutoplayTrailers: app.shouldAutoplayTrailers.bind(app)
-  });
+  let presentation;
+  let media;
+  let viewPromise;
+  let session = null;
+  let reviewRequest = 0;
+  const detailCache = new Map();
+  const cacheMaxSize = dependencies.cacheMaxSize || 10;
+  const loadView = dependencies.loadView || (() => Promise.all([
+    import('./detail-presentation.ts'), import('./detail-media.ts')
+  ]).then(([presentation, { createDetailMedia }]) => ({ presentation, createDetailMedia })));
+  const ensureView = () => {
+    if (!viewPromise) {
+      viewPromise = loadView().then(view => {
+        presentation = view.presentation;
+        media = view.createDetailMedia({
+          escapeAttr: app.escapeAttr.bind(app),
+          shouldEmbedTrailers: app.shouldEmbedTrailers.bind(app),
+          shouldAutoplayTrailers: app.shouldAutoplayTrailers.bind(app)
+        });
+      }).catch(error => { viewPromise = null; throw error; });
+    }
+    return viewPromise;
+  };
   let reviewsServicePromise = null;
   let activeAnime = null;
   let activeSynopsis = '';
@@ -69,7 +80,7 @@ const createDetailExperience = (app, dependencies = {}) => {
       modalContent: modal?.querySelector('.modal-content') || null
     };
   };
-  const renderContent = (anime, synopsis = '') => renderDetailContent(anime, {
+  const renderContent = (anime, synopsis = '') => presentation.renderDetailContent(anime, {
     synopsis,
     escapeHtml: app.escapeHtml.bind(app),
     escapeAttr: app.escapeAttr.bind(app),
@@ -80,69 +91,63 @@ const createDetailExperience = (app, dependencies = {}) => {
     getImageFallbackAttrs: app.getImageFallbackAttrs.bind(app),
     getEpisodeCount: (anime) => CatalogPayload.getEpisodeCount(anime),
     renderSynopsis: app.renderSynopsis.bind(app),
-    renderSynopsisLoading,
+    renderSynopsisLoading: presentation.renderSynopsisLoading,
     renderFranchiseHubSection: app.renderFranchiseHubSection.bind(app),
     renderTrailerSection: media.render,
-    renderReviewsLoading,
+    renderReviewsLoading: presentation.renderReviewsLoading,
     renderSimilarAnimeSection: app.renderSimilarAnimeSection.bind(app),
     renderWatchlistControls: app.renderWatchlistControls.bind(app)
   });
 
-  const isCached = (animeId) => {
-    const key = normalizeDetailKey(animeId);
-    if (!key) return false;
-    return app.detailCache.has(key);
-  };
-
   const getCached = (animeId) => {
     const key = normalizeDetailKey(animeId);
     if (!key) return '';
-    const entry = app.detailCache.get(key);
+    const entry = detailCache.get(key);
     if (!entry) return '';
-    app.detailCache.delete(key);
-    app.detailCache.set(key, entry);
+    detailCache.delete(key);
+    detailCache.set(key, entry);
     return entry;
   };
 
   const cache = (animeId, html) => {
     const key = normalizeDetailKey(animeId);
     if (!key || !html) return;
-    if (app.detailCache.has(key)) {
-      app.detailCache.delete(key);
+    if (detailCache.has(key)) {
+      detailCache.delete(key);
     }
-    while (app.detailCache.size >= app.detailCacheMaxSize) {
-      const firstKey = app.detailCache.keys().next().value;
+    while (detailCache.size >= cacheMaxSize) {
+      const firstKey = detailCache.keys().next().value;
       if (firstKey) {
-        app.detailCache.delete(firstKey);
+        detailCache.delete(firstKey);
       } else {
         break;
       }
     }
-    app.detailCache.set(key, html);
+    detailCache.set(key, html);
   };
 
   const syncWithUrl = ({ updateUrl = true } = {}) => {
     const animeId = app.getAnimeIdFromUrl();
     if (animeId) {
-      if (app.currentAnimeId !== animeId) {
-        open(animeId, { updateUrl });
+      if (session?.animeId !== animeId) {
+        return open(animeId, { updateUrl, deepLink: true });
       }
       return;
     }
 
-    if (app.currentAnimeId) {
-      close({ updateUrl });
+    if (session?.animeId) {
+      return close({ updateUrl });
     }
   };
 
   const refreshTrailerSection = () => {
-    media.refresh({
-      currentAnimeId: app.currentAnimeId,
-      animeData: app.animeData
-    });
+    if (activeAnime) media?.refresh({ currentAnimeId: activeAnime.id, animeData: [activeAnime] });
   };
 
   const loadCommunityReviews = async (anime, fallbackSynopsis = '') => {
+    const owner = session;
+    const request = ++reviewRequest;
+    const isCurrent = () => owner === session && request === reviewRequest;
     const reviewsSection = document.getElementById('community-reviews-section');
     const synopsisSection = document.getElementById('synopsis-section');
     const parsedMalId = Number.parseInt(anime?.malId, 10);
@@ -161,8 +166,9 @@ const createDetailExperience = (app, dependencies = {}) => {
 
     try {
       const reviewsService = await loadReviewsService();
+      if (!isCurrent()) return { status: 'stale' };
       const data = await reviewsService.fetchReviews(parsedMalId, anime.title);
-      if (app.currentAnimeId !== anime.id) return { status: 'stale' };
+      if (!isCurrent()) return { status: 'stale' };
 
       if (synopsisSection) {
         const synopsis = data.description || fallbackSynopsis;
@@ -179,7 +185,7 @@ const createDetailExperience = (app, dependencies = {}) => {
       if (data.description) app.updateMetaForAnime(anime, data.description);
       return { status: 'loaded' };
     } catch (error) {
-      if (app.currentAnimeId !== anime.id) return { status: 'stale' };
+      if (!isCurrent()) return { status: 'stale' };
       const logger = app.getLogger();
       if (logger?.error) {
         logger.error('Failed to load reviews', { error });
@@ -191,6 +197,7 @@ const createDetailExperience = (app, dependencies = {}) => {
         let errorMarkup = renderFailedReviews();
         try {
           const reviewsService = await loadReviewsService();
+          if (!isCurrent()) return { status: 'stale' };
           errorMarkup = reviewsService.renderReviewsSection(
             { positive: [], neutral: [], negative: [], description: '', error: true },
             'positive'
@@ -198,6 +205,7 @@ const createDetailExperience = (app, dependencies = {}) => {
         } catch {
           // Keep generic markup when the Reviews implementation cannot load.
         }
+        if (!isCurrent()) return { status: 'stale' };
         setHTML(reviewsSection, errorMarkup);
       }
       return { status: 'failed' };
@@ -205,17 +213,16 @@ const createDetailExperience = (app, dependencies = {}) => {
   };
 
   const refreshCommunityReviews = () => {
-    const anime = activeAnime?.id === app.currentAnimeId
-      ? activeAnime
-      : app.animeData.find(entry => entry?.id === app.currentAnimeId) || null;
+    const anime = activeAnime;
     if (!anime) return Promise.resolve({ status: 'unavailable' });
     return loadCommunityReviews(anime, activeSynopsis || app.getSynopsisForAnime(anime));
   };
 
   const close = ({ updateUrl = true } = {}) => {
     app.getRuntimeCapabilities().setModalVisibility('detail-modal', false);
-    media.cleanup();
-    app.currentAnimeId = null;
+    session = null;
+    reviewRequest += 1;
+    media?.cleanup();
     activeAnime = null;
     activeSynopsis = '';
 
@@ -225,37 +232,64 @@ const createDetailExperience = (app, dependencies = {}) => {
     app.updateMetaForFilters();
   };
 
-  const handleDeepLink = async (animeId) => {
-    const requestId = app.detailOpenRequestId;
+  const open = async (animeId, { updateUrl = true, deepLink = false } = {}) => {
+    const openStart = app.getPerformanceNow();
+    // Identity belongs to an opening, not a title: the same title can be reopened.
+    const owner = { animeId: normalizeDetailKey(animeId), options: { updateUrl, deepLink } };
+    session = owner;
+    activeAnime = null;
+    activeSynopsis = '';
+    reviewRequest += 1;
+    media?.cleanup();
     const { modal, content } = getDetailElements();
-
-    if (!modal || !content) return false;
-
-    setHTML(content, renderDetailSkeleton());
-    app.getRuntimeCapabilities().setModalVisibility('detail-modal', true, {
-      initialFocusSelector: '#close-detail'
-    });
-
-    let anime = app.animeData.find(anime => anime?.id === animeId) || null;
-
-    if (!anime && !app.isFullDataLoaded) {
-      const fullLoaded = await catalogRuntime.loadFullCatalog();
-      if (app.detailOpenRequestId !== requestId) return false;
-      if (fullLoaded) {
-        anime = app.animeData.find(entry => entry?.id === animeId) || null;
+    if (!modal || !content) { session = null; return false; }
+    setHTML(content, presentation ? presentation.renderDetailSkeleton() : '<p role="status">Loading details...</p>');
+    app.getRuntimeCapabilities().setModalVisibility('detail-modal', true, { initialFocusSelector: '#close-detail' });
+    try {
+      await ensureView();
+      if (session !== owner) return false;
+      let anime = app.animeData.find(entry => entry?.id === owner.animeId) || null;
+      if (!anime && deepLink && !app.isFullDataLoaded) {
+        await catalogRuntime.loadFullCatalog();
+        if (session !== owner) return false;
+        anime = app.animeData.find(entry => entry?.id === owner.animeId) || null;
       }
-    }
-
-    if (anime) {
-      open(animeId, { updateUrl: false, skipModalOpen: true });
+      if (!anime) {
+        const key = app.normalizeBookmarkId(owner.animeId);
+        anime = key ? app.getWatchlistSnapshot(key) : null;
+      }
+      if (!anime) {
+        if (updateUrl) app.updateUrlForAnime(null, { replace: true });
+        app.resetMetaToDefault();
+        setHTML(content, renderDetailErrorState(deepLink ? 'deepLink' : 'catalog'));
+        app.emitAppEvent('rekonime:modal-opened', {
+          animeId: owner.animeId, durationMs: Math.round(app.getPerformanceNow() - openStart),
+          cached: false, status: 'not_found'
+        });
+        return false;
+      }
+      if (updateUrl) app.updateUrlForAnime(anime.id);
+      renderAnime(anime, owner);
+      // Enrichment belongs to this opening, including a close/reopen of the same ID.
+      void catalogRuntime.loadAnimeDetailChunk(anime.id).then(detailAnime => {
+        if (session !== owner || !detailAnime || detailAnime === anime) return;
+        detailCache.delete(anime.id);
+        renderAnime(detailAnime, owner);
+      }).catch(error => {
+        if (session === owner) app.getLogger()?.warn?.('Unable to enrich details', { error });
+      });
       return true;
+    } catch (error) {
+      if (session !== owner) return false;
+      app.getLogger()?.warn?.('Unable to load details', { error });
+      setHTML(content, '<p role="alert">Details could not load. Check your connection and try again.</p><button type="button" class="btn btn-primary" data-action="retry-detail">Retry details</button>');
+      return false;
     }
-
-    setHTML(content, renderDetailErrorState('deepLink'));
-    return false;
   };
 
-  const open = (animeId, { updateUrl = true, skipModalOpen = false } = {}) => {
+  const renderAnime = (anime, owner) => {
+    if (session !== owner) return;
+    const animeId = anime.id;
     const renderStart = app.getPerformanceNow();
     media.cleanup();
 
@@ -274,66 +308,12 @@ const createDetailExperience = (app, dependencies = {}) => {
       });
     };
 
-    if (hasCachedDetail) {
-      setHTML(content, cachedDetail);
-    } else if (!skipModalOpen) {
-      setHTML(content, renderDetailSkeleton());
-    }
-    if (!skipModalOpen) {
-      app.getRuntimeCapabilities().setModalVisibility('detail-modal', true, {
-        initialFocusSelector: '#close-detail'
-      });
-    }
-
-    let anime = app.animeData.find(entry => entry?.id === animeId) || null;
-    if (!anime) {
-      const key = app.normalizeBookmarkId(animeId);
-      const cached = key ? app.getWatchlistSnapshot(key) : null;
-      if (cached) {
-        anime = cached;
-      }
-    }
-    if (!anime) {
-      if (updateUrl) {
-        app.updateUrlForAnime(null, { replace: true });
-      }
-      app.resetMetaToDefault();
-      setHTML(content, renderDetailErrorState());
-      reportModalOpened({ status: 'not_found' });
-      return;
-    }
-
-    app.currentAnimeId = anime.id;
     activeAnime = anime;
-
-    if (updateUrl) {
-      app.updateUrlForAnime(anime.id);
-    }
-
-    catalogRuntime.loadAnimeDetailChunk(anime.id).then((detailAnime) => {
-      if (!detailAnime || detailAnime === anime || app.currentAnimeId !== anime.id) return;
-      open(anime.id, { updateUrl: false, skipModalOpen: true });
-    });
-
+    reviewRequest += 1;
     const synopsis = app.getSynopsisForAnime(anime);
     activeSynopsis = synopsis;
-    if (hasCachedDetail) {
-      app.updateWatchlistControls(anime.id);
-      if (modalContent) {
-        modalContent.scrollTop = 0;
-      }
-      content.scrollTop = 0;
-      app.updateMetaForAnime(anime, synopsis);
-      media.setup(modalContent);
-      void refreshCommunityReviews();
-      app.updatePrefetchObserving();
-      reportModalOpened({ status: 'ok' });
-      return;
-    }
-
-    setHTML(content, renderContent(anime, synopsis));
-
-    cache(anime.id, content.innerHTML);
+    setHTML(content, cachedDetail || renderContent(anime, synopsis));
+    if (!hasCachedDetail) cache(anime.id, content.innerHTML);
     app.updateWatchlistControls(anime.id);
 
     if (modalContent) {
@@ -350,16 +330,15 @@ const createDetailExperience = (app, dependencies = {}) => {
   };
 
   return {
-    isCached,
-    getCached,
-    cache,
+    getCurrentAnimeId: () => session?.animeId || null,
+    invalidate: (animeId) => animeId == null ? detailCache.clear() : detailCache.delete(normalizeDetailKey(animeId)),
     syncWithUrl,
     refreshTrailerSection,
-    toggleTrailerPlayback: media.toggle,
+    toggleTrailerPlayback: () => { if (activeAnime) media?.toggle(); },
     refreshCommunityReviews,
     open,
-    close,
-    handleDeepLink
+    retry: () => session ? open(session.animeId, session.options) : Promise.resolve(false),
+    close
   };
 };
 

@@ -470,7 +470,7 @@ const createAppCatalogRuntime = (app) => createCatalogRuntime({
   loadEmbeddedData: () => app.loadEmbeddedData(),
   applyCatalogPayload: (payload, options) => app.applyCatalogPayload(payload, options),
   onAnimeDetailLoaded: (anime) => {
-    app.detailCache.delete(anime.id);
+    app.detailExperience?.invalidate(anime.id);
     app.gridSortedCache = null;
     app.gridSortedKey = '';
     app.gridSortedSource = null;

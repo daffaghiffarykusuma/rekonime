@@ -7,16 +7,11 @@ import { setupDom } from '../helpers/dom.js';
 const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
   const calls = [];
   const app = {
-    detailCache: new Map(),
-    detailCacheMaxSize: 2,
-    currentAnimeId: null,
     animeData: [],
     isFullDataLoaded: false,
     getPerformanceNow: () => 100,
     emitAppEvent: (...args) => calls.push(['emitAppEvent', ...args]),
     getAnimeIdFromUrl: () => '',
-    showAnimeDetail: (...args) => calls.push(['showAnimeDetail', ...args]),
-    closeDetailModal: (...args) => calls.push(['closeDetailModal', ...args]),
     shouldEmbedTrailers: () => true,
     shouldAutoplayTrailers: () => false,
     renderSynopsis: (value) => `<p>${value}</p>`,
@@ -64,6 +59,7 @@ const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
       initTabSwitching: () => calls.push(['initTabSwitching'])
   };
   const dependencies = {
+    cacheMaxSize: 2,
     catalogRuntime: {
       loadFullCatalog: (...args) => app.loadFullCatalog(...args),
       loadAnimeDetailChunk: (...args) => app.loadAnimeDetailChunk(...args)
@@ -75,222 +71,230 @@ const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
   return { app, calls, detail: createDetailExperience(app, dependencies), reviewsService };
 };
 
-test('Detail Experience cache evicts least recently used detail markup', () => {
-  const { app, detail } = createAppHarness();
+const mount = () => setupDom('<dialog id="detail-modal"><div class="modal-content"><button id="close-detail">Close</button><div id="detail-content"></div></div></dialog>');
+const deferred = () => {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+};
+const view = async () => ({
+  presentation: await import('../../src/features/detail/detail-presentation.ts'),
+  ...await import('../../src/features/detail/detail-media.ts')
+});
+const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+const titles = [{ id: 'one', title: 'One', malId: 1 }, { id: 'two', title: 'Two', malId: 2 }];
 
-  detail.cache('one', '<p>One</p>');
-  detail.cache('two', '<p>Two</p>');
-  assert.equal(detail.getCached('one'), '<p>One</p>');
-  detail.cache('three', '<p>Three</p>');
-
-  assert.equal(app.detailCache.has('two'), false);
-  assert.equal(app.detailCache.has('one'), true);
-  assert.equal(app.detailCache.has('three'), true);
+test('closing during lazy loading cancels the opening, including a later same-title reopen', async () => {
+  mount();
+  const loading = deferred();
+  const { detail, calls } = createAppHarness({ animeData: titles }, { loadView: () => loading.promise });
+  const first = detail.open('one');
+  assert.match(document.getElementById('detail-content').textContent, /Loading details/);
+  detail.close();
+  assert.equal(detail.getCurrentAnimeId(), null);
+  const second = detail.open('one');
+  loading.resolve(await view());
+  assert.equal(await first, false);
+  assert.equal(await second, true);
+  await tick();
+  assert.equal(calls.filter(([name]) => name === 'updateMetaForAnime').length, 2); // initial and reviews
+  assert.equal(calls.filter(([name, event]) => event === 'rekonime:modal-opened').length, 1);
 });
 
-test('Detail Experience syncs URL anime state to open or close actions', () => {
-  setupDom(`
-    <div id="detail-modal"><div class="modal-content"></div></div>
-    <div id="detail-content"></div>
-  `);
-  const { app, detail } = createAppHarness({
-    currentAnimeId: 'current',
-    getAnimeIdFromUrl: () => 'next',
-    animeData: [{ id: 'next', title: 'Next' }]
+test('only the latest opening renders after shared loading, and failed loading can be retried', async () => {
+  mount();
+  const loading = deferred();
+  let attempts = 0;
+  const { detail } = createAppHarness({ animeData: titles }, {
+    loadView: () => ++attempts === 1 ? loading.promise : view()
   });
-
-  detail.syncWithUrl({ updateUrl: false });
-  assert.equal(app.currentAnimeId, 'next');
-
-  const closeHarness = createAppHarness({ currentAnimeId: 'current' });
-  closeHarness.detail.syncWithUrl({ updateUrl: true });
-  assert.equal(closeHarness.app.currentAnimeId, null);
-  assert.deepEqual(closeHarness.calls.find(([name]) => name === 'updateUrlForAnime'), ['updateUrlForAnime', null]);
+  const first = detail.open('one');
+  const second = detail.open('two');
+  loading.reject(new Error('offline'));
+  await Promise.all([first, second]);
+  assert.ok(document.querySelector('[data-action="retry-detail"]'));
+  assert.equal(await detail.retry(), true);
+  assert.equal(attempts, 2);
+  assert.equal(detail.getCurrentAnimeId(), 'two');
+  assert.match(document.getElementById('detail-content').textContent, /Two/);
 });
 
-test('Detail Experience refreshes trailer behavior through its private media module', () => {
-  setupDom(`
-    <div id="detail-modal"><div class="modal-content"></div></div>
-    <section id="detail-trailer">Old</section>
-    <div id="community-reviews-section"></div>
-  `);
-  const animeData = [{
-    id: 'show-1',
-    title: 'Show One',
-    trailer: { id: 'abc123' }
-  }];
-  const { detail } = createAppHarness({
-    currentAnimeId: 'show-1',
-    animeData
-  });
-
-  detail.refreshTrailerSection();
-
-  const iframe = document.querySelector('#detail-trailer iframe');
-  assert.equal(iframe?.dataset.paused, '1');
-  assert.equal(iframe?.dataset.embedSrc, 'https://www.youtube.com/embed/abc123');
-  assert.equal(document.querySelectorAll('#detail-trailer').length, 1);
-  assert.match(document.getElementById('detail-trailer').textContent, /Watch on YouTube/);
+test('retry preserves a deep-link request after catalog loading fails', async () => {
+  mount();
+  let attempts = 0;
+  const { app, detail, calls } = createAppHarness({ loadFullCatalog: async () => {
+    if (++attempts === 1) throw new Error('offline');
+    app.animeData = titles;
+    return true;
+  } });
+  assert.equal(await detail.open('one', { deepLink: true, updateUrl: false }), false);
+  assert.equal(await detail.retry(), true);
+  assert.equal(attempts, 2);
+  assert.equal(calls.some(([name]) => name === 'updateUrlForAnime'), false);
 });
 
-test('Detail Experience owns the active review lifecycle and visible outcome', async () => {
-  setupDom(`
-    <div id="synopsis-section"></div>
-    <div id="community-reviews-section"></div>
-  `);
-  const anime = { id: 'anime-a', malId: 1, title: 'Anime A', synopsis: 'Fallback synopsis' };
-  const { detail, calls } = createAppHarness({ currentAnimeId: anime.id, animeData: [anime] });
-
-  const result = await detail.refreshCommunityReviews();
-
-  assert.deepEqual(result, { status: 'loaded' });
-  assert.deepEqual(calls[0], ['fetchReviews', 1, 'Anime A']);
-  assert.match(document.getElementById('synopsis-section').innerHTML, /Remote synopsis/);
-  assert.match(document.getElementById('community-reviews-section').innerHTML, /Reviews/);
-  assert.equal(calls.some(([name]) => name === 'initTabSwitching'), true);
-  assert.equal(calls.some(([name]) => name === 'updateMetaForAnime'), true);
-});
-
-test('Detail Experience ignores a stale review response', async () => {
-  setupDom('<div id="synopsis-section"></div><div id="community-reviews-section"></div>');
-  let resolveReviews;
-  const reviewsService = {
-    fetchReviews: () => new Promise(resolve => { resolveReviews = resolve; }),
-    renderSynopsis: (value) => `<p>${value}</p>`,
-    renderReviewsSection: () => '<section>Reviews</section>',
-    initTabSwitching: () => {}
-  };
-  const anime = { id: 'anime-a', malId: 1, title: 'Anime A' };
-  const { app, detail } = createAppHarness(
-    { currentAnimeId: anime.id, animeData: [anime] },
-    { loadReviewsService: async () => reviewsService }
-  );
-
-  const pending = detail.refreshCommunityReviews();
-  await Promise.resolve();
-  app.currentAnimeId = 'other';
-  resolveReviews({ description: 'Remote synopsis', positive: [], neutral: [], negative: [] });
-
-  assert.deepEqual(await pending, { status: 'stale' });
-  assert.equal(document.getElementById('community-reviews-section').innerHTML, '');
-});
-
-test('Detail Experience ignores a stale review failure', async () => {
-  setupDom('<div id="synopsis-section"></div><div id="community-reviews-section"></div>');
-  let rejectReviews;
-  const reviewsService = {
-    fetchReviews: () => new Promise((resolve, reject) => { rejectReviews = reject; }),
-    renderSynopsis: (value) => `<p>${value}</p>`,
-    renderReviewsSection: () => '<section>Error</section>',
-    initTabSwitching: () => {}
-  };
-  const anime = { id: 'anime-a', malId: 1, title: 'Anime A' };
-  const { app, detail } = createAppHarness(
-    { currentAnimeId: anime.id, animeData: [anime], getLogger: () => ({ error: () => {} }) },
-    { loadReviewsService: async () => reviewsService }
-  );
-
-  const pending = detail.refreshCommunityReviews();
-  await Promise.resolve();
-  app.currentAnimeId = 'other';
-  rejectReviews(new Error('provider unavailable'));
-
-  assert.deepEqual(await pending, { status: 'stale' });
-  assert.equal(document.getElementById('community-reviews-section').innerHTML, '');
-});
-
-test('Detail Experience renders unavailable reviews when MAL id is absent', async () => {
-  setupDom('<div id="synopsis-section"></div><div id="community-reviews-section"></div>');
-  const anime = { id: 'anime-a', title: 'Anime A', synopsis: 'Fallback synopsis' };
-  const { detail } = createAppHarness({ currentAnimeId: anime.id, animeData: [anime] });
-
-  assert.deepEqual(await detail.refreshCommunityReviews(), { status: 'unavailable' });
-  assert.match(document.getElementById('synopsis-section').innerHTML, /Fallback synopsis/);
-  assert.match(document.getElementById('community-reviews-section').innerHTML, /unavailable/);
-});
-
-test('Detail Experience owns failed review rendering and retry outcome', async () => {
-  setupDom('<div id="synopsis-section"></div><div id="community-reviews-section"></div>');
-  const reviewsService = {
-    fetchReviews: async () => { throw new Error('provider unavailable'); },
-    renderSynopsis: (value) => `<p>${value}</p>`,
-    renderReviewsSection: (data) => `<section>${data.error ? 'Error' : 'Reviews'}</section>`,
-    initTabSwitching: () => {}
-  };
-  const anime = { id: 'anime-a', malId: 1, title: 'Anime A' };
-  const { detail } = createAppHarness(
-    { currentAnimeId: anime.id, animeData: [anime], getLogger: () => ({ error: () => {} }) },
-    { loadReviewsService: async () => reviewsService }
-  );
-
-  assert.deepEqual(await detail.refreshCommunityReviews(), { status: 'failed' });
-  assert.match(document.getElementById('community-reviews-section').innerHTML, /Error/);
-});
-
-test('Detail Experience renders missing catalog title markup', () => {
-  setupDom(`
-    <div id="detail-modal"><div class="modal-content"></div></div>
-    <div id="detail-content"></div>
-  `);
-  const { detail, calls } = createAppHarness();
-
-  detail.open('missing-title', { updateUrl: true });
-
-  assert.match(document.getElementById('detail-content').innerHTML, /catalog/);
-  assert.deepEqual(calls.find(([name]) => name === 'updateUrlForAnime'), [
-    'updateUrlForAnime',
-    null,
-    { replace: true }
-  ]);
-});
-
-test('Detail Experience deep link loads full catalog before showing a title', async () => {
-  setupDom(`
-    <div id="detail-modal"><div class="modal-content"></div></div>
-    <div id="detail-content"></div>
-  `);
+test('URL synchronization owns deep-link loading and close cancels catalog completion', async () => {
+  mount();
+  const loading = deferred();
+  const entered = deferred();
   const { app, detail, calls } = createAppHarness({
-    animeData: [],
-    isFullDataLoaded: false,
-    loadFullCatalog: async () => {
-      app.animeData = [{ id: 'deep-link-title', title: 'Deep Link Title' }];
-      return true;
+    getAnimeIdFromUrl: () => 'one',
+    loadFullCatalog: () => { entered.resolve(); return loading.promise; }
+  });
+  const pending = detail.syncWithUrl({ updateUrl: false });
+  await entered.promise;
+  app.getAnimeIdFromUrl = () => '';
+  detail.syncWithUrl({ updateUrl: false });
+  app.animeData = titles;
+  loading.resolve(true);
+  assert.equal(await pending, false);
+  assert.equal(detail.getCurrentAnimeId(), null);
+  assert.equal(calls.some(([name]) => name === 'updateMetaForAnime'), false);
+  assert.equal(calls.some(([name]) => name === 'updateUrlForAnime'), false);
+  app.getAnimeIdFromUrl = () => 'one';
+  assert.equal(await detail.syncWithUrl({ updateUrl: false }), true);
+});
+
+test('cache reuse, eviction, and invalidation are observable through opening titles', async () => {
+  mount();
+  const animeData = [...titles, { id: 'three', title: 'Three' }];
+  const { detail, calls } = createAppHarness({ animeData });
+  for (const id of ['one', 'two', 'one', 'three', 'two']) await detail.open(id);
+  const cached = () => calls.filter(([, event]) => event === 'rekonime:modal-opened').map(([, , value]) => value.cached);
+  assert.deepEqual(cached(), [false, false, true, false, false]);
+  detail.invalidate('two');
+  await detail.open('two');
+  assert.equal(cached().at(-1), false);
+  detail.invalidate();
+  await detail.open('three');
+  assert.equal(cached().at(-1), false);
+});
+
+for (const failure of [false, true]) {
+  test(`old same-title reviews cannot update a reopened session (${failure ? 'failure' : 'success'})`, async () => {
+    mount();
+    const pending = deferred();
+    const { detail, reviewsService, calls } = createAppHarness({ animeData: titles });
+    await detail.open('one');
+    await tick();
+    reviewsService.fetchReviews = () => pending.promise;
+    const old = detail.refreshCommunityReviews();
+    await Promise.resolve();
+    detail.close();
+    reviewsService.fetchReviews = async () => ({ description: 'Current synopsis' });
+    await detail.open('one');
+    await tick();
+    const before = calls.length;
+    if (failure) pending.reject(new Error('stale failure'));
+    else pending.resolve({ description: 'Stale synopsis' });
+    assert.deepEqual(await old, { status: 'stale' });
+    assert.match(document.getElementById('synopsis-section').textContent, /Current synopsis/);
+    assert.equal(calls.length, before);
+  });
+}
+
+test('newest review retry wins within one session', async () => {
+  mount();
+  const { detail, reviewsService } = createAppHarness({ animeData: titles });
+  await detail.open('one');
+  await tick();
+  const first = deferred(), second = deferred();
+  let requests = 0;
+  reviewsService.fetchReviews = () => ++requests === 1 ? first.promise : second.promise;
+  const old = detail.refreshCommunityReviews();
+  await Promise.resolve();
+  const current = detail.refreshCommunityReviews();
+  await Promise.resolve();
+  second.resolve({ description: 'Newest' });
+  assert.deepEqual(await current, { status: 'loaded' });
+  first.resolve({ description: 'Old' });
+  assert.deepEqual(await old, { status: 'stale' });
+  assert.match(document.getElementById('synopsis-section').textContent, /Newest/);
+});
+
+test('review error-render loading cannot overwrite a newer review result', async () => {
+  mount();
+  const recovery = deferred(), entered = deferred();
+  const { detail, reviewsService } = createAppHarness({ animeData: titles, getLogger: () => ({ error() {} }) }, {
+    loadReviewsService: async () => {
+      if (recovering) { entered.resolve(); return recovery.promise; }
+      return reviewsService;
     }
   });
-
-  const loaded = await detail.handleDeepLink('deep-link-title');
-
-  assert.equal(loaded, true);
-  assert.equal(app.currentAnimeId, 'deep-link-title');
-  assert.match(document.getElementById('detail-content').innerHTML, /Deep Link Title/);
-  assert.equal(calls.some(([name]) => name === 'showAnimeDetail'), false);
+  let recovering = false;
+  await detail.open('one');
+  await tick();
+  reviewsService.fetchReviews = async () => { recovering = true; throw new Error('offline'); };
+  const old = detail.refreshCommunityReviews();
+  await entered.promise;
+  recovering = false;
+  reviewsService.fetchReviews = async () => ({ description: 'Recovered' });
+  assert.deepEqual(await detail.refreshCommunityReviews(), { status: 'loaded' });
+  recovery.resolve(reviewsService);
+  assert.deepEqual(await old, { status: 'stale' });
+  assert.doesNotMatch(document.getElementById('community-reviews-section').textContent, /Error/);
 });
 
-test('Detail Experience renders enriched detail once without reopening indefinitely', async () => {
-  setupDom('<div id="detail-modal"><div class="modal-content"></div></div><div id="detail-content"></div>');
-  let fetchCount = 0;
-  let app;
+test('enrichment renders once, invalidates cached markup, and ignores obsolete same-title work', async () => {
+  mount();
+  const oldChunk = deferred(), newChunk = deferred();
+  let loads = 0;
+  const { detail } = createAppHarness({ animeData: titles,
+    loadAnimeDetailChunk: () => ++loads === 1 ? oldChunk.promise : newChunk.promise
+  });
+  await detail.open('one');
+  detail.close();
+  await detail.open('one');
+  newChunk.resolve({ ...titles[0], title: 'Current enriched title' });
+  await tick();
+  oldChunk.resolve({ ...titles[0], title: 'Obsolete title' });
+  await tick();
+  assert.match(document.getElementById('detail-content').textContent, /Current enriched title/);
+  assert.doesNotMatch(document.getElementById('detail-content').textContent, /Obsolete title/);
+  assert.equal(loads, 2, 'rendering enrichment does not start another chunk request');
+});
+
+test('real Catalog Runtime enrichment updates the visible session', async () => {
+  mount();
+  let app, detail, requests = 0;
   const runtime = createCatalogRuntime({
     getCurrentAnimeData: () => app.animeData,
-    fetchFn: async () => {
-      fetchCount += 1;
-      return Response.json({ anime: [{ id: 'one', title: 'Enriched title', episodes: [] }] });
-    },
-    onAnimeDetailLoaded: (anime) => app.detailCache.delete(anime.id)
+    fetchFn: async () => { requests++; return Response.json({ anime: [{ id: 'one', title: 'Enriched', episodes: [] }] }); },
+    onAnimeDetailLoaded: anime => detail.invalidate(anime.id)
   });
-  const harness = createAppHarness({ animeData: [{ id: 'one', title: 'Index title', episodes: [] }] }, { catalogRuntime: runtime });
-  app = harness.app;
-  harness.detail.open('one', { updateUrl: false });
-  assert.equal(app.currentAnimeId, 'one');
-  assert.match(document.getElementById('detail-content').textContent, /Index title/);
-  assert.equal(app.detailCache.has('one'), true);
-  assert.equal(harness.calls.some(([name]) => name === 'updateWatchlistControls'), true);
-  assert.deepEqual(harness.calls.at(-1), ['emitAppEvent', 'rekonime:modal-opened', {
-    animeId: 'one', durationMs: 0, cached: false, status: 'ok'
-  }]);
+  ({ app, detail } = createAppHarness({ animeData: [{ id: 'one', title: 'Index title' }] }, { catalogRuntime: runtime }));
+  await detail.open('one');
   await runtime.loadAnimeDetailChunk('one');
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  assert.match(document.getElementById('detail-content').textContent, /Enriched title/);
-  assert.equal(fetchCount, 1);
-  assert.equal(harness.calls.filter(([name, event]) => name === 'emitAppEvent' && event === 'rekonime:modal-opened').length, 2);
+  await tick();
+  assert.match(document.getElementById('detail-content').textContent, /Enriched/);
+  assert.equal(requests, 1);
+});
+
+test('snapshot sessions retain media ownership and close cleans up trailer playback', async () => {
+  mount();
+  const anime = { id: 'saved', title: 'Saved', trailer: { id: 'abc123' } };
+  const { detail, app, calls } = createAppHarness({ getWatchlistSnapshot: () => anime });
+  await detail.open('saved');
+  detail.refreshTrailerSection();
+  assert.equal(document.querySelector('#detail-trailer iframe').dataset.embedSrc, 'https://www.youtube.com/embed/abc123');
+  detail.close();
+  assert.equal(document.querySelector('#detail-trailer iframe').getAttribute('src'), 'about:blank');
+  assert.equal(detail.getCurrentAnimeId(), null);
+  assert.deepEqual(calls.find(([name]) => name === 'updateMetaForFilters'), ['updateMetaForFilters']);
+});
+
+test('missing titles and unavailable or failed reviews retain useful recovery', async () => {
+  mount();
+  const { detail, calls, reviewsService, app } = createAppHarness({ animeData: [{ id: 'one', title: 'One', synopsis: 'Fallback' }], getLogger: () => ({ error() {} }) });
+  await detail.open('missing');
+  assert.match(document.getElementById('detail-content').textContent, /not available/);
+  assert.deepEqual(calls.find(([name]) => name === 'updateUrlForAnime'), ['updateUrlForAnime', null, { replace: true }]);
+  await detail.open('one');
+  assert.deepEqual(await detail.refreshCommunityReviews(), { status: 'unavailable' });
+  assert.match(document.getElementById('synopsis-section').textContent, /Fallback/);
+  app.animeData[0].malId = 1;
+  reviewsService.fetchReviews = async () => { throw new Error('offline'); };
+  assert.deepEqual(await detail.refreshCommunityReviews(), { status: 'failed' });
+  reviewsService.fetchReviews = async () => ({ description: 'Retried' });
+  assert.deepEqual(await detail.refreshCommunityReviews(), { status: 'loaded' });
 });

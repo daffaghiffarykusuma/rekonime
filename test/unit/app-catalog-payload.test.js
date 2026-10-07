@@ -10,7 +10,7 @@ test('App Shell applies Catalog Payload state and browser effects', async () => 
   const calls = [];
   const app = Object.assign(Object.create(App), {
     gridDomCache: new Map([['stale', {}]]),
-    detailCache: new Map([['stale', 'html']]),
+    detailExperience: { invalidate: () => calls.push(['invalidateDetails']) },
     visibleCardIds: new Set(['stale']),
     gridSortHandle: 1,
     deferFilterUiUsed: false,
@@ -44,7 +44,7 @@ test('App Shell applies Catalog Payload state and browser effects', async () => 
   assert.equal(state.catalogStatus, 'full');
   assert.equal(app.animeData[0].id, 'show-1');
   assert.equal(app.gridDomCache.size, 0);
-  assert.equal(app.detailCache.size, 0);
+  assert.equal(calls.filter(([name]) => name === 'invalidateDetails').length, 1);
   assert.equal(document.documentElement.dataset.catalogStatus, 'full');
   assert.deepEqual(calls.find(([name]) => name === 'refreshWatchlistSnapshots'), ['refreshWatchlistSnapshots', { persist: true }]);
   assert.deepEqual(calls.find(([name]) => name === 'scheduleAiringDashboard'), ['scheduleAiringDashboard', { timeout: 3500 }]);
@@ -52,6 +52,7 @@ test('App Shell applies Catalog Payload state and browser effects', async () => 
   assert.deepEqual(calls.find(([name]) => name === 'updateUrlForFilters'), ['updateUrlForFilters', { replace: true }]);
   assert.deepEqual(calls.map(([name]) => name), [
     'cancelIdleTask',
+    'invalidateDetails',
     'markCatalogFresh',
     'ensureStats',
     'refreshWatchlistSnapshots',

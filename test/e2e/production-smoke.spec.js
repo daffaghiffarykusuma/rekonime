@@ -124,7 +124,7 @@ test('production build supports browse, full catalog, search, details, and watch
   expect(catalogRequests).toContain('/data/anime.full.index.json');
   expect(catalogRequests).not.toContain('/data/anime.preview.json');
   expect(catalogRequests).not.toContain('/data/anime.full.json');
-  expect(scriptRequests).not.toContain('/js/detail-experience.js');
+  expect(scriptRequests).not.toContain('/js/detail-presentation.js');
   expect(scriptRequests).not.toContain('/js/mal-watchlist-import.js');
   await page.screenshot({ path: test.info().outputPath('desktop-catalog.png') });
 
@@ -140,7 +140,7 @@ test('production build supports browse, full catalog, search, details, and watch
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
   await expect(page.locator('#detail-modal.visible')).toContainText(/Episodes|Franchise|Finish Rate/i);
   await page.waitForSelector('#watchlist-select');
-  expect(scriptRequests).toContain('/js/detail-experience.js');
+  expect(scriptRequests).toContain('/js/detail-presentation.js');
   await page.selectOption('#watchlist-select', 'planned');
 
   await page.goto('/watchlist.html');
@@ -156,7 +156,7 @@ test('production deep links load detail code and close back to browsing', async 
   await expect(page.locator('#detail-content')).toContainText(anime.title);
   await expect(page.locator('#detail-modal')).toBeVisible();
   await expect.poll(() => page.evaluate(() => performance.getEntriesByType('resource')
-    .some(entry => entry.name.endsWith('/js/detail-experience.js')))).toBe(true);
+    .some(entry => entry.name.endsWith('/js/detail-presentation.js')))).toBe(true);
   await page.locator('#close-detail').click();
   await expect(page.locator('#detail-modal')).not.toBeVisible();
   expect(new URL(page.url()).searchParams.has('anime')).toBe(false);
