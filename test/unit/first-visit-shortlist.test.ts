@@ -76,3 +76,24 @@ test('Discovery keeps observed-only totals unknown after catalog normalization a
   assert.equal(pick.stats.ratingEvidence.totalEpisodes, null);
   assert.match(Recommendations.getRatingEvidenceLabel(pick), /total unknown/);
 });
+
+test('Discovery states missing episode rating evidence without promising future data', () => {
+  const pick = Recommendations.getRecommendationDecision([title('unrated', {
+    episodes: [], stats: null, communityScore: 7
+  })]).items[0];
+  assert.equal(pick.fitReason, 'Episode rating data unavailable');
+});
+
+test('Discovery does not claim consistent or strong episode ratings from one observed rating', () => {
+  const [anime] = CatalogPayload.normalizeAnimeData([title('sparse', {
+    episodes: [{ episode: 7, score: 4 }], stats: null, communityScore: 7
+  })]);
+  assert.ok(anime);
+  anime.stats = Stats.calculateAllStats(anime, Stats.defaultScoreProfile);
+  const pick = Recommendations.getRecommendationDecision([anime]).items[0];
+  assert.equal(pick.fitReason, 'Limited episode rating data');
+  const goalPick = Recommendations.getRecommendationDecision([anime], {
+    viewingIntent: { key: 'energy' }
+  }).items[0];
+  assert.equal(goalPick.fitReason, 'Suggested from action or sports themes');
+});

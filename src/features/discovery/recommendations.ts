@@ -290,12 +290,15 @@ const Recommendations = {
     const finishScore = Number.isFinite(anime?.stats?.worthFinishing) ? anime.stats.worthFinishing : null;
     const flowScore = Number.isFinite(anime?.stats?.flowState) ? anime.stats.flowState : null;
 
-    if (!hasEpisodes) {
+    const evidence = anime?.stats?.ratingEvidence;
+    if (!hasEpisodes || !anime?.stats || evidence?.ratedEpisodes === 0) {
       if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) {
         return 'A clear community favorite';
       }
-      return 'Fresh listing with more data coming soon';
+      return 'Episode rating data unavailable';
     }
+
+    if (evidence?.limited) return 'Limited episode rating data';
 
     if (retentionScore !== null && retentionScore >= 85) reasons.push('Strong episode ratings');
     if (churnRiskScore !== null && churnRiskScore <= 25) reasons.push('Few weak episode ratings');
