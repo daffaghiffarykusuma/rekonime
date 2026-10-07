@@ -126,6 +126,7 @@
 - Inputs: episode score lists, Catalog Payload anime records, score profiles, Taste Profile-prepared recommendation candidates, active Viewing Intent and recommendation mode facts, and filter preset keys
 - Outputs: calculated stats, one render-ready recommendation decision with context, reasons, and Experience Cues, card stat models, badges, similar-title matches, and filter preset view models
 - Interface: calculate statistics and display models; turn prepared candidates plus current intent/mode facts into one complete recommendation decision
+- Discovery shortlist: defaults to three total picks, with an explicit larger limit for more choices. The decision identifies supported goal suggestions, general alternatives, no close matches, and whether more picks exist. Goal membership uses genre/theme rules independently of ranking; eligible suggestions precede alternatives, with one title per franchise. Episode summaries distinguish listed totals from observed episodes using retained rating evidence.
 - Side effects: recommendations mode preference may use `CacheManager`; scoring and filter predicates are pure
 
 ### Runtime Capabilities

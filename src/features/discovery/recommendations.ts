@@ -102,26 +102,40 @@ const Recommendations = {
   },
 
   getRecommendationDecision(animeList, {
-    viewingIntent = null,
+    viewingIntent = null as { key: string; label?: string; description?: string } | null,
     modeKey = this.currentMode,
-    limit = 6,
+    limit = 3,
     watchlistEntries = [] as any[]
   } = {}) {
     animeList = prepareDiscoveryCandidates(animeList, watchlistEntries);
     const intentKey = String(viewingIntent?.key || '');
     const intent = this.getIntentDefinition(intentKey);
-    const recommendations = intent
-      ? this.getRecommendationsForIntent(animeList, intentKey, { limit, modeKey })
-      : this.getRecommendationsWithMode(animeList, modeKey, limit);
+    const hasGoal = Boolean(intent?.signal);
+    const matches = hasGoal
+      ? this.getRecommendationsForIntent(animeList.filter(anime => getExperienceSignals(anime)[intent.signal]), intentKey, { limit: limit + 1, modeKey })
+      : [];
+    const matchedFranchises = new Set(matches.map(anime => anime.franchise?.id || anime.id));
+    const otherCandidates = hasGoal
+      ? animeList.filter(anime => !getExperienceSignals(anime)[intent.signal] && !matchedFranchises.has(anime.franchise?.id || anime.id))
+      : animeList;
+    const alternatives = intent
+      ? this.getRecommendationsForIntent(otherCandidates, intentKey, { limit: limit + 1, modeKey })
+      : this.getRecommendationsWithMode(otherCandidates, modeKey, limit + 1);
+    const available = [...matches, ...alternatives];
+    const recommendations = available.slice(0, limit);
 
     return {
       context: intent && viewingIntent?.label && viewingIntent?.description
         ? `${viewingIntent.label}: ${viewingIntent.description}`
         : recommendations.some(anime => anime.tasteReason) ? 'Picks ranked using your saved taste and audience ratings.' : this.getModeContext(modeKey),
+      hasMore: available.length > limit,
+      noCloseMatches: hasGoal && matches.length === 0,
       items: recommendations.map(anime => ({
         ...anime,
-        fitLabel: anime.tasteReason ? 'For your taste' : intent && getExperienceSignals(anime)[intent.signal] ? 'For this session' : 'General pick',
-        fitReason: anime.tasteReason || (intent && getExperienceSignals(anime)[intent.signal] ? intent.reason : anime.reason || anime.franchiseReason),
+        episodeSummary: this.getEpisodeSummary(anime),
+        group: hasGoal ? getExperienceSignals(anime)[intent.signal] ? 'intent' : 'alternative' : 'general',
+        fitLabel: hasGoal && getExperienceSignals(anime)[intent.signal] ? 'For this goal' : hasGoal ? 'General alternative' : anime.tasteReason ? 'For your taste' : 'General pick',
+        fitReason: hasGoal && getExperienceSignals(anime)[intent.signal] ? intent.reason : anime.tasteReason || anime.reason || anime.franchiseReason,
         experienceCues: Array.isArray(anime.experienceCues)
           ? anime.experienceCues
           : this.getExperienceCues(anime, intentKey)
@@ -248,6 +262,19 @@ const Recommendations = {
       : 0;
     const statsCount = Number.isFinite(anime?.stats?.episodeCount) ? anime.stats.episodeCount : 0;
     return Math.max(directCount, listCount, statsCount);
+  },
+
+  getEpisodeSummary(anime) {
+    // Normalized episodeCount includes observed episodes. Rating evidence retains
+    // the declared total, so never treat the normalized count as a final total.
+    const evidence = anime?.stats?.ratingEvidence;
+    const declared = evidence ? Number(evidence.totalEpisodes) : Math.max(0, ...[
+      anime?.episodeCount, anime?.episodesCount, anime?.episodes_count,
+      anime?.metadata?.episodeCount, anime?.metadata?.episodesCount, anime?.metadata?.episodes_count
+    ].map(value => Number(value) || 0));
+    if (Number.isFinite(declared) && declared > 0) return `${Math.floor(declared)} episodes listed`;
+    const observed = this.getEpisodeCount(anime);
+    return observed > 0 ? `Through episode ${observed} observed · total unknown` : 'Episode count unknown';
   },
 
   /**
