@@ -657,7 +657,17 @@ const App = {
 
   applyWatchlistRuntimeResult(result) {
     if (!result) return null;
-    if (!result.changed) return result.compatibilityResult;
+    if (!result.changed) {
+      if (result.compatibilityResult?.reason === 'storage-failed') {
+        this.updateWatchlistControls(result.compatibilityResult.id);
+        this.showToast("Couldn't save your Watchlist change. Nothing changed. Try again; if it keeps failing, check browser storage.", {
+          key: 'watchlist',
+          type: 'error',
+          duration: 10000
+        });
+      }
+      return result.compatibilityResult;
+    }
     this.applyWatchlistTransition(result.transition);
     this.renderContinueWatching();
     if (result.transition?.render?.watchlist?.shouldRender) {
