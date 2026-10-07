@@ -59,6 +59,7 @@ export interface WatchlistLegacyPayload {
 
 export interface WatchlistTransitionResult {
   changed: boolean;
+  reason?: 'storage-failed';
   id: string;
   entry?: WatchlistEntry | null;
   removed?: boolean;

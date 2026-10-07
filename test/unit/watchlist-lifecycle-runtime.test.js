@@ -13,7 +13,7 @@ const createMemoryStorage = () => {
   };
 };
 
-const createRuntimeHarness = ({ lastRecommendationIds = [] } = {}) => {
+const createRuntimeHarness = ({ lastRecommendationIds = [], storage = createMemoryStorage() } = {}) => {
   const animeData = [{
     id: 'show-1',
     title: 'Show 1',
@@ -21,7 +21,7 @@ const createRuntimeHarness = ({ lastRecommendationIds = [] } = {}) => {
     episodeCount: 12
   }];
   const lifecycle = createWatchlistLifecycle({
-    storage: createMemoryStorage(),
+    storage,
     now: () => 1000
   });
   const runtime = createWatchlistLifecycleRuntime({
@@ -34,6 +34,52 @@ const createRuntimeHarness = ({ lastRecommendationIds = [] } = {}) => {
   });
   return { lifecycle, runtime };
 };
+
+test('a refused Planned save keeps Watchlist state unchanged and can be retried', () => {
+  const storage = createMemoryStorage();
+  const write = storage.setItem;
+  const { lifecycle, runtime } = createRuntimeHarness({ storage });
+  runtime.setStatus('saved-title', 'completed');
+  const before = lifecycle.getEntries();
+  const persistedBefore = storage.getItem('rekonime.watchlist');
+  storage.setItem = () => false;
+
+  const failed = runtime.setStatus('show-1', 'planned');
+  assert.equal(failed.changed, false);
+  assert.equal(failed.compatibilityResult.reason, 'storage-failed');
+  assert.deepEqual(failed.effects, {});
+  assert.equal(failed.transition, null);
+  assert.deepEqual(lifecycle.getEntries(), before);
+  assert.equal(storage.getItem('rekonime.watchlist'), persistedBefore);
+
+  storage.setItem = write;
+  const saved = runtime.setStatus('show-1', 'planned');
+  assert.equal(saved.changed, true);
+  lifecycle.load();
+  assert.equal(lifecycle.getEntry('show-1').status, 'planned');
+  assert.equal(lifecycle.getEntry('show-1').startedAt, undefined);
+  assert.deepEqual(lifecycle.getEntry('saved-title'), before[0]);
+});
+
+test('thrown storage writes preserve an existing Entry when changing or removing its status', () => {
+  const storage = createMemoryStorage();
+  const { lifecycle, runtime } = createRuntimeHarness({ storage });
+  runtime.setStatus('show-1', 'completed');
+  runtime.setLoved('show-1', true);
+  const before = structuredClone(lifecycle.getEntry('show-1'));
+  const persistedBefore = storage.getItem('rekonime.watchlist');
+  storage.setItem = () => { throw new Error('storage unavailable'); };
+
+  for (const status of ['planned', '']) {
+    const failed = runtime.setStatus('show-1', status);
+    assert.equal(failed.changed, false);
+    assert.equal(failed.compatibilityResult.reason, 'storage-failed');
+    assert.equal(failed.transition, null);
+    assert.deepEqual(failed.effects, {});
+    assert.deepEqual(lifecycle.getEntry('show-1'), before);
+    assert.equal(storage.getItem('rekonime.watchlist'), persistedBefore);
+  }
+});
 
 test('Watchlist Lifecycle Runtime loads page state and preserves its Snapshot', () => {
   const storage = createMemoryStorage();
