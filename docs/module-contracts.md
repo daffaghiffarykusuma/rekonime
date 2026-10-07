@@ -55,9 +55,11 @@
 
 ### Viewing Intent
 - Runtime module: `src/features/discovery/viewing-intent.ts`
-- Inputs: Viewing Intent key, session activity time, and optional completion announcement
-- Outputs: active Viewing Intent definition and apply/clear transition effects
-- Interface: list definitions, read the active Viewing Intent, apply a Viewing Intent, and clear it after discovery completes
+- Inputs: Viewing Intent key, session activity time, a title to dismiss or restore, and optional completion announcement
+- Outputs: active Viewing Intent definition, Session Dismissals, dismissal/restore outcomes, and apply/clear transition effects
+- Interface: list definitions, read/apply/clear the active Viewing Intent, dismiss/restore titles, read Session Dismissals, and record activity. Session Dismissals work without an active Viewing Intent and survive intent changes and clearing.
+- Session expiry: all reads reject expired state first. `getActive()` retains activity renewal by default; App Shell rendering uses `getActive({ recordActivity: false })` and actual delegated user actions call `recordActivity()`. Reading dismissals never renews activity. Applying a goal, dismissing, or restoring renews the same four-hour sliding window.
+- Browser lifetime: session storage preserves same-tab reloads. A genuinely fresh tab without an opener begins with no Session Dismissals. A duplicated tab, an opener-created tab, or browser session recovery can preserve/copy session storage; there is no promise of deletion when a tab closes. Dismissals never enter personal-data exports.
 - Side effects: Viewing Intent session storage writes only; App Shell executes returned option, recommendation-mode, recommendation, and announcement effects
 
 ### Watchlist State

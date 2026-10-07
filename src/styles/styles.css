@@ -7789,3 +7789,14 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
     grid-template-columns: minmax(0, 1fr) 2.75rem 2.75rem;
   }
 }
+
+
+.session-dismissals { margin-block: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.75rem; overflow-wrap: anywhere; }
+.session-dismissals[hidden] { display: none; }
+.session-dismissals summary { cursor: pointer; min-height: 2.75rem; padding-block: 0.75rem; }
+.session-dismissals ul { list-style: none; padding: 0; }
+.session-dismissals li, .session-dismissals > p { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+.session-dismissals li { margin-block: 0.75rem; }
+.session-dismissals li span { flex: 1 1 12rem; }
+.session-dismissals .btn { min-height: 2.75rem; white-space: normal; }
+.recommendation-quick-actions { gap: 0.5rem; flex-wrap: wrap; }

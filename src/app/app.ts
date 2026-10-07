@@ -2892,7 +2892,7 @@ const App = {
   },
 
   getActiveViewingIntent() {
-    return this.getViewingIntentRuntime().getActive();
+    return this.getViewingIntentRuntime().getActive({ recordActivity: false });
   },
 
   applyViewingIntentEffects({ effects = {} } = {}) {
@@ -4104,9 +4104,53 @@ const App = {
   /**
    * Render recommendations section
    */
+  renderSessionDismissals(grid) {
+    let panel = document.getElementById('session-dismissals');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'session-dismissals';
+      panel.className = 'session-dismissals';
+      panel.setAttribute('aria-label', 'Skipped recommendations');
+      grid.before(panel);
+    }
+    const dismissed = this.getViewingIntentRuntime().getDismissed();
+    panel.hidden = dismissed.length === 0;
+    if (!dismissed.length) { setHTML(panel, ''); return; }
+    const expanded = Boolean(panel.querySelector('details[open]'));
+    const latest = dismissed[dismissed.length - 1];
+    setHTML(panel, `
+      <p>Skipped for now: ${this.escapeHtml(latest.title)}
+        <button class="btn btn-secondary btn-sm" type="button" data-action="restore-session-dismissal" data-anime-id="${this.escapeAttr(latest.id)}" aria-label="Undo skip ${this.escapeAttr(latest.title)}">Undo</button>
+      </p>
+      <details ${expanded ? 'open' : ''}>
+        <summary data-action="review-session-dismissals">Review skipped titles (${dismissed.length})</summary>
+        <p>These skips apply to this tab's session. They expire after four hours without activity.</p>
+        <ul>${dismissed.map(item => `<li><span>${this.escapeHtml(item.title)}</span> <button class="btn btn-secondary btn-sm" type="button" data-action="restore-session-dismissal" data-anime-id="${this.escapeAttr(item.id)}" aria-label="Restore ${this.escapeAttr(item.title)}">Restore</button></li>`).join('')}</ul>
+      </details>
+    `);
+  },
+
+  handleSessionDismissal(action, animeId) {
+    const runtime = this.getViewingIntentRuntime();
+    const anime = this.animeData.find(item => String(item?.id) === String(animeId));
+    const title = anime?.title || runtime.getDismissed().find(item => item.id === String(animeId))?.title || 'Title';
+    const skipping = action === 'skip-recommendation';
+    const result = skipping ? runtime.dismiss({ id: animeId, title }) : runtime.restore(animeId);
+    this.renderRecommendations();
+    const status = document.getElementById('recommendations-status');
+    if (status) status.textContent = result.changed
+      ? `${skipping ? 'Skipped for now' : 'Restored'}: ${title}. ${skipping ? 'Your taste and Watchlist are unchanged.' : 'This title can appear in recommendations again.'}`
+      : 'Could not update this session. It may have expired or browser storage may be unavailable. Try again.';
+    const focusTarget = skipping && result.changed
+      ? document.querySelector('#session-dismissals > p button')
+      : document.querySelector('#session-dismissals:not([hidden]) summary') || document.querySelector('#recommendations-grid .recommendation-title') || document.getElementById('recommendations-heading');
+    if (focusTarget) { if (!focusTarget.hasAttribute('tabindex') && focusTarget.tagName === 'H2') focusTarget.setAttribute('tabindex', '-1'); focusTarget.focus(); }
+  },
+
   renderRecommendations() {
     const container = document.getElementById('recommendations-grid');
     if (!container) return;
+    this.renderSessionDismissals(container);
     container.classList.remove('is-loading');
     container.removeAttribute('aria-busy');
     const recDims = this.getImageProxyRuntime().getDimensions('recommendation');
@@ -4116,7 +4160,7 @@ const App = {
     const recommendationLimit = this.getRecommendationDisplayLimit();
     const activeIntent = this.getActiveViewingIntent();
     const recommendationSource = this.getTasteProfileStore().prepareRecommendationSource(this.filteredData, {
-      excludedIds: this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] })
+      excludedIds: [...this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] }), ...this.getViewingIntentRuntime().getDismissed().map(item => item.id)]
     });
     const decision = Recommendations.getRecommendationDecision(recommendationSource, {
       viewingIntent: activeIntent,
@@ -4201,6 +4245,7 @@ const App = {
               <div class="recommendation-reason">${safeReason}</div>
               <div class="recommendation-quick-actions">
                 <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
+                <button class="btn btn-secondary btn-sm" type="button" data-action="skip-recommendation" data-anime-id="${safeId}">Skip for now</button>
               </div>
               <div class="recommendation-feedback" aria-label="Tune recommendations for ${safeTitle}">
                 <button class="rec-feedback-btn" type="button" data-action="rec-more-like" data-anime-id="${safeId}">More like this</button>
@@ -4597,6 +4642,13 @@ const App = {
 
       if (actionEl.closest('[data-renderer="watchlist-page"]')) return;
       const action = actionEl.dataset.action;
+      this.getViewingIntentRuntime().recordActivity();
+      if (action === 'skip-recommendation' || action === 'restore-session-dismissal') {
+        event.preventDefault();
+        event.stopPropagation();
+        this.handleSessionDismissal(action, actionEl.dataset.animeId);
+        return;
+      }
       if (action === 'home-shortcut') {
         if (this.isCatalogPage()) {
           event.preventDefault();
