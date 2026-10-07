@@ -28,6 +28,10 @@ _Avoid_: JSON merge, import helper, settings upload
 The user's temporary viewing outcome for the current discovery session, including its definition, four-hour activity window, apply transition, and clear transition. A Viewing Intent guides recommendations without changing Browse View Filtering or the longer-lived Taste Profile.
 _Avoid_: mood filter, recommendation mode, session flag
 
+**Session Dismissal**:
+The user's temporary choice to set aside a recommended title during the current discovery session without changing the Taste Profile or the title's Watchlist Entry. It can be undone, persists when the Viewing Intent changes, and expires with the session's four-hour inactivity window.
+_Avoid_: dislike, permanent exclusion, negative taste signal
+
 **Discovery**:
 The catalog exploration behavior that powers Surprise Me, seasonal choices, trending titles, and weekly popularity. Discovery consumes Taste Profile-prepared candidates for personalized selection; it does not interpret Watchlist Lifecycle evidence itself.
 _Avoid_: discovery helper, random picker utility, watchlist preference logic
