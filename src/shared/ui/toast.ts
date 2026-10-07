@@ -49,7 +49,14 @@ const showToast = (message, { action = null, type = 'info', duration = 4500, key
   const text = document.createElement('span');
   text.textContent = message;
   toast.appendChild(text);
-  if (action?.href && action?.label) {
+  if (typeof action?.onClick === 'function' && action?.label) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'toast-action';
+    button.textContent = action.label;
+    button.addEventListener('click', () => action.onClick(toastId));
+    toast.appendChild(button);
+  } else if (action?.href && action?.label) {
     const link = document.createElement('a');
     link.className = 'toast-action';
     link.href = action.href;
@@ -59,7 +66,7 @@ const showToast = (message, { action = null, type = 'info', duration = 4500, key
 
   region.appendChild(toast);
   requestAnimationFrame(() => toast.classList.add('is-visible'));
-  timers.set(toastId, window.setTimeout(() => dismissToast(toastId), duration));
+  if (duration > 0) timers.set(toastId, window.setTimeout(() => dismissToast(toastId), duration));
   return toastId;
 };
 

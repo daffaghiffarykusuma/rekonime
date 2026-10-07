@@ -34,8 +34,9 @@
 ### Taste Profile
 - Runtime module: `src/features/preferences/taste-profile.ts`
 - Inputs: recommendation feedback, Watchlist Lifecycle entries, Catalog Payload anime records, and excluded Watchlist Entry ids
-- Outputs: persisted cross-title preferences, Watchlist-derived evidence, ranked recommendation source, weighted Discovery source, feedback result, and settings summary
-- Interface: apply recommendation feedback, refresh inferred evidence, prepare recommendation and Discovery candidates, reset while preserving Watchlist Lifecycle evidence, commit a validated profile, and export personal data
+- Outputs: persisted cross-title preferences, Watchlist-derived evidence, ranked recommendation source, weighted Discovery source, feedback result with a session-only Undo token, and settings summary
+- Interface: apply and undo recommendation feedback, refresh inferred evidence, prepare recommendation and Discovery candidates, reset while preserving Watchlist Lifecycle evidence, commit a validated profile, and export personal data
+- Feedback contract: persist before confirming a change; Undo reverses only the affected explicit evidence and preserves inferred evidence. Reject stale Undo after overlapping feedback, profile replacement, or changes from another store.
 - Side effects: Taste Profile storage writes only; App Shell owns DOM rendering, announcements, file download/upload, and Watchlist Lifecycle transitions such as Already seen
 
 ### Personal Data Restore
