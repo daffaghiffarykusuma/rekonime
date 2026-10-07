@@ -112,6 +112,7 @@ const App = {
     themes: { expanded: false }
   },
   viewingIntentRuntime: null,
+  recommendationDisplayLimit: 3,
   lastRecommendationIds: new Set(),
   headerSearchState: {
     query: '',
@@ -1619,7 +1620,7 @@ const App = {
     if (recommendations) {
       recommendations.classList.add('is-loading');
       recommendations.setAttribute('aria-busy', 'true');
-      setHTML(recommendations, Array.from({ length: 6 }, () => this.renderCardSkeleton('recommendation')).join(''));
+      setHTML(recommendations, Array.from({ length: 3 }, () => this.renderCardSkeleton('recommendation')).join(''));
     }
 
     if (grid) {
@@ -2926,7 +2927,7 @@ const App = {
   },
 
   getActiveViewingIntent() {
-    return this.getViewingIntentRuntime().getActive();
+    return this.getViewingIntentRuntime().getActive({ recordActivity: false });
   },
 
   applyViewingIntentEffects({ effects = {} } = {}) {
@@ -2986,6 +2987,7 @@ const App = {
   },
 
   applyViewingIntent(intentKey) {
+    this.recommendationDisplayLimit = 3;
     const result = this.getViewingIntentRuntime().apply(intentKey);
     this.applyViewingIntentEffects(result);
     return result.changed;
@@ -4118,10 +4120,7 @@ const App = {
   },
 
   getRecommendationDisplayLimit() {
-    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)')?.matches) {
-      return 3;
-    }
-    return 6;
+    return this.recommendationDisplayLimit;
   },
 
   renderCardScoreValue(value) {
@@ -4138,9 +4137,53 @@ const App = {
   /**
    * Render recommendations section
    */
+  renderSessionDismissals(grid) {
+    let panel = document.getElementById('session-dismissals');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'session-dismissals';
+      panel.className = 'session-dismissals';
+      panel.setAttribute('aria-label', 'Skipped recommendations');
+      grid.before(panel);
+    }
+    const dismissed = this.getViewingIntentRuntime().getDismissed();
+    panel.hidden = dismissed.length === 0;
+    if (!dismissed.length) { setHTML(panel, ''); return; }
+    const expanded = Boolean(panel.querySelector('details[open]'));
+    const latest = dismissed[dismissed.length - 1];
+    setHTML(panel, `
+      <p>Skipped for now: ${this.escapeHtml(latest.title)}
+        <button class="btn btn-secondary btn-sm" type="button" data-action="restore-session-dismissal" data-anime-id="${this.escapeAttr(latest.id)}" aria-label="Undo skip ${this.escapeAttr(latest.title)}">Undo</button>
+      </p>
+      <details ${expanded ? 'open' : ''}>
+        <summary data-action="review-session-dismissals">Review skipped titles (${dismissed.length})</summary>
+        <p>These skips apply to this tab's session. They expire after four hours without activity.</p>
+        <ul>${dismissed.map(item => `<li><span>${this.escapeHtml(item.title)}</span> <button class="btn btn-secondary btn-sm" type="button" data-action="restore-session-dismissal" data-anime-id="${this.escapeAttr(item.id)}" aria-label="Restore ${this.escapeAttr(item.title)}">Restore</button></li>`).join('')}</ul>
+      </details>
+    `);
+  },
+
+  handleSessionDismissal(action, animeId) {
+    const runtime = this.getViewingIntentRuntime();
+    const anime = this.animeData.find(item => String(item?.id) === String(animeId));
+    const title = anime?.title || runtime.getDismissed().find(item => item.id === String(animeId))?.title || 'Title';
+    const skipping = action === 'skip-recommendation';
+    const result = skipping ? runtime.dismiss({ id: animeId, title }) : runtime.restore(animeId);
+    this.renderRecommendations();
+    const status = document.getElementById('recommendations-status');
+    if (status) status.textContent = result.changed
+      ? `${skipping ? 'Skipped for now' : 'Restored'}: ${title}. ${skipping ? 'Your taste and Watchlist are unchanged.' : 'This title can appear in recommendations again.'}`
+      : 'Could not update this session. It may have expired or browser storage may be unavailable. Try again.';
+    const focusTarget = skipping && result.changed
+      ? document.querySelector('#session-dismissals > p button')
+      : document.querySelector('#session-dismissals:not([hidden]) summary') || document.querySelector('#recommendations-grid .recommendation-title') || document.getElementById('recommendations-heading');
+    if (focusTarget) { if (!focusTarget.hasAttribute('tabindex') && focusTarget.tagName === 'H2') focusTarget.setAttribute('tabindex', '-1'); focusTarget.focus(); }
+  },
+
   renderRecommendations() {
     const container = document.getElementById('recommendations-grid');
     if (!container) return;
+    this.renderSessionDismissals(container);
     container.classList.remove('is-loading');
     container.removeAttribute('aria-busy');
     const recDims = this.getImageProxyRuntime().getDimensions('recommendation');
@@ -4150,7 +4193,7 @@ const App = {
     const recommendationLimit = this.getRecommendationDisplayLimit();
     const activeIntent = this.getActiveViewingIntent();
     const recommendationSource = this.getTasteProfileStore().prepareRecommendationSource(this.filteredData, {
-      excludedIds: this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] })
+      excludedIds: [...this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] }), ...this.getViewingIntentRuntime().getDismissed().map(item => item.id)]
     });
     const decision = Recommendations.getRecommendationDecision(recommendationSource, {
       viewingIntent: activeIntent,
@@ -4159,6 +4202,8 @@ const App = {
       watchlistEntries: this.getWatchlistLifecycle().getEntries()
     });
     const recommendations = decision.items;
+    const moreButton = document.getElementById('more-recommendations');
+    if (moreButton) moreButton.hidden = !decision.hasMore;
     const heading = document.getElementById('recommendations-heading');
     if (heading) heading.textContent = recommendations.some(anime => anime.tasteReason) ? 'Picks for your taste' : activeIntent ? 'Picks for this session' : 'Explore something new';
     const contextEl = document.getElementById('recommendations-context');
@@ -4169,18 +4214,17 @@ const App = {
 
 
     if (recommendations.length === 0) {
-      setHTML(container, '<p class="no-data">No recommendations available</p>');
+      setHTML(container, `<p class="no-data">${decision.noCloseMatches ? 'No close matches for this goal. ' : ''}No recommendations available. Try changing your goal or browsing the catalog.</p>`);
       document.getElementById('quick-filters')?.removeAttribute('inert');
       return;
     }
 
-    setHTML(container, recommendations.map((anime, index) => {
+    setHTML(container, `${decision.noCloseMatches ? '<p class="recommendation-group-heading">No close matches for this goal. These are general alternatives.</p>' : ''}` + recommendations.map((anime, index) => {
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const satisfactionTooltipTitle = this.escapeHtml('Community Score');
       const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
-      const cues = anime.experienceCues;
       const safeReason = this.escapeHtml(anime.fitReason || anime.reason || '');
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
@@ -4203,7 +4247,10 @@ const App = {
       });
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
+      const groupHeading = anime.group !== recommendations[index - 1]?.group && anime.group !== 'general'
+        ? `<h3 class="recommendation-group-heading">${anime.group === 'intent' ? 'Suggestions for this goal' : 'General alternatives'}</h3>` : '';
       return `
+        ${groupHeading}
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="group" tabindex="-1" aria-label="${safeTitle}">
           <div class="recommendation-media">
             <span class="recommendation-rank">#${index + 1}</span>
@@ -4212,6 +4259,11 @@ const App = {
           <div class="recommendation-info">
             <button class="recommendation-title" type="button" data-action="open-anime" data-anime-id="${safeId}" aria-label="${cardLabel}">${safeTitle}</button>
             <div class="recommendation-submeta">${safeYear} &bull; ${safeStudio}</div>
+            <div class="recommendation-fit-label">${this.escapeHtml(anime.fitLabel)}</div>
+            <div class="recommendation-reason">${safeReason}</div>
+            <div class="recommendation-episodes">${this.escapeHtml(anime.episodeSummary)}</div>
+            <details class="recommendation-ratings" data-action="recommendation-ratings">
+            <summary>Ratings and evidence</summary>
             <div class="recommendation-scoreboard">
             <div class="${decisionClass}">
               <div class="recommendation-primary-score">
@@ -4231,10 +4283,11 @@ const App = {
               </span>
               </div>`}
               </div>
-              <div class="recommendation-fit-label">${this.escapeHtml(anime.fitLabel)}</div>
-              <div class="recommendation-reason">${safeReason}</div>
+              <p class="recommendation-rating-explanation">Episode strength is an episode-rating index adjusted for coverage and sample size, not a completion probability. Community scores are audience ratings from MyAnimeList.</p>
+              </details>
               <div class="recommendation-quick-actions">
                 <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
+                <button class="btn btn-secondary btn-sm" type="button" data-action="skip-recommendation" data-anime-id="${safeId}">Skip for now</button>
               </div>
               <details class="recommendation-taste" data-action="taste-preferences">
                 <summary>Taste preferences</summary>
@@ -4635,6 +4688,22 @@ const App = {
 
       if (actionEl.closest('[data-renderer="watchlist-page"]')) return;
       const action = actionEl.dataset.action;
+      this.getViewingIntentRuntime().recordActivity();
+      if (action === 'skip-recommendation' || action === 'restore-session-dismissal') {
+        event.preventDefault();
+        event.stopPropagation();
+        this.handleSessionDismissal(action, actionEl.dataset.animeId);
+        return;
+      }
+      if (action === 'more-recommendations') {
+        const previousCount = document.querySelectorAll('#recommendations-grid .recommendation-card').length;
+        this.recommendationDisplayLimit += 3;
+        this.renderRecommendations();
+        document.querySelectorAll('#recommendations-grid .recommendation-title')[previousCount]?.focus();
+        const status = document.getElementById('recommendations-status');
+        if (status) status.textContent = 'More picks shown.';
+        return;
+      }
       if (action === 'home-shortcut') {
         if (this.isCatalogPage()) {
           event.preventDefault();
@@ -4918,6 +4987,7 @@ const App = {
       if (action === 'set-rec-mode') {
         const modeKey = actionEl.dataset.mode;
         if (modeKey && Recommendations.setMode(modeKey)) {
+          this.recommendationDisplayLimit = 3;
           this.renderRecommendationModes();
           this.renderRecommendations();
         }

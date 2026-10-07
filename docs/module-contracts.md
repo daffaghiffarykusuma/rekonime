@@ -56,9 +56,11 @@
 
 ### Viewing Intent
 - Runtime module: `src/features/discovery/viewing-intent.ts`
-- Inputs: Viewing Intent key, session activity time, and optional completion announcement
-- Outputs: active Viewing Intent definition and apply/clear transition effects
-- Interface: list definitions, read the active Viewing Intent, apply a Viewing Intent, and clear it after discovery completes
+- Inputs: Viewing Intent key, session activity time, a title to dismiss or restore, and optional completion announcement
+- Outputs: active Viewing Intent definition, Session Dismissals, dismissal/restore outcomes, and apply/clear transition effects
+- Interface: list definitions, read/apply/clear the active Viewing Intent, dismiss/restore titles, read Session Dismissals, and record activity. Session Dismissals work without an active Viewing Intent and survive intent changes and clearing.
+- Session expiry: all reads reject expired state first. `getActive()` retains activity renewal by default; App Shell rendering uses `getActive({ recordActivity: false })` and actual delegated user actions call `recordActivity()`. Reading dismissals never renews activity. Applying a goal, dismissing, or restoring renews the same four-hour sliding window.
+- Browser lifetime: session storage preserves same-tab reloads. A genuinely fresh tab without an opener begins with no Session Dismissals. A duplicated tab, an opener-created tab, or browser session recovery can preserve/copy session storage; there is no promise of deletion when a tab closes. Dismissals never enter personal-data exports.
 - Side effects: Viewing Intent session storage writes only; App Shell executes returned option, recommendation-mode, recommendation, and announcement effects
 
 ### Watchlist State
@@ -127,6 +129,7 @@
 - Inputs: episode score lists, Catalog Payload anime records, score profiles, Taste Profile-prepared recommendation candidates, active Viewing Intent and recommendation mode facts, and filter preset keys
 - Outputs: calculated stats, one render-ready recommendation decision with context, reasons, and Experience Cues, card stat models, badges, similar-title matches, and filter preset view models
 - Interface: calculate statistics and display models; turn prepared candidates plus current intent/mode facts into one complete recommendation decision
+- Discovery shortlist: defaults to three total picks, with an explicit larger limit for more choices. The decision identifies supported goal suggestions, general alternatives, no close matches, and whether more picks exist. Goal membership uses genre/theme rules independently of ranking; eligible suggestions precede alternatives, with one title per franchise. Episode summaries distinguish listed totals from observed episodes using retained rating evidence.
 - Side effects: recommendations mode preference may use `CacheManager`; scoring and filter predicates are pure
 
 ### Runtime Capabilities
