@@ -3425,6 +3425,26 @@ h4 {
   margin-top: 0.75rem;
 }
 
+.recommendation-taste {
+  margin-block: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.recommendation-taste summary {
+  cursor: pointer;
+  padding-block: 0.65rem;
+}
+
+.recommendation-taste-note {
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.recommendation-taste .rec-feedback-btn {
+  min-height: 2.75rem;
+}
+
 .rec-feedback-btn {
   border: 1px solid var(--border-color);
   border-radius: 999px;
@@ -7012,6 +7032,15 @@ html[data-onboarding-pending] .onboarding-overlay.onboarding-shell {
   margin-left: 0.75rem;
   color: inherit;
   font-weight: 800;
+}
+
+button.toast-action {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
 }
 
 .toast--success {

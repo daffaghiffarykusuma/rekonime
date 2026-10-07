@@ -4,11 +4,9 @@
 
 **Blocked by:** 02: Offer three understandable Discovery picks; 03: Skip and restore titles within a Discovery session; 04: Make lasting Taste Profile feedback deliberate and reversible; 05: Keep the chosen title visible with safe Undo.
 
-**Status:** blocked
+**Status:** draft, pending breakdown approval
 
-Protocol preparation is complete. The user confirmed no participants are available yet and requested preparation only. Actual observation remains blocked by participant access and completion of the revised flow dependencies above. Use the comparison protocol and blank observation template in the project docs when sessions can run. No participant observations or improvement conclusions have been recorded.
-
-- [x] Prepare a consistent choose-one-title task for the current baseline and the completed revised experience.
+- [ ] Prepare a consistent choose-one-title task for the current baseline and the completed revised experience.
 - [ ] Use occasional anime viewers unfamiliar with Rekonime's scoring, and record the actual participant context and procedure without inventing observations.
 - [ ] Observe whether each viewer selects a title, explains its personal appeal, and understands the displayed episode and rating evidence.
 - [ ] Include accidental temporary feedback, lasting feedback, and save reversal so recovery can be observed.

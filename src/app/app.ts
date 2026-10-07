@@ -738,8 +738,32 @@ const App = {
         genre: actionEl?.dataset?.genre || '',
         theme: actionEl?.dataset?.theme || ''
       });
-      if (!result.changed) return;
-      this.showToast(result.message);
+      if (!result.changed) {
+        this.showToast(result.message, { type: 'error' });
+        return;
+      }
+      const toastId = this.showToast(result.message, {
+        key: 'taste-feedback',
+        duration: 0,
+        action: { label: 'Undo', onClick: (id) => {
+          const undone = this.getTasteProfileStore().undoRecommendationFeedback(result.undoToken);
+          if (!undone.changed) {
+            this.showToast(undone.message, { type: 'error', key: 'taste-feedback-error' });
+            return;
+          }
+          this.dismissToast(id);
+          this.updateTasteProfileUi();
+          this.renderRecommendations();
+          this.showToast(undone.message);
+          const restored = [...document.querySelectorAll('.recommendation-card')]
+            .find(card => card.dataset.animeId === animeId);
+          (restored?.querySelector('.recommendation-taste summary') || document.querySelector('#recommendations-grid .recommendation-title'))?.focus();
+        } }
+      });
+      this.updateTasteProfileUi();
+      this.renderRecommendations();
+      document.getElementById(toastId)?.querySelector('button')?.focus();
+      return;
     }
     this.updateTasteProfileUi();
     this.renderRecommendations();
@@ -4321,12 +4345,16 @@ const App = {
                 <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
                 <button class="btn btn-secondary btn-sm" type="button" data-action="skip-recommendation" data-anime-id="${safeId}">Skip for now</button>
               </div>
-              <div class="recommendation-feedback" aria-label="Tune recommendations for ${safeTitle}">
+              <details class="recommendation-taste" data-action="taste-preferences">
+                <summary>Taste preferences</summary>
+                <p class="recommendation-taste-note">These preferences stay saved. Not for me: Hide this title from future recommendations.</p>
+                <div class="recommendation-feedback" aria-label="Tune recommendations for ${safeTitle}">
                 <button class="rec-feedback-btn" type="button" data-action="rec-more-like" data-anime-id="${safeId}">More like this</button>
                 <button class="rec-feedback-btn" type="button" data-action="rec-not-for-me" data-anime-id="${safeId}">Not for me</button>
                 ${lessLabel ? `<button class="rec-feedback-btn" type="button" data-action="rec-less-tag" data-anime-id="${safeId}" data-genre="${this.escapeAttr(lessGenre)}" data-theme="${this.escapeAttr(lessTheme)}">Less ${this.escapeHtml(lessLabel)}</button>` : ''}
-                <button class="rec-feedback-btn" type="button" data-action="rec-already-seen" data-anime-id="${safeId}">Already seen</button>
-              </div>
+                </div>
+              </details>
+              <button class="rec-feedback-btn" type="button" data-action="rec-already-seen" data-anime-id="${safeId}">Already seen</button>
             </div>
         </div>
       `;
