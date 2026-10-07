@@ -7,6 +7,7 @@ test('Skip for now offers keyboard Undo and same-tab recovery without changing s
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
   const card = page.locator('.recommendation-card[data-anime-id]').first();
   await expect(card).toBeVisible();
   const id = await card.getAttribute('data-anime-id');
@@ -23,6 +24,7 @@ test('Skip for now offers keyboard Undo and same-tab recovery without changing s
   await expect(page.locator(`.recommendation-card[data-anime-id="${id}"]`)).toBeVisible();
   await page.locator(`.recommendation-card[data-anime-id="${id}"]`).getByRole('button', { name: 'Skip for now', exact: true }).click();
   await page.reload();
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
   await expect(page.locator('.recommendation-card[data-anime-id]').first()).toBeVisible();
   await expect(page.locator(`.recommendation-card[data-anime-id="${id}"]`)).toHaveCount(0);
   await page.getByRole('button', { name: 'Help me unwind', exact: false }).first().click();
@@ -44,6 +46,7 @@ test('Skip for now offers keyboard Undo and same-tab recovery without changing s
   await page.locator('.recommendation-card[data-anime-id]').first().getByRole('button', { name: 'Skip for now', exact: true }).click();
   const fresh = await context.newPage();
   await fresh.goto('/');
+  await fresh.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
   await expect(fresh.locator('.recommendation-card[data-anime-id]').first()).toBeVisible();
   await expect(fresh.locator('#session-dismissals')).toBeHidden();
 });
