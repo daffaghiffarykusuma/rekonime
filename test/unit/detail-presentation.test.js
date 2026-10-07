@@ -14,16 +14,15 @@ const createRenderOptions = (overrides = {}) => ({
   escapeAttr: escapeHtml,
   sanitizeImageUrl: (value) => value || '',
   sanitizeClassList: (...classes) => classes.filter(Boolean).join(' '),
+  sanitizeClassToken: (value) => String(value).replace(/[^a-zA-Z0-9_-]/g, ''),
   buildImageSrcset: (cover) => ({ src: cover || '', srcset: '', sizes: '', fallback: '' }),
   getImageDimensions: () => ({ width: 150, height: 210 }),
   getImageFallbackAttrs: () => '',
   getEpisodeCount: (anime) => anime.episodes?.length || anime.episodeCount || 0,
   renderSynopsis: (value) => value ? `<p>${escapeHtml(value)}</p>` : '',
   renderSynopsisLoading: () => '<p>Loading synopsis</p>',
-  renderFranchiseHubSection: () => '<section id="franchise"></section>',
   renderTrailerSection: () => '<section id="detail-trailer"></section>',
   renderReviewsLoading: () => '<p>Loading reviews</p>',
-  renderSimilarAnimeSection: () => '<section class="similar"></section>',
   renderWatchlistControls: () => '<div class="watchlist-controls"></div>',
   ...overrides
 });
@@ -35,12 +34,28 @@ test('Detail Presentation renders modal body without App Shell state', () => {
     cover: 'https://example.test/show.jpg',
     genres: ['Drama'],
     themes: ['School'],
+    franchise: { items: [
+      { animeId: 'show-1', title: 'Show <One>', bucket: 'main', isEntry: true },
+      { animeId: 'show-2', title: 'Show Two', bucket: 'main' }
+    ] },
     type: 'TV',
     year: 2024,
     episodes: [{ score: 4 }],
     stats: { retentionScore: 82, threeEpisodeHook: 77, churnRisk: { score: 18 }, worthFinishing: 91 },
     communityScore: 8.2
-  }, createRenderOptions({ synopsis: 'Local synopsis' }));
+  }, createRenderOptions({
+    synopsis: 'Local synopsis',
+    animeData: [{
+      id: 'related-2',
+      title: 'Related <script>',
+      cover: 'https://example.test/related.jpg',
+      genres: ['Drama'],
+      themes: ['School'],
+      episodes: [{ score: 4 }],
+      stats: { retentionScore: 75 },
+      communityScore: 8
+    }]
+  }));
 
   assert.match(html, /Show &lt;One&gt;/);
   assert.match(html, /Local synopsis/);
@@ -54,4 +69,9 @@ test('Detail Presentation renders modal body without App Shell state', () => {
   assert.match(html, /role="tab"[^>]*>Watch order/);
   assert.match(html, /id="detail-panel-reviews"/);
   assert.match(html, /id="similar-anime-section"/);
+  assert.match(html, /data-anime-id="related-2"/);
+  assert.match(html, /Related &lt;script&gt;/);
+  assert.doesNotMatch(html, /Related <script>/);
+  assert.match(html, /75\/100/);
+  assert.match(html, /8\.0\/10/);
 });
