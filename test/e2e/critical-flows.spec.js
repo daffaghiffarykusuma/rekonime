@@ -432,6 +432,47 @@ test('open detail modal from grid', async ({ page }) => {
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
 });
 
+test('an early detail choice survives catalog-cache completion while detail code is loading', async ({ page }) => {
+  await page.addInitScript(() => {
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (...args) {
+      const request = put.apply(this, args);
+      if (this.name !== 'catalogs') return request;
+      let success;
+      Object.defineProperty(request, 'onsuccess', { set: callback => { success = callback; } });
+      request.addEventListener('success', event => {
+        window.releaseCatalogCache = () => success?.call(request, event);
+      });
+      return request;
+    };
+  });
+  let releaseDetail;
+  const detailReady = new Promise(resolve => { releaseDetail = resolve; });
+  await page.route('**/src/features/detail/detail-presentation.ts', async route => {
+    await detailReady;
+    await route.continue();
+  });
+  await page.goto('/');
+  await page.waitForFunction(() => typeof window.releaseCatalogCache === 'function');
+  const title = page.locator('#anime-grid').getByRole('heading').first();
+  const chosen = await title.textContent();
+  await title.click();
+  await expect(page.locator('#detail-modal')).toBeVisible();
+  await page.evaluate(() => {
+    window.releaseCatalogCache();
+    // Drain the cache completion and boot continuation before releasing detail code.
+    return new Promise(resolve => setTimeout(resolve, 0));
+  });
+  try {
+    await expect(page.locator('#detail-modal')).toBeVisible();
+  } finally {
+    releaseDetail();
+  }
+  await expect(page.locator('#detail-modal')).toContainText(chosen);
+  await page.getByRole('button', { name: 'Close details' }).click();
+  await expect(page.locator('#detail-modal')).not.toBeVisible();
+});
+
 test('header search shows dropdown state', async ({ page }) => {
   await page.goto('/');
   await page.waitForSelector('#anime-grid .anime-card');

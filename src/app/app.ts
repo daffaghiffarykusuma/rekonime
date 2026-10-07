@@ -1411,9 +1411,9 @@ const App = {
       this.initSeo();
       this.updateHomeLinks();
 
-      // Only sync modal with URL if not handling deep link
-      // (deep link is already handled above)
-      if (!requestedAnimeId) {
+      // A user can open details while the initial catalog cache write finishes.
+      // That opening owns the modal even if its lazy view has not updated the URL.
+      if (!requestedAnimeId && !this.currentAnimeId) {
         this.syncModalWithUrl();
       }
       this.updateMetaForFilters();
