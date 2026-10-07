@@ -316,6 +316,11 @@ test('light-theme Airing Schedule keeps readable foreground contrast', async ({ 
 });
 
 test('tertiary review attribution remains readable in both themes and narrow layouts', async ({ page }) => {
+  // This checks attribution contrast, not the availability of the review API.
+  await page.route('https://api.jikan.moe/v4/anime/**', route => route.fulfill({
+    json: new URL(route.request().url()).pathname.endsWith('/reviews')
+      ? { data: [] } : { data: { synopsis: 'Catalog synopsis for the contrast check.' } }
+  }));
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
   await page.locator('#anime-grid .anime-card').first().click();

@@ -104,6 +104,16 @@ const buildSearchText = (title, titleEnglish, titleJapanese) => {
   return mergeSearchText('', searchIndex);
 };
 
+const getDeclaredEpisodeCount = (anime) => {
+  // Normalization also keeps an observed count for progress controls. Preserve
+  // declared evidence separately so a sparse episode list cannot become a total.
+  if (anime && Object.hasOwn(anime, 'declaredEpisodeCount')) return anime.declaredEpisodeCount;
+  const counts = [anime?.episodeCount, anime?.episodesCount, anime?.episodes_count,
+    anime?.metadata?.episodeCount, anime?.metadata?.episodesCount, anime?.metadata?.episodes_count]
+    .map(Number).filter(value => Number.isInteger(value) && value > 0);
+  return counts.length ? Math.max(...counts) : null;
+};
+
 const getEpisodeCount = (anime) => {
   if (!anime) return 0;
   const directCount = [
@@ -129,7 +139,7 @@ const getEpisodeCount = (anime) => {
   return Math.max(directCount, listCount, statsCount);
 };
 
-const normalizeAnimeData = (animeList = [], { deferSearchIndex = false } = {}) => {
+const normalizeAnimeData = (animeList: unknown[] = [], { deferSearchIndex = false } = {}) => {
   if (!Array.isArray(animeList)) return [];
 
   return animeList.map(anime => {
@@ -186,6 +196,7 @@ const normalizeAnimeData = (animeList = [], { deferSearchIndex = false } = {}) =
       synopsis: normalizedSynopsis,
       communityScore,
       episodeCount: getEpisodeCount(anime),
+      declaredEpisodeCount: getDeclaredEpisodeCount(anime),
       searchIndex,
       searchText,
       episodes: Array.isArray(anime?.episodes) ? anime.episodes : [],
@@ -300,6 +311,7 @@ const CatalogPayload = {
 
 export {
   CatalogPayload,
+  getDeclaredEpisodeCount,
   isValidCatalogPayload,
   prepareCatalogPayloadApplication,
   prepareCatalogPayloadState,

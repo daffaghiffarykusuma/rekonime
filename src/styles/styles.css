@@ -7045,12 +7045,10 @@ button.toast-action {
 
 .toast--success {
   border-color: var(--success);
-  background: var(--success-bg);
 }
 
 .toast--error {
   border-color: var(--error);
-  background: var(--error-bg);
 }
 
 @media (max-width: 640px) {

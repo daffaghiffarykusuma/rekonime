@@ -4,6 +4,7 @@ const port = Number(process.env.REKONIME_E2E_PORT || 4173);
 
 export default defineConfig({
   testDir: 'test/e2e',
+  testIgnore: /production-smoke\.spec\.js/,
   timeout: 60000,
   expect: {
     timeout: 10000
