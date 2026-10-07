@@ -6,7 +6,7 @@
 
 **Status:** blocked
 
-Protocol preparation is complete. The user confirmed no participants are available yet and requested preparation only. Actual observation remains blocked by participant access and completion of the revised flow dependencies above. Use the comparison protocol and blank observation template in the project docs when sessions can run. No participant observations or improvement conclusions have been recorded.
+Protocol preparation is complete. The user confirmed no participants are available yet and requested preparation only. Implementation dependencies 02–05 are closed; actual observation remains blocked by participant access. Use `docs/first-visit-study-protocol.md` and `docs/first-visit-study-observation-template.md` when sessions can run. Engineering evidence is recorded separately in `docs/first-visit-discovery-implementation.md`. No participant observations or improvement conclusions have been recorded.
 
 - [x] Prepare a consistent choose-one-title task for the current baseline and the completed revised experience.
 - [ ] Use occasional anime viewers unfamiliar with Rekonime's scoring, and record the actual participant context and procedure without inventing observations.

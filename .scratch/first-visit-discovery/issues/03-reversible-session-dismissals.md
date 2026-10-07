@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** closed
 
 - [x] Expose Skip for now on recommendation cards and remove dismissed titles from current recommendation candidates.
 - [x] Session Dismissal works with or without a selected Viewing Intent.
@@ -15,7 +15,7 @@
 - [x] A genuinely fresh tab session starts without dismissals; verify and document browser session-restoration behavior before promising tab-close deletion.
 - [x] Keep Session Dismissal outside personal-data backups and enduring preference inference.
 - [x] Extend the existing discovery/session boundary only as needed; verify dismissal, recovery, isolation, goal changes, reload, and clock-controlled expiry through public behavior.
-- [ ] Inspect readable mobile controls and focus/announcements after dismissal and restoration.
+- [x] Inspect readable mobile controls and focus/announcements after dismissal and restoration.
 
 ## Implementation evidence
 
@@ -26,4 +26,10 @@ Implemented Session Dismissal in the existing Viewing Intent session runtime. Di
 - Type checking passes.
 - The mobile browser journey passes at 390px, covering keyboard Undo and restore, focus, live status, reload, intent changes, fresh-tab isolation, unchanged lasting storage, and restore-button viewport containment.
 - Same-tab reload and a fresh browser tab are verified. Browser session recovery and duplicated/opener tabs may retain session storage; no tab-close deletion promise is made.
-- Final rendered desktop/mobile inspection remains for the integration branch, so the visual acceptance criterion remains unchecked.
+- Final rendered desktop/mobile inspection is complete, including the session panel and recovery controls.
+
+## Resolution (2026-10-07)
+
+Merged at 72be3e1. Clock-controlled session tests and the integrated browser journey verify skipping, Undo, review/restore, goal changes, reload, fresh-tab isolation, focus, and unchanged lasting stores. The final readiness-corrected browser rerun passed. Browser session restoration was not exercised; no tab-close deletion guarantee is made.
+
+Final implementation: `1ddbcf0`. See the [combined verification report](../../../docs/first-visit-discovery-implementation.md) for full-suite results and visual evidence. Actual participant validation is tracked separately by ticket 06.

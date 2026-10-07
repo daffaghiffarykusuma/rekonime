@@ -4,13 +4,19 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Want to watch persists Planned without automatically marking the title Watching.
-- [ ] Ordinary selection writes use a checked Watchlist Lifecycle transition; candidate validation and persistence succeed before live state and success effects are exposed.
-- [ ] A refused or thrown storage write leaves the previous persisted and live Watchlist state unchanged.
-- [ ] Failed saving shows an actionable failure and allows retry without a false saved confirmation or success-derived Taste Profile effects.
-- [ ] Successful saving remains visible in the Watchlist after reload and preserves existing Watchlist Entry information.
-- [ ] Preserve existing import, status, progress, and Snapshot contracts when adjusting the shared persistence path.
-- [ ] Exercise the complete save/failure/retry browser flow and deterministic failure cases through existing Watchlist Lifecycle interfaces.
-- [ ] Verify keyboard access and readable success/failure feedback at desktop and mobile widths.
+- [x] Want to watch persists Planned without automatically marking the title Watching.
+- [x] Ordinary selection writes use a checked Watchlist Lifecycle transition; candidate validation and persistence succeed before live state and success effects are exposed.
+- [x] A refused or thrown storage write leaves the previous persisted and live Watchlist state unchanged.
+- [x] Failed saving shows an actionable failure and allows retry without a false saved confirmation or success-derived Taste Profile effects.
+- [x] Successful saving remains visible in the Watchlist after reload and preserves existing Watchlist Entry information.
+- [x] Preserve existing import, status, progress, and Snapshot contracts when adjusting the shared persistence path.
+- [x] Exercise the complete save/failure/retry browser flow and deterministic failure cases through existing Watchlist Lifecycle interfaces.
+- [x] Verify keyboard access and readable success/failure feedback at desktop and mobile widths.
+
+## Resolution (2026-10-07)
+
+Merged at 780b6b1. Checked Watchlist candidate persistence, failure/retry, preserved entry state, and desktop/mobile keyboard feedback through the public runtime and browser journey.
+
+Final implementation: `1ddbcf0`. See the [combined verification report](../../../docs/first-visit-discovery-implementation.md) for full-suite results and visual evidence. Actual participant validation is tracked separately by ticket 06.

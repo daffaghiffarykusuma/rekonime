@@ -1,6 +1,6 @@
 # First-visit Discovery comparison protocol
 
-Status: prepared, not conducted. No participants are available yet. Ticket 06 remains blocked by participant access and the completed revised flow. This protocol does not establish that the redesign improves confidence, comprehension, or enjoyment.
+Status: prepared, not conducted. No participants are available yet. The revised flow is implemented and engineering verification is recorded in the [implementation report](first-visit-discovery-implementation.md). Ticket 06 remains blocked by participant access. This protocol does not establish that the redesign improves confidence, comprehension, or enjoyment.
 
 Use this protocol with the [blank observation template](first-visit-study-observation-template.md) and the [agreed spec](first-visit-discovery-spec-draft.md).
 

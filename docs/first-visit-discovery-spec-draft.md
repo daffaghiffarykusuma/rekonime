@@ -1,7 +1,8 @@
 ---
 title: Help new viewers choose an anime confidently
 tracker: local-markdown
-status: in-progress
+status: blocked
+blocked_on: participant-observations
 seam_confirmation: approved-with-ticket-breakdown
 ---
 
@@ -103,7 +104,6 @@ Want to watch saves the chosen title as Planned. Confirm success only after pers
 - A general Taste Profile editor, a lasting-hidden-title management screen, an explicit Clear viewing goal control, or diagnosis of every possible empty-result cause. The agreed no-close-match explanation and session feedback recovery remain in scope.
 - Redesigning Watchlist management, MAL import, Personal Data Restore, catalog maintenance, or the overall application architecture.
 - New analytics infrastructure, accounts, social features, backend services, or an engagement-based definition of success.
-- Implementing the feature as part of publishing this specification.
 
 ## Further Notes
 
@@ -111,6 +111,6 @@ The user accepted all three design rounds and the ticket breakdown carrying the 
 
 Stephen P. Anderson's [UX hierarchy](https://poetpainter.com/thoughts/files/UX-Hierarchy-Model-StephenPAnderson.pdf) provides the review lens. Trustworthy persistence supports reliability; understandable and reversible controls support usability; a compact choice journey supports convenience; the intended pleasure and personal significance require observation rather than claims based on feature presence.
 
-Three initial picks is an accepted design hypothesis, not a demonstrated optimum. The initial review used current-source inspection and browser page text. Screenshot capture failed, so visual quality remains unverified. No user sessions have been conducted or scheduled, and no implementation tests were run for this specification.
+Three initial picks remains an accepted design hypothesis, not a demonstrated optimum. Implementation tests and desktop/mobile visual inspection are recorded in the [implementation report](first-visit-discovery-implementation.md). No participant sessions have been conducted or scheduled for this work. The user confirmed no participants are available and requested the comparison protocol; actual observations remain pending.
 
-The project tracker uses local Markdown and the ready-for-agent triage status. Approved tickets are published in the feature issue directory. Implementation is underway on the integration branch. No ADR is required for the reversible presentation and interaction decisions in this scope.
+The project tracker uses local Markdown. Tickets 01–05 are closed on `feat/first-visit-discovery`; ticket 06 and this parent specification remain blocked on participant evidence. The [comparison protocol](first-visit-study-protocol.md) and [blank observation template](first-visit-study-observation-template.md) are prepared. No ADR is required for the reversible presentation and interaction decisions in this scope.
