@@ -410458,7 +410458,7 @@
         },
         {
           "episode": 12,
-          "score": 4.59
+          "score": 4.6
         }
       ],
       "scrape_errors": []
@@ -410536,7 +410536,7 @@
         },
         {
           "episode": 11,
-          "score": 4.64
+          "score": 4.63
         },
         {
           "episode": 12,
@@ -410627,7 +410627,7 @@
         },
         {
           "episode": 12,
-          "score": 4.47
+          "score": 4.48
         }
       ],
       "scrape_errors": []
@@ -410652,7 +410652,7 @@
         "themes": [],
         "demographic": "Shounen",
         "synopsis": "Final part of Bleach: Sennen Kessen-hen.",
-        "score": 9.01,
+        "score": 9,
         "episodes_count": 8,
         "type": "TV",
         "title_english": "Bleach: Thousand-Year Blood War - The Calamity",
@@ -410661,7 +410661,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.39
+          "score": 4.38
         },
         {
           "episode": 2,
@@ -410673,7 +410673,7 @@
         },
         {
           "episode": 4,
-          "score": 4.67
+          "score": 4.66
         },
         {
           "episode": 5,
@@ -410764,11 +410764,11 @@
         },
         {
           "episode": 10,
-          "score": 4.1
+          "score": 4.11
         },
         {
           "episode": 11,
-          "score": 4.19
+          "score": 4.18
         },
         {
           "episode": 12,
@@ -410807,7 +410807,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.29
+          "score": 4.3
         },
         {
           "episode": 2,
@@ -410879,7 +410879,7 @@
         "demographic": "",
         "synopsis": "Second season of Gaikotsu Kishi-sama, Tadaima Isekai e Odekakechuu.",
         "score": 6.49,
-        "episodes_count": 5,
+        "episodes_count": 12,
         "type": "TV",
         "title_english": "Skeleton Knight in Another World II",
         "title_japanese": "骸骨騎士様、只今異世界へお出掛け中Ⅱ"
@@ -410887,7 +410887,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.7
+          "score": 3.71
         },
         {
           "episode": 2,
@@ -410895,7 +410895,7 @@
         },
         {
           "episode": 3,
-          "score": 3.65
+          "score": 3.66
         },
         {
           "episode": 4,
@@ -410904,6 +410904,34 @@
         {
           "episode": 5,
           "score": 3.72
+        },
+        {
+          "episode": 6,
+          "score": 4.06
+        },
+        {
+          "episode": 7,
+          "score": 3.99
+        },
+        {
+          "episode": 8,
+          "score": 3.87
+        },
+        {
+          "episode": 9,
+          "score": 4.01
+        },
+        {
+          "episode": 10,
+          "score": 3.91
+        },
+        {
+          "episode": 11,
+          "score": 3.91
+        },
+        {
+          "episode": 12,
+          "score": 3.91
         }
       ],
       "scrape_errors": []
@@ -410950,7 +410978,7 @@
         },
         {
           "episode": 4,
-          "score": 4.41
+          "score": 4.4
         },
         {
           "episode": 5,
@@ -411010,7 +411038,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Second season of Clevatess.",
-        "score": 7.82,
+        "score": 7.83,
         "episodes_count": 13,
         "type": "TV",
         "title_english": "Clevatess Season 2",
@@ -411043,7 +411071,7 @@
         },
         {
           "episode": 7,
-          "score": 4.28
+          "score": 4.29
         },
         {
           "episode": 8,
@@ -411055,7 +411083,7 @@
         },
         {
           "episode": 10,
-          "score": 4.46
+          "score": 4.47
         },
         {
           "episode": 11,
@@ -411067,7 +411095,7 @@
         },
         {
           "episode": 13,
-          "score": 4.41
+          "score": 4.42
         }
       ],
       "scrape_errors": []
@@ -411134,7 +411162,7 @@
         },
         {
           "episode": 9,
-          "score": 4.69
+          "score": 4.68
         },
         {
           "episode": 10,
@@ -411191,7 +411219,7 @@
         },
         {
           "episode": 2,
-          "score": 4.35
+          "score": 4.34
         },
         {
           "episode": 3,
@@ -411203,7 +411231,7 @@
         },
         {
           "episode": 5,
-          "score": 4.44
+          "score": 4.45
         },
         {
           "episode": 6,
@@ -411219,7 +411247,7 @@
         },
         {
           "episode": 9,
-          "score": 4.55
+          "score": 4.56
         },
         {
           "episode": 10,
@@ -411227,7 +411255,7 @@
         },
         {
           "episode": 11,
-          "score": 4.63
+          "score": 4.62
         },
         {
           "episode": 12,
@@ -411255,7 +411283,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Second season of Katainaka no Ossan, Kensei ni Naru.",
-        "score": 7.21,
+        "score": 7.2,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "From Old Country Bumpkin to Master Swordsman Season 2",
@@ -411288,7 +411316,7 @@
         },
         {
           "episode": 7,
-          "score": 4.12
+          "score": 4.11
         },
         {
           "episode": 8,
@@ -411347,7 +411375,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.25
+          "score": 4.26
         },
         {
           "episode": 2,
@@ -411371,7 +411399,7 @@
         },
         {
           "episode": 7,
-          "score": 4.49
+          "score": 4.5
         },
         {
           "episode": 8,
@@ -411449,11 +411477,11 @@
         },
         {
           "episode": 9,
-          "score": 4.34
+          "score": 4.33
         },
         {
           "episode": 10,
-          "score": 4.23
+          "score": 4.22
         },
         {
           "episode": 11,
@@ -411465,7 +411493,7 @@
         },
         {
           "episode": 13,
-          "score": 4.06
+          "score": 4.07
         }
       ],
       "scrape_errors": []
@@ -411492,7 +411520,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second season of Nige Jouzu no Wakagimi.",
-        "score": 7.54,
+        "score": 7.55,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "The Elusive Samurai Season 2",
@@ -411529,7 +411557,7 @@
         },
         {
           "episode": 8,
-          "score": 4.48
+          "score": 4.47
         },
         {
           "episode": 9,
@@ -411618,7 +411646,7 @@
         },
         {
           "episode": 11,
-          "score": 3.98
+          "score": 3.97
         },
         {
           "episode": 12,
@@ -411650,7 +411678,7 @@
         ],
         "demographic": "",
         "synopsis": "\"You useless son of mine! You were supposed to pull master swordsman, but I never thought it would be this tragic!\"\n\nThe day a child turns fifteen, they undergo the Ritual of Divine Blessing. Already descended from a line of master swordsman, Elymas was supposed to succeed his father. However, he pulls the defective class, the Heavy Knight, and not only loses his status as future head of the household, but he's also exiled. With their unbalanced stats and seemingly useless skills, Heavy Knights are spoked of as a class for cowards and the lazy. However, Elymas knows the truth. The world he lives in is the same as the one of the game he used to play... It is the Heavy Knight that is the most powerful class of them all. Using memories from his past life, Elymas has set out to effectively conquer this entire world.\n\n(Source: Kodansha USA)",
-        "score": 6.84,
+        "score": 6.83,
         "episodes_count": 15,
         "type": "TV",
         "title_english": "The Exiled Heavy Knight Knows How to Game the System",
@@ -411667,7 +411695,7 @@
         },
         {
           "episode": 3,
-          "score": 3.56
+          "score": 3.55
         },
         {
           "episode": 4,
@@ -411675,11 +411703,11 @@
         },
         {
           "episode": 5,
-          "score": 3.8
+          "score": 3.79
         },
         {
           "episode": 6,
-          "score": 4.01
+          "score": 4
         },
         {
           "episode": 7,
@@ -411687,15 +411715,15 @@
         },
         {
           "episode": 8,
-          "score": 4.02
+          "score": 4.01
         },
         {
           "episode": 9,
-          "score": 3.6
+          "score": 3.59
         },
         {
           "episode": 10,
-          "score": 4.34
+          "score": 4.33
         },
         {
           "episode": 11,
@@ -411707,7 +411735,7 @@
         },
         {
           "episode": 13,
-          "score": 4.14
+          "score": 4.13
         },
         {
           "episode": 14,
@@ -411715,7 +411743,7 @@
         },
         {
           "episode": 15,
-          "score": 4.08
+          "score": 4.07
         }
       ],
       "scrape_errors": []
@@ -411770,7 +411798,7 @@
         },
         {
           "episode": 6,
-          "score": 4.22
+          "score": 4.23
         },
         {
           "episode": 7,
@@ -411794,7 +411822,7 @@
         },
         {
           "episode": 12,
-          "score": 4.4
+          "score": 4.39
         }
       ],
       "scrape_errors": []
@@ -411851,7 +411879,7 @@
         },
         {
           "episode": 6,
-          "score": 4.31
+          "score": 4.3
         },
         {
           "episode": 7,
@@ -411863,7 +411891,7 @@
         },
         {
           "episode": 9,
-          "score": 4.25
+          "score": 4.24
         }
       ],
       "scrape_errors": []
@@ -411890,7 +411918,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "A hot fighting game played at the girls' school!!\n\nAya transferred into Kuromi Girls Academy a month ago with the goal of changing herself into a proper lady. After meeting the breathtaking Shirayuri, Aya is blown away by her elegance and posterity. Imagine her surprise when she finds Shirayuri after school playing... a fighting game?! And if that wasn't perplexing enough, she is challenged to a duel by the unladylike Shirayuri! \n\n(Source: MU)",
-        "score": 7.49,
+        "score": 7.48,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "Young Ladies Don't Play Fighting Games",
@@ -411899,7 +411927,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.16
+          "score": 4.17
         },
         {
           "episode": 2,
@@ -411923,7 +411951,7 @@
         },
         {
           "episode": 7,
-          "score": 4.45
+          "score": 4.46
         },
         {
           "episode": 8,
@@ -412005,7 +412033,7 @@
         },
         {
           "episode": 8,
-          "score": 4.54
+          "score": 4.53
         },
         {
           "episode": 9,
@@ -412021,7 +412049,7 @@
         },
         {
           "episode": 12,
-          "score": 4.52
+          "score": 4.51
         }
       ],
       "scrape_errors": []
@@ -412047,7 +412075,7 @@
         ],
         "demographic": "",
         "synopsis": "Within the Kingdom of Ei's opulent inner court is the thriving Maiden Court, where the empress and the four imperial consorts are chosen from five prominent clans. Among them, one pristine consort-in-training, Reirin Kou, stands out as the perfect candidate for the future empress. Her virtue and elegance are unrivaled, and she is flawless—save for her extremely sickly constitution. Compared to the court's gentle butterfly, the boorish Keigetsu Shu is like a sewer rat. Always staring at Reirin with bitter envy, Keigetsu is a disgrace to the Maiden Court.\n\nDuring the night of a rare comet sighting, Keigetsu's jealousy reaches its peak, and she attempts to murder Reirin by pushing her off a balcony. Reirin is quickly saved from death, and Keigetsu is imprisoned to await her execution. Unbeknownst to all, Keigetsu has cast a spell to swap bodies with Reirin in order to steal all that belongs to her. But while Keigetsu is hindered by Reirin's frail body, Reirin fully embraces freedom and physical strength for the first time in her life, determined to live—no matter whose face she wears.\n\n[Written by MAL Rewrite]",
-        "score": 8.21,
+        "score": 8.2,
         "episodes_count": 11,
         "type": "TV",
         "title_english": "Though I Am an Inept Villainess",
@@ -412072,7 +412100,7 @@
         },
         {
           "episode": 5,
-          "score": 4.68
+          "score": 4.69
         },
         {
           "episode": 6,
@@ -412088,7 +412116,7 @@
         },
         {
           "episode": 9,
-          "score": 4.51
+          "score": 4.52
         },
         {
           "episode": 10,
@@ -412211,7 +412239,7 @@
         },
         {
           "episode": 12,
-          "score": 3.8
+          "score": 3.79
         }
       ],
       "scrape_errors": []
@@ -412258,7 +412286,7 @@
         },
         {
           "episode": 4,
-          "score": 4.25
+          "score": 4.24
         },
         {
           "episode": 5,
@@ -412349,7 +412377,7 @@
         },
         {
           "episode": 7,
-          "score": 4.27
+          "score": 4.26
         },
         {
           "episode": 8,
@@ -412357,15 +412385,15 @@
         },
         {
           "episode": 9,
-          "score": 4.43
+          "score": 4.42
         },
         {
           "episode": 10,
-          "score": 4.37
+          "score": 4.36
         },
         {
           "episode": 11,
-          "score": 4.67
+          "score": 4.66
         },
         {
           "episode": 12,
@@ -412396,7 +412424,7 @@
         ],
         "demographic": "",
         "synopsis": "Undercover behind enemy lines, Jooheon's newest plan to torment TKBM will involve taking them down from the inside! Stealing their relics and causing infighting is just the tip of the iceberg on what he'll do to make the group pay for their sins. But with the appearance of the Tower of Pride, Jooheon's skills in rage-baiting will truly be tested as he must pit the most fearsome warlords against each other! Will Jooheon Suh come out on top in the battle of the greatest conquerors of history?\n\n(Source: Yen Press)",
-        "score": 6.8,
+        "score": 6.81,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "Tomb Raider King",
@@ -412413,7 +412441,7 @@
         },
         {
           "episode": 3,
-          "score": 3.76
+          "score": 3.77
         },
         {
           "episode": 4,
@@ -412433,11 +412461,11 @@
         },
         {
           "episode": 8,
-          "score": 4.05
+          "score": 4.06
         },
         {
           "episode": 9,
-          "score": 4.09
+          "score": 4.1
         },
         {
           "episode": 10,
@@ -412484,11 +412512,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.44
+          "score": 4.43
         },
         {
           "episode": 2,
-          "score": 4.39
+          "score": 4.38
         },
         {
           "episode": 3,
@@ -412504,7 +412532,7 @@
         },
         {
           "episode": 6,
-          "score": 4.43
+          "score": 4.44
         },
         {
           "episode": 7,
@@ -412528,7 +412556,7 @@
         },
         {
           "episode": 12,
-          "score": 4.57
+          "score": 4.56
         }
       ],
       "scrape_errors": []
@@ -412554,7 +412582,7 @@
         ],
         "demographic": "",
         "synopsis": "Long, long ago, there lived a mermaid princess named Lara. She was raised with love by her father, the king of sea and her sisters. One day, Lara fell in love with a human prince who lived on land. It was a forbidden love—one that was not allowed in the world of mermaids. Still, Lara journeyed to the surface. With a potion, given to her from the witch Grace, she became human. But the potion came at a cost—fail to find true love, and she would turn into foam and vanish into the ocean. Though she was a princess of the sea, Lara chose love. Yet, her wish went unfulfilled and she vanished into the sea. Two hundred years later, Lara awakens once more, in Lake Biwa to finally search for her true love.\n\n(Source: Crunchyroll)",
-        "score": 7.65,
+        "score": 7.64,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "Goodbye, Lara",
@@ -412633,7 +412661,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "One does not need dance to live.\n\nIn 1374, during the turbulent age when the Northern and Southern Courts were locked in conflict, the Northern Court's shogun, Ashikaga Yoshimitsu, was becoming an increasingly dominant force.\n\nBorn the son of Kanami, head of the Kanze troupe of sarugaku performers, Oniyasha drifts through his days with a hazy question lodged in his heart: Why do people dance? His spirit remains clouded, until the day he encounters a dance that is truly \"good.\"\n\nCurious, sensitive, and strikingly beautiful, the boy meets people, laughs, cries, confronts his own weaknesses, and slowly begins to shape a new form of dance for a world steeped in impermanence.\n\n(Source: Shochiku)",
-        "score": 7.27,
+        "score": 7.26,
         "episodes_count": 13,
         "type": "TV",
         "title_english": "The World Is Dancing",
@@ -412674,11 +412702,11 @@
         },
         {
           "episode": 9,
-          "score": 4.13
+          "score": 4.12
         },
         {
           "episode": 10,
-          "score": 4.48
+          "score": 4.49
         },
         {
           "episode": 11,
@@ -412734,7 +412762,7 @@
         },
         {
           "episode": 4,
-          "score": 3.69
+          "score": 3.68
         },
         {
           "episode": 5,
@@ -412758,7 +412786,7 @@
         },
         {
           "episode": 10,
-          "score": 3.99
+          "score": 3.98
         },
         {
           "episode": 11,
@@ -412766,7 +412794,7 @@
         },
         {
           "episode": 12,
-          "score": 3.64
+          "score": 3.65
         }
       ],
       "scrape_errors": []
@@ -412828,11 +412856,11 @@
         },
         {
           "episode": 8,
-          "score": 3.91
+          "score": 3.9
         },
         {
           "episode": 9,
-          "score": 3.9
+          "score": 3.89
         },
         {
           "episode": 10,
@@ -412844,7 +412872,7 @@
         },
         {
           "episode": 12,
-          "score": 3.93
+          "score": 3.94
         }
       ],
       "scrape_errors": []
@@ -412923,7 +412951,7 @@
         },
         {
           "episode": 12,
-          "score": 4.1
+          "score": 4.11
         }
       ],
       "scrape_errors": []
@@ -412957,7 +412985,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.58
+          "score": 3.59
         },
         {
           "episode": 2,
@@ -412981,11 +413009,11 @@
         },
         {
           "episode": 7,
-          "score": 4.09
+          "score": 4.1
         },
         {
           "episode": 8,
-          "score": 3.97
+          "score": 3.98
         },
         {
           "episode": 9,
@@ -413050,7 +413078,7 @@
         },
         {
           "episode": 5,
-          "score": 3.99
+          "score": 3.98
         },
         {
           "episode": 6,
@@ -413122,7 +413150,7 @@
         },
         {
           "episode": 4,
-          "score": 4.16
+          "score": 4.15
         },
         {
           "episode": 5,
@@ -413138,7 +413166,7 @@
         },
         {
           "episode": 8,
-          "score": 4.24
+          "score": 4.25
         },
         {
           "episode": 9,
@@ -413208,7 +413236,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "Narukami Ryusei is your typical NEET. He spends his days shut in his room playing video games without a care in the world, living a lazy life. But the truth is, Ryusei used to be a powerful demon king in another world! So why not spend this new life doing whatever he wants? Except, he wasn't the only one reincarnated into this world. The hero who struck him down is here too—and she's a really cute high school girl?! Can Ryusei survive reuniting with his foe in a new world, or will he find himself fighting even in this life?\n\n(Source: Seven Seas Entertainment)",
-        "score": 7.4,
+        "score": 7.41,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "Hanaori-san Still Wants to Fight in the Next Life",
@@ -413253,11 +413281,11 @@
         },
         {
           "episode": 10,
-          "score": 4.39
+          "score": 4.38
         },
         {
           "episode": 11,
-          "score": 4.45
+          "score": 4.44
         },
         {
           "episode": 12,
@@ -413314,7 +413342,7 @@
         },
         {
           "episode": 5,
-          "score": 3.62
+          "score": 3.61
         },
         {
           "episode": 6,
@@ -413369,7 +413397,7 @@
         ],
         "demographic": "",
         "synopsis": "\"You're the bride I've been searching for all this time.\"\n\nA Japanese-style ayakashi Cinderella story! The ayakashi and humans coexist in harmony. The ayakashi, having superior abilities and beautiful appearances, sometimes find their partner among human women, making them their \"bride.\" The bride, in exchange for bringing prosperity, receives absolute love from the ayakashi.\n\nYuzu is constantly compared to her sister, a bride of a demon fox, and is resented by her family every day. One day, when Yuzu just couldn't take things anymore, a man appeared before her on a bridge. This man is the most beautiful man Yuzu has ever seen... and he's calling her his wife?!\n\n\"Just be quiet and let me hold you.\" The most powerful, \"cold-hearted\" ayakashi is pouring his heart out for Yuzu?!\n\n(Source: MangaPlaza, edited)",
-        "score": 6.82,
+        "score": 6.81,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "The Ogre's Bride",
@@ -413471,7 +413499,7 @@
         },
         {
           "episode": 5,
-          "score": 3.88
+          "score": 3.87
         },
         {
           "episode": 6,
@@ -413566,11 +413594,11 @@
         },
         {
           "episode": 8,
-          "score": 3.7
+          "score": 3.68
         },
         {
           "episode": 9,
-          "score": 3.73
+          "score": 3.72
         },
         {
           "episode": 10,
@@ -413594,7 +413622,7 @@
         },
         {
           "episode": 15,
-          "score": 3.81
+          "score": 3.86
         }
       ],
       "scrape_errors": []
@@ -413648,7 +413676,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Second season of Kabushikigaisha Magi-Lumière.",
-        "score": 7.08,
+        "score": 7.07,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "Magilumiere Magical Girls Inc. Season 2",
@@ -413735,7 +413763,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.93
+          "score": 3.91
         },
         {
           "episode": 2,
@@ -413943,11 +413971,11 @@
         },
         {
           "episode": 10,
-          "score": 4.28
+          "score": 4.29
         },
         {
           "episode": 11,
-          "score": 4.38
+          "score": 4.37
         },
         {
           "episode": 12,
@@ -414060,7 +414088,7 @@
         ],
         "demographic": "",
         "synopsis": "Miya is the illegitimate child of a certain prominent family. When her mother dies, she's convinced she knows what awaits her in her new home: a life of servitude and misery at the hands of her wicked stepmother and stepsisters! Yet when she finally meets the women she expects to treat her like dirt, they actually end up being...sweet?!\n\n(Source: Seven Seas Entertainment)",
-        "score": 7.2,
+        "score": 7.19,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "My Mother-in-Law and Sister-in-Law Who Don't Bully Me.",
@@ -414113,7 +414141,7 @@
         },
         {
           "episode": 12,
-          "score": 4.5
+          "score": 4.49
         }
       ],
       "scrape_errors": []
@@ -414180,11 +414208,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.88
+          "score": 3.87
         },
         {
           "episode": 2,
-          "score": 3.9
+          "score": 3.89
         },
         {
           "episode": 3,
@@ -414212,7 +414240,7 @@
         },
         {
           "episode": 9,
-          "score": 4.41
+          "score": 4.4
         },
         {
           "episode": 10,
@@ -414224,7 +414252,7 @@
         },
         {
           "episode": 12,
-          "score": 4.43
+          "score": 4.44
         }
       ],
       "scrape_errors": []
@@ -414265,7 +414293,7 @@
         },
         {
           "episode": 3,
-          "score": 3.98
+          "score": 3.99
         },
         {
           "episode": 4,
@@ -414273,7 +414301,7 @@
         },
         {
           "episode": 5,
-          "score": 4.18
+          "score": 4.19
         },
         {
           "episode": 6,
@@ -414285,11 +414313,11 @@
         },
         {
           "episode": 8,
-          "score": 4.28
+          "score": 4.29
         },
         {
           "episode": 9,
-          "score": 4.17
+          "score": 4.18
         },
         {
           "episode": 10,
@@ -414305,7 +414333,7 @@
         },
         {
           "episode": 13,
-          "score": 4.51
+          "score": 4.52
         },
         {
           "episode": 14,
@@ -414428,7 +414456,7 @@
         },
         {
           "episode": 3,
-          "score": 4.48
+          "score": 4.49
         },
         {
           "episode": 4,
@@ -414436,7 +414464,7 @@
         },
         {
           "episode": 5,
-          "score": 4.22
+          "score": 4.23
         },
         {
           "episode": 6,
@@ -414522,7 +414550,7 @@
         },
         {
           "episode": 6,
-          "score": 4.77
+          "score": 4.76
         },
         {
           "episode": 7,
@@ -414530,7 +414558,7 @@
         },
         {
           "episode": 8,
-          "score": 4.63
+          "score": 4.61
         },
         {
           "episode": 9,
@@ -414582,7 +414610,7 @@
         },
         {
           "episode": 2,
-          "score": 4.23
+          "score": 4.24
         },
         {
           "episode": 3,
@@ -414598,15 +414626,15 @@
         },
         {
           "episode": 6,
-          "score": 4.42
+          "score": 4.41
         },
         {
           "episode": 7,
-          "score": 4.33
+          "score": 4.34
         },
         {
           "episode": 8,
-          "score": 4.4
+          "score": 4.41
         },
         {
           "episode": 9,
@@ -414728,7 +414756,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "As the illegitimate daughter of a count and his maid, Katrina was born into miserable circumstances. And now that she's lost her mother, the treatment from her stepsister and stepmother the countess has only grown worse. One day, her stepsister receives a royal order to move to the northern outskirts due to her unseemly behavior at a recent party. There, she is to learn proper conduct under the tutelage of the resident prince, rumored to be a cruel man. Not wanting to subject her daughter to such punishment, the countess decides to send Katrina instead. Katrina arrives in the north shaking in fear. But contrary to the stories, the \"merciless and cold-hearted\" prince is kinder than she believed. Might the pure-hearted Katrina find love in the wintry countryside?\n\n(Source: MangaPlaza)",
-        "score": 5.9,
+        "score": 5.91,
         "episodes_count": 12,
         "type": "TV",
         "title_english": "",
@@ -414737,7 +414765,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.22
+          "score": 3.24
         },
         {
           "episode": 2,
@@ -414757,7 +414785,7 @@
         },
         {
           "episode": 6,
-          "score": 4.58
+          "score": 4.57
         },
         {
           "episode": 7,
@@ -414765,7 +414793,7 @@
         },
         {
           "episode": 8,
-          "score": 4.28
+          "score": 4.27
         },
         {
           "episode": 9,
@@ -414804,7 +414832,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Akihito is a college student obsessed with good looks and carnal pleasure, but he can’t stand the handsome-yet-aloof Sae. Things come to a head when Akihito is shot down at a singles mixer by a girl who’s set her romantic sights on Sae. Furious, he follows Sae to the hotel district where he learns Sae’s secret: he’s gay, and he’s having trouble enjoying himself in the bedroom. Breaking through Sae’s mental barriers is exactly the sexy challenge Akihito needed. It awakens something in them both. Will they ever be able to control themselves again?\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.28,
+        "score": 6.3,
         "episodes_count": null,
         "type": "TV",
         "title_english": "",
@@ -414834,7 +414862,7 @@
         ],
         "demographic": "",
         "synopsis": "The story of Let's Go Kaiki-gumi follows a nameless protagonist who is six times more vulnerable to spiritual phenomena than the average human being. One day, the protagonist encounters Mechako, a mysterious girl who runs the Kaiki-gumi, an organization that polices the behavior of the ghosts and monsters that threaten human beings, and he somehow gets roped into helping the Kaiki-gumi re-establish itself, resulting in all sorts of strange events and spooky shenanigans.\n\n(Source: Crunchyroll)",
-        "score": 7.02,
+        "score": 7.01,
         "episodes_count": 1,
         "type": "TV",
         "title_english": "",
@@ -414868,7 +414896,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Shizuka is a normal high school girl with the ability to see ghosts. Due to her peculiar tendency to attract ghosts, she works as an assistant to Kamui, a famous psychic. Kamui takes pride in his top-notch psychic abilities, but the way he exorcises ghosts is rather unusual!\n\n(Source: Shogakukan, translated)",
-        "score": 6.3,
+        "score": 6.31,
         "episodes_count": 7,
         "type": "TV",
         "title_english": "",
@@ -414881,11 +414909,11 @@
         },
         {
           "episode": 2,
-          "score": 3.78
+          "score": 3.79
         },
         {
           "episode": 3,
-          "score": 3.94
+          "score": 3.95
         },
         {
           "episode": 4,
@@ -414893,11 +414921,11 @@
         },
         {
           "episode": 5,
-          "score": 3.94
+          "score": 3.96
         },
         {
           "episode": 6,
-          "score": 4.4
+          "score": 4.41
         },
         {
           "episode": 7,
@@ -415002,7 +415030,7 @@
         ],
         "demographic": "",
         "synopsis": "Second part of Yoroi Shin Den Samurai Troopers.",
-        "score": 6.27,
+        "score": 6.26,
         "episodes_count": null,
         "type": "TV",
         "title_english": "Yoroi-Shinden Samurai Troopers Part 2",
@@ -415062,7 +415090,7 @@
         ],
         "demographic": "",
         "synopsis": "",
-        "score": 6.64,
+        "score": 6.65,
         "episodes_count": 10,
         "type": "TV",
         "title_english": "",
@@ -415099,7 +415127,7 @@
         },
         {
           "episode": 8,
-          "score": 4.64
+          "score": 4.66
         },
         {
           "episode": 9,
@@ -415162,7 +415190,7 @@
         ],
         "demographic": "",
         "synopsis": "Second part of Hokuto no Ken: Kenougun Zako-tachi no Banka.",
-        "score": 6.06,
+        "score": 6.07,
         "episodes_count": null,
         "type": "TV",
         "title_english": "Elegy for the Henchmen: Fist of the North Star Part 2",
@@ -415325,11 +415353,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.4
+          "score": 4.39
         },
         {
           "episode": 2,
-          "score": 4.52
+          "score": 4.51
         }
       ]
     },
@@ -415352,7 +415380,7 @@
         "themes": [],
         "demographic": "Shounen",
         "synopsis": "Second season of Black Clover.",
-        "score": 8.8,
+        "score": 8.81,
         "episodes_count": 1,
         "anilistId": 195604,
         "trailer": {
@@ -415371,7 +415399,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.51
+          "score": 4.5
         }
       ]
     },
@@ -415421,7 +415449,11 @@
         },
         {
           "episode": 2,
-          "score": 4.39
+          "score": 4.38
+        },
+        {
+          "episode": 3,
+          "score": 4.56
         }
       ]
     },
@@ -415471,7 +415503,7 @@
         },
         {
           "episode": 2,
-          "score": 4.4
+          "score": 4.39
         }
       ]
     },
@@ -415537,7 +415569,7 @@
         ],
         "demographic": "",
         "synopsis": "Second season of Tantei wa Mou, Shindeiru.",
-        "score": 7.14,
+        "score": 7.11,
         "episodes_count": null,
         "anilistId": 152677,
         "trailer": {
@@ -415576,8 +415608,8 @@
         ],
         "demographic": "",
         "synopsis": "Second season of Koori no Jouheki.",
-        "score": 8.34,
-        "episodes_count": 2,
+        "score": 8.35,
+        "episodes_count": 3,
         "anilistId": 213805,
         "trailer": {
           "site": "youtube",
@@ -415595,11 +415627,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.57
+          "score": 4.56
         },
         {
           "episode": 2,
           "score": 4.15
+        },
+        {
+          "episode": 3,
+          "score": 4.53
         }
       ]
     },
@@ -415625,7 +415661,7 @@
         ],
         "demographic": "",
         "synopsis": "Second season of Kikansha no Mahou wa Tokubetsu desu.",
-        "score": 7.14,
+        "score": 7.12,
         "episodes_count": null,
         "anilistId": 172192,
         "trailer": {
@@ -415708,7 +415744,7 @@
         ],
         "demographic": "",
         "synopsis": "Satoko, the eldest daughter of the honorable Kirigaya family, has received many marriage proposals from men captivated by her beauty and grace. However, she has turned them all down due to her secret heart defect. Despite her condition, Satoko is still willing to find a husband to ease her beloved father's concerns.\n\nWhile on a stroll, Satoko is kidnapped by a group of mercenaries, one of them being Shinpei Gotou—a legendary assassin tasked with executing her. Satoko tries to bribe Gotou into freeing her, but it proves unsuccessful. Out of options, Satoko makes a desperate gamble: under the pretense of love at first sight, she asks him to marry her.\n\nUnexpectedly, Gotou takes the bait and vows to protect her. As the couple escapes to freedom, Satoko struggles to keep up the ruse and make sense of the mysterious man she has eloped with.\n\n[Written by MAL Rewrite]",
-        "score": 7.93,
+        "score": 7.88,
         "episodes_count": 1,
         "anilistId": 205909,
         "trailer": {
@@ -415727,7 +415763,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.43
+          "score": 4.42
         }
       ]
     },
@@ -415751,7 +415787,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "Second season of Ao Ashi.",
-        "score": 8.17,
+        "score": 8.18,
         "episodes_count": null,
         "anilistId": 191788,
         "trailer": {
@@ -415791,8 +415827,8 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Dragon Ball Super: Beerus, a project that was started a few years ago, is the newly ENHANCED edition of the anime Dragon Ball Super. ENHANCED by the latest visual expression, every scene, especially the battle scenes, is even more immersive, providing a more faithful and detailed reproduction of the original work by Akira Toriyama, and it will deliver a quality that is sure to fully satisfy audiences.\n\n(Source: Official website)",
-        "score": 8.32,
-        "episodes_count": null,
+        "score": 8.31,
+        "episodes_count": 1,
         "anilistId": 206814,
         "trailer": {
           "site": "youtube",
@@ -415807,7 +415843,12 @@
         "title_japanese": "ドラゴンボール超 ビルス",
         "status": "Not yet aired"
       },
-      "episodes": []
+      "episodes": [
+        {
+          "episode": 1,
+          "score": 4.29
+        }
+      ]
     },
     {
       "mal_id": 61578,
@@ -415848,11 +415889,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.31
+          "score": 4.3
         },
         {
           "episode": 2,
-          "score": 4.38
+          "score": 4.36
         }
       ]
     },
@@ -415878,7 +415919,7 @@
         ],
         "demographic": "",
         "synopsis": "Second season of Yasei no Last Boss ga Arawareta!.",
-        "score": 7.55,
+        "score": 7.54,
         "episodes_count": 3,
         "anilistId": 204389,
         "trailer": {
@@ -415905,7 +415946,7 @@
         },
         {
           "episode": 3,
-          "score": 4.43
+          "score": 4.44
         }
       ]
     },
@@ -415934,7 +415975,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Third season of Ranma ½ (2024).",
-        "score": 7.9,
+        "score": 7.92,
         "episodes_count": 1,
         "anilistId": 209872,
         "trailer": {
@@ -415953,7 +415994,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.41
+          "score": 4.42
         }
       ]
     },
@@ -415997,7 +416038,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.01
+          "score": 4.02
         },
         {
           "episode": 2,
@@ -416030,7 +416071,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Sequel of Tougen Anki.",
-        "score": 7.31,
+        "score": 7.33,
         "episodes_count": 12,
         "anilistId": 204650,
         "trailer": {
@@ -416053,7 +416094,7 @@
         },
         {
           "episode": 2,
-          "score": 4.29
+          "score": 4.3
         }
       ]
     },
@@ -416079,7 +416120,7 @@
         ],
         "demographic": "",
         "synopsis": "Second season of Sasaki to Pii-chan.",
-        "score": 7.25,
+        "score": 7.24,
         "episodes_count": null,
         "anilistId": 176314,
         "trailer": {
@@ -416116,7 +416157,7 @@
         "themes": [],
         "demographic": "Josei",
         "synopsis": "Deep within the forest, a cozy and rather cluttered cottage sits on the lakeshore, housing a mysterious, feared witch. In truth, she is a lovely young woman named Rose, who has learned the art of potion-making from her wise grandmother. Rose cherishes her tucked-away life, yet there is a longing in her heart—for a handsome knight she once saw, Sir Harij Azm.\n\nFor four years, Rose's feelings for Harij have lingered, but she can never act on them; witches live outside of human affairs and belong to no country or man. So, when Harij suddenly appears on her doorstep looking for a love potion, Rose is both surprised and heartbroken. Although another woman has captured the noble knight's heart, Rose decides to help him. But before crafting the potion, Rose sends Harij on a series of ridiculous quests for each ingredient, hoping to delay the inevitable and savor their fleeting time together.\n\n[Written by MAL Rewrite]",
-        "score": 7.4,
+        "score": 7.42,
         "episodes_count": 2,
         "anilistId": 207191,
         "trailer": {
@@ -416139,7 +416180,7 @@
         },
         {
           "episode": 2,
-          "score": 4.48
+          "score": 4.42
         }
       ]
     },
@@ -416165,7 +416206,7 @@
         ],
         "demographic": "",
         "synopsis": "Second part of Chitose-kun wa Ramune Bin no Naka.",
-        "score": 7.61,
+        "score": 7.63,
         "episodes_count": 1,
         "anilistId": 198727,
         "trailer": {
@@ -416184,7 +416225,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.27
+          "score": 4.31
         }
       ]
     },
@@ -416209,7 +416250,7 @@
         ],
         "demographic": "",
         "synopsis": "Second season of Hyouken no Majutsushi ga Sekai wo Suberu.",
-        "score": 6.73,
+        "score": 6.63,
         "episodes_count": 1,
         "anilistId": 212503,
         "trailer": {
@@ -416254,8 +416295,8 @@
         ],
         "demographic": "",
         "synopsis": "Fia always dreamed of becoming a knight. Born into a family of knights, she's the least talented among them, but she still clutches to her hope and trains with everything she has. When the day comes for her to slay a small demon and prove her worth, she ends up face to face with a dragon instead! A deadly injury makes her life flash before her eyes... and she suddenly remembers her former life, when she was a powerful Saint in a bygone era who defeated the Demon King. That life ended in pain because of who she was, making her fear ever becoming a Saint again. Now that the magic from her previous life has been rekindled, she may become a more powerful knight than she ever dreamed–if only she can survive long enough!\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.98,
-        "episodes_count": 3,
+        "score": 6.99,
+        "episodes_count": 4,
         "anilistId": 187402,
         "trailer": {
           "site": "youtube",
@@ -416277,11 +416318,15 @@
         },
         {
           "episode": 2,
-          "score": 4.19
+          "score": 4.2
         },
         {
           "episode": 3,
           "score": 4.37
+        },
+        {
+          "episode": 4,
+          "score": 4.23
         }
       ]
     },
@@ -416331,11 +416376,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.25
+          "score": 4.28
         },
         {
           "episode": 2,
-          "score": 4.27
+          "score": 4.31
         }
       ]
     },
@@ -416358,7 +416403,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "When middle school student, Fukuga Kurumi's mother commits suicide after losing 20 million yen in FX trading (Foreign Exchange trading), she vows to recoup the money her mother lost \"I'll easily get that much back!\"\n\nNow, when she is a university student she makes her long-awaited debut in FX trading, unaware that the world she just entered could turn from heaven to hell in the blink of an eye.\n\nThis is a cute and slightly dangerous story as it explains technical terms by thrilling market fluctuations as the chart drives up and down, which becomes more heated with the entry of quirky FX warriors: Yasuko Takane, Mochiko Kogane, and Mebuki Yamashi. Can Kurumi and her friends survive this world with unstoppable heartbeat moments and unrealized losses!?\n\n(Source: MAL News)",
-        "score": 7.2,
+        "score": 7.14,
         "episodes_count": 12,
         "anilistId": 206401,
         "trailer": {
@@ -416381,7 +416426,7 @@
         },
         {
           "episode": 2,
-          "score": 4.14
+          "score": 4.12
         }
       ]
     },
@@ -416405,7 +416450,7 @@
         ],
         "demographic": "",
         "synopsis": "Lying on her deathbed with seemingly no chance at recovery, a young Nia Liston is soon to succumb to her illness. Unable to give up hope, her parents desperately search for a cure in even the most obscure places, leading to the appearance of a hooded man claiming he can help rid Nia of her condition. But rather than curing her, the hooded man transplants the soul of a deceased hero who was undefeated in battle into the girl's frail body.\n\nGiven a second chance at life as Nia, the hero is determined to recover her new body's strength by using a technique known as chi to target and eliminate the illness at its roots. With her enthusiastic hunger for combat having also been carried over, Nia is eager to return to exploring the world. However, the hero's restless soul yearns to find a worthy opponent who can defeat her on the battlefield, sparking chaos wherever Nia may go.\n\n[Written by MAL Rewrite]",
-        "score": 7.57,
+        "score": 7.56,
         "episodes_count": 2,
         "anilistId": 206949,
         "trailer": {
@@ -416424,7 +416469,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.34
+          "score": 4.33
         },
         {
           "episode": 2,
@@ -416451,8 +416496,8 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Koharu Satou is known to her classmates as the \"unattainable flower\" a cold and distant girl whose refusal to smile keeps everyone at arm's length.\n\nHowever, Souta Oshio accidentally stumbles upon Satou's secret at her family's cafe. It turns out the \"icy Satou-san\" is actually an incredibly shy and clumsy girl who struggles even with something as simple as taking photos of sweets for the cafe's social media.\n\nBonding over their shared love for cameras and desserts, the distance between the two gradually shrinks. This charming romantic comedy follows two socially awkward people as they navigate their feelings in a story that is as sweet as it is endearing.\n\n(Source: MAL News)",
-        "score": 6.92,
-        "episodes_count": 1,
+        "score": 6.89,
+        "episodes_count": 2,
         "anilistId": 209502,
         "trailer": {
           "site": "youtube",
@@ -416470,7 +416515,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4
+          "score": 3.99
+        },
+        {
+          "episode": 2,
+          "score": 4.12
         }
       ]
     },
@@ -416516,15 +416565,15 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.03
+          "score": 4.01
         },
         {
           "episode": 2,
-          "score": 4.1
+          "score": 4.08
         },
         {
           "episode": 3,
-          "score": 4.2
+          "score": 4.18
         }
       ]
     },
@@ -416547,7 +416596,7 @@
         "themes": [],
         "demographic": "Shounen",
         "synopsis": "Part two of Yozakura-san Chi no Daisakusen 2nd Season.",
-        "score": 7.48,
+        "score": 7.49,
         "episodes_count": null,
         "anilistId": 213657,
         "trailer": {
@@ -416587,7 +416636,7 @@
         ],
         "demographic": "",
         "synopsis": "Sato Takahiro was an ordinary office worker and hobbyist gamer until the day he woke up on a spaceship–one that strangely resembled a craft from a favorite space-shooter game. With a decked-out ship, a crew full of babes, and a fantastic universe to explore, he's going to make the most of his good luck and create the life he's always dreamed of!\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.91,
+        "score": 6.89,
         "episodes_count": 2,
         "anilistId": 186541,
         "trailer": {
@@ -416606,11 +416655,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.93
+          "score": 3.92
         },
         {
           "episode": 2,
-          "score": 4.1
+          "score": 4.07
         }
       ]
     },
@@ -416656,7 +416705,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.28
+          "score": 4.25
         }
       ]
     },
@@ -416700,11 +416749,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.23
+          "score": 4.22
         },
         {
           "episode": 2,
-          "score": 4.25
+          "score": 4.21
         }
       ]
     },
@@ -416727,7 +416776,7 @@
         "themes": [],
         "demographic": "Seinen",
         "synopsis": "The mask brings calamity. The mask revels in slaughter. The mask has a will of its own... Peru, a traveling mask merchant, possesses the ability to craft mysterious masks that give its wearers unique powers. In a city shrouded in an eerie atmosphere, he encounters Sonah, a mysterious young girl. As revelations unfold and inner conflicts arise, a young boy takes his first steps forward! Immerse yourself in a thrilling mask battle fantasy!\n\n(Source: Orange Inc.)",
-        "score": 7.09,
+        "score": 7.1,
         "episodes_count": 1,
         "anilistId": 195571,
         "trailer": {
@@ -416746,7 +416795,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.12
+          "score": 4.11
         }
       ]
     },
@@ -416771,7 +416820,7 @@
         ],
         "demographic": "",
         "synopsis": "Rising from the ashes, a fallen noblewoman stands to save humanity!\n\nAfter the Demon King's defeat, Countess Romelia's world is shattered when Prince Henri, her fiancé, publicly breaks off their engagement, dismissing her as \"useless\" alongside his new allies: Saint Elizabeth, the sage Ekaterina, and the swordswoman Lu Hime. What they don't realize is that Romelia possesses a secret power called \"Grace,\" which brings her extraordinary luck. Left abandoned and humiliated, Romelia refuses to give up. With her homeland still under siege by the remnants of the demon army and her people enslaved, she embarks on a desperate mission to save them.\n\nFacing overwhelming challenges—no army, no healers, no funds, and only inexperienced recruits—Romelia uses her wit and determination to turn the odds in her favor. She seizes fortresses from local lords to build her forces, negotiates with the church for healing, secures funds from merchants, and has her soldiers gain experience through monster hunting. Against all expectations, Romelia rises from the ashes, leading her loyal followers in a daring campaign to rescue her people and prove her worth.\n\n(Source: MAL News)",
-        "score": 7.27,
+        "score": 7.28,
         "episodes_count": 2,
         "anilistId": 180894,
         "trailer": {
@@ -416819,7 +416868,7 @@
         ],
         "demographic": "Shoujo",
         "synopsis": "I was reborn as a villainous daughter in a reverse harem otome game.\n\nAfter being sick with a high fever at the age of 10, Pia Rockwell suddenly remembered her past life as a university student in Japan. But far from going down the villainess route, all this super timid girl wants is to finally use her knowledge from when she was a grad student studying to get her doctorate in paleontology. Her ultimate goal is to become a commoner, excavate fossils, build a museum, and then become a curator.\n\nSo in order to escape the villainess route and avoid being deported by her fiancé during the graduation ball, Pia decides to avoid the upcoming hurt and heartache and asks to break off her engagement to Rufus, the Prime Minister's son.\n\nBut will her cunning fiancé let her go that easily?\n\n(Source: MU)",
-        "score": 7.04,
+        "score": 7.03,
         "episodes_count": 2,
         "anilistId": 200455,
         "trailer": {
@@ -416838,11 +416887,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.22
+          "score": 4.23
         },
         {
           "episode": 2,
-          "score": 4.15
+          "score": 4.2
         }
       ]
     },
@@ -416866,7 +416915,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Rein, an enchanter who strengthens equipment with his magic, is suddenly expelled from his guild, simply because every piece of gear in the guild has already been enhanced enough. Outraged by the absurd treatment, Rein decides to take back the enormous amount of mana he had poured into their equipment. When he casually channels it into a random copper sword, it transforms into a cheat-level weapon with 10,000 enhancement points!\n\nWith zero combat experience but armed with magic that can turn anything into overpowered gear, this enchanter sets off to enjoy a new, carefree life as an adventurer!\n\n(Source: Shochiku)",
-        "score": 7.51,
+        "score": 7.5,
         "episodes_count": 2,
         "anilistId": 207329,
         "trailer": {
@@ -416889,7 +416938,7 @@
         },
         {
           "episode": 2,
-          "score": 4.2
+          "score": 4.19
         }
       ]
     },
@@ -416917,7 +416966,7 @@
         ],
         "demographic": "",
         "synopsis": "The deadly game is back!\n\nOnce again, sixteen Magical Girls have been assembled for a high-stakes challenge. Every three days, their Magical Phone pulls them into an RPG-like simulation where they have to work together to fight enemies, solve puzzles, and earn Magical Candy to advance. A staggering ten billion yen reward awaits them at the end—but only for the players who land the finishing blow. With such a tantalizing prize on the line, it's only a matter of time before the girls turn on each other—and if their hit points drop to zero, a game over will be the least of their worries... \n\n(Source: Mahou Shoujo Ikusei Keikaku Wiki, edited)",
-        "score": 6.69,
+        "score": 6.68,
         "episodes_count": 2,
         "anilistId": 160803,
         "trailer": {
@@ -416936,11 +416985,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.84
+          "score": 3.85
         },
         {
           "episode": 2,
-          "score": 4.24
+          "score": 4.16
         }
       ]
     },
@@ -416963,7 +417012,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Lent is part of the up-and-coming party known as the \"Skypiercers,\" and thanks to his unique Gift, he can loan massive amounts of magic to others. No MP? No problem with Lent around! Except, now that his companions have become formidable heroes (thanks to his skill), his usefulness is questioned. Kicked out of the group, Lent is furious...until he discovers a hidden power to his Gift. Now, with his adorably devious fairy partner, he's going to claw back every last scrap of magic from his former party—with interest!\n\n(Source: Seven Seas Entertainment)",
-        "score": 6.25,
+        "score": 6.24,
         "episodes_count": null,
         "anilistId": 202250,
         "trailer": {
@@ -417001,7 +417050,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Set in a world where 90% of humanity has contracted and died from a deadly, virulent disease, only to rise again as attacking zombies, thirteen years have passed since the \"Red Day\" of societal collapse. The surviving humans now live away from the big cities, still hoping to reclaim them one day. An entirely new generation, unaware of the pre-Red Day world, is coming into its own.\n\nThe story begins when Aki, who has no memories of the world before its fall, escapes her village with her close friends Haru and Natsuki to search for her missing father. As they venture into the outside world, they find themselves surrounded by zombies on all sides! Along the way, they rescue Yuu and Sakura and take refuge in a home improvement store. They regroup, and now the counterattack begins—!!\n\n(Source: Kadokawa, edited)",
-        "score": 6.67,
+        "score": 6.69,
         "episodes_count": 12,
         "anilistId": 199007,
         "trailer": {
@@ -417020,7 +417069,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.85
+          "score": 3.84
         },
         {
           "episode": 2,
@@ -417095,8 +417144,8 @@
         "themes": [],
         "demographic": "",
         "synopsis": "When Lorna manifests a completely useless ability, she's labeled an embarrassment to her family and kicked out of the house. With no money or food, she's about to hit rock bottom. But then, she figures out how to use her supposedly worthless SSS-Rank skill, \"Internet.\" This cheat-level talent gives her the know-how to gather an unlimited amount of valuable items and easily acquire rare equipment. Armed with godlike knowledge, Lorna's free to do anything she wants! If only she could figure out what \"lmfao\" means...\n\n(Source: Yen Press)",
-        "score": 6.91,
-        "episodes_count": 1,
+        "score": 6.95,
+        "episodes_count": 2,
         "anilistId": 211778,
         "trailer": {
           "site": "youtube",
@@ -417114,7 +417163,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.08
+          "score": 4.07
+        },
+        {
+          "episode": 2,
+          "score": 4.47
         }
       ]
     },
@@ -417187,7 +417240,7 @@
         ],
         "demographic": "Seinen",
         "synopsis": "Office worker Akira Yagami's altruistic nature usually gets him the short end of the stick. When he dies after saving a kid from oncoming traffic...he reincarnates in another world as a goblin?! Normally, goblins only live for seven days, but Akira's newfound powers let him defy the species' normal life span... and are the key to his path to becoming the strongest goblin ever!\n\n(Source: Yen Press)",
-        "score": 6.8,
+        "score": 6.79,
         "episodes_count": 2,
         "anilistId": 209219,
         "trailer": {
@@ -417210,7 +417263,7 @@
         },
         {
           "episode": 2,
-          "score": 3.96
+          "score": 3.94
         }
       ]
     },
@@ -417234,7 +417287,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Our story's hero and his friend Jowy are members of the Unicorn Youth Brigade, which participated in a drawn-out border dispute between the Highland Kingdom and the City- States of Jowstown. A few months earlier, a truth agreement was signed between the two forces, both of which were happy to see an end to the fighting. However, hidden under the momentary peace the fires of a new war continued to smolder...\n\n(Source: ANN)",
-        "score": 6.76,
+        "score": 6.72,
         "episodes_count": 23,
         "anilistId": 187316,
         "trailer": {
@@ -417254,6 +417307,10 @@
         {
           "episode": 1,
           "score": 4.01
+        },
+        {
+          "episode": 2,
+          "score": 3.97
         }
       ]
     },
@@ -417278,7 +417335,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "Part two of Diamond no Ace: Act II Second Season.",
-        "score": 7.72,
+        "score": 7.77,
         "episodes_count": null,
         "anilistId": 213658,
         "trailer": {
@@ -417316,7 +417373,7 @@
         ],
         "demographic": "Josei",
         "synopsis": "At the center of a continent made up of eight kingdoms lies the Kingdom of Marronnier. Leading the nation is the female general Baribara, who has seven sons, each with a personality all his own.\n\nSleepy, benevolent, sensitive to heat, sensitive to cold, gifted with animals, proud of his swordsmanship, and always hungry—the brothers possess very different qualities, but they are united by a single goal: \"Someday, we'll rescue a princess in a cool way!\"\n\nBefore long, the brothers set out for the seven neighboring kingdoms as ambassadors. What encounters, trials, and destinies await them in these unfamiliar lands?\n\nSet in a medieval-inspired fantasy world, this tale of romance and adventure begins.\n\n(Source: MAL News)",
-        "score": 6.34,
+        "score": 6.36,
         "episodes_count": 20,
         "anilistId": 212799,
         "trailer": {
@@ -417336,6 +417393,10 @@
         {
           "episode": 1,
           "score": 3.85
+        },
+        {
+          "episode": 2,
+          "score": 4.1
         }
       ]
     },
@@ -417361,7 +417422,7 @@
         ],
         "demographic": "Shoujo",
         "synopsis": "Noriko Tachiki has dreamt of a beautiful fantasy land for some time, though her friends think it is only her imagination. One day, on her way home, Noriko stumbles upon a bomb disguised as a paper bag that explodes right in front of her. However, instead of dying, she is transported to a mysterious forest full of strange plants and creatures.\n\nAs she begins navigating through the woods, Noriko is suddenly attacked by a giant, worm-like monster. Fortunately, she is saved by Izark Kia Tarj, a swordsman who does not speak her language. Lacking the strength to survive on her own, Noriko decides to follow her stoic savior, taking the opportunity to learn the foreign land's language and be more useful to Izark.\n\nUnbeknownst to her, Noriko is a crucial piece of an ancient prophecy. She is \"The Awakening\"—a being destined to unleash the greatest evil known as the \"Sky Demon.\" With influential people plotting to capture Noriko for her supposed powers, both she and Izark must fend for themselves and overcome a future laced with chaos.\n\n[Written by MAL Rewrite]",
-        "score": 6.48,
+        "score": 6.47,
         "episodes_count": 2,
         "anilistId": 209463,
         "trailer": {
@@ -417380,11 +417441,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.08
+          "score": 4.06
         },
         {
           "episode": 2,
-          "score": 4.25
+          "score": 4.22
         }
       ]
     },
@@ -417459,7 +417520,7 @@
         ],
         "demographic": "",
         "synopsis": "Second season of Hotel Inhumans.",
-        "score": 6.97,
+        "score": 6.94,
         "episodes_count": null,
         "anilistId": 199426,
         "trailer": {
@@ -417499,7 +417560,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "In Chinjuku, the city that never sleeps, there is a psychic senior police officer who has powers beyond human comprehension! His name is Meguru Choujou! Along with his judo expert partner Nao Ippongi, this hilarious duo will keep the streets clean by any means necessary!\n\n(Source: MANGA Plus)",
-        "score": 6.83,
+        "score": 6.81,
         "episodes_count": null,
         "anilistId": 200294,
         "trailer": {
@@ -417538,8 +417599,8 @@
         ],
         "demographic": "",
         "synopsis": "Misaki, a university student, feeling the weight of everyday life and uncertain about her future, she longs for adventure and something she can be truly passionate about.\n\nAt the start of the new day on campus, members of the Travel Train Club (commonly known as the Tetsuryo Club) invite Misaki to join them, as she steps into the world of railways, Misaki's heart beats with excitement for the journey that awaits her.\n\n(Source: MAL News)",
-        "score": 6.63,
-        "episodes_count": 1,
+        "score": 6.62,
+        "episodes_count": 2,
         "anilistId": 199594,
         "trailer": {
           "site": "youtube",
@@ -417557,7 +417618,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.07
+          "score": 4.05
+        },
+        {
+          "episode": 2,
+          "score": 4.32
         }
       ]
     },
@@ -417580,8 +417645,8 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Akira Toudou, a high schooler living in northern Okinawa, lives peacefully with his mother and his older sister, Haruka. However, behind their peaceful life lies a secret passed down through their family: Haruka has inherited a mysterious power from their father, known only as \"Engine,\" and she has lived her life hiding this power from others. Akira, however, inherited nothing. He harbors an inferiority complex due to his own weakness.\n\nThen, strange events began to occur all over the world. What is the purpose of the unknown enemy closing in on Akira and his friends? Now, with the fate of the universe at stake, a brother who has nothing and a sister who has everything must find out what they can really do together.\n\n(Source: MAL News)",
-        "score": 5.88,
-        "episodes_count": 1,
+        "score": 5.81,
+        "episodes_count": 2,
         "anilistId": 209562,
         "trailer": {
           "site": "youtube",
@@ -417599,7 +417664,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.64
+          "score": 3.62
+        },
+        {
+          "episode": 2,
+          "score": 3.77
         }
       ]
     },
@@ -417625,7 +417694,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "Second season of Kizu darake Seijo yori Houfuku wo Komete.",
-        "score": 6.57,
+        "score": 6.56,
         "episodes_count": null,
         "anilistId": 212144,
         "trailer": {
@@ -417664,7 +417733,7 @@
         ],
         "demographic": "Shounen",
         "synopsis": "A new Keroro Gunsou from scratch.",
-        "score": 6.43,
+        "score": 6.41,
         "episodes_count": 1,
         "anilistId": 216557,
         "trailer": {
@@ -417683,7 +417752,7 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 3.85
+          "score": 3.84
         }
       ]
     },
@@ -417707,7 +417776,7 @@
         "themes": [],
         "demographic": "Kids",
         "synopsis": "The internet is full of creepypastas, cryptid sightings, tales of paranormal activity, and unsolved disappearances. These are mostly rumors and pranks fueled by trolls—entertainment. But the unlucky few learn the hard way that some legends are true. Many of these unfortunate souls are doomed, but their luck may change if they cross paths with the boy in the red hood. He roams from town to town and appears wherever strange things occur. Is he a light in the dark? Or living proof that monsters are all too real...?\n\n(Source: Yen Press)",
-        "score": 5.86,
+        "score": 5.87,
         "episodes_count": 12,
         "anilistId": 203473,
         "trailer": {
@@ -417744,7 +417813,7 @@
         ],
         "demographic": "",
         "synopsis": "In the near future, the e-sport Dark Machine has become a global phenomenon, reshaping society and even Japan's economy. The only region in Japan designated as a special economic zone for Dark Machine is Golden Valley, a city dominated by its reigning top player Ajima, the seventh person to inherit the title of Senki—the strongest player in the game.\n\nFollowing his late grandfather's last words, \"Find Senki,\" Kairi travels to Golden Valley. There, he unexpectedly meets Rudra, a girl being hunted by Ajima's group, the Aldabil. Drawn into her troubles, Kairi becomes a Dark Machine player himself. Through one intense battle after another, he begins to develop his own hidden talent.\n\nAs Kairi rises through the ranks, he moves closer to facing Senki—and to discovering the truth behind his grandfather's final message. His fight to reach the top of Dark Machine is about to begin.\n\n(Source: MAL News)",
-        "score": 6.07,
+        "score": 5.99,
         "episodes_count": null,
         "anilistId": 179876,
         "trailer": {
@@ -417780,7 +417849,7 @@
         ],
         "demographic": "",
         "synopsis": "Cardfight!! Vanguard spin-off centered on two girls aiming to become idols.\n\n(Source: Official X Account)",
-        "score": 6.06,
+        "score": 6.04,
         "episodes_count": 6,
         "anilistId": 214703,
         "trailer": {
@@ -417819,7 +417888,7 @@
         },
         {
           "episode": 6,
-          "score": 4.07
+          "score": 4
         }
       ]
     },
@@ -417882,7 +417951,7 @@
         ],
         "demographic": "",
         "synopsis": "Twenty years have passed since the combining robot Dandivine defeated the mysterious invaders known as the Aposdoll. With the threat gone, the world has enjoyed a long era of peace. But for toy manufacturer Casga, whose fortunes were built on the popularity of Dandivine merchandise, that peace has come at a cost. Having relied too heavily on the legendary robot's fame, the company has steadily fallen into decline.\n\nDesperate to revive both Dandivine and his struggling business, Casga's president, Genjurou Shijima, dreams of the robot's return—even if it means disrupting the peace. Then, as if in answer to his wish, the Aposdolls suddenly reappear in Tokyo.\n\nAs panic spreads among a population that has known nothing but peace for two decades, high school student Gekiha Shijima is recruited by his uncle, Yuusaku Kuroiwa, the former main pilot of Dandivine. Drawn into the cockpit of the legendary machine, Gekiha finds himself at the center of a new battle.\n\nWhy have the Aposdolls returned after all these years? And can Dandivine rise once again to face the threat? A new chapter in the fight for humanity is about to begin.\n\n(Source: MAL News)",
-        "score": 5.55,
+        "score": 5.44,
         "episodes_count": null,
         "anilistId": 213068,
         "trailer": {
@@ -417918,7 +417987,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "No synopsis information has been added to this title. Help improve our database by adding a synopsis here.",
-        "score": 5.66,
+        "score": 5.64,
         "episodes_count": null,
         "anilistId": null,
         "trailer": {
@@ -417954,8 +418023,8 @@
         ],
         "demographic": "",
         "synopsis": "Second part of Mahou no Shimai Lulutto Lilly.",
-        "score": 6.61,
-        "episodes_count": 1,
+        "score": 6.64,
+        "episodes_count": 2,
         "anilistId": 209032,
         "trailer": {
           "site": "youtube",
@@ -417973,7 +418042,11 @@
       "episodes": [
         {
           "episode": 1,
-          "score": 4.43
+          "score": 4.41
+        },
+        {
+          "episode": 2,
+          "score": 4.5
         }
       ]
     },
@@ -417995,7 +418068,7 @@
         "themes": [],
         "demographic": "",
         "synopsis": "The story of Aoki Denshou Welsh & Shedar follows Welsh, a teenage boy from the country who loves to cook, and Shedar, a young prince who is destined to become king one day. When the two young men with very different lives are thrown together by a chance encounter, the wheels of fate begin to turn, and soon they must work together to bring about a peaceful future by stopping a cruel despot from conquering the world.\n\n(Source: Crunchyroll)",
-        "score": 6.37,
+        "score": 6.34,
         "episodes_count": null,
         "anilistId": 216895,
         "trailer": {
