@@ -8,11 +8,15 @@
 - Verify `Strict-Transport-Security` is enabled on production HTTPS responses.
 
 ## Runtime Controls
+- JSON backups and MAL XML imports accept at most 10 MiB and 5,000 rows. XML fields are limited to 8,192 characters, imported labels to 2,048 characters, profile arrays to 5,000 items, and snapshot tag arrays to 128 items.
+- Keep `rekonime-parser` private to inert HTML/XML parsing. `rekonime-html` sanitizes HTML with DOMPurify, admits only the fixed catalog/worker script URLs, and accepts script text only as JSON-LD data.
 - Confirm `sw.js` host allowlists are unchanged or intentionally updated.
 - Confirm trailer URL policy still enforces strict HTTPS + trusted hosts.
 - Confirm no wildcard `postMessage` target origins exist.
 
 ## Supply Chain and Tooling
+- CI grants only `contents: read`, disables persisted checkout credentials, and pins actions to commit hashes. Preserve these controls when updating actions.
+- CI audits `tools/scraper/requirements.txt` including transitive dependencies with `pip-audit==2.10.1`. To reproduce in a virtual environment, install that version and run `python -m pip_audit --strict --requirement tools/scraper/requirements.txt`.
 - Run `bun run check:security` and confirm success.
 - Run `bun run check:security-headers` after any `vercel.json` header changes.
 - Run `bun run test:golden` and review any fixture diff before accepting Python/data-tool changes.

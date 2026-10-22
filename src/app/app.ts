@@ -23,6 +23,7 @@ import {
 } from '../features/watchlist/watchlist-entry-presentation.ts';
 import { createWatchlistAiringDashboardAdapter } from '../features/watchlist/watchlist-airing-dashboard-adapter.ts';
 import { sanitizeUrl as sanitizeSafeUrl, sanitizeImageUrl as sanitizeSafeImageUrl } from '../shared/security/urlSanitizer.ts';
+import { readImportText } from '../shared/security/import-limits.ts';
 import {
   setHTML,
   insertHTML,
@@ -795,7 +796,7 @@ const App = {
   async restorePersonalDataFile(file) {
     if (!file) return;
     try {
-      const text = await file.text();
+      const text = await readImportText(file);
       const payload = JSON.parse(text);
       const result = restorePersonalData(payload, {
         tasteProfileStore: this.getTasteProfileStore(),
@@ -825,7 +826,8 @@ const App = {
       this.showToast('Personal data restored.');
       return result;
     } catch (error) {
-      this.showToast('Restore failed. Use a Rekonime JSON export.');
+      this.showToast(error instanceof Error && error.message.startsWith('This file is too large.')
+        ? error.message : 'Restore failed. Use a Rekonime JSON export.');
       return { ok: false, reason: 'invalid_file' };
     }
   },

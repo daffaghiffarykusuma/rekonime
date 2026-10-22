@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createWatchlistImportWorkflow } from '../../src/features/watchlist/watchlist-import-workflow.ts';
 import * as tools from '../../src/features/watchlist/mal-watchlist-import.ts';
 import { setupDom } from '../helpers/dom.js';
+import { MAX_IMPORT_BYTES } from '../../src/shared/security/import-limits.ts';
 
 const xml = (progress = 3) => `<myanimelist><anime><series_animedb_id>1</series_animedb_id><series_title>One</series_title><my_status>Watching</my_status><my_watched_episodes>${progress}</my_watched_episodes></anime></myanimelist>`;
 const file = (name = 'list.xml', progress = 3) => ({ name, text: async () => xml(progress) });
@@ -27,6 +28,16 @@ const harness = (overrides = {}) => {
   });
   return { workflow, updates, applied, effects, refreshes };
 };
+
+test('oversized file selection does not read content, load catalog or prepare a mutation', async () => {
+  let reads = 0, catalogCalls = 0;
+  const { workflow, applied } = harness({ getFullCatalog: async () => { catalogCalls++; return catalog; } });
+  await workflow.review({ name: 'large.xml', size: MAX_IMPORT_BYTES + 1, text: async () => { reads++; return xml(); } });
+  assert.equal(reads, 0);
+  assert.equal(catalogCalls, 0);
+  assert.equal(applied.length, 0);
+  assert.match(workflow.getView().error, /10 MiB/);
+});
 
 for (const phase of ['tools', 'file', 'catalog']) {
   for (const action of ['cancel', 'replace']) {

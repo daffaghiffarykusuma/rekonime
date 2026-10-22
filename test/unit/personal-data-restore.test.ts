@@ -6,6 +6,7 @@ import {
 } from '../../src/features/preferences/personal-data-restore.ts';
 import { createTasteProfileStore } from '../../src/features/preferences/taste-profile.ts';
 import { createWatchlistLifecycle } from '../../src/features/watchlist/watchlist-state.js';
+import { MAX_PROFILE_ITEMS, MAX_IMPORT_STRING_LENGTH, MAX_SNAPSHOT_TAGS } from '../../src/shared/security/import-limits.ts';
 
 const profile = (preferredGenres: string[] = []) => ({
   version: 1,
@@ -87,6 +88,28 @@ const harness = ({ tasteFails = false, watchlistFails = false } = {}) => {
   if (watchlistFails) storage.failJSON('rekonime.watchlist');
   return { tasteProfileStore, watchlistLifecycle, storage, sharedEntries };
 };
+
+test('Personal Data Restore rejects unbounded profiles and malformed snapshots without changing storage', () => {
+  const runtime = harness();
+  const beforeProfile = runtime.tasteProfileStore.getPersistedRaw();
+  const beforeWatchlist = runtime.watchlistLifecycle.getPersistedRaw();
+  for (const preferredGenres of [Array(MAX_PROFILE_ITEMS + 1).fill('Drama'), ['x'.repeat(MAX_IMPORT_STRING_LENGTH + 1)], [{}]]) {
+    const result = restorePersonalData(profile(preferredGenres as any), runtime as any);
+    assert.deepEqual(result, { ok: false, reason: 'invalid_profile' });
+  }
+  for (const patch of [
+    { title: {} }, { titleEnglish: [] }, { studio: {} }, { genres: [{}] },
+    { themes: Array(MAX_SNAPSHOT_TAGS + 1).fill('Drama') },
+    { title: 'x'.repeat(MAX_IMPORT_STRING_LENGTH + 1) }, { stats: { episodeCount: 'twelve' } }
+  ]) {
+    const restored = entry('restored');
+    Object.assign(restored.snapshot, patch);
+    const result = restorePersonalData({ version: 1, tasteProfile: profile(), watchlist: [restored] }, runtime as any);
+    assert.deepEqual(result, { ok: false, reason: 'invalid_watchlist' });
+  }
+  assert.equal(runtime.tasteProfileStore.getPersistedRaw(), beforeProfile);
+  assert.equal(runtime.watchlistLifecycle.getPersistedRaw(), beforeWatchlist);
+});
 
 test('Personal Data Restore commits a full export and refreshes inferred evidence', () => {
   const runtime = harness();

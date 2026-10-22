@@ -14,7 +14,7 @@ const REQUIRED_CSP_TOKENS = [
   "default-src 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  "trusted-types rekonime-html",
+  "trusted-types rekonime-html rekonime-parser",
   "require-trusted-types-for 'script'"
 ];
 

@@ -1,6 +1,7 @@
 import { CatalogPayload } from '../catalog/catalog-payload.ts';
 import { buildAnimeSnapshot } from './watchlist-state.js';
-import { toTrustedHTML } from '../../shared/security/trusted-types.js';
+import { parseXmlDocument } from '../../shared/security/trusted-types.js';
+import { isBoundedImportText, MAX_IMPORT_ROWS, MAX_IMPORT_STRING_LENGTH, MAX_XML_FIELD_LENGTH } from '../../shared/security/import-limits.ts';
 import { fingerprintWatchlist, validateMalImportPlan } from './mal-import-plan.ts';
 import type { MalImportPlan, MalParseResult, ParsedMalRow, ProposedWatchlistEntry } from './mal-import-plan.ts';
 import type { Snapshot, WatchStatus, WatchlistEntry } from './contracts/watchlist-lifecycle.ts';
@@ -19,19 +20,30 @@ const parseDate = (value: string) => {
 const parseMalWatchlistXml = (text: string): MalParseResult => {
   const result: MalParseResult = { ok: false, sourceRows: 0, rows: [], errors: [], invalidRows: [], warnings: [] };
   const reject = (reason: string) => ({ ...result, errors: [reason] });
-  if (!String(text || '').trim()) return reject('empty-input');
+  if (!isBoundedImportText(text)) return reject('input-too-large');
+  if (!text.trim()) return reject('empty-input');
   if (/<!\s*(DOCTYPE|ENTITY)\b/i.test(text)) return reject('forbidden-declaration');
   const runtime = globalThis as any;
   const Parser = runtime.DOMParser || runtime.window?.DOMParser;
   if (!Parser) return reject('xml-parser-unavailable');
   let document: any;
-  try { document = new Parser().parseFromString(toTrustedHTML(text), 'application/xml'); }
+  try { document = parseXmlDocument(text); }
   catch { return reject('malformed-xml'); }
   if (document.querySelector('parsererror')) return reject('malformed-xml');
   if (document.documentElement?.localName !== 'myanimelist') return reject('unexpected-root');
+  const nodes = document.getElementsByTagName('*');
+  if (nodes.length > 150000) return reject('too-many-elements');
+  for (const node of Array.from(nodes) as any[]) {
+    if (node.children.length === 0 && node.textContent.length > MAX_XML_FIELD_LENGTH) return reject('field-too-long');
+    let depth = 0;
+    for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+      if (++depth > 16) return reject('nesting-too-deep');
+    }
+  }
   const elements = (Array.from(document.documentElement.children) as any[]).filter(element => element.localName === 'anime');
   result.sourceRows = elements.length;
   if (!elements.length) return reject('no-anime-rows');
+  if (elements.length > MAX_IMPORT_ROWS) return reject('too-many-rows');
   const seen = new Set<number>();
   for (const [index, element] of elements.entries()) {
     const row = index + 1;
@@ -39,6 +51,9 @@ const parseMalWatchlistXml = (text: string): MalParseResult => {
     const fields = (name: string) => children.filter(child => child.localName === name);
     const value = (name: string) => fields(name)[0]?.textContent?.trim() || '';
     const sourceTitle = value('series_title');
+    if (sourceTitle.length > MAX_IMPORT_STRING_LENGTH || children.some(child => child.textContent.length > MAX_XML_FIELD_LENGTH)) {
+      return reject('field-too-long');
+    }
     const required = ['series_animedb_id', 'series_title', 'my_status', 'my_watched_episodes'];
     const badField = required.find(name => fields(name).length !== 1 || !value(name));
     const malId = Number(value('series_animedb_id'));

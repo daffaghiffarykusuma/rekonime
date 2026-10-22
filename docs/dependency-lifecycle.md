@@ -11,6 +11,8 @@
 - `bun run test:integration`
 - `bun run data:validate`
 - `bun run check:security`
+- Python scraper dependency audit: `python -m pip_audit --strict --requirement tools/scraper/requirements.txt` using `pip-audit==2.10.1` in a virtual environment.
+- Update GitHub Actions by resolving the desired release in its official repository and pinning the full commit SHA. Keep workflow permissions at `contents: read` and checkout credentials disabled.
 
 ## Outdated Budget and Exceptions
 - `tools/check-outdated-budget.js` enforces budget thresholds.

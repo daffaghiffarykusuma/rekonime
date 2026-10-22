@@ -6,6 +6,7 @@ import {
   planMalWatchlistImport, validateMalImportPlan
 } from '../../src/features/watchlist/mal-watchlist-import.ts';
 import { buildPrivacySafeMalExport } from '../helpers/mal-watchlist-fixture.js';
+import { MAX_IMPORT_BYTES, MAX_IMPORT_ROWS, MAX_IMPORT_STRING_LENGTH, MAX_XML_FIELD_LENGTH } from '../../src/shared/security/import-limits.ts';
 
 test('privacy-safe fixture preserves the 415 row and 339 exact-match regression', () => {
   const fullCatalog = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
@@ -69,6 +70,15 @@ test('MAL XML parsing uses the Trusted Types policy when Chrome requires it', ()
 const row = (id = '1', status = 'Watching', progress = '3', extra = '') => `<anime><series_animedb_id>${id}</series_animedb_id><series_title>Title ${id}</series_title><series_episodes>12</series_episodes><my_watched_episodes>${progress}</my_watched_episodes><my_status>${status}</my_status>${extra}</anime>`;
 const xml = (...rows: string[]) => `<myanimelist>${rows.join('')}</myanimelist>`;
 const catalog = [{ id: 'one', malId: 1, title: 'Title 1', cover: '', episodeCount: 12 }];
+
+test('MAL XML limits bytes, row counts, nesting and field text before planning', () => {
+  assert.equal(parseMalWatchlistXml('x'.repeat(MAX_IMPORT_BYTES + 1)).errors[0], 'input-too-large');
+  assert.equal(parseMalWatchlistXml(xml(...Array(MAX_IMPORT_ROWS + 1).fill('<anime/>'))).errors[0], 'too-many-rows');
+  assert.equal(parseMalWatchlistXml(xml(...Array(MAX_IMPORT_ROWS).fill('<anime/>'))).sourceRows, MAX_IMPORT_ROWS);
+  assert.equal(parseMalWatchlistXml(xml(row('1', 'Watching', '3', `<my_comments>${'x'.repeat(MAX_XML_FIELD_LENGTH + 1)}</my_comments>`))).errors[0], 'field-too-long');
+  assert.equal(parseMalWatchlistXml(xml(row().replace('Title 1', 'x'.repeat(MAX_IMPORT_STRING_LENGTH + 1)))).errors[0], 'field-too-long');
+  assert.equal(parseMalWatchlistXml(`<myanimelist>${'<nested>'.repeat(18)}${'</nested>'.repeat(18)}</myanimelist>`).errors[0], 'nesting-too-deep');
+});
 
 test('fatal XML errors never produce an applicable plan', () => {
   for (const source of ['', '<!DOCTYPE myanimelist><myanimelist/>', '<myanimelist>', '<other/>', '<myanimelist/>', xml(row(), row())]) {

@@ -1,7 +1,8 @@
 import type { MalImportPlan, MalParseResult } from './mal-import-plan.ts';
 import type { WatchlistEntry } from './contracts/watchlist-lifecycle.ts';
+import { readImportText } from '../../shared/security/import-limits.ts';
 
-type ImportFile = { name?: string; text(): Promise<string> };
+type ImportFile = { name?: string; size?: number; text(): Promise<string> };
 type ImportTools = Pick<typeof import('./mal-watchlist-import.ts'), 'parseMalWatchlistXml' | 'planMalWatchlistImport'>;
 type ImportResult = { changed: boolean; compatibilityResult?: { status?: string; reason?: string } };
 type ImportReview = Pick<MalImportPlan, 'summary' | 'invalidRows' | 'unmatchedRows' | 'warnings'> & {
@@ -102,14 +103,18 @@ export const createWatchlistImportWorkflow = <Result extends ImportResult>({
       });
       if (generation !== request) return;
       let text: string;
-      try { text = await selected.text(); }
-      catch {
+      try { text = await readImportText(selected); }
+      catch (failure) {
         if (generation !== request) return;
         fileReadFailed = true;
-        throw new Error('We could not read this file. Try again or choose another XML export.');
+        throw new Error(failure instanceof Error && failure.message.startsWith('This file is too large.')
+          ? failure.message : 'We could not read this file. Try again or choose another XML export.');
       }
       if (generation !== request) return;
       parseResult = parser.parseMalWatchlistXml(text);
+      if (parseResult.errors.some(reason => ['input-too-large', 'too-many-rows', 'too-many-elements', 'field-too-long', 'nesting-too-deep'].includes(reason))) {
+        throw new Error('This XML export is too large or complex. Use at most 5,000 entries and shorten unusually long titles or comments.');
+      }
       if (!parseResult.ok) throw new Error('This XML export cannot be imported. Check for malformed XML, repeated IDs, or unsupported document declarations, then choose a corrected file.');
       const fullCatalog = await getFullCatalog();
       if (generation !== request) return;

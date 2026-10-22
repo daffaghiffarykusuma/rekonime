@@ -1,6 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { App } from '../../src/app/app.ts';
+import { MAX_IMPORT_BYTES } from '../../src/shared/security/import-limits.ts';
+
+test('App rejects oversized backups before reading or touching personal storage', async () => {
+  const originalToast = App.showToast;
+  let reads = 0;
+  const messages = [];
+  App.showToast = message => messages.push(message);
+  try {
+    const result = await App.restorePersonalDataFile({ size: MAX_IMPORT_BYTES + 1, text: async () => { reads++; return '{}'; } });
+    assert.deepEqual(result, { ok: false, reason: 'invalid_file' });
+    assert.equal(reads, 0);
+    assert.match(messages[0], /10 MiB/);
+  } finally { App.showToast = originalToast; }
+});
 
 const restoredEntry = {
   id: 'restored',

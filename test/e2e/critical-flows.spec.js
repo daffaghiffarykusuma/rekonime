@@ -507,6 +507,32 @@ test('watchlist flow persists to watchlist page', async ({ page }) => {
   expect(count).toBeGreaterThan(0);
 });
 
+test('sanitized HTML and fixed script resources work under the configured Trusted Types CSP', async ({ page }) => {
+  const config = JSON.parse(readFileSync('vercel.json', 'utf8'));
+  const csp = config.headers.find(rule => rule.source === '/(.*)').headers
+    .find(header => header.key === 'Content-Security-Policy').value.replace('upgrade-insecure-requests', '');
+  await page.route('**/watchlist.html', async route => {
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(), 'content-security-policy': csp } });
+  });
+  await page.goto('/watchlist.html');
+  const result = await page.evaluate(async () => {
+    const { setHTML, toTrustedScriptURL, setScriptText } = await import('/src/shared/security/trusted-types.js');
+    const target = document.createElement('div');
+    setHTML(target, '<img src="x" onerror="window.injected = true"><script>window.injected = true</script><iframe src="about:blank" data-embed-src="https://www.youtube.com/embed/abc"></iframe><svg><path d="M0 0"></path></svg>');
+    let scriptRejected = false;
+    try { toTrustedScriptURL('https://evil.example/payload.js'); } catch { scriptRejected = true; }
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    setScriptText(script, JSON.stringify({ '@context': 'https://schema.org', '@graph': [{ name: '</script><script>bad()</script>' }] }));
+    return { eventHandler: target.querySelector('img').hasAttribute('onerror'), scripts: target.querySelectorAll('script').length,
+      frame: target.querySelector('iframe')?.getAttribute('src'), svg: Boolean(target.querySelector('svg path')),
+      scriptRejected, scriptUrl: String(toTrustedScriptURL('/js/data.js')), json: JSON.parse(script.textContent) };
+  });
+  expect(result).toMatchObject({ eventHandler: false, scripts: 0, frame: 'about:blank', svg: true, scriptRejected: true, scriptUrl: '/js/data.js' });
+  expect(result.json['@graph'][0].name).toBe('</script><script>bad()</script>');
+});
+
 test('MAL XML first import previews exact matches before one confirmed batch', async ({ page }) => {
   const fullCatalog = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
   const xml = buildPrivacySafeMalExport(fullCatalog);
@@ -516,7 +542,7 @@ test('MAL XML first import previews exact matches before one confirmed batch', a
       response,
       headers: {
         ...response.headers(),
-        'content-security-policy': "trusted-types rekonime-html; require-trusted-types-for 'script'"
+        'content-security-policy': "trusted-types rekonime-html rekonime-parser; require-trusted-types-for 'script'"
       }
     });
   });
