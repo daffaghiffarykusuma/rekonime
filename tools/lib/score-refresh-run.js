@@ -1,5 +1,5 @@
 import { createScoreRefreshRequest, DEFAULT_MAL_DELAY_MS, DEFAULT_JIKAN_DELAY_MS, ScoreRefreshStoppedError } from './score-refresh-request.js';
-import { fetchCommunityScore } from './mal-community-score.js';
+import { fetchCommunityScore, parseMalCommunityScore } from './mal-community-score.js';
 import { parseTrustedMalEpisodePageUrl } from './mal-pagination-url.js';
 
 export const SCORE_REFRESH_DEFAULTS = Object.freeze({
@@ -143,18 +143,22 @@ const syncEpisodeCountMetadata = (anime, episodes) => {
   }
 };
 
-const fetchEpisodeScores = async (malId, slug, request) => {
+const fetchEpisodePage = async (url, request) => {
+  const response = await request(url, {
+    headers: { 'User-Agent': 'rekonime-refresh-scores/1.0' }
+  });
+  return response.text();
+};
+
+const fetchEpisodeScores = async (firstUrl, firstPage, request) => {
   const visitedUrls = new Set();
   const pageEpisodes = [];
-  let nextUrl = `https://myanimelist.net/anime/${malId}/${slug}/episode`;
+  let nextUrl = firstUrl;
 
   while (nextUrl && !visitedUrls.has(nextUrl)) {
     visitedUrls.add(nextUrl);
 
-    const response = await request(nextUrl, {
-      headers: { 'User-Agent': 'rekonime-refresh-scores/1.0' }
-    });
-    const html = await response.text();
+    const html = await (nextUrl === firstUrl ? firstPage : fetchEpisodePage(nextUrl, request));
     const episodes = parseEpisodeScores(html);
     pageEpisodes.push(episodes);
     nextUrl = extractNextEpisodePageUrl(html, nextUrl) || buildFallbackEpisodePageUrl(nextUrl, html, episodes.length);
@@ -252,9 +256,19 @@ export const createScoreRefreshRun = ({ root, options: suppliedOptions = {}, req
       return;
     }
 
+    const firstUrl = `https://myanimelist.net/anime/${malId}/${slug}/episode`;
+    const firstPage = fetchEpisodePage(firstUrl, request);
+    // MAL episode pages also carry the title's community score. Share that page,
+    // but keep its score independent of later pagination failures. Missing scores
+    // and ordinary page failures retain the separate score-page fallback.
+    const communityScore = options.scoreSource === 'mal'
+      ? firstPage.then(parseMalCommunityScore, error => {
+        if (error instanceof ScoreRefreshStoppedError || controller.signal.aborted) throw error;
+        return null;
+      }).then(score => score ?? fetchCommunityScore(malId, request, 'mal'))
+      : fetchCommunityScore(malId, request, options.scoreSource);
     const [communityResult, episodesResult] = await Promise.allSettled([
-      fetchCommunityScore(malId, request, options.scoreSource),
-      fetchEpisodeScores(malId, slug, request)
+      communityScore, fetchEpisodeScores(firstUrl, firstPage, request)
     ]);
 
     if (halted) return;

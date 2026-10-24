@@ -63,7 +63,7 @@ for (const command of ['refresh-scores.js', 'refresh-season-scores.js']) {
 }
 
 for (const command of ['refresh-scores.js', 'refresh-season-scores.js']) {
-  test(`${command} defaults to MAL without making any Jikan requests`, () => {
+  test(`${command} defaults to MAL and shares one episode page for both scores`, () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'rekonime-season-test-'));
     const dataPath = path.join(directory, 'anime.json');
     const mockPath = path.join(directory, 'fetch.mjs');
@@ -78,8 +78,8 @@ for (const command of ['refresh-scores.js', 'refresh-season-scores.js']) {
         globalThis.fetch = async (url) => {
           console.log('FETCH ' + url);
           if (url.includes('jikan')) throw new Error('Jikan must not be called');
-          if (url.endsWith('/episode')) return new Response('<tr class="episode-list-data"><td class="episode-number" data-raw="1"></td><td class="episode-poll" data-raw="4"></td></tr>');
-          return new Response('<span itemprop="ratingValue">8.5</span>');
+          if (!url.endsWith('/episode')) throw new Error('Separate score page must not be called');
+          return new Response('<span itemprop="ratingValue" class="score-label score-8">8.5</span><tr class="episode-list-data"><td class="episode-number" data-raw="1"></td><td class="episode-poll" data-raw="4"></td></tr>');
         };
       `);
       const output = runCli(command, mockPath, [
@@ -91,6 +91,7 @@ for (const command of ['refresh-scores.js', 'refresh-season-scores.js']) {
       assert.match(output, /Community score source: mal/);
       assert.doesNotMatch(output, /api\.jikan\.moe|Jikan delay/);
       assert.match(output, /Community score errors: 0/);
+      assert.equal((output.match(/^FETCH /gm) || []).length, seasonal ? 2 : 3);
       for (const anime of saved.anime.slice(0, seasonal ? 2 : 3)) {
         assert.equal(anime.metadata.score, 8.5);
         assert.deepEqual(anime.episodes, [{ episode: 1, score: 4 }]);
