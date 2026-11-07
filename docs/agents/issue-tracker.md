@@ -1,6 +1,19 @@
 # Issue tracker
 
-This project uses local Markdown for the first-visit Discovery work, following its established local planning convention.
+This project uses local Markdown for feature specifications and implementation tickets, following its established local planning convention.
+
+## Feature specifications
+
+- [Mobile Discovery and UI hierarchy](../ui-design-spec.md): open, `ready-for-agent`. Browser-level Discovery, catalog filtering/sorting, and Watchlist is the primary test seam; focused existing Continue watching model tests are approved for deterministic ordering and eligibility. No new application-wide test interface.
+- [First-visit Discovery](../first-visit-discovery-spec-draft.md): retains its existing status and participant-evidence prerequisite.
+
+## Mobile Discovery UI tickets
+
+- Ticket directory: `.scratch/ui-design/issues/`, one numbered file per approved slice, numbered 01-05.
+- All five tickets have no blockers and can be claimed independently. Shared-file overlap requires merge coordination, not fabricated dependency edges.
+- Apply the same claim, closure, resolution, and evidence conventions below. The primary browser seam and focused Continue watching model coverage are explicitly approved in the parent specification.
+
+## Lifecycle conventions and first-visit context
 
 - Feature specification: `docs/first-visit-discovery-spec-draft.md`.
 - Ticket directory: `.scratch/first-visit-discovery/issues/`, one numbered file per ticket.

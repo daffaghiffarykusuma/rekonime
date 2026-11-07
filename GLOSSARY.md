@@ -56,6 +56,14 @@ _Avoid_: filter helper, query utility, chip state
 A validated anime data package, including supported Experience Cues, loaded from preview, full, cached, embedded, or detail-chunk sources before page rendering decisions are applied.
 _Avoid_: JSON blob, response data, raw catalog
 
+**Community Score**:
+The audience rating for an anime on MyAnimeList, expressed on a 0-10 scale. It describes the title's overall community rating rather than a viewer's personal preference or probability of finishing it.
+_Avoid_: satisfaction score, personal rating, finish probability
+
+**Episode Rating Strength**:
+An index on a 0-100 scale summarizing an anime's episode poll ratings, adjusted for the amount and coverage of available rating evidence. It is not a retention rate, completion probability, or validated prediction of viewing behavior.
+_Avoid_: finish rate, retention score, completion probability
+
 **Score Refresh**:
 A single run that updates community and episode scores for a selected set of catalog titles, saves completed work, and identifies where to resume after failures or interruption. Community and episode results are independent, so a failed fetch preserves its existing values while successful results can still be saved.
 _Avoid_: score sync, refresh helper, scraper batch
