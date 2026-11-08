@@ -1221,7 +1221,7 @@
           </div>
         </div>
         <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button"
-          aria-haspopup="dialog" aria-controls="filter-modal">Filters</button>
+          aria-haspopup="dialog" aria-controls="filter-modal">Filter &amp; sort</button>
         <a class="btn btn-sm btn-outline mobile-watchlist-link" href="/watchlist.html">Watchlist</a>
         <div class="header-sort">
           <label class="sort-label" for="sort-select">Sort</label>
@@ -1532,12 +1532,20 @@
     <div class="modal-content filter-modal-content">
       <div class="filter-modal-header">
         <div>
-          <h2 class="filter-modal-title" id="filter-modal-title">Refine your next great watch</h2>
+          <h2 class="filter-modal-title" id="filter-modal-title">Filter &amp; sort</h2>
           <p class="filter-modal-subtitle">Combine genres, themes, studios, and seasons to surface the right pick faster.</p>
         </div>
-        <button class="modal-close" id="close-filter-modal" type="button" aria-label="Close filters">&times;</button>
+        <button class="modal-close" id="close-filter-modal" type="button" aria-label="Close filter and sort">&times;</button>
       </div>
       <div class="filter-modal-body" tabindex="0" role="region" aria-label="Available filters">
+        <div class="catalog-sort-control">
+          <label for="filter-sort-select">Catalog order</label>
+          <div class="select-wrapper">
+            <select id="filter-sort-select" class="sort-select" aria-describedby="catalog-sort-description"></select>
+          </div>
+          <p class="catalog-sort-current" id="catalog-sort-current"></p>
+          <p id="catalog-sort-description">Orders the catalog only. Personalized Discovery picks keep their own ranking. Your Viewing Intent and saved Taste Profile stay the same.</p>
+        </div>
         <div class="filter-sections" id="filter-sections">
           <!-- Populated by JS -->
         </div>
