@@ -40,6 +40,15 @@ test('mobile filters, menu, and sidebar work with touch', async ({ browser, base
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
   await expect(page.locator('#quick-filters')).not.toHaveAttribute('inert', '');
+  const filterSort = page.getByRole('button', { name: 'Filter & sort', exact: true });
+  await filterSort.tap();
+  const sheet = page.getByRole('dialog', { name: 'Filter & sort', exact: true });
+  const catalogOrder = sheet.getByRole('combobox', { name: 'Catalog order', exact: true });
+  await catalogOrder.selectOption('satisfaction');
+  await sheet.getByRole('button', { name: 'Show matches' }).tap();
+  await filterSort.tap();
+  await expect(catalogOrder).toHaveValue('satisfaction');
+  await sheet.getByRole('button', { name: 'Show matches' }).tap();
   await page.locator('.quick-filters-summary').tap();
   await expect(page.locator('#quick-filters')).toHaveJSProperty('open', true);
   for (const tab of ['Genres', 'Themes']) {

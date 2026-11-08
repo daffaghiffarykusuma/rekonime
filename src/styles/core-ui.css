@@ -811,3 +811,38 @@ html:not([data-theme="light"]) .sidebar-mode-option.is-active .sidebar-mode-desc
     width: auto; max-width: none; transform: none;
   }
 }
+
+/* Supporting exploration follows the Discovery shortlist. */
+.browse-anime { min-width: 0; margin: 24px 0; padding-top: 24px; border-top: 1px solid var(--border-color); }
+.browse-anime > h2 { margin: 0; color: var(--text-secondary); font-size: 1.25rem; }
+@media (max-width: 640px) {
+  .browse-anime { order: 7; }
+}
+
+/* Compact landing keeps every first-visit action available. */
+.discovery-garden { grid-template-columns: 1fr; min-height: 0; padding: 24px 28px; margin-bottom: 16px; }
+.discovery-art { display: none; }
+.discovery-eyebrow { margin-bottom: 8px; }
+.discovery-title { font-size: 2rem; margin-bottom: 8px; }
+.discovery-subtitle { max-width: none; }
+.discovery-actions { margin-top: 14px; }
+.viewing-intent-section { padding: 16px; margin: 12px 0; }
+.viewing-intent-section .mood-filter-header { gap: 8px; margin-bottom: 10px; }
+.viewing-intent-section .mood-filter-note { margin: 0; }
+.viewing-intent-section .mood-cluster { min-height: 44px; padding: 10px; }
+@media (max-width: 640px) {
+  .discovery-garden { padding: 16px; }
+  .discovery-title { font-size: 1.6rem; }
+  .discovery-actions { display: flex; }
+  .discovery-actions .btn { flex: 1 1 auto; }
+  .viewing-intent-section .mood-filter-title { font-size: 1.1rem; }
+  .viewing-intent-section .mood-filter-note { font-size: .78rem; margin-top: 6px; }
+  #recommendations-grid .recommendation-media { height: 160px; }
+  #recommendations-grid .recommendation-title { display: block; overflow: visible; }
+}
+
+@media (max-width: 640px) {
+  .viewing-intent-section:not(.is-complete) { padding: 12px; }
+  .viewing-intent-section .mood-filter-header { margin-bottom: 6px; }
+  .viewing-intent-section .mood-cluster { padding: 8px; }
+}
