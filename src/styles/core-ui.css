@@ -777,7 +777,9 @@ html:not([data-theme="light"]) .sidebar-mode-option.is-active .sidebar-mode-desc
 .recommendation-rating-explanation { font-size: .75rem; line-height: 1.5; color: var(--text-secondary); }
 .recommendation-info .recommendation-reason { display: block; min-height: 2.8em; font-size: .85rem; line-height: 1.45; }
 .continue-watching-section { margin: 20px 0; }
-.continue-watching-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.continue-watching-section .section-header { flex-wrap: wrap; gap: 12px; }
+.continue-watching-section .section-header a { flex-shrink: 0; }
+.continue-watching-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; }
 .continue-card, .watchlist-backup-tools { min-width: 0; padding: 18px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-secondary); }
 .continue-title { border: 0; padding: 0; background: none; color: var(--text-primary); text-align: left; font: inherit; font-weight: 700; cursor: pointer; }
 .continue-card p, .watchlist-backup-tools p { color: var(--text-secondary); font-size: .85rem; }
