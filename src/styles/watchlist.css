@@ -2515,6 +2515,7 @@ h4 {
 
 .watchlist-controls-stepper {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
 }
@@ -3218,11 +3219,18 @@ h4 {
 
 @media (max-width: 520px) {
   .watchlist-grid .anime-card {
-    grid-template-columns: 5.5rem minmax(0, 1fr);
+    display: flex;
+    flex-wrap: wrap;
   }
 
   .watchlist-grid .card-media {
+    flex: 0 0 5.5rem;
+    height: auto;
     min-height: 9rem;
+  }
+
+  .watchlist-grid .card-body {
+    flex: 1 1 12rem;
   }
 
   .watchlist-grid .watchlist-controls {
