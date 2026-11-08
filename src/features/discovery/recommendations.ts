@@ -374,20 +374,24 @@ const Recommendations = {
    */
   getRatingEvidenceLabel(anime) {
     const evidence = anime?.stats?.ratingEvidence;
-    if (evidence?.ratedEpisodes === 0) return 'Episode rating data unavailable';
     if (!evidence) return 'Limited data · coverage unavailable';
     const coverage = evidence.totalEpisodes
       ? `${evidence.ratedEpisodes}/${evidence.totalEpisodes} episodes rated`
       : `${evidence.ratedEpisodes} episodes rated · total unknown`;
-    return `${evidence.limited ? 'Limited data · ' : ''}${coverage}${evidence.completion === 'airing' ? ' · Provisional' : ''}`;
+    const unavailable = evidence.ratedEpisodes === 0 ? 'Episode rating data unavailable \u00b7 ' : '';
+    return `${unavailable}${evidence.limited ? 'Limited data · ' : ''}${coverage}${evidence.completion === 'airing' ? ' · Provisional' : ''}`;
+  },
+
+  // Presentation availability only; ranking continues to use its existing inputs.
+  getPresentationEpisodeScore(anime) {
+    return this.hasEpisodeRatingEvidence(anime) && Number.isFinite(anime?.stats?.retentionScore)
+      ? Math.round(anime.stats.retentionScore)
+      : null;
   },
 
   getCardStats(anime) {
     const episodeCount = this.getEpisodeCount(anime);
-    const hasEpisodes = this.hasEpisodeRatingEvidence(anime);
-    const retentionScore = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
-      ? Math.round(anime.stats.retentionScore)
-      : null;
+    const retentionScore = this.getPresentationEpisodeScore(anime);
     const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
 
     return [

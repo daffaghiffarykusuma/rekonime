@@ -1303,6 +1303,9 @@ const App = {
 
 
   refreshWatchlistSnapshotsFromCatalog({ persist = false } = {}) {
+    // The dedicated page edits through its own lifecycle while this App loads lazily.
+    // Snapshot enrichment must start from those latest persisted entries.
+    if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
     return this.getWatchlistLifecycle().refreshSnapshotsFromCatalog(this.animeData, { persist, replaceExisting: true });
   },
 
@@ -3488,8 +3491,8 @@ const App = {
     // Render recommendations
     setHTML(grid, recommendations.map((anime, index) => {
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
-      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}/100` : 'N/A';
+      const episodeScore = Recommendations.getPresentationEpisodeScore(anime);
+      const retention = episodeScore !== null ? `${episodeScore}/100` : 'N/A';
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
@@ -3514,7 +3517,7 @@ const App = {
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
             <div class="recommendation-meta">
               <span>Episode Rating Strength ${retention}</span><span>${this.escapeHtml(Recommendations.getRatingEvidenceLabel(anime))}</span>
-              <span>MAL ${malScore}</span>
+              <span>Community Score (MAL) ${malScore}</span>
             </div>
             <div class="recommendation-reason">${this.escapeHtml(anime.reason || '')}</div>
           </div>
@@ -3538,8 +3541,8 @@ const App = {
       const rank = index + 1;
       const rankClass = rank <= 3 ? 'top-3' : '';
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
-      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}/100` : 'N/A';
+      const episodeScore = Recommendations.getPresentationEpisodeScore(anime);
+      const retention = episodeScore !== null ? `${episodeScore}/100` : 'N/A';
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
@@ -4346,7 +4349,7 @@ const App = {
               </div>
               <span class="recommendation-signal-note">${this.escapeHtml(decision.note)}</span>
             </div>
-            ${decision.label === 'Community Score (MAL)' ? '' : `<div class="recommendation-meta">
+            ${decision.kind === 'community' ? '' : `<div class="recommendation-meta">
               <span class="recommendation-stat has-tooltip" tabindex="0">
                 <strong class="recommendation-community-value">${this.renderCardScoreValue(malSatisfaction)}</strong>
                 <span class="recommendation-community-label">Community Score (MAL)</span>

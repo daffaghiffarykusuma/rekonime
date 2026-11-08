@@ -848,3 +848,8 @@ html:not([data-theme="light"]) .sidebar-mode-option.is-active .sidebar-mode-desc
   .viewing-intent-section .mood-filter-header { margin-bottom: 6px; }
   .viewing-intent-section .mood-cluster { padding: 8px; }
 }
+
+/* Keep the wrapped active summary compact without shrinking text or its 44px action. */
+@media (max-width: 640px) {
+  .viewing-intent-section.is-complete { padding-block: 10px; }
+}
