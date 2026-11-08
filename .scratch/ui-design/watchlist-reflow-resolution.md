@@ -48,3 +48,5 @@ Development wrapper imports `../../playwright.config.js` and overrides `testDir:
 Production wrapper uses the same overrides with `testIgnore:undefined`, baseURL `http://127.0.0.1:4287`, webServer command `node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4287 --strictPort`, port4287, and outputDir `../../test-results/reflow-prod-final`. Local wrappers remain untracked for replay; no browser cache or screenshots committed.
 
 - Post-merge focused Watchlist/data regression rerun: **68 passed, 0 failed across13 files**, exit0 (3.40s).
+
+Latest-tip follow-up: integration advanced to `ec26f355cc121aa1d997400eb962da7e935aeb3a` during final evidence commit. Merged without conflicts as `c7362a74cea1fd46dcc4e4cd16721efdd08da3fe`; the merge adds only `.scratch/ui-design/code-review.md` (37 lines), so tested runtime/test files are unchanged. Ancestry and diff checks pass after this final merge; browser/build checks were not needlessly repeated for the documentation-only addition.
