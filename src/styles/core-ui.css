@@ -784,6 +784,9 @@ html:not([data-theme="light"]) .sidebar-mode-option.is-active .sidebar-mode-desc
 .watchlist-backup-tools { margin-bottom: 20px; }
 .watchlist-backup-tools h2 { font-size: 1.1rem; }
 .watchlist-backup-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.watchlist-manage-data { margin-top: 8px; }
+.watchlist-manage-data > summary { width: fit-content; min-height: 44px; padding: 8px 4px; color: var(--text-primary); cursor: pointer; font-weight: 700; }
+.watchlist-manage-data .btn { min-height: 44px; white-space: normal; text-align: left; }
 @media (max-width: 640px) {
   .discovery-garden { padding: 20px; margin-bottom: 16px; }
   .discovery-title { font-size: 2.4rem; }

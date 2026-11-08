@@ -593,6 +593,37 @@ test('MAL XML first import previews exact matches before one confirmed batch', a
   await expect(page.locator('#watchlist-grid .anime-card')).toHaveCount(339);
 });
 
+test('Watchlist Manage data keeps storage guidance and progress visible without loading data tools', async ({ page }) => {
+  const snapshot = { id: 'manage-data-example', title: 'Saved Watchlist example', stats: { episodeCount: 12 } };
+  await page.addInitScript(snapshot => localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [{ id: snapshot.id, status: 'watching', progress: 3, updatedAt: 1000, snapshot }] })), snapshot);
+  const scripts = [];
+  page.on('request', request => { if (request.resourceType() === 'script') scripts.push(request.url()); });
+  await page.goto('/watchlist.html');
+  const manage = page.getByText('Manage data', { exact: true });
+  const reminder = page.getByText('Progress is saved in this browser. Export a backup to keep a copy or move it to another device.', { exact: true });
+  await expect(manage).toBeVisible();
+  await expect(reminder).toBeVisible();
+  await expect(page.getByRole('tablist', { name: 'Watchlist filters' })).toBeVisible();
+  await expect(page.locator('#watchlist-grid input[type="number"]')).toHaveValue('3');
+  await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeHidden();
+  const before = await page.evaluate(() => ({ watchlist: localStorage.getItem('rekonime.watchlist'), taste: localStorage.getItem('rekonime.tasteProfile') }));
+  await manage.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Restore backup', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Import MAL progress', exact: true })).toBeVisible();
+  await expect(page.getByText('Restore replaces the personal data included in the backup. MAL import merges progress after review.', { exact: true })).toBeVisible();
+  await manage.focus();
+  await page.keyboard.press('Space');
+  await expect(manage).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeHidden();
+  await expect(reminder).toBeVisible();
+  expect(scripts.some(url => /\/src\/app\/app\.ts|\/js\/app\.js|\/js\/mal-watchlist-import\.js/.test(url))).toBe(false);
+  expect(await page.evaluate(() => ({ watchlist: localStorage.getItem('rekonime.watchlist'), taste: localStorage.getItem('rekonime.tasteProfile') }))).toEqual(before);
+});
+
 test('MAL conflict merge is keyboard operable, preserves evidence, cancels, and repeats without writes', async ({ page }) => {
   const catalog = JSON.parse(readFileSync('data/anime.full.json', 'utf8')).anime;
   const anime = catalog.find(item => item.malId && item.episodeCount > 3);
@@ -600,6 +631,7 @@ test('MAL conflict merge is keyboard operable, preserves evidence, cancels, and 
   await page.addInitScript(({ entry }) => localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [entry] })), { entry });
   await page.route('https://graphql.anilist.co', route => route.fulfill({ json: { data: { Page: { media: [] } } } }));
   await page.goto('/watchlist.html');
+  await page.getByText('Manage data', { exact: true }).click();
   await page.getByRole('button', { name: 'Import MAL progress' }).click();
   const xml = `<myanimelist><anime><series_animedb_id>${anime.malId}</series_animedb_id><series_title>PRIVATE_SOURCE_TITLE_X9</series_title><my_status>Watching</my_status><my_watched_episodes>3</my_watched_episodes></anime></myanimelist>`;
   const requests = [], logs = [];
@@ -675,6 +707,7 @@ test('Watchlist backup roundtrip and home Continue watching preserve editable pr
   await page.route('https://graphql.anilist.co', route => route.fulfill({ json: { data: { Page: { media: [] } } } }));
   await page.goto('/watchlist.html');
   const downloadPromise = page.waitForEvent('download');
+  await page.getByText('Manage data', { exact: true }).click();
   await page.getByRole('button', { name: 'Export backup', exact: true }).click();
   const download = await downloadPromise;
   const payload = readFileSync(await download.path(), 'utf8');
@@ -683,7 +716,9 @@ test('Watchlist backup roundtrip and home Continue watching preserve editable pr
   await page.locator('#watchlist-grid input[type="number"]').fill('5');
   await page.locator('#watchlist-grid input[type="number"]').press('Tab');
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')).entries[0].progress)).toBe(5);
-  await page.locator('#watchlist-backup-file').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(payload) });
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Restore backup', exact: true }).click();
+  await (await chooserPromise).setFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(payload) });
   await expect(page.locator('#watchlist-grid input[type="number"]')).toHaveValue('3');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
