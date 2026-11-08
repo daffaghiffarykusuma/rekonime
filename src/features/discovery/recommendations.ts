@@ -321,7 +321,7 @@ const Recommendations = {
   getRankingTitles() {
     return {
       title1: 'Highest Episode Rating Strength',
-      title2: 'Most Loved by Viewers',
+      title2: 'Highest Community Score (MAL)',
       metric1: 'retention',
       metric2: 'satisfaction'
     };
@@ -334,8 +334,8 @@ const Recommendations = {
   getSortOptions() {
     return [
       { value: 'taste', label: 'Best fit for your taste' },
-      { value: 'retention', label: 'Highest episode rating strength' },
-      { value: 'satisfaction', label: 'Highest community rating' }
+      { value: 'retention', label: 'Highest Episode Rating Strength (/100)' },
+      { value: 'satisfaction', label: 'Highest Community Score (MAL, /10)' }
     ];
   },
 
@@ -374,6 +374,7 @@ const Recommendations = {
    */
   getRatingEvidenceLabel(anime) {
     const evidence = anime?.stats?.ratingEvidence;
+    if (evidence?.ratedEpisodes === 0) return 'Episode rating data unavailable';
     if (!evidence) return 'Limited data · coverage unavailable';
     const coverage = evidence.totalEpisodes
       ? `${evidence.ratedEpisodes}/${evidence.totalEpisodes} episodes rated`
@@ -383,7 +384,7 @@ const Recommendations = {
 
   getCardStats(anime) {
     const episodeCount = this.getEpisodeCount(anime);
-    const hasEpisodes = episodeCount > 0;
+    const hasEpisodes = this.hasEpisodeRatingEvidence(anime);
     const retentionScore = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
       ? Math.round(anime.stats.retentionScore)
       : null;
@@ -393,7 +394,7 @@ const Recommendations = {
       {
         label: 'Episode Rating Strength',
         value: retentionScore !== null ? retentionScore : 'N/A',
-        suffix: retentionScore !== null ? '/100' : '',
+        suffix: '/100',
         class: this.getRetentionClass(retentionScore),
         tooltip: {
           title: 'Episode Rating Strength',
@@ -401,13 +402,13 @@ const Recommendations = {
         }
       },
       {
-        label: 'Community Score',
+        label: 'Community Score (MAL)',
         value: malSatisfactionScore !== null ? malSatisfactionScore.toFixed(1) : 'N/A',
-        suffix: malSatisfactionScore !== null ? '/10' : '',
+        suffix: '/10',
         class: this.getMalSatisfactionClass(malSatisfactionScore),
         tooltip: {
-          title: 'Community Score',
-          text: 'Audience rating from MyAnimeList.'
+          title: 'Community Score (MAL)',
+          text: 'Audience rating from MyAnimeList on a /10 scale.'
         }
       },
       {
@@ -466,6 +467,13 @@ const Recommendations = {
     if (!hasEpisodes) return null;
     const score = anime?.stats?.retentionScore;
     return Number.isFinite(score) ? score : null;
+  },
+
+  // Presentation availability only. A declared episode total is not rating evidence.
+  hasEpisodeRatingEvidence(anime) {
+    const evidence = anime?.stats?.ratingEvidence;
+    return evidence ? evidence.ratedEpisodes > 0
+      : (anime?.episodes || []).some(episode => Number.isFinite(episode?.score));
   },
 
   /**

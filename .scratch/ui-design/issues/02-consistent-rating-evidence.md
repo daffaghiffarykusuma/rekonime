@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 - [ ] Community score has MAL attribution and an explicit /10 scale across relevant surfaces.
 - [ ] Episode rating strength has an explicit /100 scale; user-facing finish-rate and satisfaction labels for these metrics are replaced consistently.

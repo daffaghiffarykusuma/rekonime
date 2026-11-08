@@ -3472,7 +3472,7 @@ const App = {
     // Render recommendations
     setHTML(grid, recommendations.map((anime, index) => {
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const hasEpisodes = episodeCount > 0;
+      const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}/100` : 'N/A';
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const labelTitle = anime.title || 'this anime';
@@ -3522,7 +3522,7 @@ const App = {
       const rank = index + 1;
       const rankClass = rank <= 3 ? 'top-3' : '';
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const hasEpisodes = episodeCount > 0;
+      const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
       const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}/100` : 'N/A';
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const labelTitle = anime.title || 'this anime';
@@ -3761,7 +3761,7 @@ const App = {
       setHTML(primaryValue, this.renderCardScoreValue(decision.value));
     }
     if (primaryLabel) {
-      primaryLabel.textContent = decision.label === 'Episode rating strength' ? 'Episode strength' : decision.label;
+      primaryLabel.textContent = decision.label;
     }
     if (primaryNote) {
       primaryNote.textContent = decision.note;
@@ -3788,7 +3788,7 @@ const App = {
       setHTML(statsContainer, cardStats.map(stat => {
         const safeValue = this.escapeHtml(stat.value);
         const safeSuffix = this.escapeHtml(stat.suffix || '');
-        const safeLabel = this.escapeHtml(stat.label === 'Community Score' ? 'Community' : stat.label);
+        const safeLabel = this.escapeHtml(stat.label);
         const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
         const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
         const statValueClass = this.sanitizeClassList('stat-value', stat.class);
@@ -3896,7 +3896,7 @@ const App = {
             <div class="${decisionClass}">
               <div class="card-primary-score">
                 <span class="card-primary-value">${this.renderCardScoreValue(decision.value)}</span>
-                <span class="card-primary-label">${this.escapeHtml(decision.label === 'Episode rating strength' ? 'Episode strength' : decision.label)}</span>
+                <span class="card-primary-label">${this.escapeHtml(decision.label)}</span>
               </div>
               <span class="card-primary-note">${this.escapeHtml(decision.note)}</span>
             </div>
@@ -3904,7 +3904,7 @@ const App = {
               ${cardStats.map(stat => {
         const safeValue = this.escapeHtml(stat.value);
         const safeSuffix = this.escapeHtml(stat.suffix || '');
-        const safeLabel = this.escapeHtml(stat.label === 'Community Score' ? 'Community' : stat.label);
+        const safeLabel = this.escapeHtml(stat.label);
         const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
         const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
         const statValueClass = this.sanitizeClassList('stat-value', stat.class);
@@ -4134,7 +4134,7 @@ const App = {
 
   getCardDecisionData(anime) {
     const decision = buildDetailDecisionData(anime, { episodeCount: CatalogPayload.getEpisodeCount(anime) });
-    return decision.label === 'Community score' ? { ...decision, value: `${decision.value}/10` } : decision;
+    return decision;
   },
 
   /**
@@ -4279,7 +4279,7 @@ const App = {
 
     setHTML(container, `${decision.noCloseMatches ? '<p class="recommendation-group-heading">No close matches for this goal. These are general alternatives.</p>' : ''}` + recommendations.map((anime, index) => {
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
-      const satisfactionTooltipTitle = this.escapeHtml('Community Score');
+      const satisfactionTooltipTitle = this.escapeHtml('Community Score (MAL)');
       const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
@@ -4326,14 +4326,14 @@ const App = {
             <div class="${decisionClass}">
               <div class="recommendation-primary-score">
                 <span class="recommendation-signal-value">${this.renderCardScoreValue(decision.value)}</span>
-                <span class="recommendation-signal-label">${this.escapeHtml(decision.label === 'Episode rating strength' ? 'Episode strength' : decision.label)}</span>
+                <span class="recommendation-signal-label">${this.escapeHtml(decision.label)}</span>
               </div>
               <span class="recommendation-signal-note">${this.escapeHtml(decision.note)}</span>
             </div>
-            ${decision.label === 'Community score' ? '' : `<div class="recommendation-meta">
+            ${decision.label === 'Community Score (MAL)' ? '' : `<div class="recommendation-meta">
               <span class="recommendation-stat has-tooltip" tabindex="0">
                 <strong class="recommendation-community-value">${this.renderCardScoreValue(malSatisfaction)}</strong>
-                <span class="recommendation-community-label">Community</span>
+                <span class="recommendation-community-label">Community Score (MAL)</span>
                 <div class="tooltip tooltip--bottom" role="tooltip">
                   <div class="tooltip-title">${satisfactionTooltipTitle}</div>
                   <div class="tooltip-text">${satisfactionTooltipText}</div>
@@ -4341,7 +4341,7 @@ const App = {
               </span>
               </div>`}
               </div>
-              <p class="recommendation-rating-explanation">Episode strength is an episode-rating index adjusted for coverage and sample size, not a completion probability. Community scores are audience ratings from MyAnimeList.</p>
+              <p class="recommendation-rating-explanation">Episode Rating Strength (/100) is an episode-rating index adjusted for coverage and sample size, not a completion probability. Community Score (MAL, /10) is the audience rating from MyAnimeList.</p>
               </details>
               <div class="recommendation-quick-actions">
                 <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
@@ -4445,19 +4445,19 @@ const App = {
 
     if (metric === 'retention') {
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const hasEpisodes = episodeCount > 0;
+      const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
       if (hasEpisodes) {
         const score = Math.round(anime.stats?.retentionScore ?? 0);
         valueDisplay = `${score}/100`;
         valueClass = Recommendations.getRetentionClass(score);
       }
-      labelDisplay = `episode rating strength · ${Recommendations.getRatingEvidenceLabel(anime)}`;
+      labelDisplay = `Episode Rating Strength · ${Recommendations.getRatingEvidenceLabel(anime)}`;
     } else if (metric === 'satisfaction') {
       if (Number.isFinite(anime.communityScore)) {
         valueDisplay = `${anime.communityScore.toFixed(1)}/10`;
         valueClass = Recommendations.getMalSatisfactionClass(anime.communityScore);
       }
-      labelDisplay = 'satisfaction score (MAL)';
+      labelDisplay = 'Community Score (MAL)';
     } else {
       valueDisplay = anime.stats.average;
       labelDisplay = 'avg score';
@@ -5154,11 +5154,11 @@ const App = {
         <h3>Why These Recommendations Stand Out</h3>
         <p>Rekonime starts with audience ratings, then considers your viewing goal and saved taste:</p>
         <div class="help-factor">
-          <strong>Episode Rating Strength</strong>
+          <strong>Episode Rating Strength (/100)</strong>
           <p>A score out of 100 based on episode ratings, their pattern, and available coverage. Small samples are pulled toward the neutral midpoint. It is not a measured retention rate or a completion probability.</p>
         </div>
         <div class="help-factor">
-          <strong>Community Score</strong>
+          <strong>Community Score (MAL, /10)</strong>
           <p>Community sentiment from MyAnimeList that reflects how strongly viewers rated it.</p>
         </div>
         <div class="help-factor"><strong>Your goal and taste</strong><p>Session goals use genre and theme suggestions. Saved preferences and watchlist evidence adjust ranking. Each pick labels the reason used. Series continuations require completed entries in the catalog watch order, with one pick per known franchise.</p></div>
@@ -5238,9 +5238,9 @@ const App = {
     const badges = Recommendations.getBadges(anime);
     const cardStats = Recommendations.getCardStats(anime);
     const episodeCount = CatalogPayload.getEpisodeCount(anime);
-    const hasEpisodes = episodeCount > 0;
+    const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
     const rawRetention = anime?.stats?.retentionScore;
-    const retentionLevel = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : 0;
+    const retentionLevel = Recommendations.hasEpisodeRatingEvidence(anime) && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
     const reason = Recommendations.getRecommendationReason(anime);
 
     const safeId = this.escapeAttr(anime.id);
@@ -5309,7 +5309,7 @@ const App = {
     }).join('')}
           </div>
           <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-            <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Episode Rating Strength"></progress>
+            ${retentionLevel !== null ? `<progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Episode Rating Strength"></progress>` : `<span>Episode rating data unavailable</span>`}
           </div>
           <div class="card-reason">${safeReason}</div>
         </div>
