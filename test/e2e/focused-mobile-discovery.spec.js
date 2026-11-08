@@ -75,6 +75,7 @@ for (const width of [1280, 390]) {
         await testInfo.attach(name, { path, contentType: 'image/png' });
       };
       await capture('landing');
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       await expect(page.locator('#discovery-garden')).toBeVisible();
       await page.getByRole('button', { name: /Help me unwind/ }).focus();
       await page.keyboard.press('Enter');
@@ -91,6 +92,35 @@ for (const width of [1280, 390]) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
       await card.scrollIntoViewIfNeeded();
       await capture('large-text');
+      const reflow = await page.evaluate(() => ({
+        width: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        overflowing: [...document.querySelectorAll('body *')].flatMap(element => {
+          const rect = element.getBoundingClientRect();
+          return rect.width && (rect.right > innerWidth + 1 || rect.left < -1)
+            ? [{ tag: element.tagName, id: element.id, class: element.className, left: rect.left, right: rect.right }]
+            : [];
+        })
+      }));
+      await testInfo.attach('page-reflow', { body: JSON.stringify(reflow, null, 2), contentType: 'application/json' });
+      expect(reflow.scrollWidth, '200% text must not require horizontal page scrolling').toBeLessThanOrEqual(width);
+      for (const control of [
+        page.locator('#active-viewing-intent').getByRole('button', { name: 'Change', exact: true }),
+        card.getByRole('button', { name: /^Want to watch / }),
+        card.getByRole('button', { name: /^Skip for now/ }),
+        page.getByRole('button', { name: 'Filter & sort', exact: true })
+      ]) {
+        await control.scrollIntoViewIfNeeded();
+        const rect = await control.boundingBox();
+        expect(rect.x).toBeGreaterThanOrEqual(0);
+        expect(rect.x + rect.width).toBeLessThanOrEqual(width);
+        await expect(control).toBeInViewport();
+        await expect(control).toBeEnabled();
+        await control.click({ trial: true });
+      }
+      await page.locator('#active-viewing-intent').scrollIntoViewIfNeeded();
+      await capture('large-text-intent');
+      await card.scrollIntoViewIfNeeded();
       const bounds = await card.boundingBox();
       expect(bounds.x).toBeGreaterThanOrEqual(0);
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
