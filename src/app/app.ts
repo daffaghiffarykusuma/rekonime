@@ -1332,11 +1332,13 @@ const App = {
     const section = document.getElementById('continue-watching-section');
     const grid = document.getElementById('continue-watching-grid');
     if (!section || !grid) return;
-    const items = buildContinueWatchingModel(this.getWatchlistLifecycle().getEntries(), this.animeData);
+    const items = buildContinueWatchingModel(this.getWatchlistLifecycle().getEntries(), this.animeData).slice(0, 1);
     section.hidden = items.length === 0;
+    const heading = document.getElementById('continue-watching-heading');
+    if (heading) heading.textContent = items[0]?.progress > 0 ? 'Continue watching' : 'Start watching';
     setHTML(grid, items.map(item => `<article class="continue-card">
       <button class="continue-title" type="button" data-action="open-anime" data-anime-id="${this.escapeAttr(item.id)}">${this.escapeHtml(item.title)}</button>
-      <p>${item.progress}${item.episodeCount ? ` / ${item.episodeCount}` : ''} episodes watched</p>
+      <p>${item.progress}${item.episodeCount ? ` / ${item.episodeCount} episodes watched` : ` ${item.progress === 1 ? 'episode' : 'episodes'} watched · total unknown`}</p>
       <button class="btn btn-outline btn-sm" type="button" data-action="continue-progress" data-anime-id="${this.escapeAttr(item.id)}" aria-label="${this.escapeAttr(item.complete ? `Mark ${item.title} finished` : `Mark episode ${item.progress + 1} of ${item.title} watched`)}">${item.complete ? 'Mark finished' : `Watched episode ${item.progress + 1}`}</button>
     </article>`).join(''));
   },
