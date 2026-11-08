@@ -6,7 +6,7 @@ Status: locally verified; ticket 05 remains in-progress for parent integration v
 
 - Tool-prepared checkout: `C:/Users/Lenovo/.t3/worktrees/rekonime/t3-e60d6fdf`, branch `t3/watchlist-reflow-fix`.
 - Started clean at `0eaf5d24a76dbb516458d3ecc26f5d7d2f69e7cb`; `git merge-base --is-ancestor 0eaf5d24a76dbb516458d3ecc26f5d7d2f69e7cb HEAD` passed before changes.
-- Read the specification, GLOSSARY, ticket05, integration-05, TDD and diagnosing-bugs instructions. Used the already approved browser Discovery/Watchlist seam. No branches, worktrees, subagents, provider requests, environment settings or shared font/palette changes were created.
+- Read the specification, GLOSSARY, ticket05, integration-05, TDD and diagnosing-bugs instructions. Used the already approved browser Discovery/Watchlist seam. No branches, worktrees, subagents, environment settings or shared font/palette changes were created.
 
 ## Diagnosis and TDD
 
@@ -31,3 +31,20 @@ Validation and final integration evidence follows below.
 - Development reflow matrix: **8 passed**, exit0 (53.2s), widths390/1280 at100%/200% in light/dark, including all control behavior above.
 - Existing Discovery-to-Watchlist, Watchlist persistence, Manage data lazy loading, MAL conflict/cancel/repeat, malformed import recovery, and backup roundtrip browser scenarios: all six reported passes in the mixed run. The mixed command was interrupted after the unrelated incorrect test expectation described above; a clean final regression command is recorded below.
 - Screenshots: `test-results/reflow/watchlist-reflow-*/closed.png` and `open.png` (16 captures). Inspected via `view_image` in all eight viewport/theme/text-size combinations. Enlarged mobile body stacks below the cover; the stepper wraps and its input, total, and both buttons remain visible. At100% the row remains side by side. The existing offline/update notices obscure some content in full-page captures; successful browser interactions and geometry checks separately establish control access. These screenshots do not establish accessibility compliance.
+
+## Final integrated result
+
+- Implementation commit: `b69714a`. Latest local integration tip `6d71322bf6d4b038dc67d8f763f72858b124839c` merged without conflicts as `d97c3e6aff216d2274ad5ee3a24b9ca6aae99c3c`. Both that tip and required starting head pass `git merge-base --is-ancestor ... HEAD`. No merge into root, PR, watch, worktree removal or subagent.
+- Post-merge `bun run typecheck`, `bun run build`, `bun run check:dist-assets`, `bun run check:runtime-preview`, `bun run check:dist-size` and `git diff --check`: passed, exit0. Distribution26.12MiB /27MiB.
+- Post-merge development command: `$env:REKONIME_E2E_PORT='4286'; bun x playwright test --config .scratch/ui-design/playwright-reflow.config.mjs watchlist-reflow critical-flows mobile-filter-sort --grep 'Watchlist|watchlist|MAL conflict|MAL malformed|mobile|Filter' --reporter=list`: **22 passed**, exit0 (2.4m). Includes eight reflow cases, seven existing Discovery/Watchlist/data/filter scenarios, and seven mobile filter/sort cases.
+- Post-merge production command: `bun x playwright test --config .scratch/ui-design/playwright-reflow-prod.config.mjs watchlist-reflow production-smoke --grep 'Watchlist|watchlist' --reporter=list`: **13 passed**, exit0 (1.6m). Includes eight reflow cases, four existing Manage data theme/width cases and production browse/search/detail/Watchlist flow.
+- Production screenshots: `test-results/reflow-prod-final/watchlist-reflow-*/closed.png` and `open.png`; all eight open variants inspected via `view_image` after integration. The existing production scenarios additionally captured `watchlist-{390,1280}-{dark,light}-{100,200}-{closed,open}.png` beneath `test-results/reflow-prod-final/production-*`. PNG widths confirm390px mobile and1280px desktop at200% in both themes. Reflow tests assert those same page widths at100%/200%, closed/open, and control bounds/actions. Offline/update notices remain a separate rendered limitation; one desktop cover was still loading in a final capture. Neither changes the measured control reflow result.
+- Full Bun suite and unrelated homepage rendered acceptance were not run or claimed. Ticket05 remains in-progress with parent integration verification pending. Its historical enlarged-text caveat now points to this verified local resolution.
+
+### Local config reconstruction
+
+Development wrapper imports `../../playwright.config.js` and overrides `testDir: '../../test/e2e'`, `workers:1`, `use.launchOptions: {channel:'chrome'}`, `webServer.cwd: process.cwd()`, and `outputDir:'../../test-results/reflow'`. Retains the base config's environment-selected port4286.
+
+Production wrapper uses the same overrides with `testIgnore:undefined`, baseURL `http://127.0.0.1:4287`, webServer command `node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4287 --strictPort`, port4287, and outputDir `../../test-results/reflow-prod-final`. Local wrappers remain untracked for replay; no browser cache or screenshots committed.
+
+- Post-merge focused Watchlist/data regression rerun: **68 passed, 0 failed across13 files**, exit0 (3.40s).

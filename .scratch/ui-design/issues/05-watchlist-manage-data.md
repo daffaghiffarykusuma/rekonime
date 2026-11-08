@@ -37,5 +37,4 @@ Parent: [Mobile Discovery UI specification](../../../docs/ui-design-spec.md). Pr
 - Follow-up pre-merge production run exited successfully with **5 passed** after tightening lazy-load assertions. Final merged-tree screenshots were inspected again for mobile light/dark.
 - Measured page widths: desktop 1280px at both 100% and 200% root text; mobile 390px at 100%, **481px at 200%** in both themes. Data operation buttons remain within the viewport; these are historical pre-fix measurements; the follow-up reflow regression now passes at 390px in both themes, with parent integration verification pending. This is additional to ticket03's separately deferred homepage overflow.
 - Reproduction used the existing Playwright development/production configs with local-only wrappers selecting installed `channel: 'chrome'`, unique ports 4276/4275, and unchanged test suites. Dependencies installed with `bun install --frozen-lockfile`; no browser installation. Local wrappers, JSON reports and screenshots remain uncommitted.
-- Ticket remains **in-progress**, awaiting parent integration verification and final increased-text review.
-
+- Ticket remains **in-progress**, awaiting parent integration verification; local increased-text reflow and control actionability are now verified in the linked resolution.
