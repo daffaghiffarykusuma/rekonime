@@ -1438,18 +1438,30 @@ const App = {
    * Update sort dropdown options
    */
   updateSortOptions() {
-    const select = document.getElementById('sort-select');
-    if (!select) return;
-
     const options = Recommendations.getSortOptions();
-    setHTML(select, options.map(opt =>
-      `<option value="${opt.value}">${opt.label}</option>`
-    ).join(''));
 
     if (!options.some(option => option.value === this.currentSort)) {
       this.currentSort = options[0]?.value || 'taste';
     }
-    select.value = this.currentSort;
+    for (const id of ['sort-select', 'filter-sort-select']) {
+      const select = document.getElementById(id);
+      if (!select) continue;
+      setHTML(select, options.map(opt =>
+        `<option value="${opt.value}">${opt.label}</option>`
+      ).join(''));
+      select.value = this.currentSort;
+    }
+    this.syncSortControls();
+  },
+
+  syncSortControls() {
+    for (const id of ['sort-select', 'filter-sort-select']) {
+      const select = document.getElementById(id);
+      if (select) select.value = this.currentSort;
+    }
+    const summary = document.getElementById('catalog-sort-current');
+    const sheetSelect = document.getElementById('filter-sort-select');
+    if (summary) summary.textContent = `Current order: ${sheetSelect?.selectedOptions[0]?.textContent || ''}`;
   },
 
   addTrackedListener(target, event, handler, options) {
@@ -2010,10 +2022,12 @@ const App = {
   setupEventListeners() {
     this.removeAllListeners();
     // Sort dropdown
-    const sortSelect = document.getElementById('sort-select');
-    if (sortSelect) {
+    for (const id of ['sort-select', 'filter-sort-select']) {
+      const sortSelect = document.getElementById(id);
+      if (!sortSelect) continue;
       this.addTrackedListener(sortSelect, 'change', (e) => {
         this.currentSort = e.target.value;
+        this.syncSortControls();
         this.resetGridPagination();
         this.renderAnimeGrid();
       });
@@ -5192,10 +5206,7 @@ const App = {
     const sortKey = FilterPresets.getSortForPreset(presetKey);
     this.currentSort = sortKey;
 
-    const sortSelect = document.getElementById('sort-select');
-    if (sortSelect) {
-      sortSelect.value = sortKey;
-    }
+    this.syncSortControls();
 
     this.resetGridPagination();
     this.render();

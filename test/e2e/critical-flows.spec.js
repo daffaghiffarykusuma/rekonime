@@ -351,7 +351,7 @@ test('tertiary review attribution remains readable in both themes and narrow lay
 test('advanced filters stay actionable while long groups remain progressive', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-  await page.getByRole('button', { name: 'Filters' }).click();
+  await page.getByRole('button', { name: 'Filter & sort', exact: true }).click();
 
   const modal = page.locator('#filter-modal.visible');
   await expect(modal).toBeVisible();
