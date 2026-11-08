@@ -731,3 +731,35 @@ test('Watchlist backup roundtrip and home Continue watching preserve editable pr
   await expect(page.locator('.continue-card')).toContainText('4');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')).entries[0].progress)).toBe(4);
 });
+
+test('Watchlist progress survives a full catalog arriving after the edit', async ({ page }) => {
+  const snapshot = { id: 'late-catalog', title: 'Late catalog title', cover: 'https://cdn.myanimelist.net/images/anime/1779/143584l.jpg', stats: { episodeCount: 12 } };
+  await page.addInitScript(snapshot => {
+    localStorage.setItem('rekonime.onboarding', 'completed');
+    if (!localStorage.getItem('rekonime.watchlist')) localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [{ id: snapshot.id, status: 'watching', progress: 3, updatedAt: 1000, snapshot }] }));
+  }, snapshot);
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  let requested;
+  const fullRequested = new Promise(resolve => { requested = resolve; });
+  await page.route('**/data/anime*.json*', async route => {
+    requested();
+    await gate;
+    await route.fulfill({ json: { anime: [{ ...snapshot, studio: 'Fresh catalog studio', genres: ['Action'], themes: ['School'], communityScore: 8, episodes: [], year: 2026, type: 'TV' }] } });
+  });
+  await page.route('https://graphql.anilist.co', route => route.fulfill({ json: { data: { Page: { media: [] } } } }));
+  await page.goto('/watchlist.html');
+  await page.getByText('Manage data', { exact: true }).click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export backup', exact: true }).click();
+  await (await downloadPromise).path();
+  const input = page.getByRole('spinbutton', { name: 'Episodes watched' });
+  await input.fill('5');
+  await input.press('Tab');
+  await expect(input).toHaveValue('5');
+  await fullRequested;
+  release();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('rekonime.watchlist')).entries[0].snapshot.studio)).toBe('Fresh catalog studio');
+  await page.reload();
+  await expect(page.getByRole('spinbutton', { name: 'Episodes watched' })).toHaveValue('5');
+});

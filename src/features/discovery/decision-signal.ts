@@ -3,9 +3,7 @@ import { Recommendations } from './recommendations.ts';
 
 const buildDetailDecisionData = (anime, { episodeCount = 0 } = {}) => {
   const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
-  const retention = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
-    ? Math.round(anime.stats.retentionScore)
-    : null;
+  const retention = Recommendations.getPresentationEpisodeScore(anime);
   const satisfaction = Number.isFinite(anime?.communityScore)
     ? anime.communityScore
     : null;
@@ -14,6 +12,7 @@ const buildDetailDecisionData = (anime, { episodeCount = 0 } = {}) => {
     const note = Recommendations.getRatingEvidenceLabel(anime);
     return {
       value: `${retention}/100`,
+      kind: 'episode',
       label: 'Episode Rating Strength',
       note,
       className: Recommendations.getRetentionClass(retention)
@@ -23,14 +22,16 @@ const buildDetailDecisionData = (anime, { episodeCount = 0 } = {}) => {
   if (satisfaction !== null) {
     return {
       value: `${satisfaction.toFixed(1)}/10`,
+      kind: 'community',
       label: 'Community Score (MAL)',
-      note: hasEpisodes ? 'Use genre fit to decide' : 'Episode rating data unavailable',
+      note: hasEpisodes ? 'Use genre fit to decide' : Recommendations.getRatingEvidenceLabel(anime),
       className: Recommendations.getMalSatisfactionClass(satisfaction)
     };
   }
 
   return {
     value: 'N/A',
+    kind: 'unavailable',
     label: 'Decision signal',
     note: 'Open details for more context',
     className: 'score-low'

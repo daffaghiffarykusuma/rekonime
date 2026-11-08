@@ -1,5 +1,23 @@
 import { test, expect } from '@playwright/test';
 
+const captureRatingLayouts = async (page, card, testInfo) => {
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 720 });
+    for (const theme of ['dark', 'light']) {
+      for (const scale of [100, 200]) {
+        await page.evaluate(({ theme, scale }) => {
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.fontSize = `${scale}%`;
+        }, { theme, scale });
+        await page.evaluate(() => document.fonts.ready);
+        await card.scrollIntoViewIfNeeded();
+        await card.screenshot({ path: testInfo.outputPath(`rating-${width}-${theme}-${scale}.png`), animations: 'disabled' });
+      }
+    }
+  }
+  await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
+};
+
 test('ratings use named scales and MAL attribution from Discovery through catalog and details', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('rekonime.onboarding', 'completed');
@@ -84,4 +102,34 @@ test('missing community and episode ratings remain unavailable in catalog and de
   await expect(detail).toContainText('Community Score (MAL)');
   await expect(detail).toContainText('N/A');
   await expect(detail).not.toContainText('0/100');
+});
+
+test('zero-rated airing evidence retains limited and unknown-total qualifiers', async ({ page }, testInfo) => {
+  await page.addInitScript(() => localStorage.setItem('rekonime.onboarding', 'completed'));
+  const anime = [{ id: 'unrated-airing', title: 'Unrated airing title', genres: ['Action'], themes: [], year: 2026, studio: 'Fixture', cover: '', type: 'TV', communityScore: 8, episodes: [], stats: { scoringVersion: 2, retentionScore: 0, ratingEvidence: { totalEpisodes: null, ratedEpisodes: 0, limited: true, completion: 'airing' } } }];
+  await page.route('**/data/anime*.json*', route => route.fulfill({ json: { anime } }));
+  await page.goto('/');
+  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+  const pick = page.locator('#recommendations-grid .recommendation-card').first();
+  await pick.getByText('Ratings and evidence', { exact: true }).click();
+  for (const qualifier of ['unavailable', 'Limited data', 'total unknown', 'Provisional']) await expect(pick).toContainText(qualifier);
+  await expect(pick).not.toContainText('0/100');
+  await captureRatingLayouts(page, pick, testInfo);
+  await pick.locator('.recommendation-title').click();
+  for (const qualifier of ['unavailable', 'Limited data', 'total unknown', 'Provisional']) await expect(page.locator('#detail-modal')).toContainText(qualifier);
+});
+
+test('Because you watched names the full community metric and scale', async ({ page }, testInfo) => {
+  const seed = { id: 'watched-seed', title: 'Watched seed', genres: ['Action'], themes: ['School'], year: 2026, studio: 'Fixture', cover: 'https://cdn.myanimelist.net/images/anime/1779/143584l.jpg', type: 'TV', communityScore: 8, episodes: [{ episode: 1, score: 4 }], stats: { scoringVersion: 2, retentionScore: 70, episodeCount: 12 } };
+  const candidate = { ...seed, id: 'similar-candidate', title: 'Similar candidate', communityScore: 8.2 };
+  await page.addInitScript(seed => {
+    localStorage.setItem('rekonime.onboarding', 'completed');
+    localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [{ id: seed.id, status: 'completed', progress: 12, updatedAt: 1000, snapshot: seed }] }));
+  }, seed);
+  await page.route('**/data/anime*.json*', route => route.fulfill({ json: { anime: [seed, candidate] } }));
+  await page.goto('/');
+  const card = page.locator('#byw-grid .recommendation-card').first();
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Community Score (MAL) 8.2/10');
+  await captureRatingLayouts(page, card, testInfo);
 });
