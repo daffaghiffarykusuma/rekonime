@@ -17,6 +17,7 @@
 ## Context
 
 Parent: [Mobile Discovery UI specification](../../../docs/ui-design-spec.md). Preserve all parent scope boundaries. Record implementation commit and actual validation evidence when closing.
+
 ## Implementation evidence (pending parent integration verification)
 
 - Claimed on `t3/watchlist-manage-data`; required baseline `5a59095a9977899f587ab5db8bdaee6954ca1b16` is an ancestor, verified before edits. No extra checkout or branch created.
@@ -27,3 +28,13 @@ Parent: [Mobile Discovery UI specification](../../../docs/ui-design-spec.md). Pr
 - Screenshots inspected for desktop 1280px and mobile 390px, light/dark, collapsed/expanded, including 200% root text. Evidence stays local under `test-results-prod-05/`; no browser caches/helpers/screenshots committed. Native focus ring and disclosure marker are visible; data buttons wrap with minimum 44px height.
 - Limitation for parent final review: at 200% root text on mobile, surrounding existing Watchlist content/progress controls overflow the page. New data buttons remain within the viewport. Existing update/offline notices also appear in some screenshots. No overflow hiding or unrelated progress-control changes applied. Ticket03's separately known 407px homepage overflow at 390px remains out of scope.
 - Keep status in-progress until parent integration verification. The final increased-text/page-wide acceptance criterion is not claimed complete.
+
+### Handoff validation
+
+- Implementation commit: `c577b3b`. Integration tip `b978ae6bc99f05777fcd05b98a953658e1ec00c7` merged afterward as `d340884d09642c364a77ce2611e3df549900a81e`; merge had no conflicts.
+- Post-merge: `bun run typecheck`, `bun run build`, `check:dist-assets`, `check:runtime-preview`, `check:dist-size`, and `git diff --check` passed. Chrome production suite exited successfully: **8 passed**, including all four Watchlist width/theme combinations, touch navigation and reviewed MAL import through Manage data.
+- Development focused run reported **4 passing scenarios**: native disclosure keyboard/lazy-load/data preservation; MAL conflict/cancel/privacy/repeat; malformed import retry/downstream recovery; backup export, restore button file chooser, and editable progress roundtrip. The runner stalled in cleanup after reporting all four passes and was interrupted; do not describe that command as a clean successful exit.
+- Follow-up pre-merge production run exited successfully with **5 passed** after tightening lazy-load assertions. Final merged-tree screenshots were inspected again for mobile light/dark.
+- Measured page widths: desktop 1280px at both 100% and 200% root text; mobile 390px at 100%, **481px at 200%** in both themes. Data operation buttons remain within the viewport; whole-page text enlargement needs parent final review. This is additional to ticket03's separately deferred homepage overflow.
+- Reproduction used the existing Playwright development/production configs with local-only wrappers selecting installed `channel: 'chrome'`, unique ports 4276/4275, and unchanged test suites. Dependencies installed with `bun install --frozen-lockfile`; no browser installation. Local wrappers, JSON reports and screenshots remain uncommitted.
+- Ticket remains **in-progress**, awaiting parent integration verification and final increased-text review.
