@@ -60,10 +60,10 @@ test('Detail Presentation renders modal body without App Shell state', () => {
   assert.match(html, /Show &lt;One&gt;/);
   assert.match(html, /Local synopsis/);
   assert.match(html, /watchlist-controls/);
-  assert.match(html, /Episode rating strength/);
+  assert.match(html, /Episode Rating Strength/);
   assert.match(html, /82\/100/);
   assert.match(html, /Limited data.*coverage unavailable/);
-  assert.match(html, /Satisfaction \(MAL\)/);
+  assert.match(html, /Community Score \(MAL\)/);
   assert.doesNotMatch(html, /detail-stat-label">Finish Confidence/);
   assert.match(html, /role="tab"[^>]*>Overview/);
   assert.match(html, /role="tab"[^>]*>Watch order/);

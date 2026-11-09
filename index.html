@@ -1221,7 +1221,7 @@
           </div>
         </div>
         <button class="btn btn-sm btn-outline filter-btn" id="filter-toggle" type="button"
-          aria-haspopup="dialog" aria-controls="filter-modal">Filters</button>
+          aria-haspopup="dialog" aria-controls="filter-modal">Filter &amp; sort</button>
         <a class="btn btn-sm btn-outline mobile-watchlist-link" href="/watchlist.html">Watchlist</a>
         <div class="header-sort">
           <label class="sort-label" for="sort-select">Sort</label>
@@ -1257,9 +1257,9 @@
     <section class="discovery-garden" id="discovery-garden" aria-labelledby="discovery-title">
       <div class="discovery-garden-content">
         <p class="discovery-eyebrow">For the love of the next episode</p>
-        <h1 class="discovery-title" id="discovery-title">Find your <br><em>next story.</em></h1>
+        <h1 class="discovery-title" id="discovery-title">Find your <em>next story.</em></h1>
         <p class="discovery-subtitle">
-          Choose a viewing goal or explore anime with episode ratings and community scores.
+          Pick a title, choose an optional goal, or browse freely.
         </p>
         <div class="discovery-actions" role="group" aria-label="Primary discovery actions">
           <button class="btn btn-primary" type="button" data-action="surprise-me">Pick a title for me <span aria-hidden="true">↗</span></button>
@@ -1275,7 +1275,7 @@
     </section>
 
     <section class="continue-watching-section" id="continue-watching-section" hidden aria-labelledby="continue-watching-heading">
-      <div class="section-header"><h2 id="continue-watching-heading">Continue watching</h2><a href="/watchlist.html">Open Watchlist</a></div>
+      <div class="section-header"><h2 id="continue-watching-heading">Continue watching</h2><a class="btn btn-outline btn-sm" href="/watchlist.html">View all</a></div>
       <div class="continue-watching-grid" id="continue-watching-grid"></div>
     </section>
 
@@ -1283,7 +1283,7 @@
       <div class="mood-filter-header">
         <div>
           <p class="mood-filter-kicker">For this session</p>
-          <h2 class="mood-filter-title" id="viewing-intent-title">What do you want from your next watch?</h2>
+          <h2 class="mood-filter-title" id="viewing-intent-title">A goal for this session?</h2>
         </div>
         <p class="mood-filter-note">This changes the ranking, not your saved taste or manual filters.</p>
       </div>
@@ -1345,6 +1345,10 @@
         <span class="visually-hidden" id="recommendations-status" role="status" aria-live="polite"></span>
       </div>
     </section>
+
+    <section class="browse-anime" id="browse-anime" aria-labelledby="browse-anime-heading">
+      <h2 id="browse-anime-heading">Browse anime</h2>
+      <p class="section-subtitle">Explore seasons, trending titles, genres, or the full catalog.</p>
 
     <details class="quick-filters" id="quick-filters" inert>
       <summary class="quick-filters-summary">
@@ -1508,6 +1512,8 @@
       </div>
     </section>
 
+    </section>
+
     <section class="rankings-section" id="rankings-section">
       <div class="ranking-card" id="ranking-card-1">
         <h3 id="ranking-title-1">Best Episode Rating Strength</h3>
@@ -1532,12 +1538,20 @@
     <div class="modal-content filter-modal-content">
       <div class="filter-modal-header">
         <div>
-          <h2 class="filter-modal-title" id="filter-modal-title">Refine your next great watch</h2>
+          <h2 class="filter-modal-title" id="filter-modal-title">Filter &amp; sort</h2>
           <p class="filter-modal-subtitle">Combine genres, themes, studios, and seasons to surface the right pick faster.</p>
         </div>
-        <button class="modal-close" id="close-filter-modal" type="button" aria-label="Close filters">&times;</button>
+        <button class="modal-close" id="close-filter-modal" type="button" aria-label="Close filter and sort">&times;</button>
       </div>
       <div class="filter-modal-body" tabindex="0" role="region" aria-label="Available filters">
+        <div class="catalog-sort-control">
+          <label for="filter-sort-select">Catalog order</label>
+          <div class="select-wrapper">
+            <select id="filter-sort-select" class="sort-select" aria-describedby="catalog-sort-description"></select>
+          </div>
+          <p class="catalog-sort-current" id="catalog-sort-current"></p>
+          <p id="catalog-sort-description">Orders the catalog only. Personalized Discovery picks keep their own ranking. Your Viewing Intent and saved Taste Profile stay the same.</p>
+        </div>
         <div class="filter-sections" id="filter-sections">
           <!-- Populated by JS -->
         </div>

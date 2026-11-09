@@ -321,7 +321,7 @@ const Recommendations = {
   getRankingTitles() {
     return {
       title1: 'Highest Episode Rating Strength',
-      title2: 'Most Loved by Viewers',
+      title2: 'Highest Community Score (MAL)',
       metric1: 'retention',
       metric2: 'satisfaction'
     };
@@ -334,8 +334,8 @@ const Recommendations = {
   getSortOptions() {
     return [
       { value: 'taste', label: 'Best fit for your taste' },
-      { value: 'retention', label: 'Highest episode rating strength' },
-      { value: 'satisfaction', label: 'Highest community rating' }
+      { value: 'retention', label: 'Highest Episode Rating Strength (/100)' },
+      { value: 'satisfaction', label: 'Highest Community Score (MAL, /10)' }
     ];
   },
 
@@ -378,22 +378,27 @@ const Recommendations = {
     const coverage = evidence.totalEpisodes
       ? `${evidence.ratedEpisodes}/${evidence.totalEpisodes} episodes rated`
       : `${evidence.ratedEpisodes} episodes rated · total unknown`;
-    return `${evidence.limited ? 'Limited data · ' : ''}${coverage}${evidence.completion === 'airing' ? ' · Provisional' : ''}`;
+    const unavailable = evidence.ratedEpisodes === 0 ? 'Episode rating data unavailable \u00b7 ' : '';
+    return `${unavailable}${evidence.limited ? 'Limited data · ' : ''}${coverage}${evidence.completion === 'airing' ? ' · Provisional' : ''}`;
+  },
+
+  // Presentation availability only; ranking continues to use its existing inputs.
+  getPresentationEpisodeScore(anime) {
+    return this.hasEpisodeRatingEvidence(anime) && Number.isFinite(anime?.stats?.retentionScore)
+      ? Math.round(anime.stats.retentionScore)
+      : null;
   },
 
   getCardStats(anime) {
     const episodeCount = this.getEpisodeCount(anime);
-    const hasEpisodes = episodeCount > 0;
-    const retentionScore = hasEpisodes && Number.isFinite(anime?.stats?.retentionScore)
-      ? Math.round(anime.stats.retentionScore)
-      : null;
+    const retentionScore = this.getPresentationEpisodeScore(anime);
     const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
 
     return [
       {
         label: 'Episode Rating Strength',
         value: retentionScore !== null ? retentionScore : 'N/A',
-        suffix: retentionScore !== null ? '/100' : '',
+        suffix: '/100',
         class: this.getRetentionClass(retentionScore),
         tooltip: {
           title: 'Episode Rating Strength',
@@ -401,13 +406,13 @@ const Recommendations = {
         }
       },
       {
-        label: 'Community Score',
+        label: 'Community Score (MAL)',
         value: malSatisfactionScore !== null ? malSatisfactionScore.toFixed(1) : 'N/A',
-        suffix: malSatisfactionScore !== null ? '/10' : '',
+        suffix: '/10',
         class: this.getMalSatisfactionClass(malSatisfactionScore),
         tooltip: {
-          title: 'Community Score',
-          text: 'Audience rating from MyAnimeList.'
+          title: 'Community Score (MAL)',
+          text: 'Audience rating from MyAnimeList on a /10 scale.'
         }
       },
       {
@@ -466,6 +471,13 @@ const Recommendations = {
     if (!hasEpisodes) return null;
     const score = anime?.stats?.retentionScore;
     return Number.isFinite(score) ? score : null;
+  },
+
+  // Presentation availability only. A declared episode total is not rating evidence.
+  hasEpisodeRatingEvidence(anime) {
+    const evidence = anime?.stats?.ratingEvidence;
+    return evidence ? evidence.ratedEpisodes > 0
+      : (anime?.episodes || []).some(episode => Number.isFinite(episode?.score));
   },
 
   /**

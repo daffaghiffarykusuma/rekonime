@@ -777,13 +777,18 @@ html:not([data-theme="light"]) .sidebar-mode-option.is-active .sidebar-mode-desc
 .recommendation-rating-explanation { font-size: .75rem; line-height: 1.5; color: var(--text-secondary); }
 .recommendation-info .recommendation-reason { display: block; min-height: 2.8em; font-size: .85rem; line-height: 1.45; }
 .continue-watching-section { margin: 20px 0; }
-.continue-watching-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.continue-watching-section .section-header { flex-wrap: wrap; gap: 12px; }
+.continue-watching-section .section-header a { flex-shrink: 0; }
+.continue-watching-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; }
 .continue-card, .watchlist-backup-tools { min-width: 0; padding: 18px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-secondary); }
 .continue-title { border: 0; padding: 0; background: none; color: var(--text-primary); text-align: left; font: inherit; font-weight: 700; cursor: pointer; }
 .continue-card p, .watchlist-backup-tools p { color: var(--text-secondary); font-size: .85rem; }
 .watchlist-backup-tools { margin-bottom: 20px; }
 .watchlist-backup-tools h2 { font-size: 1.1rem; }
 .watchlist-backup-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.watchlist-manage-data { margin-top: 8px; }
+.watchlist-manage-data > summary { width: fit-content; min-height: 44px; padding: 8px 4px; color: var(--text-primary); cursor: pointer; font-weight: 700; }
+.watchlist-manage-data .btn { min-height: 44px; white-space: normal; text-align: left; }
 @media (max-width: 640px) {
   .discovery-garden { padding: 20px; margin-bottom: 16px; }
   .discovery-title { font-size: 2.4rem; }
@@ -807,4 +812,44 @@ html:not([data-theme="light"]) .sidebar-mode-option.is-active .sidebar-mode-desc
     position: fixed; left: 20px; right: 20px; bottom: 20px; top: auto;
     width: auto; max-width: none; transform: none;
   }
+}
+
+/* Supporting exploration follows the Discovery shortlist. */
+.browse-anime { min-width: 0; margin: 24px 0; padding-top: 24px; border-top: 1px solid var(--border-color); }
+.browse-anime > h2 { margin: 0; color: var(--text-secondary); font-size: 1.25rem; }
+@media (max-width: 640px) {
+  .browse-anime { order: 7; }
+}
+
+/* Compact landing keeps every first-visit action available. */
+.discovery-garden { grid-template-columns: 1fr; min-height: 0; padding: 24px 28px; margin-bottom: 16px; }
+.discovery-art { display: none; }
+.discovery-eyebrow { margin-bottom: 8px; }
+.discovery-title { font-size: 2rem; margin-bottom: 8px; }
+.discovery-subtitle { max-width: none; }
+.discovery-actions { margin-top: 14px; }
+.viewing-intent-section { padding: 16px; margin: 12px 0; }
+.viewing-intent-section .mood-filter-header { gap: 8px; margin-bottom: 10px; }
+.viewing-intent-section .mood-filter-note { margin: 0; }
+.viewing-intent-section .mood-cluster { min-height: 44px; padding: 10px; }
+@media (max-width: 640px) {
+  .discovery-garden { padding: 16px; }
+  .discovery-title { font-size: 1.6rem; }
+  .discovery-actions { display: flex; }
+  .discovery-actions .btn { flex: 1 1 auto; }
+  .viewing-intent-section .mood-filter-title { font-size: 1.1rem; }
+  .viewing-intent-section .mood-filter-note { font-size: .78rem; margin-top: 6px; }
+  #recommendations-grid .recommendation-media { height: 160px; }
+  #recommendations-grid .recommendation-title { display: block; overflow: visible; }
+}
+
+@media (max-width: 640px) {
+  .viewing-intent-section:not(.is-complete) { padding: 12px; }
+  .viewing-intent-section .mood-filter-header { margin-bottom: 6px; }
+  .viewing-intent-section .mood-cluster { padding: 8px; }
+}
+
+/* Keep the wrapped active summary compact without shrinking text or its 44px action. */
+@media (max-width: 640px) {
+  .viewing-intent-section.is-complete { padding-block: 10px; }
 }

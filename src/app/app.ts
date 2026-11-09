@@ -1303,6 +1303,9 @@ const App = {
 
 
   refreshWatchlistSnapshotsFromCatalog({ persist = false } = {}) {
+    // The dedicated page edits through its own lifecycle while this App loads lazily.
+    // Snapshot enrichment must start from those latest persisted entries.
+    if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
     return this.getWatchlistLifecycle().refreshSnapshotsFromCatalog(this.animeData, { persist, replaceExisting: true });
   },
 
@@ -1332,11 +1335,13 @@ const App = {
     const section = document.getElementById('continue-watching-section');
     const grid = document.getElementById('continue-watching-grid');
     if (!section || !grid) return;
-    const items = buildContinueWatchingModel(this.getWatchlistLifecycle().getEntries(), this.animeData);
+    const items = buildContinueWatchingModel(this.getWatchlistLifecycle().getEntries(), this.animeData).slice(0, 1);
     section.hidden = items.length === 0;
+    const heading = document.getElementById('continue-watching-heading');
+    if (heading) heading.textContent = items[0]?.progress > 0 ? 'Continue watching' : 'Start watching';
     setHTML(grid, items.map(item => `<article class="continue-card">
       <button class="continue-title" type="button" data-action="open-anime" data-anime-id="${this.escapeAttr(item.id)}">${this.escapeHtml(item.title)}</button>
-      <p>${item.progress}${item.episodeCount ? ` / ${item.episodeCount}` : ''} episodes watched</p>
+      <p>${item.progress}${item.episodeCount ? ` / ${item.episodeCount} episodes watched` : ` ${item.progress === 1 ? 'episode' : 'episodes'} watched · total unknown`}</p>
       <button class="btn btn-outline btn-sm" type="button" data-action="continue-progress" data-anime-id="${this.escapeAttr(item.id)}" aria-label="${this.escapeAttr(item.complete ? `Mark ${item.title} finished` : `Mark episode ${item.progress + 1} of ${item.title} watched`)}">${item.complete ? 'Mark finished' : `Watched episode ${item.progress + 1}`}</button>
     </article>`).join(''));
   },
@@ -1436,18 +1441,30 @@ const App = {
    * Update sort dropdown options
    */
   updateSortOptions() {
-    const select = document.getElementById('sort-select');
-    if (!select) return;
-
     const options = Recommendations.getSortOptions();
-    setHTML(select, options.map(opt =>
-      `<option value="${opt.value}">${opt.label}</option>`
-    ).join(''));
 
     if (!options.some(option => option.value === this.currentSort)) {
       this.currentSort = options[0]?.value || 'taste';
     }
-    select.value = this.currentSort;
+    for (const id of ['sort-select', 'filter-sort-select']) {
+      const select = document.getElementById(id);
+      if (!select) continue;
+      setHTML(select, options.map(opt =>
+        `<option value="${opt.value}">${opt.label}</option>`
+      ).join(''));
+      select.value = this.currentSort;
+    }
+    this.syncSortControls();
+  },
+
+  syncSortControls() {
+    for (const id of ['sort-select', 'filter-sort-select']) {
+      const select = document.getElementById(id);
+      if (select) select.value = this.currentSort;
+    }
+    const summary = document.getElementById('catalog-sort-current');
+    const sheetSelect = document.getElementById('filter-sort-select');
+    if (summary) summary.textContent = `Current order: ${sheetSelect?.selectedOptions[0]?.textContent || ''}`;
   },
 
   addTrackedListener(target, event, handler, options) {
@@ -2008,10 +2025,12 @@ const App = {
   setupEventListeners() {
     this.removeAllListeners();
     // Sort dropdown
-    const sortSelect = document.getElementById('sort-select');
-    if (sortSelect) {
+    for (const id of ['sort-select', 'filter-sort-select']) {
+      const sortSelect = document.getElementById(id);
+      if (!sortSelect) continue;
       this.addTrackedListener(sortSelect, 'change', (e) => {
         this.currentSort = e.target.value;
+        this.syncSortControls();
         this.resetGridPagination();
         this.renderAnimeGrid();
       });
@@ -3472,8 +3491,8 @@ const App = {
     // Render recommendations
     setHTML(grid, recommendations.map((anime, index) => {
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const hasEpisodes = episodeCount > 0;
-      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}/100` : 'N/A';
+      const episodeScore = Recommendations.getPresentationEpisodeScore(anime);
+      const retention = episodeScore !== null ? `${episodeScore}/100` : 'N/A';
       const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
@@ -3498,7 +3517,7 @@ const App = {
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
             <div class="recommendation-meta">
               <span>Episode Rating Strength ${retention}</span><span>${this.escapeHtml(Recommendations.getRatingEvidenceLabel(anime))}</span>
-              <span>MAL ${malScore}</span>
+              <span>Community Score (MAL) ${malScore}</span>
             </div>
             <div class="recommendation-reason">${this.escapeHtml(anime.reason || '')}</div>
           </div>
@@ -3522,8 +3541,8 @@ const App = {
       const rank = index + 1;
       const rankClass = rank <= 3 ? 'top-3' : '';
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const hasEpisodes = episodeCount > 0;
-      const retention = hasEpisodes ? `${Math.round(anime.stats?.retentionScore || 0)}/100` : 'N/A';
+      const episodeScore = Recommendations.getPresentationEpisodeScore(anime);
+      const retention = episodeScore !== null ? `${episodeScore}/100` : 'N/A';
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
@@ -3761,7 +3780,7 @@ const App = {
       setHTML(primaryValue, this.renderCardScoreValue(decision.value));
     }
     if (primaryLabel) {
-      primaryLabel.textContent = decision.label === 'Episode rating strength' ? 'Episode strength' : decision.label;
+      primaryLabel.textContent = decision.label;
     }
     if (primaryNote) {
       primaryNote.textContent = decision.note;
@@ -3788,7 +3807,7 @@ const App = {
       setHTML(statsContainer, cardStats.map(stat => {
         const safeValue = this.escapeHtml(stat.value);
         const safeSuffix = this.escapeHtml(stat.suffix || '');
-        const safeLabel = this.escapeHtml(stat.label === 'Community Score' ? 'Community' : stat.label);
+        const safeLabel = this.escapeHtml(stat.label);
         const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
         const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
         const statValueClass = this.sanitizeClassList('stat-value', stat.class);
@@ -3896,7 +3915,7 @@ const App = {
             <div class="${decisionClass}">
               <div class="card-primary-score">
                 <span class="card-primary-value">${this.renderCardScoreValue(decision.value)}</span>
-                <span class="card-primary-label">${this.escapeHtml(decision.label === 'Episode rating strength' ? 'Episode strength' : decision.label)}</span>
+                <span class="card-primary-label">${this.escapeHtml(decision.label)}</span>
               </div>
               <span class="card-primary-note">${this.escapeHtml(decision.note)}</span>
             </div>
@@ -3904,7 +3923,7 @@ const App = {
               ${cardStats.map(stat => {
         const safeValue = this.escapeHtml(stat.value);
         const safeSuffix = this.escapeHtml(stat.suffix || '');
-        const safeLabel = this.escapeHtml(stat.label === 'Community Score' ? 'Community' : stat.label);
+        const safeLabel = this.escapeHtml(stat.label);
         const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
         const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
         const statValueClass = this.sanitizeClassList('stat-value', stat.class);
@@ -4134,7 +4153,7 @@ const App = {
 
   getCardDecisionData(anime) {
     const decision = buildDetailDecisionData(anime, { episodeCount: CatalogPayload.getEpisodeCount(anime) });
-    return decision.label === 'Community score' ? { ...decision, value: `${decision.value}/10` } : decision;
+    return decision;
   },
 
   /**
@@ -4279,7 +4298,7 @@ const App = {
 
     setHTML(container, `${decision.noCloseMatches ? '<p class="recommendation-group-heading">No close matches for this goal. These are general alternatives.</p>' : ''}` + recommendations.map((anime, index) => {
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
-      const satisfactionTooltipTitle = this.escapeHtml('Community Score');
+      const satisfactionTooltipTitle = this.escapeHtml('Community Score (MAL)');
       const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
       const safeId = this.escapeAttr(anime.id);
       const safeTitle = this.escapeHtml(anime.title);
@@ -4326,14 +4345,14 @@ const App = {
             <div class="${decisionClass}">
               <div class="recommendation-primary-score">
                 <span class="recommendation-signal-value">${this.renderCardScoreValue(decision.value)}</span>
-                <span class="recommendation-signal-label">${this.escapeHtml(decision.label === 'Episode rating strength' ? 'Episode strength' : decision.label)}</span>
+                <span class="recommendation-signal-label">${this.escapeHtml(decision.label)}</span>
               </div>
               <span class="recommendation-signal-note">${this.escapeHtml(decision.note)}</span>
             </div>
-            ${decision.label === 'Community score' ? '' : `<div class="recommendation-meta">
+            ${decision.kind === 'community' ? '' : `<div class="recommendation-meta">
               <span class="recommendation-stat has-tooltip" tabindex="0">
                 <strong class="recommendation-community-value">${this.renderCardScoreValue(malSatisfaction)}</strong>
-                <span class="recommendation-community-label">Community</span>
+                <span class="recommendation-community-label">Community Score (MAL)</span>
                 <div class="tooltip tooltip--bottom" role="tooltip">
                   <div class="tooltip-title">${satisfactionTooltipTitle}</div>
                   <div class="tooltip-text">${satisfactionTooltipText}</div>
@@ -4341,7 +4360,7 @@ const App = {
               </span>
               </div>`}
               </div>
-              <p class="recommendation-rating-explanation">Episode strength is an episode-rating index adjusted for coverage and sample size, not a completion probability. Community scores are audience ratings from MyAnimeList.</p>
+              <p class="recommendation-rating-explanation">Episode Rating Strength (/100) is an episode-rating index adjusted for coverage and sample size, not a completion probability. Community Score (MAL, /10) is the audience rating from MyAnimeList.</p>
               </details>
               <div class="recommendation-quick-actions">
                 <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
@@ -4445,19 +4464,19 @@ const App = {
 
     if (metric === 'retention') {
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const hasEpisodes = episodeCount > 0;
+      const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
       if (hasEpisodes) {
         const score = Math.round(anime.stats?.retentionScore ?? 0);
         valueDisplay = `${score}/100`;
         valueClass = Recommendations.getRetentionClass(score);
       }
-      labelDisplay = `episode rating strength · ${Recommendations.getRatingEvidenceLabel(anime)}`;
+      labelDisplay = `Episode Rating Strength · ${Recommendations.getRatingEvidenceLabel(anime)}`;
     } else if (metric === 'satisfaction') {
       if (Number.isFinite(anime.communityScore)) {
         valueDisplay = `${anime.communityScore.toFixed(1)}/10`;
         valueClass = Recommendations.getMalSatisfactionClass(anime.communityScore);
       }
-      labelDisplay = 'satisfaction score (MAL)';
+      labelDisplay = 'Community Score (MAL)';
     } else {
       valueDisplay = anime.stats.average;
       labelDisplay = 'avg score';
@@ -5154,11 +5173,11 @@ const App = {
         <h3>Why These Recommendations Stand Out</h3>
         <p>Rekonime starts with audience ratings, then considers your viewing goal and saved taste:</p>
         <div class="help-factor">
-          <strong>Episode Rating Strength</strong>
+          <strong>Episode Rating Strength (/100)</strong>
           <p>A score out of 100 based on episode ratings, their pattern, and available coverage. Small samples are pulled toward the neutral midpoint. It is not a measured retention rate or a completion probability.</p>
         </div>
         <div class="help-factor">
-          <strong>Community Score</strong>
+          <strong>Community Score (MAL, /10)</strong>
           <p>Community sentiment from MyAnimeList that reflects how strongly viewers rated it.</p>
         </div>
         <div class="help-factor"><strong>Your goal and taste</strong><p>Session goals use genre and theme suggestions. Saved preferences and watchlist evidence adjust ranking. Each pick labels the reason used. Series continuations require completed entries in the catalog watch order, with one pick per known franchise.</p></div>
@@ -5190,10 +5209,7 @@ const App = {
     const sortKey = FilterPresets.getSortForPreset(presetKey);
     this.currentSort = sortKey;
 
-    const sortSelect = document.getElementById('sort-select');
-    if (sortSelect) {
-      sortSelect.value = sortKey;
-    }
+    this.syncSortControls();
 
     this.resetGridPagination();
     this.render();
@@ -5238,9 +5254,9 @@ const App = {
     const badges = Recommendations.getBadges(anime);
     const cardStats = Recommendations.getCardStats(anime);
     const episodeCount = CatalogPayload.getEpisodeCount(anime);
-    const hasEpisodes = episodeCount > 0;
+    const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
     const rawRetention = anime?.stats?.retentionScore;
-    const retentionLevel = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : 0;
+    const retentionLevel = Recommendations.hasEpisodeRatingEvidence(anime) && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
     const reason = Recommendations.getRecommendationReason(anime);
 
     const safeId = this.escapeAttr(anime.id);
@@ -5309,7 +5325,7 @@ const App = {
     }).join('')}
           </div>
           <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-            <progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Episode Rating Strength"></progress>
+            ${retentionLevel !== null ? `<progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Episode Rating Strength"></progress>` : `<span>Episode rating data unavailable</span>`}
           </div>
           <div class="card-reason">${safeReason}</div>
         </div>

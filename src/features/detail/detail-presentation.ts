@@ -129,7 +129,7 @@ const renderBreakdown = ({
     <div class="detail-section-header">
       <h3>Episode rating patterns</h3>
     </div>
-    <p class="detail-empty">No episode scores yet. Episode Rating Strength appears once episode scores are available.</p>
+    <p class="detail-empty">Episode rating data unavailable. Episode Rating Strength (/100) appears once episode scores are available.</p>
   </div>
 `;
 
@@ -186,7 +186,7 @@ const renderDetailContent = (anime, {
   const synopsisMarkup = renderSynopsis(synopsis);
   const synopsisSection = synopsisMarkup || renderSynopsisLoading();
   const episodeCount = getEpisodeCount(anime);
-  const hasEpisodes = episodeCount > 0;
+  const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
   const rawRetention = anime?.stats?.retentionScore;
   const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
   const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
@@ -239,9 +239,9 @@ const renderDetailContent = (anime, {
           <div class="detail-stats">
             <div class="detail-stat has-tooltip" tabindex="0">
               <span class="detail-stat-value ${malSatisfactionClass}">${malSatisfactionScore !== null ? `${malSatisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
-              <span class="detail-stat-label">Satisfaction (MAL)</span>
+              <span class="detail-stat-label">Community Score (MAL)</span>
               <div class="tooltip" role="tooltip">
-                <div class="tooltip-title">Satisfaction Score</div>
+                <div class="tooltip-title">Community Score (MAL)</div>
                 <div class="tooltip-text">Community rating from MyAnimeList.</div>
               </div>
             </div>
@@ -427,16 +427,14 @@ const renderSimilarAnimeSection = (anime, {
       <div class="similar-anime">
         <div class="detail-section-header">
           <h3>Similar Anime</h3>
-          <span class="detail-section-note">Shared genre + theme, aligned episode rating strength and satisfaction</span>
+          <span class="detail-section-note">Shared genre + theme, aligned Episode Rating Strength and Community Score (MAL)</span>
         </div>
         ${similarResults.length > 0 ? `
           <div class="similar-grid">
             ${similarResults.map(result => {
       const similar = result.anime;
       const episodeCount = getEpisodeCount(similar);
-      const hasEpisodes = episodeCount > 0;
-      const rawRetention = similar?.stats?.retentionScore;
-      const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
+      const retentionScore = Recommendations.getPresentationEpisodeScore(similar);
       const satisfactionScore = Number.isFinite(similar?.communityScore) ? similar.communityScore : null;
       const retentionClass = Recommendations.getRetentionClass(retentionScore);
       const satisfactionClass = Recommendations.getMalSatisfactionClass(satisfactionScore);
@@ -470,7 +468,7 @@ const renderSimilarAnimeSection = (anime, {
                     </div>
                     <div class="similar-stats">
                       <span class="similar-stat ${retentionClass}">Episode Rating Strength ${retentionScore !== null ? `${retentionScore}/100` : 'N/A'}</span><span>${escapeHtml(Recommendations.getRatingEvidenceLabel(similar))}</span>
-                      <span class="similar-stat ${satisfactionClass}">Satisfaction (MAL) ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
+                      <span class="similar-stat ${satisfactionClass}">Community Score (MAL) ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
                     </div>
                   </div>
                 </div>
