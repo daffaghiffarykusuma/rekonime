@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** closed
+
+Closed after final integration verification on 2026-11-08. Implementation f06d14e and review fixes 7dcb353 are integrated at 827e734. Zero-rated qualifiers and Because-you-watched naming are verified, with semantic decision kinds and shared presentation availability. Final combined checks passed: 309 Bun, 61 development browser, 33 production browser and 15 repeated critical-flow cases plus typecheck, data, build and distribution checks. Both review axes cleared. See [final report](../../../docs/ui-design-implementation.md).
 
 - [x] Community score has MAL attribution and an explicit /10 scale across relevant surfaces.
 - [x] Episode rating strength has an explicit /100 scale; user-facing finish-rate and satisfaction labels for these metrics are replaced consistently.

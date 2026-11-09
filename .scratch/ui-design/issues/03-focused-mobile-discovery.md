@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** closed
+
+Closed after final integration verification on 2026-11-08. Implementations bce9079, 4203483 and 7dcb353 are integrated at 827e734. The historical 407px overflow and 140.375px summary failure are resolved; retained browser checks pass without clipping or weakened bounds. Final combined checks passed: 309 Bun, 61 development browser, 33 production browser and 15 repeated critical-flow cases plus typecheck, data, build and distribution checks. Both review axes cleared. See [final report](../../../docs/ui-design-implementation.md).
 
 - [x] The initial landing uses a short introduction and compact optional Viewing Intent choices before useful picks; immediate selection and the active summary remain functional.
 - [x] Mobile covers are shorter while titles, supported fit explanations, honest episode information, details access, and primary actions remain readable and operable.

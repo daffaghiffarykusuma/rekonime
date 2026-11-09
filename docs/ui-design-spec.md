@@ -1,8 +1,7 @@
 ---
 title: Make mobile Discovery easier to scan and act on
 tracker: local-markdown
-label: ready-for-agent
-status: open
+status: closed
 seam_confirmation: approved-by-user
 source: ui-design-direction-2026-11-07.md
 ---
@@ -110,8 +109,8 @@ Give mobile users a combined Filter & sort sheet for catalog browsing. Promote o
 
 ## Further Notes
 
-The user accepted all three design rounds and explicitly approved the proposed test boundaries. This specification synthesizes those decisions without reopening the interview. It is published as an open local Markdown tracker item with the ready-for-agent label.
+The user accepted all three design rounds and explicitly approved the proposed test boundaries. This specification was published with the ready-for-agent label, then implemented on feat/mobile-discovery-ui. All five tickets and this parent are closed after final integration and independent standards/spec rechecks. The [implementation report](ui-design-implementation.md) records results and limits.
 
 The accepted [design direction and acceptance checks](ui-design-direction-2026-11-07.md) provide the supporting decision record. The [earlier first-visit specification](first-visit-discovery-spec-draft.md) and [implementation report](first-visit-discovery-implementation.md) remain the baseline for existing behavior. Their participant-evidence status is unchanged by this spec.
 
-Current findings are based on source inspection. No rendered audit, interaction verification, new test execution, or measured user outcome is claimed for this specification. Implementation should begin with mobile sorting access and score consistency, then refine homepage/card hierarchy and supporting browsing, then compact return-to-viewing and data-management presentation, followed by the approved verification.
+At publication, findings were based on source inspection and this specification claimed no rendered audit, interaction verification, test execution, or measured user outcome. Implementation and the approved verification are now complete; results and remaining limits are recorded in the implementation report. No measured user outcome is claimed.

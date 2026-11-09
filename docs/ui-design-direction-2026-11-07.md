@@ -1,9 +1,9 @@
 # UI design direction
 
 Date: 2026-11-07.
-Status: design interview complete. All three rounds accepted by the user. Implementation has not started; no UI code changed for this review.
+Status: implemented and verified on feat/mobile-discovery-ui. All three design rounds were accepted; see the [implementation report](ui-design-implementation.md) for results and limits.
 
-The implementation specification is [published in the local Markdown tracker](ui-design-spec.md) with the ready-for-agent label. Its test boundaries were explicitly approved by the user.
+The [implementation specification](ui-design-spec.md) and its five local tracker tickets are closed after final validation. Their test boundaries were explicitly approved by the user.
 
 ## Accepted direction
 
@@ -72,6 +72,6 @@ Initial findings come from current source inspection. Existing returning-user st
 
 Additional source inspection found no direct replacement for the mobile-hidden header sort select in the menu or filter dialog. This supports the accepted combined control; interaction behavior still needs browser verification.
 
-No screenshots or browser interaction checks have been performed in this interview. Visual quality, mobile discoverability, accessibility, and user outcomes remain unverified. Prior implementation evidence belongs to its original report and is not a current visual audit.
+At interview time, no screenshots or browser interaction checks had been performed for this design direction. Subsequent rendered and interaction verification is recorded in the implementation report; it does not establish accessibility compliance or measured user outcomes. Prior first-visit evidence belongs to its original report.
 
 No ADR is needed for these reversible presentation choices. All current design-tree branches are settled; no further interview question is pending.

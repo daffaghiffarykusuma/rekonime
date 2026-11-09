@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** closed
+
+Closed after final integration verification on 2026-11-08. Implementation 2f38721 and final review fixes 7dcb353 are integrated at 827e734. The delayed-catalog regression verifies progress remains current after Snapshot enrichment and reload. Final combined checks passed: 309 Bun, 61 development browser, 33 production browser and 15 repeated critical-flow cases plus typecheck, data, build and distribution checks. Both review axes cleared. See [final report](../../../docs/ui-design-implementation.md).
 
 Claimed by `t3/promote-watching-home-entry`. Required integration baseline
 `5a59095a9977899f587ab5db8bdaee6954ca1b16` is an ancestor of HEAD; initial checkout clean.

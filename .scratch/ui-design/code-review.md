@@ -1,5 +1,19 @@
 # Integration code review
 
+## Final independent recheck
+
+Target acd6324759a1f81813d88a659d0adf2033c45c9a, merged at 827e734 with the same implementation tree. Two new independent read-only reviewers checked the final-fix and original implementation ranges after resolution.
+
+### Standards
+
+No actionable findings. Semantic decision kinds remove copy-driven rendering. The presentation-only accessor collects availability, finite-value checks and rounding while ranking remains unchanged. Reloading persisted entries before synchronous Snapshot enrichment respects App Shell and Watchlist Lifecycle ownership. Responsive fixes wrap rather than clip controls.
+
+### Spec
+
+No actionable findings. Unavailable/limited/unknown/provisional qualifiers are retained, Because-you-watched uses named scales and MAL attribution, Watchlist reflow has whole-page and control-action coverage, and current edits survive delayed Snapshot enrichment. Compact summary spacing preserves content. No substantiated scope creep.
+
+Final summary: Standards 0 actionable findings; Spec 0 actionable findings. Both were source-only rechecks; test execution and rendered evidence are recorded separately in review-resolution.md and the final implementation report. Earlier findings below remain as history.
+
 Reviewed base: a56cb448e4067e7ef7009a79606a7b929d157e23.
 Reviewed head: 6d71322bf6d4b038dc67d8f763f72858b124839c.
 Diff: `git diff a56cb448e4067e7ef7009a79606a7b929d157e23...6d71322bf6d4b038dc67d8f763f72858b124839c`.

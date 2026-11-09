@@ -4,7 +4,7 @@ This project uses local Markdown for feature specifications and implementation t
 
 ## Feature specifications
 
-- [Mobile Discovery and UI hierarchy](../ui-design-spec.md): open, `ready-for-agent`. Browser-level Discovery, catalog filtering/sorting, and Watchlist is the primary test seam; focused existing Continue watching model tests are approved for deterministic ordering and eligibility. No new application-wide test interface.
+- [Mobile Discovery and UI hierarchy](../ui-design-spec.md): closed, all five tickets resolved. [Implementation and validation](../ui-design-implementation.md). Browser-level Discovery, catalog filtering/sorting, and Watchlist is the primary test seam; focused existing Continue watching model tests cover deterministic ordering and eligibility. No new application-wide test interface.
 - [First-visit Discovery](../first-visit-discovery-spec-draft.md): retains its existing status and participant-evidence prerequisite.
 
 ## Mobile Discovery UI tickets

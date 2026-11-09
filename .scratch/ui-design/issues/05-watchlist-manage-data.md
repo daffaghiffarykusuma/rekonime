@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** closed
+
+Closed after final integration verification on 2026-11-08. Implementations c577b3b and b69714a are integrated at 827e734 with final fixes acd6324. Whole-page 390px reflow and essential control actions at 200% text pass in both themes; historical width measurements remain separate in the diagnosis. Final combined checks passed: 309 Bun, 61 development browser, 33 production browser and 15 repeated critical-flow cases plus typecheck, data, build and distribution checks. Both review axes cleared. See [final report](../../../docs/ui-design-implementation.md).
 
 - [x] Manage data contains existing export, Personal Data Restore, and MAL Watchlist Import entry controls.
 - [x] The browser-local storage reminder stays visible while the disclosure is closed; status tabs, saved entries, and progress actions remain prominent.
@@ -12,7 +14,7 @@
 - [x] Opening or closing the disclosure performs no data operation or progress mutation and preserves existing lazy-loading behavior.
 - [x] Restore and MAL import remain distinguishable and retain validation, review, confirmation, privacy, cancellation, and failure recovery semantics.
 - [x] Approved browser coverage demonstrates disclosure access, existing backup roundtrip/progress workflow, and reviewed MAL import reachability, with a recorded failing-before/passing-after TDD cycle.
-- [ ] Desktop/mobile rendered inspection covers both themes, narrow controls, and increased text size; affected production tests, type checking, and relevant existing checks are recorded.
+- [x] Desktop/mobile rendered inspection covers both themes, narrow controls, and increased text size; affected production tests, type checking, and relevant existing checks are recorded.
 
 ## Context
 

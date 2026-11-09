@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** closed
+
+Closed after final integration verification on 2026-11-08. Implementation ceb5f2b, integrated at 827e734 with final review fixes acd6324. Final combined checks passed: 309 Bun tests, 61 development browser cases, 33 production browser cases, 15 repeated critical-flow cases, typecheck, data validation, build and distribution checks. Independent standards/spec rechecks found no actionable findings. See [final report](../../../docs/ui-design-implementation.md) and committed review-resolution evidence.
 
 - [x] Mobile users can open Filter & sort and directly select every supported catalog sort option.
 - [x] Reopening shows the current selection, and retained desktop controls share the same sort state.
