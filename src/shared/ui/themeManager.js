@@ -22,9 +22,9 @@ const ThemeManager = {
         // Detect OS preference
         this.osPreferenceQuery = window.matchMedia('(prefers-color-scheme: light)');
 
-        // Load saved theme or use OS preference
+        // Load the saved theme. Without one, Rekonime opens in its dark theme.
         const savedTheme = this.loadTheme();
-        const initialTheme = savedTheme || 'auto';
+        const initialTheme = savedTheme || 'dark';
 
         this.applyTheme(initialTheme);
 
@@ -113,8 +113,8 @@ const ThemeManager = {
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
         if (metaThemeColor) {
             const themeColors = {
-                dark: '#151917',
-                light: '#f6f3eb'
+                dark: '#0a0a0a',
+                light: '#ffffff'
             };
             metaThemeColor.setAttribute('content', themeColors[theme] || themeColors.dark);
         }

@@ -4307,6 +4307,11 @@ const App = {
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
       const decision = this.getCardDecisionData(anime);
       const decisionClass = this.sanitizeClassList('recommendation-signal', decision.className);
+      const obiLabel = decision.kind === 'episode' ? 'Episode strength' : decision.kind === 'community' ? 'MAL score' : '';
+      const obiScore = String(decision.value).split('/')[0];
+      const obiMarkup = obiLabel
+        ? `<span class="recommendation-obi-label" aria-hidden="true">${obiLabel}</span><span class="recommendation-obi-score" aria-hidden="true">${this.escapeHtml(obiScore)}</span>`
+        : '';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
@@ -4330,7 +4335,10 @@ const App = {
         ${groupHeading}
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="group" tabindex="-1" aria-label="${safeTitle}">
           <div class="recommendation-media">
-            <span class="recommendation-rank">#${index + 1}</span>
+            <span class="recommendation-obi">
+              <span class="recommendation-rank"><span class="visually-hidden">Pick </span>${index + 1}</span>
+              ${obiMarkup}
+            </span>
             <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" ${recDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${recFallbackAttrs}>
           </div>
           <div class="recommendation-info">

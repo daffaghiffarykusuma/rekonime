@@ -1,5 +1,7 @@
 # UI design direction
 
+> **Visual identity superseded on 2026-11-18.** The user replaced the earlier palette and typography with the "Obi & ink" direction: a neutral black base by default (plain white light theme still available), with ultramarine and a yellow score marker used only as accents, Anybody for display type and M PLUS 1 for body text. Recommendation covers carry a vertical obi band with the rank and headline score. Tokens and rationale live at the top of `src/styles/core-ui.css`. The layout, hierarchy, naming and behaviour decisions below still apply. Ignore only the instructions to preserve the old palette and typography.
+
 Date: 2026-11-07.
 Status: implemented and verified on feat/mobile-discovery-ui. All three design rounds were accepted; see the [implementation report](ui-design-implementation.md) for results and limits.
 
