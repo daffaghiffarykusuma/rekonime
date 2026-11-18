@@ -47,3 +47,109 @@ test('the loved toggle asks the Watchlist Lifecycle instead of reading button st
 
   assert.deepEqual(calls, ['open-title']);
 });
+
+// A fake App that records every method call; nested objects (detailExperience, workflow) record too.
+const createRecordingApp = (overrides = {}) => {
+  const calls = [];
+  const recorder = (prefix) => new Proxy({}, {
+    get: (_, name) => {
+      if (name in overrides && prefix === '') return overrides[name];
+      if (name === 'then') return undefined;
+      return (...args) => {
+        calls.push([`${prefix}${String(name)}`, ...args]);
+        if (name === 'getWatchlistImportWorkflow') return recorder('workflow.');
+        if (name === 'getRuntimeCapabilities') return recorder('capabilities.');
+        return undefined;
+      };
+    }
+  });
+  const app = recorder('');
+  return { app, calls };
+};
+
+const EXPECTED_APP_CALLS = {
+  'quick-save-recommendation': ['runShortlistAction', 'quick-save-recommendation', '7'],
+  'undo-recommendation-selection': ['runShortlistAction', 'undo-recommendation-selection', '7'],
+  'restore-session-dismissal': ['runShortlistAction', 'restore-session-dismissal', '7'],
+  'more-recommendations': ['runShortlistAction', 'more-recommendations', '7'],
+  'rec-more-like': ['handleRecommendationFeedback', 'rec-more-like', '7'],
+  'rec-not-for-me': ['handleRecommendationFeedback', 'rec-not-for-me', '7'],
+  'rec-less-tag': ['handleRecommendationFeedback', 'rec-less-tag', '7'],
+  'rec-already-seen': ['handleRecommendationFeedback', 'rec-already-seen', '7'],
+  'surprise-me': ['showSurpriseMe'],
+  'explain-recommendations': ['showRecommendationsHelp'],
+  'continue-progress': ['advanceWatchProgress', '7'],
+  'watch-progress-inc': ['adjustWatchProgress', '7', 1],
+  'watch-progress-dec': ['adjustWatchProgress', '7', -1],
+  'toggle-filter': ['toggleFilter', 'genres', 'Action'],
+  'clear-search': ['clearHeaderSearchQuery', { scroll: true }],
+  'apply-preset': ['applyFilterPreset', 'hidden-gems'],
+  'apply-seasonal': ['applySeasonalFilter', '2026'],
+  'scroll-to-filters': ['scrollToFiltersSection'],
+  'scroll-to-results': ['scrollToResultsSection'],
+  'load-more': ['loadMoreAnime'],
+  'open-anime': ['showAnimeDetail', '7'],
+  'close-detail': ['closeDetailModal'],
+  'edit-taste-profile': ['ensureSettingsRendered'],
+  'reset-taste-profile': ['resetTasteProfile'],
+  'export-personal-data': ['exportPersonalData'],
+  'retry-mal-watchlist-import': ['workflow.retry'],
+  'retry-mal-recommendations': ['workflow.retry'],
+  'cancel-mal-watchlist-import': ['workflow.cancel'],
+  'confirm-mal-watchlist-import': ['openMalWatchlistConfirmation'],
+  'apply-mal-watchlist-import': ['workflow.apply']
+};
+
+test('each command calls its App command with values read from the action element', () => {
+  for (const [action, expected] of Object.entries(EXPECTED_APP_CALLS)) {
+    setupDom(`<button data-action="${action}" data-anime-id="7" data-filter-type="genres" data-filter-value="Action"
+      data-preset="hidden-gems" data-season-year="2026">Go</button>`);
+    const { app, calls } = createRecordingApp({ currentAnimeId: null, quickFilterState: {}, detailExperience: null });
+    const event = { preventDefault() {}, stopPropagation() {} };
+    globalThis.requestAnimationFrame ??= (callback) => setTimeout(callback, 0);
+
+    runHomeAction(app, document.querySelector('button'), event);
+
+    assert.deepEqual(calls.find(call => call[0] === expected[0])?.slice(0, expected.length), expected, action);
+  }
+});
+
+test('page-level commands update their own controls without an App command', () => {
+  setupDom(`
+    <div class="quick-tab is-active" data-action="quick-tab" data-tab="genres"></div>
+    <div class="quick-tab" data-action="quick-tab" data-tab="themes"></div>
+    <div class="quick-filters-track is-active" data-filter-group="genres"></div>
+    <div class="quick-filters-track" data-filter-group="themes" hidden></div>
+    <div class="detail-tabs">
+      <button role="tab" data-action="detail-tab" data-detail-tab="info" class="is-active"></button>
+      <button role="tab" data-action="detail-tab" data-detail-tab="reviews"></button>
+      <section data-detail-panel="info"></section><section data-detail-panel="reviews" hidden></section>
+    </div>
+    <button data-action="toggle-quick-more" data-filter-type="genres"></button>
+    <button data-action="home-shortcut"></button>
+    <button data-action="restore-personal-data"></button><input id="personal-data-restore" type="file">
+  `);
+  const { app, calls } = createRecordingApp({ currentAnimeId: 'open', quickFilterState: { genres: { expanded: false } } });
+  const event = { preventDefault() {}, stopPropagation() {} };
+  const run = (selector) => runHomeAction(app, document.querySelector(selector), event);
+
+  run('[data-tab="themes"]');
+  assert.equal(document.querySelector('[data-filter-group="themes"]').hidden, false);
+  assert.equal(document.querySelector('[data-tab="themes"]').getAttribute('aria-selected'), 'true');
+
+  run('[data-detail-tab="reviews"]');
+  assert.equal(document.querySelector('[data-detail-panel="reviews"]').hidden, false);
+  assert.equal(document.querySelector('[data-detail-panel="info"]').hidden, true);
+
+  run('[data-action="toggle-quick-more"]');
+  assert.equal(app.quickFilterState.genres.expanded, true);
+  assert.equal(calls.some(call => call[0] === 'renderQuickFilters'), true);
+
+  let restoreClicked = false;
+  document.getElementById('personal-data-restore').addEventListener('click', () => { restoreClicked = true; });
+  run('[data-action="restore-personal-data"]');
+  assert.equal(restoreClicked, true);
+
+  run('[data-action="home-shortcut"]');
+  assert.deepEqual(calls.filter(call => ['closeDetailModal', 'clearAllFilters'].includes(call[0])).map(call => call[0]), []);
+});
