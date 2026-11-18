@@ -17,11 +17,10 @@ const WATCHLIST_FILTERS = [
 const createWatchlistPageRenderer = ({
   documentRef = typeof document !== 'undefined' ? document : null,
   getCurrentFilter,
-  getWatchlistState,
-  migrateLegacyBookmarksToWatchlist,
+  // Watchlist Lifecycle Runtime prepareEntries: loads, migrates, and backfills Snapshots.
+  prepareEntries,
   placeholderCover,
   resolveImage,
-  saveWatchlistMap,
   scheduleAiringDashboardUpdate
 }) => {
   const renderWatchlistFilters = (counts) => {
@@ -119,30 +118,13 @@ const createWatchlistPageRenderer = ({
     return card;
   };
 
-  const ensureWatchlistSnapshots = (map, version) => {
-    let changed = false;
-    map.forEach((entry, id) => {
-      if (entry?.snapshot) return;
-      const fallback = getDisplayItemForEntry(entry);
-      if (!fallback || !fallback.id) return;
-      entry.snapshot = { ...fallback };
-      map.set(id, entry);
-      changed = true;
-    });
-
-    if (changed) {
-      saveWatchlistMap(map, version);
-    }
-  };
-
   const renderWatchlist = ({ cacheOnly = false } = {}) => {
     const section = documentRef?.getElementById('watchlist-section');
     const grid = documentRef?.getElementById('watchlist-grid');
     const empty = documentRef?.getElementById('watchlist-empty');
     if (!section || !grid || !empty) return false;
 
-    migrateLegacyBookmarksToWatchlist();
-    const { map: watchlistMap, entries, version } = getWatchlistState();
+    const entries = prepareEntries({ buildFallbackSnapshot: getDisplayItemForEntry });
 
     if (!entries.length) {
       section.classList.add('is-empty');
@@ -152,7 +134,6 @@ const createWatchlistPageRenderer = ({
     }
 
     section.classList.remove('is-empty');
-    ensureWatchlistSnapshots(watchlistMap, version);
     const model = buildWatchlistDisplayModel(entries, [], {
       statusFilter: getCurrentFilter(),
       placeholder: placeholderCover
@@ -171,7 +152,6 @@ const createWatchlistPageRenderer = ({
 
   return {
     buildCard,
-    ensureWatchlistSnapshots,
     renderWatchlist,
     renderWatchlistFilters
   };

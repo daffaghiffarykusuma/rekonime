@@ -9,7 +9,8 @@ const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
 const createApp = (watchlistPage = false) => {
   setupDom(`<div id="settings-content"></div>${watchlistPage ? '<div id="watchlist-grid" data-renderer="watchlist-page"></div>' : ''}`);
   return Object.assign(Object.create(App), {
-    animeData: [{ id: 'one', malId: 1, title: 'One', episodeCount: 12 }], isFullDataLoaded: true,
+    animeData: [{ id: 'one', malId: 1, title: 'One', episodeCount: 12 }],
+    catalogRuntime: { isFullLoaded: () => true, loadFullCatalog: async () => true },
     watchlistEntries: new Map(), watchlistLifecycle: null, watchlistLifecycleRuntime: null,
     watchlistImportWorkflow: null, tasteProfileStore: null, settingsRendered: false
   });
@@ -19,7 +20,7 @@ for (const watchlistPage of [false, true]) {
   test(`App ${watchlistPage ? 'Watchlist' : 'home'} adapter renders a review and dispatches one persisted batch`, async () => {
     const app = createApp(watchlistPage);
     const order = [];
-    app.applyWatchlistTransition = () => order.push('event');
+    app.emitAppEvent = (name) => { if (name === 'rekonime:watchlist-updated') order.push('event'); };
     app.scheduleAiringDashboardRender = () => order.push('airing');
     app.refreshTasteProfileEvidence = () => order.push('derive');
     app.updateTasteProfileUi = () => order.push('taste-ui');
@@ -44,7 +45,7 @@ for (const watchlistPage of [false, true]) {
 test('App adapter preserves the commit and retries only failed recommendation effects', async () => {
   const app = createApp();
   const order = [];
-  app.applyWatchlistTransition = () => order.push('event');
+  app.emitAppEvent = (name) => { if (name === 'rekonime:watchlist-updated') order.push('event'); };
   app.scheduleAiringDashboardRender = () => order.push('airing');
   app.refreshTasteProfileEvidence = () => { order.push('derive'); throw new Error('Injected derivation failure'); };
   app.updateTasteProfileUi = () => order.push('taste-ui');

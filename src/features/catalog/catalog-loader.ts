@@ -437,8 +437,14 @@ const createCatalogRuntime = ({
     session,
     loadInitialData,
     loadFullCatalog,
-    setScheduledFullLoadHandle: (handle) => session.setScheduledHandle(handle),
-    loadAnimeDetailChunk
+    loadAnimeDetailChunk,
+    // Catalog load state lives here; callers ask instead of mirroring it.
+    isFullLoaded: () => session.isFullLoaded(),
+    markFullLoaded: (value) => session.markFullLoaded(value),
+    hasInteractionCaptured: () => session.hasInteractionCaptured(),
+    captureInteraction: () => session.captureInteraction(),
+    getScheduledFullLoadHandle: () => session.getScheduledHandle(),
+    setScheduledFullLoadHandle: (handle) => session.setScheduledHandle(handle)
   };
 };
 
@@ -449,22 +455,7 @@ const createAppCatalogRuntime = (app) => createCatalogRuntime({
   getLogger: () => app.getLogger(),
   getPerformanceNow: () => app.getPerformanceNow(),
   getCurrentAnimeData: () => app.animeData,
-  session: createCatalogSession({
-    isFullLoaded: app.isFullDataLoaded,
-    isLoadingFull: app.loadingFullCatalog,
-    activeFullLoadPromise: app.fullCatalogPromise,
-    scheduledFullLoadHandle: app.fullCatalogScheduleHandle,
-    interactionCaptured: app.fullCatalogInteractionCaptured,
-    detailChunkPromises: app.animeDetailChunkPromises,
-    detailChunkLoadedIds: app.animeDetailChunkLoadedIds,
-    onChange: (snapshot) => {
-      app.isFullDataLoaded = snapshot.isFullLoaded;
-      app.loadingFullCatalog = snapshot.isLoadingFull;
-      app.fullCatalogPromise = snapshot.activeFullLoadPromise;
-      app.fullCatalogScheduleHandle = snapshot.scheduledFullLoadHandle;
-      app.fullCatalogInteractionCaptured = snapshot.interactionCaptured;
-    }
-  }),
+  session: createCatalogSession(),
   teardownFullCatalogInteractionTriggers: () => app.teardownFullCatalogInteractionTriggers(),
   cancelIdleTask: (handle) => app.getRuntimeCapabilities().cancelIdleTask(handle),
   addPreloadHints: () => app.addPreloadHints(),
@@ -472,13 +463,9 @@ const createAppCatalogRuntime = (app) => createCatalogRuntime({
   emitCatalogEvent: (type, detail) => app.emitCatalogEvent(type, detail),
   loadEmbeddedData: () => app.loadEmbeddedData(),
   applyCatalogPayload: (payload, options) => app.applyCatalogPayload(payload, options),
-  onAnimeDetailLoaded: (anime) => {
-    app.detailExperience?.invalidate(anime.id);
-    app.gridSortedCache = null;
-    app.gridSortedKey = '';
-    app.gridSortedSource = null;
-    app.refreshWatchlistSnapshotsFromCatalog({ persist: true });
-  },
+  // One catalog-change signal: the App applies a single invalidation policy for both
+  // full replacement (applyCatalogPayload) and detail enrichment.
+  onAnimeDetailLoaded: (anime) => app.handleCatalogChange({ reason: 'enriched', ids: [String(anime.id)] }),
   catalogCacheMaxAgeMs: app.catalogCacheMaxAgeMs,
   fullCatalogTimeoutMs: app.fullCatalogTimeoutMs
 });

@@ -567,7 +567,6 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 }
 .discovery-garden.is-returning .discovery-subtitle,
 .discovery-garden.is-returning .discovery-title br,
-.discovery-garden.is-returning [data-action="choose-viewing-goal"] { display: none; }
 .discovery-garden.is-returning .discovery-title {
   max-width: none;
   margin: 0;

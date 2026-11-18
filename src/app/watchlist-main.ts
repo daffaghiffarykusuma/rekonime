@@ -37,6 +37,8 @@ const DEFERRED_SERVICES_TIMEOUT_MS = 2000;
 const IMAGE_PROXY_IDLE_TIMEOUT_MS = 2000;
 
 let appInitPromise = null;
+let loadedApp = null;
+let applyingOwnTransition = false;
 let currentWatchlistFilter = 'all';
 let watchlistAiringDashboardAdapter = null;
 let watchlistPageInteractions = null;
@@ -85,6 +87,7 @@ const loadFullApp = async () => {
         App.__appInit = true;
         await App.init();
       }
+      loadedApp = App;
       return App;
     })
     .catch((error) => {
@@ -101,23 +104,6 @@ const sanitizeImageUrl = (rawUrl) => {
   });
 };
 
-const getWatchlistState = () => {
-  const lifecycle = getWatchlistLifecycle();
-  const map = lifecycle.load();
-  return { map, entries: [...map.values()], version: 1 };
-};
-
-const saveWatchlistMap = (map, version = 1) => {
-  const lifecycle = createWatchlistLifecycle({ version, placeholderCover: PLACEHOLDER_COVER, entries: map });
-  lifecycle.save();
-};
-
-const migrateLegacyBookmarksToWatchlist = () => {
-  const lifecycle = getWatchlistLifecycle();
-  lifecycle.load();
-  lifecycle.migrateLegacy();
-};
-
 const getEpisodeCountFromCard = (card) => getPresentationEpisodeCountFromCard(card);
 
 const getCurrentWatchlistFilter = () => currentWatchlistFilter;
@@ -129,27 +115,52 @@ const updateWatchlistUi = (card, entry) => {
   });
 };
 
+const findWatchlistCard = (animeId) => [...document.querySelectorAll('#watchlist-grid .anime-card')]
+  .find(card => card.dataset.animeId === String(animeId)) || null;
+
+// Host ports for the dedicated Watchlist page. The page has no Discovery shortlist or
+// promoted Watching entry, and renderWatchlist schedules its own Airing Schedule update.
+const watchlistPageHost = {
+  updateControls: (animeId, entry) => updateWatchlistUi(findWatchlistCard(animeId), entry),
+  renderWatchlist: () => renderWatchlist(),
+  emit: (name, payload) => {
+    if (typeof window === 'undefined') return;
+    applyingOwnTransition = true;
+    try {
+      window.dispatchEvent(new CustomEvent(name, { detail: payload }));
+    } finally {
+      applyingOwnTransition = false;
+    }
+  },
+  announce: (feedback) => showToast(feedback.message, { key: 'watchlist', type: 'success' }),
+  announceFailure: (failure) => showToast(failure.message, { key: 'watchlist', type: 'error', duration: 10000 }),
+  // Taste Profile lives in the full App, which loads lazily on this page (for settings).
+  refreshTasteProfile: () => {
+    if (!loadedApp) return;
+    loadedApp.loadWatchlist();
+    loadedApp.refreshTasteProfileEvidence();
+  },
+  updateTasteProfileUi: () => loadedApp?.updateTasteProfileUi()
+};
+
+const getWatchlistLifecycleRuntime = () => {
+  if (!watchlistLifecycleRuntime) {
+    watchlistLifecycleRuntime = createWatchlistLifecycleRuntime({
+      dashboardTimeout: null,
+      getLifecycle: getWatchlistLifecycle,
+      host: watchlistPageHost,
+      loadBeforeTransition: true,
+      renderMode: null
+    });
+  }
+  return watchlistLifecycleRuntime;
+};
+
 const getWatchlistPageRuntime = () => {
   if (watchlistPageRuntime) return watchlistPageRuntime;
   watchlistPageRuntime = createWatchlistPageRuntime({
     getEpisodeCountFromCard,
-    getWatchlistRuntime: () => {
-      if (!watchlistLifecycleRuntime) {
-        watchlistLifecycleRuntime = createWatchlistLifecycleRuntime({
-          buildSnapshot: () => null,
-          dashboardTimeout: null,
-          getAnime: () => null,
-          getEpisodeLimit: () => null,
-          getLifecycle: getWatchlistLifecycle,
-          loadBeforeTransition: true,
-          renderMode: null
-        });
-      }
-      return watchlistLifecycleRuntime;
-    },
-    renderWatchlist,
-    showFeedback: (feedback) => showToast(feedback.message, { key: 'watchlist', type: 'success' }),
-    updateWatchlistUi
+    getWatchlistRuntime: getWatchlistLifecycleRuntime
   });
   return watchlistPageRuntime;
 };
@@ -167,6 +178,8 @@ const getWatchlistPageInteractions = () => {
     handleWatchlistChange,
     handleWatchlistClick,
     handleImageError: (img) => imageProxyRuntime.handleImageError(img),
+    // Transitions made on this page already re-render through the host ports.
+    isOwnWatchlistUpdate: () => applyingOwnTransition,
     loadFullApp,
     onFilterChange: setCurrentWatchlistFilter,
     renderWatchlist
@@ -191,10 +204,8 @@ const getWatchlistPageRenderer = () => {
   watchlistPageRenderer = createWatchlistPageRenderer({
     resolveImage: (options) => imageProxyRuntime.resolveImage(options),
     getCurrentFilter: getCurrentWatchlistFilter,
-    getWatchlistState,
-    migrateLegacyBookmarksToWatchlist,
+    prepareEntries: (options) => getWatchlistLifecycleRuntime().prepareEntries(options),
     placeholderCover: PLACEHOLDER_COVER,
-    saveWatchlistMap,
     scheduleAiringDashboardUpdate: scheduleWatchlistAiringDashboardUpdate
   });
   return watchlistPageRenderer;

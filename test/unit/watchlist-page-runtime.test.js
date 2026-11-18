@@ -3,28 +3,28 @@ import assert from 'node:assert/strict';
 import { createWatchlistPageRuntime } from '../../src/features/watchlist/watchlist-page-runtime.ts';
 import { setupDom } from '../helpers/dom.js';
 
-const createRuntime = (result) => {
+const createRuntime = () => {
   const calls = [];
+  const record = (name) => (...args) => {
+    calls.push([name, ...args]);
+    return { changed: true };
+  };
   return {
     calls,
     runtime: {
-      setStatus: (id, status, options) => {
-        calls.push(['setStatus', id, status, options]);
-        return result || { transition: { changed: true, feedback: { message: 'Saved to Watching now', action: { label: 'View watchlist', href: '/watchlist.html' } }, render: { controls: { shouldUpdate: true, entry: { id, status } }, watchlist: { shouldRender: true } } } };
-      },
-      setProgress: (id, progress, options) => {
-        calls.push(['setProgress', id, progress, options]);
-        return result || { transition: { changed: true, render: { controls: { shouldUpdate: true, entry: { id, progress } }, watchlist: { shouldRender: false } } } };
-      },
-      adjustProgress: (id, delta, options) => {
-        calls.push(['adjustProgress', id, delta, options]);
-        return result || { transition: { changed: true, render: { controls: { shouldUpdate: true, entry: { id, progress: delta } }, watchlist: { shouldRender: false } } } };
-      }
+      setStatus: record('setStatus'),
+      setProgress: record('setProgress'),
+      adjustProgress: record('adjustProgress')
     }
   };
 };
 
-test('Watchlist Page Runtime handles status changes through one transition path', () => {
+const createPageRuntime = (watchlistRuntime) => createWatchlistPageRuntime({
+  getEpisodeCountFromCard: (card) => Number(card.dataset.episodeCount) || null,
+  getWatchlistRuntime: () => watchlistRuntime
+});
+
+test('Watchlist Page Runtime sends status changes to the Watchlist Lifecycle Runtime with the card total', () => {
   setupDom(`
     <article class="anime-card" data-anime-id="show-1" data-episode-count="12">
       <select data-action="watch-status" data-anime-id="show-1">
@@ -33,50 +33,46 @@ test('Watchlist Page Runtime handles status changes through one transition path'
       </select>
     </article>
   `);
-  const { calls, runtime: watchlistRuntime } = createRuntime();
-  const uiCalls = [];
-  const runtime = createWatchlistPageRuntime({
-    getEpisodeCountFromCard: () => 12,
-    getWatchlistRuntime: () => watchlistRuntime,
-    renderWatchlist: () => uiCalls.push(['renderWatchlist']),
-    showFeedback: (...args) => uiCalls.push(['showFeedback', ...args]),
-    updateWatchlistUi: (...args) => uiCalls.push(['updateWatchlistUi', ...args])
-  });
+  const { calls, runtime } = createRuntime();
 
-  const handled = runtime.handleWatchlistChange(document.querySelector('select'));
+  const handled = createPageRuntime(runtime).handleWatchlistChange(document.querySelector('select'));
 
   assert.equal(handled, true);
-  assert.deepEqual(calls.map(call => call[0]), ['setStatus']);
-  assert.equal(calls[0][3].episodeCount, 12);
-  assert.equal(uiCalls[0][0], 'updateWatchlistUi');
-  assert.equal(uiCalls[1][0], 'renderWatchlist');
-  assert.deepEqual(uiCalls[2], ['showFeedback', {
-    message: 'Saved to Watching now',
-    action: { label: 'View watchlist', href: '/watchlist.html' }
-  }]);
+  assert.deepEqual(calls, [['setStatus', 'show-1', 'watching', { episodeCount: 12 }]]);
 });
 
-test('Watchlist Page Runtime handles progress clicks without re-rendering full watchlist', () => {
+test('Watchlist Page Runtime sends progress clicks as adjustments', () => {
   setupDom(`
     <article class="anime-card" data-anime-id="show-1" data-episode-count="12">
       <div class="watchlist-controls">
         <button data-action="watch-progress-inc" data-anime-id="show-1">+</button>
+        <button data-action="watch-progress-dec" data-anime-id="show-1">-</button>
       </div>
     </article>
   `);
-  const { calls, runtime: watchlistRuntime } = createRuntime();
-  const uiCalls = [];
-  const runtime = createWatchlistPageRuntime({
-    getEpisodeCountFromCard: () => 12,
-    getWatchlistRuntime: () => watchlistRuntime,
-    renderWatchlist: () => uiCalls.push(['renderWatchlist']),
-    updateWatchlistUi: (...args) => uiCalls.push(['updateWatchlistUi', ...args])
-  });
+  const { calls, runtime } = createRuntime();
+  const pageRuntime = createPageRuntime(runtime);
 
-  const handled = runtime.handleWatchlistClick(document.querySelector('button'));
+  assert.equal(pageRuntime.handleWatchlistClick(document.querySelector('[data-action="watch-progress-inc"]')), true);
+  assert.equal(pageRuntime.handleWatchlistClick(document.querySelector('[data-action="watch-progress-dec"]')), true);
 
-  assert.equal(handled, true);
-  assert.deepEqual(calls.map(call => call[0]), ['adjustProgress']);
-  assert.equal(uiCalls.length, 1);
-  assert.equal(uiCalls[0][0], 'updateWatchlistUi');
+  assert.deepEqual(calls, [
+    ['adjustProgress', 'show-1', 1, { episodeCount: 12 }],
+    ['adjustProgress', 'show-1', -1, { episodeCount: 12 }]
+  ]);
+});
+
+test('Watchlist Page Runtime ignores targets outside Watchlist controls and unknown actions', () => {
+  setupDom(`
+    <article class="anime-card" data-anime-id="show-1">
+      <button id="outside" data-action="open-anime">Open</button>
+      <input id="other" data-action="something-else" />
+    </article>
+  `);
+  const { calls, runtime } = createRuntime();
+  const pageRuntime = createPageRuntime(runtime);
+
+  assert.equal(pageRuntime.handleWatchlistClick(document.getElementById('outside')), false);
+  assert.equal(pageRuntime.handleWatchlistChange(document.getElementById('other')), false);
+  assert.deepEqual(calls, []);
 });

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { IMAGE_PLACEHOLDER } from '../../shared/runtime/image-placeholder.js';
 import { Recommendations } from '../discovery/recommendations.ts';
-import { buildDetailDecisionData } from '../discovery/decision-signal.ts';
+import { getRatingSignals } from '../discovery/rating-evidence.ts';
 
 const renderDetailSkeleton = () => `
   <div class="detail-skeleton">
@@ -186,18 +186,11 @@ const renderDetailContent = (anime, {
   const synopsisMarkup = renderSynopsis(synopsis);
   const synopsisSection = synopsisMarkup || renderSynopsisLoading();
   const episodeCount = getEpisodeCount(anime);
-  const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
-  const rawRetention = anime?.stats?.retentionScore;
-  const retentionScore = hasEpisodes && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
-  const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : null;
-  const malSatisfactionClass = Recommendations.getMalSatisfactionClass(malSatisfactionScore);
-  const rawStart = anime?.stats?.threeEpisodeHook;
-  const rawChurn = anime?.stats?.churnRisk?.score;
-  const rawFinish = anime?.stats?.worthFinishing;
-  const hasOpening = anime.stats?.ratingEvidence ? anime.stats.ratingEvidence.positionsKnown && (anime.episodes || []).some(ep => ep.episode >= 1 && ep.episode <= 3) : true;
-  const startScore = hasEpisodes && hasOpening && Number.isFinite(rawStart) ? Math.round(rawStart) : null;
-  const stayScore = hasEpisodes && Number.isFinite(rawChurn) ? Math.round(100 - rawChurn) : null;
-  const finishScore = hasEpisodes && Number.isFinite(rawFinish) ? Math.round(rawFinish) : null;
+  const signals = getRatingSignals(anime);
+  const hasEpisodes = signals.hasEpisodeEvidence;
+  const malSatisfactionScore = signals.communityScore;
+  const malSatisfactionClass = signals.communityScoreClass;
+  const { start: startScore, stay: stayScore, finish: finishScore } = signals;
   const safeStartScore = Number.isFinite(startScore) ? startScore : 0;
   const safeStayScore = Number.isFinite(stayScore) ? stayScore : 0;
   const safeFinishScore = Number.isFinite(finishScore) ? finishScore : 0;
@@ -212,7 +205,7 @@ const renderDetailContent = (anime, {
     fallbackSrc: detailFallback,
     placeholder: IMAGE_PLACEHOLDER
   });
-  const decision = buildDetailDecisionData(anime, { episodeCount });
+  const decision = signals.headline;
   const detailDecisionClass = sanitizeClassList('detail-verdict', decision.className);
 
   const breakdown = renderBreakdown({ hasEpisodes, startScore, stayScore, finishScore, safeStartScore, safeStayScore, safeFinishScore });
@@ -434,10 +427,11 @@ const renderSimilarAnimeSection = (anime, {
             ${similarResults.map(result => {
       const similar = result.anime;
       const episodeCount = getEpisodeCount(similar);
-      const retentionScore = Recommendations.getPresentationEpisodeScore(similar);
-      const satisfactionScore = Number.isFinite(similar?.communityScore) ? similar.communityScore : null;
-      const retentionClass = Recommendations.getRetentionClass(retentionScore);
-      const satisfactionClass = Recommendations.getMalSatisfactionClass(satisfactionScore);
+      const similarSignals = getRatingSignals(similar);
+      const retentionScore = similarSignals.episodeRatingStrength;
+      const satisfactionScore = similarSignals.communityScore;
+      const retentionClass = similarSignals.episodeRatingStrengthClass;
+      const satisfactionClass = similarSignals.communityScoreClass;
       const sharedGenres = formatTags(result.sharedGenres);
       const sharedThemes = formatTags(result.sharedThemes);
       const safeId = escapeAttr(similar.id);
@@ -467,7 +461,7 @@ const renderSimilarAnimeSection = (anime, {
                       <span class="similar-tag">Themes: ${safeThemes}</span>
                     </div>
                     <div class="similar-stats">
-                      <span class="similar-stat ${retentionClass}">Episode Rating Strength ${retentionScore !== null ? `${retentionScore}/100` : 'N/A'}</span><span>${escapeHtml(Recommendations.getRatingEvidenceLabel(similar))}</span>
+                      <span class="similar-stat ${retentionClass}">Episode Rating Strength ${retentionScore !== null ? `${retentionScore}/100` : 'N/A'}</span><span>${escapeHtml(similarSignals.evidenceLabel)}</span>
                       <span class="similar-stat ${satisfactionClass}">Community Score (MAL) ${satisfactionScore !== null ? `${satisfactionScore.toFixed(1)}/10` : 'N/A'}</span>
                     </div>
                   </div>
@@ -485,7 +479,6 @@ const renderSimilarAnimeSection = (anime, {
 export {
   renderFranchiseHubSection,
   renderSimilarAnimeSection,
-  buildDetailDecisionData,
   renderDetailSkeleton,
   renderReviewsLoading,
   renderSynopsisLoading,

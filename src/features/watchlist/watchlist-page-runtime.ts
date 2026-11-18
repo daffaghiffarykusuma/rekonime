@@ -1,80 +1,53 @@
 // @ts-nocheck
+// Translates Watchlist page DOM actions into Watchlist Lifecycle Runtime commands.
+// The runtime applies every transition effect through the page's host ports.
 const normalizeActionId = (value) => String(value || '').trim();
+
+const CHANGE_COMMANDS = {
+  'watch-status': (runtime, animeId, target, options) => runtime.setStatus(animeId, target.value, options),
+  'watch-progress': (runtime, animeId, target, options) => runtime.setProgress(animeId, target.value, options)
+};
+
+const CLICK_COMMANDS = {
+  'watch-progress-inc': (runtime, animeId, options) => runtime.adjustProgress(animeId, 1, options),
+  'watch-progress-dec': (runtime, animeId, options) => runtime.adjustProgress(animeId, -1, options)
+};
 
 const createWatchlistPageRuntime = ({
   getEpisodeCountFromCard,
-  getWatchlistRuntime,
-  renderWatchlist,
-  showFeedback = () => {},
-  updateWatchlistUi
+  getWatchlistRuntime
 }) => {
-  const applyWatchlistTransition = (card, result) => {
-    const transition = result?.transition;
-    if (!transition?.changed) return false;
-    if (transition.render?.controls?.shouldUpdate) {
-      updateWatchlistUi(card, transition.render.controls.entry);
-    }
-    if (transition.render?.watchlist?.shouldRender) {
-      renderWatchlist();
-    }
-    if (transition.feedback) {
-      showFeedback(transition.feedback);
-    }
-    return true;
+  const resolveCardTarget = (target, element) => {
+    const card = target.closest?.('.anime-card');
+    if (!card) return null;
+    const animeId = normalizeActionId(element.dataset.animeId || card.dataset.animeId);
+    if (!animeId) return null;
+    return { animeId, options: { episodeCount: getEpisodeCountFromCard(card) } };
   };
 
   const handleWatchlistChange = (target) => {
     if (!target || !target.dataset) return false;
-    const action = target.dataset.action;
-    if (!action) return false;
-    const card = target.closest?.('.anime-card');
-    if (!card) return true;
-    const animeId = normalizeActionId(target.dataset.animeId || card.dataset.animeId);
-    if (!animeId) return true;
-    const episodeCount = getEpisodeCountFromCard(card);
-
-    if (action === 'watch-status') {
-      applyWatchlistTransition(card, getWatchlistRuntime().setStatus(animeId, target.value, { episodeCount }));
-      return true;
-    }
-
-    if (action === 'watch-progress') {
-      applyWatchlistTransition(card, getWatchlistRuntime().setProgress(animeId, target.value, { episodeCount }));
-      return true;
-    }
-
-    return false;
+    const command = CHANGE_COMMANDS[target.dataset.action];
+    if (!target.dataset.action) return false;
+    const resolved = resolveCardTarget(target, target);
+    if (!resolved) return true;
+    if (!command) return false;
+    command(getWatchlistRuntime(), resolved.animeId, target, resolved.options);
+    return true;
   };
 
   const handleWatchlistClick = (target) => {
     const wrapper = target.closest?.('.watchlist-controls');
     if (!wrapper) return false;
     const actionEl = target.closest?.('[data-action]');
-    if (!actionEl) return true;
-    const action = actionEl.dataset.action;
-    if (!action) return true;
-
-    const card = target.closest?.('.anime-card');
-    if (!card) return true;
-    const animeId = normalizeActionId(actionEl.dataset.animeId || card.dataset.animeId);
-    if (!animeId) return true;
-    const episodeCount = getEpisodeCountFromCard(card);
-
-    if (action === 'watch-progress-inc') {
-      applyWatchlistTransition(card, getWatchlistRuntime().adjustProgress(animeId, 1, { episodeCount }));
-      return true;
-    }
-
-    if (action === 'watch-progress-dec') {
-      applyWatchlistTransition(card, getWatchlistRuntime().adjustProgress(animeId, -1, { episodeCount }));
-      return true;
-    }
-
+    const command = CLICK_COMMANDS[actionEl?.dataset?.action];
+    if (!command) return true;
+    const resolved = resolveCardTarget(target, actionEl);
+    if (resolved) command(getWatchlistRuntime(), resolved.animeId, resolved.options);
     return true;
   };
 
   return {
-    applyWatchlistTransition,
     handleWatchlistChange,
     handleWatchlistClick
   };

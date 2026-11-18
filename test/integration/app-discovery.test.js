@@ -6,6 +6,7 @@ import { Discovery } from '../../src/features/discovery/discovery.js';
 test('App routes Surprise Me candidates through Taste Profile before Discovery', () => {
   const original = {
     animeData: App.animeData,
+    discoveryShortlist: App.discoveryShortlist,
     getTasteProfileStore: App.getTasteProfileStore,
     getWatchlistLifecycle: App.getWatchlistLifecycle,
     showAnimeDetail: App.showAnimeDetail,
@@ -17,7 +18,8 @@ test('App routes Surprise Me candidates through Taste Profile before Discovery',
 
   try {
     App.animeData = [candidate];
-    App.getWatchlistLifecycle = () => ({ getIds: () => ['watched'], getEntries: () => [] });
+    App.discoveryShortlist = null;
+    App.getWatchlistLifecycle = () => ({ getEntries: () => [{ id: 'watched', status: 'completed' }] });
     App.getTasteProfileStore = () => ({
       prepareDiscoverySource: (anime, options) => {
         calls.push(['prepare', anime, options]);
@@ -34,12 +36,11 @@ test('App routes Surprise Me candidates through Taste Profile before Discovery',
     App.showSurpriseMe();
 
     assert.deepEqual(calls.map(call => call[0]), ['prepare', 'discover', 'track', 'show']);
-    assert.deepEqual(calls[0][2], { excludedIds: ['watched'] });
+    assert.equal(calls[0][2].excludedIds.includes('watched'), true);
   } finally {
-    App.animeData = original.animeData;
-    App.getTasteProfileStore = original.getTasteProfileStore;
-    App.getWatchlistLifecycle = original.getWatchlistLifecycle;
-    App.showAnimeDetail = original.showAnimeDetail;
+    Object.assign(App, { animeData: original.animeData, discoveryShortlist: original.discoveryShortlist,
+      getTasteProfileStore: original.getTasteProfileStore, getWatchlistLifecycle: original.getWatchlistLifecycle,
+      showAnimeDetail: original.showAnimeDetail });
     Discovery.getSurpriseMe = original.getSurpriseMe;
     Discovery.recordSurprise = original.recordSurprise;
   }

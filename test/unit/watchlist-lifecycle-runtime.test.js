@@ -315,3 +315,95 @@ test('import fingerprint observes a second lifecycle writing to the same persist
   assert.equal(storage.getItem('rekonime.watchlist'), raw);
   assert.equal(local.getEntry('saved').progress, 5);
 });
+
+const createRecordingHost = (ports = null) => {
+  const calls = [];
+  const all = ['updateControls', 'renderWatchlist', 'renderContinueWatching', 'emit', 'scheduleDashboard',
+    'announce', 'announceFailure', 'refreshTasteProfile', 'updateTasteProfileUi', 'renderRecommendations'];
+  const host = {};
+  for (const port of ports || all) host[port] = (...args) => calls.push([port, ...args]);
+  return { calls, host, names: () => calls.map(call => call[0]) };
+};
+
+test('a status change applies every effect through the host in one order', () => {
+  const lifecycle = createWatchlistLifecycle({ storage: createMemoryStorage(), now: () => 1000 });
+  const { host, names, calls } = createRecordingHost();
+  const runtime = createWatchlistLifecycleRuntime({ getLifecycle: () => lifecycle, host });
+
+  runtime.setStatus('show-1', 'watching');
+
+  assert.deepEqual(names(), ['updateControls', 'emit', 'scheduleDashboard', 'announce', 'renderContinueWatching',
+    'refreshTasteProfile', 'renderRecommendations']);
+  assert.equal(calls[1][1], 'rekonime:watchlist-updated');
+  assert.equal(calls[1][2].id, 'show-1');
+  assert.deepEqual(calls[2][1], { timeout: 500 });
+});
+
+test('a page without a Discovery shortlist still refreshes Taste Profile evidence and emits the event', () => {
+  const lifecycle = createWatchlistLifecycle({ storage: createMemoryStorage(), now: () => 1000 });
+  const { host, names } = createRecordingHost(['updateControls', 'renderWatchlist', 'emit', 'announce', 'refreshTasteProfile']);
+  const runtime = createWatchlistLifecycleRuntime({ getLifecycle: () => lifecycle, host, dashboardTimeout: null, renderMode: null });
+
+  runtime.setStatus('show-1', 'completed');
+
+  assert.deepEqual(names(), ['updateControls', 'emit', 'announce', 'renderWatchlist', 'refreshTasteProfile']);
+});
+
+test('a storage failure redraws the title controls and announces, on any page', () => {
+  const storage = createMemoryStorage();
+  const lifecycle = createWatchlistLifecycle({ storage, now: () => 1000 });
+  lifecycle.setStatus('show-1', 'watching', { snapshot: { id: 'show-1', title: 'Show 1', cover: 'c.jpg' } });
+  storage.setItem = () => false;
+  const { host, names, calls } = createRecordingHost(['updateControls', 'emit', 'announceFailure']);
+  const runtime = createWatchlistLifecycleRuntime({ getLifecycle: () => lifecycle, host });
+
+  const result = runtime.setStatus('show-1', 'completed');
+
+  assert.equal(result.changed, false);
+  assert.deepEqual(names(), ['updateControls', 'announceFailure']);
+  assert.equal(calls[0][2].status, 'watching');
+  assert.match(calls[1][1].message, /Couldn't save your Watchlist change/);
+});
+
+test('advancing progress counts the next episode, then finishes at the Snapshot total before the catalog loads', () => {
+  const lifecycle = createWatchlistLifecycle({ storage: createMemoryStorage(), now: () => 1000 });
+  lifecycle.setStatus('show-1', 'watching', { snapshot: { id: 'show-1', title: 'Show 1', cover: 'c.jpg', stats: { episodeCount: 2 } } });
+  const runtime = createWatchlistLifecycleRuntime({ getLifecycle: () => lifecycle });
+
+  runtime.advanceProgress('show-1');
+  runtime.advanceProgress('show-1');
+  assert.equal(lifecycle.getEntry('show-1').progress, 2);
+  assert.equal(lifecycle.getEntry('show-1').status, 'watching');
+
+  runtime.advanceProgress('show-1');
+  assert.equal(lifecycle.getEntry('show-1').status, 'completed');
+  assert.equal(runtime.advanceProgress('missing'), null);
+});
+
+test('preparing entries for display migrates legacy bookmarks and persists fallback Snapshots', () => {
+  const storage = createMemoryStorage();
+  storage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, updatedAt: 1, entries: [
+    { id: 'show-1', status: 'planned', progress: 0, updatedAt: 1 }
+  ] }));
+  storage.setItem('rekonime.bookmarks', JSON.stringify(['legacy-1']));
+  const getLifecycle = () => createWatchlistLifecycle({ storage, now: () => 1000, placeholderCover: 'p.webp' });
+  const runtime = createWatchlistLifecycleRuntime({ getLifecycle });
+
+  const entries = runtime.prepareEntries({ buildFallbackSnapshot: (entry) => ({ id: entry.id, title: 'Fallback', cover: 'p.webp' }) });
+
+  assert.deepEqual(entries.map(entry => entry.id).sort(), ['legacy-1', 'show-1']);
+  const persisted = JSON.parse(storage.getItem('rekonime.watchlist')).entries;
+  assert.equal(persisted.find(entry => entry.id === 'show-1').snapshot.title, 'Fallback');
+  assert.equal(storage.getItem('rekonime.bookmarks'), null);
+});
+
+test('toggling loved flips the persisted affinity rather than trusting page state', () => {
+  const lifecycle = createWatchlistLifecycle({ storage: createMemoryStorage(), now: () => 1000 });
+  lifecycle.setStatus('show-1', 'completed', { snapshot: { id: 'show-1', title: 'Show 1', cover: 'c.jpg' } });
+  const runtime = createWatchlistLifecycleRuntime({ getLifecycle: () => lifecycle });
+
+  runtime.toggleLoved('show-1');
+  assert.equal(lifecycle.getEntry('show-1').loved, true);
+  runtime.toggleLoved('show-1');
+  assert.equal(Boolean(lifecycle.getEntry('show-1').loved), false);
+});
