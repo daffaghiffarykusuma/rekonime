@@ -1,6 +1,6 @@
 import { CatalogPayload } from '../catalog/catalog-payload.ts';
 import { buildAnimeSnapshot } from './watchlist-state.js';
-import { parseXmlDocument } from '../../shared/security/trusted-types.js';
+import { SaxesParser } from 'saxes';
 import { isBoundedImportText, MAX_IMPORT_ROWS, MAX_IMPORT_STRING_LENGTH, MAX_XML_FIELD_LENGTH } from '../../shared/security/import-limits.ts';
 import { fingerprintWatchlist, validateMalImportPlan } from './mal-import-plan.ts';
 import type { MalImportPlan, MalParseResult, ParsedMalRow, ProposedWatchlistEntry } from './mal-import-plan.ts';
@@ -17,41 +17,80 @@ const parseDate = (value: string) => {
   return timestamp > 0 && new Date(timestamp).toISOString().slice(0, 10) === value ? timestamp : undefined;
 };
 
+// Keep only direct fields of MAL rows. No browser document is allocated.
+class ImportLimitError extends Error {}
+
+const readMalRows = (text: string) => {
+  const rows: Map<string, string[]>[] = [];
+  const parser = new SaxesParser({ xmlns: true });
+  let depth = 0;
+  let elementCount = 0;
+  let row: Map<string, string[]> | undefined;
+  let fieldName = '';
+  let fieldText = '';
+  let leafLength = 0;
+  let isLeaf = false;
+
+  parser.on('opentagstart', () => {
+    if (++elementCount > 150000) throw new ImportLimitError('too-many-elements');
+    // The root has no ancestors. Its deepest allowed descendant has 16.
+    if (++depth > 17) throw new ImportLimitError('nesting-too-deep');
+    leafLength = 0;
+    isLeaf = true;
+  });
+  parser.on('opentag', tag => {
+    if (depth === 1 && tag.local !== 'myanimelist') throw new ImportLimitError('unexpected-root');
+    if (depth === 2 && tag.local === 'anime') {
+      if (rows.length >= MAX_IMPORT_ROWS) throw new ImportLimitError('too-many-rows');
+      row = new Map();
+      rows.push(row);
+    }
+    if (row && depth === 3) fieldName = tag.local;
+  });
+  const appendText = (value: string) => {
+    if (isLeaf) leafLength += value.length;
+    if (fieldName) {
+      if (fieldText.length + value.length > MAX_XML_FIELD_LENGTH) throw new ImportLimitError('field-too-long');
+      fieldText += value;
+    }
+  };
+  parser.on('text', appendText);
+  parser.on('cdata', appendText);
+  parser.on('closetag', () => {
+    if (isLeaf && leafLength > MAX_XML_FIELD_LENGTH) throw new ImportLimitError('field-too-long');
+    if (row && depth === 3) {
+      const values = row.get(fieldName) ?? [];
+      values.push(fieldText.trim());
+      row.set(fieldName, values);
+      fieldName = '';
+      fieldText = '';
+    }
+    if (depth === 2) row = undefined;
+    depth--;
+    isLeaf = false;
+  });
+  parser.write(text).close();
+  return rows;
+};
+
 const parseMalWatchlistXml = (text: string): MalParseResult => {
   const result: MalParseResult = { ok: false, sourceRows: 0, rows: [], errors: [], invalidRows: [], warnings: [] };
   const reject = (reason: string) => ({ ...result, errors: [reason] });
   if (!isBoundedImportText(text)) return reject('input-too-large');
   if (!text.trim()) return reject('empty-input');
   if (/<!\s*(DOCTYPE|ENTITY)\b/i.test(text)) return reject('forbidden-declaration');
-  const runtime = globalThis as any;
-  const Parser = runtime.DOMParser || runtime.window?.DOMParser;
-  if (!Parser) return reject('xml-parser-unavailable');
-  let document: any;
-  try { document = parseXmlDocument(text); }
-  catch { return reject('malformed-xml'); }
-  if (document.querySelector('parsererror')) return reject('malformed-xml');
-  if (document.documentElement?.localName !== 'myanimelist') return reject('unexpected-root');
-  const nodes = document.getElementsByTagName('*');
-  if (nodes.length > 150000) return reject('too-many-elements');
-  for (const node of Array.from(nodes) as any[]) {
-    if (node.children.length === 0 && node.textContent.length > MAX_XML_FIELD_LENGTH) return reject('field-too-long');
-    let depth = 0;
-    for (let parent = node.parentElement; parent; parent = parent.parentElement) {
-      if (++depth > 16) return reject('nesting-too-deep');
-    }
-  }
-  const elements = (Array.from(document.documentElement.children) as any[]).filter(element => element.localName === 'anime');
+  let elements: Map<string, string[]>[];
+  try { elements = readMalRows(text); }
+  catch (error) { return reject(error instanceof ImportLimitError ? error.message : 'malformed-xml'); }
   result.sourceRows = elements.length;
   if (!elements.length) return reject('no-anime-rows');
-  if (elements.length > MAX_IMPORT_ROWS) return reject('too-many-rows');
   const seen = new Set<number>();
   for (const [index, element] of elements.entries()) {
     const row = index + 1;
-    const children = Array.from(element.children) as any[];
-    const fields = (name: string) => children.filter(child => child.localName === name);
-    const value = (name: string) => fields(name)[0]?.textContent?.trim() || '';
+    const fields = (name: string) => element.get(name) ?? [];
+    const value = (name: string) => fields(name)[0] ?? '';
     const sourceTitle = value('series_title');
-    if (sourceTitle.length > MAX_IMPORT_STRING_LENGTH || children.some(child => child.textContent.length > MAX_XML_FIELD_LENGTH)) {
+    if (sourceTitle.length > MAX_IMPORT_STRING_LENGTH) {
       return reject('field-too-long');
     }
     const required = ['series_animedb_id', 'series_title', 'my_status', 'my_watched_episodes'];

@@ -37,36 +37,6 @@ test('privacy-safe fixture preserves the 415 row and 339 exact-match regression'
   assert.ok(plan.unmatchedRows.every(row => row.reason === 'catalog-miss'));
 });
 
-test('MAL XML parsing uses the Trusted Types policy when Chrome requires it', () => {
-  const runtime = globalThis as any;
-  const windowRef = runtime.window;
-  const originalParser = runtime.DOMParser;
-  const NativeParser = windowRef.DOMParser;
-  const originalTrustedTypes = windowRef.trustedTypes;
-  Object.defineProperty(windowRef, 'trustedTypes', {
-    configurable: true,
-    value: {
-      createPolicy: (_name: string, rules: any) => ({
-        createHTML: (value: unknown) => ({ toString: () => rules.createHTML(value) })
-      })
-    }
-  });
-  runtime.DOMParser = class {
-    parseFromString(source: unknown, type: string) {
-      assert.equal(typeof source, 'object');
-      return new NativeParser().parseFromString(String(source), type);
-    }
-  };
-
-  try {
-    assert.equal(parseMalWatchlistXml('<myanimelist><anime><series_animedb_id>1</series_animedb_id><series_title>One</series_title><my_watched_episodes>0</my_watched_episodes><my_status>Plan to Watch</my_status></anime></myanimelist>').ok, true);
-  } finally {
-    if (originalParser) runtime.DOMParser = originalParser;
-    else delete runtime.DOMParser;
-    Object.defineProperty(windowRef, 'trustedTypes', { configurable: true, value: originalTrustedTypes });
-  }
-});
-
 const row = (id = '1', status = 'Watching', progress = '3', extra = '') => `<anime><series_animedb_id>${id}</series_animedb_id><series_title>Title ${id}</series_title><series_episodes>12</series_episodes><my_watched_episodes>${progress}</my_watched_episodes><my_status>${status}</my_status>${extra}</anime>`;
 const xml = (...rows: string[]) => `<myanimelist>${rows.join('')}</myanimelist>`;
 const catalog = [{ id: 'one', malId: 1, title: 'Title 1', cover: '', episodeCount: 12 }];
@@ -78,6 +48,18 @@ test('MAL XML limits bytes, row counts, nesting and field text before planning',
   assert.equal(parseMalWatchlistXml(xml(row('1', 'Watching', '3', `<my_comments>${'x'.repeat(MAX_XML_FIELD_LENGTH + 1)}</my_comments>`))).errors[0], 'field-too-long');
   assert.equal(parseMalWatchlistXml(xml(row().replace('Title 1', 'x'.repeat(MAX_IMPORT_STRING_LENGTH + 1)))).errors[0], 'field-too-long');
   assert.equal(parseMalWatchlistXml(`<myanimelist>${'<nested>'.repeat(18)}${'</nested>'.repeat(18)}</myanimelist>`).errors[0], 'nesting-too-deep');
+});
+
+test('streaming import preserves namespaced fields, CDATA and escaped text', () => {
+  const source = xml(row().replace('<series_title>Title 1</series_title>',
+    '<m:series_title xmlns:m="urn:mal">First &amp; <![CDATA[Second]]><b>!</b></m:series_title>'));
+  assert.equal(parseMalWatchlistXml(source).rows[0]?.title, 'First & Second!');
+});
+
+test('structural limits stop parsing before a malformed suffix', () => {
+  const unfinished = '<myanimelist>' + '<note/>'.repeat(149999);
+  assert.equal(parseMalWatchlistXml(unfinished + '</myanimelist>').errors[0], 'no-anime-rows');
+  assert.equal(parseMalWatchlistXml(unfinished + '<note/><').errors[0], 'too-many-elements');
 });
 
 test('fatal XML errors never produce an applicable plan', () => {

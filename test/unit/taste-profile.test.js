@@ -189,3 +189,20 @@ test('taste profile reset preserves evidence learned from Watchlist Lifecycle', 
     hiddenCount: 0
   });
 });
+
+test('ranking reuses restored preferences and refreshes scores and labels after replacement', () => {
+  const store = createTasteProfileStore({ storage: createMemoryStorage() });
+  const unused = Array.from({ length: 4998 }, (_, index) => 'tag-' + index);
+  const anime = { id: 'one', genres: ['Drama', 'DRAMA', 'Mystery'], themes: ['School'] };
+  assert.equal(store.commitProfile({ explicit: {
+    preferredGenres: [...unused, 'Mystery', 'Drama'], preferredThemes: ['School'], reducedGenres: ['Drama']
+  } }), true);
+  const first = store.prepareRecommendationSource([anime])[0];
+  assert.equal(first.tasteScore, 12);
+  assert.equal(first.tasteReason, 'Matches your preference for Mystery');
+  assert.equal(store.commitProfile({ explicit: { preferredGenres: ['Drama'] } }), true);
+  const second = store.prepareRecommendationSource([anime])[0];
+  assert.equal(second.tasteScore, 8);
+  assert.equal(second.tasteReason, 'Matches your preference for Drama');
+  assert.equal(store.prepareDiscoverySource([anime])[0].weight, 1.8);
+});

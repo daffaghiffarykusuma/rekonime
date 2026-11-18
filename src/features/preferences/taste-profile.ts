@@ -184,25 +184,50 @@ const buildTasteProfileFromWatchlist = (entries: unknown[] = []) => {
   };
 };
 
-const scoreAnimeForTaste = (anime, profile) => {
-  const normalized = normalizeProfile(profile);
-  const genres = new Set((Array.isArray(anime?.genres) ? anime.genres : []).map(value => normalizeTag(value).toLowerCase()));
-  const themes = new Set((Array.isArray(anime?.themes) ? anime.themes : []).map(value => normalizeTag(value).toLowerCase()));
-  const id = normalizeId(anime?.id);
-  let score = 0;
-
-  if (normalized.explicit.moreLikeTitleIds.includes(id)) score += 15;
-  if (normalized.explicit.notForMeTitleIds.includes(id)) score -= 1000;
-  normalized.explicit.preferredGenres.forEach(tag => { if (genres.has(tag.toLowerCase())) score += 8; });
-  normalized.explicit.preferredThemes.forEach(tag => { if (themes.has(tag.toLowerCase())) score += 6; });
-  normalized.explicit.reducedGenres.forEach(tag => { if (genres.has(tag.toLowerCase())) score -= 10; });
-  normalized.explicit.reducedThemes.forEach(tag => { if (themes.has(tag.toLowerCase())) score -= 8; });
-  normalized.inferred.positiveGenres.forEach(item => { if (genres.has(item.label.toLowerCase())) score += Math.min(item.weight, 10); });
-  normalized.inferred.positiveThemes.forEach(item => { if (themes.has(item.label.toLowerCase())) score += Math.min(item.weight, 8); });
-  normalized.inferred.negativeGenres.forEach(item => { if (genres.has(item.label.toLowerCase())) score -= Math.min(item.weight, 10); });
-  normalized.inferred.negativeThemes.forEach(item => { if (themes.has(item.label.toLowerCase())) score -= Math.min(item.weight, 8); });
-  return score;
+const buildTasteIndex = ({ explicit, inferred }) => {
+  const weights = (preferred, reduced, positive, negative, bonus, penalty, cap) => {
+    const result = new Map();
+    const add = (label, amount) => {
+      const key = label.toLowerCase();
+      result.set(key, (result.get(key) || 0) + amount);
+    };
+    preferred.forEach(label => add(label, bonus));
+    reduced.forEach(label => add(label, -penalty));
+    positive.forEach(item => add(item.label, Math.min(item.weight, cap)));
+    negative.forEach(item => add(item.label, -Math.min(item.weight, cap)));
+    return result;
+  };
+  const reasons = labels => {
+    const ranked = new Map();
+    labels.forEach((label, rank) => {
+      const key = label.toLowerCase();
+      if (!ranked.has(key)) ranked.set(key, { label, rank });
+    });
+    return ranked;
+  };
+  return {
+    liked: new Set(explicit.moreLikeTitleIds),
+    hidden: new Set(explicit.notForMeTitleIds),
+    genres: weights(explicit.preferredGenres, explicit.reducedGenres, inferred.positiveGenres, inferred.negativeGenres, 8, 10, 10),
+    themes: weights(explicit.preferredThemes, explicit.reducedThemes, inferred.positiveThemes, inferred.negativeThemes, 6, 8, 8),
+    explicitReasons: reasons([...explicit.preferredGenres, ...explicit.preferredThemes]),
+    inferredReasons: reasons([...inferred.positiveGenres, ...inferred.positiveThemes].map(item => item.label))
+  };
 };
+
+const scoreWithIndex = (anime, index) => {
+  const tagScore = (tags, weights) => {
+    let total = 0;
+    const keys = new Set((Array.isArray(tags) ? tags : []).map(tag => normalizeTag(tag).toLowerCase()));
+    for (const key of keys) total += weights.get(key) || 0;
+    return total;
+  };
+  const id = normalizeId(anime?.id);
+  return (index.liked.has(id) ? 15 : 0) - (index.hidden.has(id) ? 1000 : 0)
+    + tagScore(anime?.genres, index.genres) + tagScore(anime?.themes, index.themes);
+};
+
+const scoreAnimeForTaste = (anime, profile) => scoreWithIndex(anime, buildTasteIndex(normalizeProfile(profile)));
 
 const createTasteProfileStore = ({
   storage = createLocalStorageAdapter(),
@@ -210,16 +235,19 @@ const createTasteProfileStore = ({
   now = Date.now
 } = {}) => {
   let profile = emptyProfile();
+  let tasteIndex;
+  const indexForProfile = () => tasteIndex ??= buildTasteIndex(profile);
   const feedbackReceipts = new Map();
   let nextReceipt = 0;
   let persistedRaw = readStorageRaw(storage, storageKey);
 
   const save = (nextProfile = profile) => {
     feedbackReceipts.clear();
+    tasteIndex = undefined;
     profile = normalizeProfile({ ...nextProfile, updatedAt: now() });
     writeStorageJSON(storage, storageKey, { ...profile, inferred: undefined });
     persistedRaw = readStorageRaw(storage, storageKey);
-    return profile;
+    return normalizeProfile(profile);
   };
 
   const commitProfile = (nextProfile) => {
@@ -228,6 +256,7 @@ const createTasteProfileStore = ({
       writeStorageJSON(storage, storageKey, { ...profile, inferred: undefined });
       return false;
     }
+    tasteIndex = undefined;
     profile = normalized;
     persistedRaw = readStorageRaw(storage, storageKey);
     return true;
@@ -243,8 +272,9 @@ const createTasteProfileStore = ({
     feedbackReceipts.clear();
     const saved = readStorageJSON(storage, storageKey);
     persistedRaw = readStorageRaw(storage, storageKey);
+    tasteIndex = undefined;
     profile = normalizeProfile(saved && { ...saved, inferred: undefined });
-    return profile;
+    return normalizeProfile(profile);
   };
 
   const reset = (watchlistEntries = []) => save({
@@ -353,13 +383,14 @@ const createTasteProfileStore = ({
   };
 
   const prepareTasteCandidates = (animeList, { excludedIds = [] } = {}) => {
-    const excluded = new Set([
-      ...excludedIds,
-      ...normalizeProfile(profile).explicit.notForMeTitleIds
-    ].map(normalizeId).filter(Boolean));
+    const taste = indexForProfile();
+    const excluded = new Set(Array.from(excludedIds, normalizeId).filter(Boolean));
     return (Array.isArray(animeList) ? animeList : [])
-      .filter(anime => !excluded.has(normalizeId(anime?.id)))
-      .map((anime, index) => ({ anime, index, tasteScore: scoreAnimeForTaste(anime, profile) }))
+      .filter(anime => {
+        const id = normalizeId(anime?.id);
+        return !excluded.has(id) && !taste.hidden.has(id);
+      })
+      .map((anime, index) => ({ anime, index, tasteScore: scoreWithIndex(anime, taste) }))
       .sort((left, right) => right.tasteScore - left.tasteScore || left.index - right.index);
   };
 
@@ -372,12 +403,20 @@ const createTasteProfileStore = ({
   );
 
   const getTasteReason = (anime) => {
-    const tags = new Set([...(anime.genres || []), ...(anime.themes || [])].map(tag => tag.toLowerCase()));
-    const matches = values => values.find(tag => tags.has(tag.toLowerCase()));
-    const explicitTag = matches([...profile.explicit.preferredGenres, ...profile.explicit.preferredThemes]);
+    const taste = indexForProfile();
+    const tags = [...(anime.genres || []), ...(anime.themes || [])];
+    const firstMatch = reasons => {
+      let best;
+      for (const tag of tags) {
+        const match = reasons.get(tag.toLowerCase());
+        if (match && (!best || match.rank < best.rank)) best = match;
+      }
+      return best?.label;
+    };
+    const explicitTag = firstMatch(taste.explicitReasons);
     if (explicitTag) return `Matches your preference for ${explicitTag}`;
-    if (profile.explicit.moreLikeTitleIds.includes(anime.id)) return 'You asked for more like this title';
-    const inferredTag = matches([...profile.inferred.positiveGenres, ...profile.inferred.positiveThemes].map(item => item.label));
+    if (taste.liked.has(anime.id)) return 'You asked for more like this title';
+    const inferredTag = firstMatch(taste.inferredReasons);
     return inferredTag ? `${inferredTag}, based on your watchlist` : '';
   };
 
@@ -419,8 +458,9 @@ const createTasteProfileStore = ({
     reset,
     getProfile: () => normalizeProfile(profile),
     updateInferredFromWatchlist: (entries) => {
+      tasteIndex = undefined;
       profile = { ...profile, inferred: buildTasteProfileFromWatchlist(entries) };
-      return profile;
+      return normalizeProfile(profile);
     },
     exportData: (watchlistEntries = []) => ({
       version: 1,

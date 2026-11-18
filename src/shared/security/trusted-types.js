@@ -1,6 +1,5 @@
 import createDOMPurify from 'dompurify';
 import { sanitizeTrailerEmbedUrl } from './trailer-url-policy.ts';
-import { isBoundedImportText } from './import-limits.ts';
 
 const POLICY_NAME = 'rekonime-html';
 const PARSER_POLICY_NAME = 'rekonime-parser';
@@ -69,7 +68,7 @@ const getRuntime = () => {
     createScript: jsonLd,
     createScriptURL: scriptUrl
   }) || null;
-  const runtime = { trustedTypes: window.trustedTypes, parserPolicy, policy, sanitize };
+  const runtime = { trustedTypes: window.trustedTypes, policy, sanitize };
   runtimes.set(window, runtime);
   return runtime;
 };
@@ -77,15 +76,6 @@ const getRuntime = () => {
 const toTrustedHTML = (value) => {
   const runtime = getRuntime();
   return runtime.policy ? runtime.policy.createHTML(value) : runtime.sanitize(value);
-};
-
-const parseXmlDocument = (value) => {
-  if (!isBoundedImportText(value) || /<!\s*(DOCTYPE|ENTITY)\b/i.test(value)) {
-    throw new TypeError('Unsupported XML document.');
-  }
-  const { parserPolicy } = getRuntime();
-  const Parser = globalThis.DOMParser || window.DOMParser;
-  return new Parser().parseFromString(parserPolicy ? parserPolicy.createHTML(value) : value, 'application/xml');
 };
 
 const toTrustedScriptURL = (value) => {
@@ -116,5 +106,5 @@ const setScriptSource = (element, value) => {
   if (element) element.src = toTrustedScriptURL(value);
 };
 
-export { POLICY_NAME, PARSER_POLICY_NAME, toTrustedHTML, parseXmlDocument, toTrustedScriptURL,
+export { POLICY_NAME, PARSER_POLICY_NAME, toTrustedHTML, toTrustedScriptURL,
   setHTML, replaceOuterHTML, insertHTML, setScriptText, setScriptSource };
