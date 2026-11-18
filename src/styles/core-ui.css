@@ -568,16 +568,46 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 .discovery-actions .btn:hover { background: inherit; }
 .discovery-actions .btn-primary:hover { background: var(--primary-bg-hover); }
 
-/* Returning visitors get a shorter masthead. */
-.discovery-garden.is-returning { padding: 28px 0 12px; }
+/* Returning visitors get one line: a smaller headline with the actions beside it.
+   The goal picker sits directly below, so its shortcut button is dropped here. */
+.discovery-garden.is-returning { padding: 24px 0 20px; }
+.discovery-garden.is-returning .discovery-garden-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+}
 .discovery-garden.is-returning .discovery-subtitle,
-.discovery-garden.is-returning .discovery-title br { display: none; }
-.discovery-garden.is-returning .discovery-title { max-width: none; margin-bottom: 14px; font-size: clamp(2rem, 3.6vw, 3rem); }
+.discovery-garden.is-returning .discovery-title br,
+.discovery-garden.is-returning [data-action="choose-viewing-goal"] { display: none; }
+.discovery-garden.is-returning .discovery-title {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+  line-height: 1;
+}
 .discovery-garden.is-returning .discovery-actions { margin-top: 0; }
 
-/* ---------- Viewing goal ---------- */
+/* ---------- Supporting headings ----------
+   Two levels only. The wide display face is for the page headline and the main
+   shelves. Supporting blocks get a plain body-weight label. */
+.viewing-intent-section .mood-filter-title,
+.continue-watching-section .section-header h2,
+.airing-dashboard-section .airing-dashboard-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
+/* ---------- Viewing goal: a row of chips ---------- */
 .viewing-intent-section {
-  padding: 22px 0 26px;
+  padding: 18px 0 20px;
   margin: 0;
   border: 0;
   border-top: 1px solid var(--border-color);
@@ -590,33 +620,22 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 6px 24px;
-  margin-bottom: 14px;
+  gap: 2px 14px;
+  margin-bottom: 12px;
 }
 .mood-filter-kicker { display: none; }
-.mood-filter-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-stretch: 115%;
-  font-weight: 760;
-}
-.mood-filter-note { margin: 0; color: var(--text-muted); font-size: .82rem; }
-.mood-filter-clusters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 10px;
-}
+.mood-filter-title { margin: 0; }
+.mood-filter-note { margin: 0; color: var(--text-muted); font-size: .8rem; }
+.mood-filter-clusters { display: flex; flex-wrap: wrap; gap: 8px; }
+.viewing-intent-section .viewing-intent-option { min-width: 0; }
 .mood-cluster {
-  display: grid;
-  align-content: start;
-  gap: 4px;
-  min-height: 84px;
-  padding: 14px 16px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 18px;
   border: 1.5px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
+  border-radius: 999px;
+  background: transparent;
   color: var(--text-primary);
   font: inherit;
   text-align: left;
@@ -624,24 +643,24 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
   cursor: pointer;
   transition: border-color .15s ease, background-color .15s ease;
 }
-.mood-cluster:hover, .mood-cluster:focus-visible { border-color: var(--text-primary); background: var(--bg-secondary); transform: none; }
+.mood-cluster:hover, .mood-cluster:focus-visible { border-color: var(--text-primary); background: transparent; transform: none; }
 .mood-cluster.active,
 .mood-cluster[aria-pressed="true"] {
   border-color: var(--text-primary);
   background: var(--text-primary);
   color: var(--bg-primary);
 }
-.mood-cluster-label {
-  color: inherit;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-stretch: 100%;
-  font-weight: 760;
-  line-height: 1.2;
+.mood-cluster-label { color: inherit; font-family: var(--font-body); font-size: .9rem; font-weight: 600; line-height: 1.3; }
+/* Descriptions stay in each button's accessible name but are not shown. */
+.viewing-intent-section .mood-cluster-desc,
+.viewing-intent-section .mood-cluster-tags {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
-.mood-cluster-desc, .mood-cluster-tags { color: var(--text-secondary); font-size: .8rem; line-height: 1.45; }
-.mood-cluster.active :is(.mood-cluster-desc, .mood-cluster-tags),
-.mood-cluster[aria-pressed="true"] :is(.mood-cluster-desc, .mood-cluster-tags) { color: inherit; opacity: .85; }
 
 /* ---------- Section headings ---------- */
 .recommendations-section, .trending-section, .grid-section, .watchlist-section,
@@ -1123,8 +1142,30 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 /* ---------- Continue watching and airing ---------- */
 .continue-watching-section { margin: 24px 0 0; }
 .continue-watching-section .section-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
-.continue-watching-section .section-header h2 { font-size: 1.3rem; font-stretch: 115%; }
-.continue-watching-section .section-header a { flex-shrink: 0; }
+.continue-watching-section .section-header { margin-bottom: 10px; }
+.continue-watching-section .section-header a,
+.airing-dashboard-section .airing-dashboard-link {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font-size: .85rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--border-hover);
+  text-underline-offset: 4px;
+}
+.continue-watching-section .section-header a:hover,
+.airing-dashboard-section .airing-dashboard-link:hover { color: var(--text-primary); background: none; }
+.airing-dashboard-section .airing-dashboard-link::before { display: none; }
+.airing-dashboard-section .airing-dashboard-header { align-items: center; margin-bottom: 14px; }
+.airing-dashboard-section .section-subtitle { margin-top: 2px; font-size: .8rem; }
+/* With nothing airing, the zero counts and time-zone note add nothing. Keep the one sentence. */
+.airing-dashboard-section:has(#airing-dashboard-empty:not([hidden])) :is(.airing-dashboard-summary, .section-subtitle) { display: none; }
+.airing-dashboard-section:has(#airing-dashboard-empty:not([hidden])) .airing-dashboard-header { margin-bottom: 2px; }
+.airing-dashboard-empty { margin: 0; color: var(--text-secondary); font-size: .9rem; }
 .continue-watching-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .continue-card {
   display: flex;
@@ -1157,8 +1198,8 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   --text-secondary: inherit;
   --text-muted: inherit;
   --accent-primary: inherit;
-  padding: 24px;
-  margin: 28px 0;
+  padding: 18px 20px 20px;
+  margin: 24px 0;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   background: var(--bg-secondary);
@@ -1439,19 +1480,15 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .discovery-subtitle { font-size: .92rem; }
   .discovery-actions { margin-top: 18px; gap: 8px; }
   .discovery-actions .btn { flex: 1 1 auto; padding-inline: 14px; font-size: .82rem; }
-  .discovery-garden.is-returning { padding: 20px 0 8px; }
-  .discovery-garden.is-returning .discovery-title { font-size: 1.8rem; }
+  .discovery-garden.is-returning { padding: 18px 0 14px; }
+  .discovery-garden.is-returning .discovery-title { font-size: 1.6rem; }
+  .discovery-garden.is-returning .discovery-actions { width: 100%; }
   .viewing-intent-section { padding: 12px 0; }
   .viewing-intent-section.is-complete { padding-block: 10px; }
   .viewing-intent-section .mood-filter-header { gap: 4px 16px; margin-bottom: 8px; }
-  .viewing-intent-section .mood-filter-title { font-size: 1.1rem; }
   .viewing-intent-section .mood-filter-note { font-size: .78rem; }
-  .viewing-intent-section .mood-cluster-desc { display: none; }
-  .viewing-intent-section .mood-filter-clusters { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; }
-  .viewing-intent-section .mood-cluster {
-    flex: 1 1 135px; min-width: 0; width: auto; min-height: 44px; padding: 10px 12px; align-content: center;
-  }
-  .viewing-intent-section .mood-cluster-label { font-size: .9rem; }
+  .viewing-intent-section .mood-filter-clusters { gap: 6px; }
+  .viewing-intent-section .mood-cluster { padding: 8px 14px; }
   .continue-card { padding: 14px; }
   .trending-grid { grid-template-columns: 1fr; }
   .has-tooltip .tooltip, .has-tooltip .tooltip--bottom {
