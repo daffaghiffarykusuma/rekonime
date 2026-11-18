@@ -8,7 +8,6 @@ const entries = [
 
 async function openHome(page, saved = entries) {
   await page.addInitScript(saved => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
     if (!localStorage.getItem('rekonime.watchlist')) localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: saved }));
   }, saved);

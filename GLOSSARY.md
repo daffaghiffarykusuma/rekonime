@@ -24,16 +24,12 @@ _Avoid_: recommendation settings, preference cache, personalization blob
 The user-initiated replacement of saved Taste Profile data and, for a complete compatible export, Watchlist Lifecycle data. A complete restore changes both together or changes neither; a legacy profile-only restore leaves the Watchlist Lifecycle unchanged. Invalid Watchlist Entries and unsupported export versions change nothing.
 _Avoid_: JSON merge, import helper, settings upload
 
-**Viewing Intent**:
-The user's temporary viewing outcome for the current discovery session, including its definition, four-hour activity window, apply transition, and clear transition. A Viewing Intent guides recommendations without changing Browse View Filtering or the longer-lived Taste Profile.
-_Avoid_: mood filter, recommendation mode, session flag
-
 **Session Dismissal**:
-The user's temporary choice to set aside a recommended title during the current discovery session without changing the Taste Profile or the title's Watchlist Entry. It can be undone, persists when the Viewing Intent changes, and expires with the session's four-hour inactivity window.
+The user's temporary choice to set aside a recommended title during the current discovery session without changing the Taste Profile or the title's Watchlist Entry. It can be undone and expires after four hours without discovery activity.
 _Avoid_: dislike, permanent exclusion, negative taste signal
 
 **Discovery**:
-The catalog exploration behavior that powers Surprise Me, seasonal choices, trending titles, and weekly popularity. Discovery consumes Taste Profile-prepared candidates for personalized selection; it does not interpret Watchlist Lifecycle evidence itself.
+The catalog exploration behavior that powers Surprise Me and seasonal choices. Discovery consumes Taste Profile-prepared candidates for personalized selection; it does not interpret Watchlist Lifecycle evidence itself.
 _Avoid_: discovery helper, random picker utility, watchlist preference logic
 
 **Experience Cue**:
@@ -80,10 +76,6 @@ _Avoid_: modal helper, details popup, anime page glue
 Browser-level capabilities shared by product flows, including idle scheduling, modal visibility, focus trapping, and page scroll locking.
 _Avoid_: browser utilities, app helpers, UI plumbing
 
-**Onboarding Journey**:
-The one-step welcome that lets a first-time user choose an initial Viewing Intent or skip into Discovery. The first-paint gate decides whether to reveal the static shell before App Shell boot; the runtime module adopts that same shell and owns intent selection, completion, skip, and reopen behavior.
-_Avoid_: onboarding wizard, tour step system, scoring tutorial
-
 ## Example Dialogue
 
 Dev: "When progress changes from 0 to 2, should that be handled by the page?"
@@ -91,9 +83,6 @@ Domain expert: "No. That is a Watchlist Lifecycle transition. The page only asks
 
 Dev: "Should 'less Romance' be stored on the anime the user dismissed?"
 Domain expert: "No. Romance is a cross-title preference in the Taste Profile. The Watchlist Entry only owns the user's relationship with that title."
-
-Dev: "Should choosing 'Help me unwind' change the active filters or the Taste Profile?"
-Domain expert: "No. That is a temporary Viewing Intent. It guides the current recommendation session without changing Browse View Filtering or the Taste Profile."
 
 Dev: "Should Surprise Me infer preferred genres directly from the watchlist?"
 Domain expert: "No. Taste Profile interprets Watchlist Lifecycle evidence. Discovery only applies quality rules and selects from the prepared candidates."

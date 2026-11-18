@@ -27,134 +27,13 @@ const expectBoxWithinViewport = (box, { width, height }, inset = 16) => {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
-});
-
-test('first-run intent choices are usable before entering discovery', async ({ browser }) => {
-  const shellPage = await browser.newPage();
-  await shellPage.route('**/src/app/main.ts', (route) => route.abort());
-  await shellPage.goto('/');
-  const shellChoice = shellPage.locator('.onboarding-intent-card').first();
-  await expect(shellChoice).toBeVisible();
-  await expect(shellChoice).toBeDisabled();
-  await expect(shellChoice).toHaveCSS('cursor', 'progress');
-  await shellPage.close();
-
-  const page = await browser.newPage();
-  await page.goto('/');
-
-  const choices = page.locator('.onboarding-intent-card');
-  await expect(choices).toHaveCount(3);
-  await expect(choices.first()).toBeVisible();
-  await expect(choices.first()).toBeEnabled();
-  expect(await choices.evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-pressed'))))
-    .toEqual(['false', 'false', 'false']);
-
-  const presentation = await choices.first().evaluate((button) => {
-    const styles = getComputedStyle(button);
-    return {
-      height: button.getBoundingClientRect().height,
-      borderColor: styles.borderColor,
-      textAlign: styles.textAlign,
-      cursor: styles.cursor
-    };
-  });
-
-  expect(presentation.height).toBeGreaterThanOrEqual(64);
-  expect(presentation.textAlign).toBe('left');
-  expect(presentation.cursor).toBe('pointer');
-
-  await choices.first().hover();
-  await expect.poll(() => choices.first().evaluate((button) => getComputedStyle(button).borderColor))
-    .not.toBe(presentation.borderColor);
-
-  await choices.first().focus();
-  await expect(choices.first()).toBeFocused();
-  expect(await choices.first().evaluate((button) => getComputedStyle(button).outlineStyle))
-    .not.toBe('none');
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  const narrowBox = await choices.first().boundingBox();
-  expect(narrowBox.x).toBeGreaterThanOrEqual(0);
-  expect(narrowBox.x + narrowBox.width).toBeLessThanOrEqual(390);
-  expect(narrowBox.height).toBeGreaterThanOrEqual(64);
-
-  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-  await page.keyboard.press('Tab');
-  await page.keyboard.press('Tab');
-  await expect(choices.nth(2)).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(choices.nth(2)).toHaveAttribute('aria-pressed', 'true');
-  const accentColor = await page.evaluate(() => {
-    const probe = document.createElement('span');
-    probe.style.color = 'var(--accent-primary)';
-    document.body.append(probe);
-    const color = getComputedStyle(probe).color;
-    probe.remove();
-    return color;
-  });
-  await expect(choices.nth(2)).toHaveCSS('border-color', accentColor);
-  expect(await choices.evaluateAll((buttons) => buttons.map((button) => button.disabled)))
-    .toEqual([true, true, true]);
-  await expect(page.locator('#onboarding-modal')).toBeHidden();
-  await expect(page.locator('#active-viewing-intent')).toContainText('Surprise me');
-});
-
-test('selected viewing intent collapses to a changeable summary', async ({ page }) => {
-  await page.goto('/');
-  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-
-  const options = page.locator('#viewing-intent-options');
-  await options.getByRole('button', { name: /Help me unwind/ }).click();
-
-  const summary = page.locator('#active-viewing-intent');
-  await expect(summary).toBeVisible();
-  await expect(summary).toContainText('Help me unwind');
-  await expect(page.locator('#recommendations-context')).toContainText('Help me unwind');
-  await expect(page.locator('#recommendations-grid .recommendation-card').first().locator('.recommendation-reason'))
-    .toContainText('slice-of-life');
-  const firstRecommendation = page.locator('#recommendations-grid .recommendation-card').first();
-  await expect(firstRecommendation.locator('.recommendation-signal-value')).toHaveCount(1);
-  await expect(firstRecommendation.locator('.recommendation-stat')).toHaveCount(1);
-  await expect(firstRecommendation.locator('.recommendation-stat')).toContainText('Community Score');
-  await expect(firstRecommendation.locator('.recommendation-fit-label')).toHaveCount(1);
-  await expect(options.locator('.viewing-intent-option')).toHaveCount(0);
-  await expect(page.locator('#quick-filters')).toBeVisible();
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  const summaryBox = await summary.boundingBox();
-  expect(summaryBox.x).toBeGreaterThanOrEqual(0);
-  expect(summaryBox.x + summaryBox.width).toBeLessThanOrEqual(390);
-  const intentSectionBox = await page.locator('#viewing-intent-section').boundingBox();
-  expect(intentSectionBox.height).toBeLessThanOrEqual(140);
-  await expect(page.locator('#discovery-garden')).toBeHidden();
-  await expect(page.locator('.header-more-toggle')).toBeVisible();
-  const firstRecommendationBox = await page.locator('#recommendations-grid .recommendation-card').first().boundingBox();
-  expect(firstRecommendationBox.y).toBeLessThan(844);
-
-  await page.reload();
-  await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-  await expect(page.locator('#discovery-garden')).toBeHidden();
-  const reloadedSummary = page.locator('#active-viewing-intent');
-  await expect(reloadedSummary).toBeVisible();
-  await reloadedSummary.getByRole('button', { name: 'Change' }).click();
-  await expect(options.locator('.viewing-intent-option')).toHaveCount(5);
-  await expect(options.locator('.viewing-intent-option').first()).toBeFocused();
-  await expect(options.getByRole('button', { name: /Help me unwind/ })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#recommendations-context')).toContainText('Help me unwind');
-
-  await options.getByRole('button', { name: /Give me energy/ }).click();
-  await expect(page.locator('#active-viewing-intent')).toContainText('Give me energy');
-  await expect(page.locator('#recommendations-grid .recommendation-card').first().locator('.recommendation-reason'))
-    .toContainText('action or sports');
 });
 
 test('recommendation quick-save persists without replacing detail access', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-  await page.getByRole('button', { name: /Help me unwind/ }).click();
 
   const firstCard = page.locator('#recommendations-grid .recommendation-card').first();
   const title = (await firstCard.locator('.recommendation-title').textContent()).trim();
@@ -204,20 +83,9 @@ test('complete discovery-to-watchlist journey', async ({ browser, baseURL }) => 
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
 
-  const onboardingChoice = page.locator('.onboarding-intent-card').first();
-  await expect(onboardingChoice).toBeVisible();
-  await expect(onboardingChoice).toBeEnabled();
+  await expect(page.locator('#onboarding-modal')).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
-  const onboardingBox = await onboardingChoice.boundingBox();
-  expect(onboardingBox.x + onboardingBox.width).toBeLessThanOrEqual(390);
-  await onboardingChoice.focus();
-  await expect(onboardingChoice).toBeFocused();
-  expect(await onboardingChoice.evaluate((button) => getComputedStyle(button).outlineStyle)).not.toBe('none');
-  await onboardingChoice.click();
-
-  await expect(page.locator('#active-viewing-intent')).toContainText('Help me unwind');
   const card = page.locator('#recommendations-grid .recommendation-card').first();
-  await expect(card.locator('.recommendation-reason')).toContainText('slice-of-life');
   await expect(card.locator('.recommendation-fit-label')).toHaveCount(1);
   await card.scrollIntoViewIfNeeded();
   await expect(card).toBeVisible();
@@ -735,7 +603,6 @@ test('Watchlist backup roundtrip and home Continue watching preserve editable pr
 test('Watchlist progress survives a full catalog arriving after the edit', async ({ page }) => {
   const snapshot = { id: 'late-catalog', title: 'Late catalog title', cover: 'https://cdn.myanimelist.net/images/anime/1779/143584l.jpg', stats: { episodeCount: 12 } };
   await page.addInitScript(snapshot => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     if (!localStorage.getItem('rekonime.watchlist')) localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [{ id: snapshot.id, status: 'watching', progress: 3, updatedAt: 1000, snapshot }] }));
   }, snapshot);
   let release;

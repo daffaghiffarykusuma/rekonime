@@ -20,7 +20,6 @@ const captureRatingLayouts = async (page, card, testInfo) => {
 
 test('ratings use named scales and MAL attribution from Discovery through catalog and details', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
   const anime = [{ id: 'rating-example', title: 'A long title for comparing rating evidence across Discovery and the catalog', genres: ['Action'], themes: [], year: 2026, studio: 'Fixture studio', cover: '', type: 'TV', communityScore: 8.2,
@@ -63,7 +62,6 @@ test('ratings use named scales and MAL attribution from Discovery through catalo
 });
 
 test('known totals without episode polls show unavailable evidence rather than a measured zero', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('rekonime.onboarding', 'completed'));
   const anime = [{ id: 'unrated', title: 'Known total without ratings', genres: ['Action'], themes: [], year: 2026, studio: 'Fixture studio', cover: '', type: 'TV', communityScore: 8, episodeCount: 12, episodes: [],
     stats: { scoringVersion: 2, episodeCount: 12, retentionScore: 0, threeEpisodeHook: 0, worthFinishing: 0,
       ratingEvidence: { totalEpisodes: 12, ratedEpisodes: 0, limited: true, completion: 'unknown' } } }];
@@ -87,7 +85,6 @@ test('known totals without episode polls show unavailable evidence rather than a
 
 
 test('missing community and episode ratings remain unavailable in catalog and details', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('rekonime.onboarding', 'completed'));
   const anime = [{ id: 'no-ratings', title: 'No ratings available', genres: ['Action'], themes: [], year: 2026, studio: 'Fixture studio', cover: '', type: 'TV', episodes: [] }];
   await page.route('**/data/anime*.json*', route => route.fulfill({ json: { anime } }));
   await page.goto('/');
@@ -105,7 +102,6 @@ test('missing community and episode ratings remain unavailable in catalog and de
 });
 
 test('zero-rated airing evidence retains limited and unknown-total qualifiers', async ({ page }, testInfo) => {
-  await page.addInitScript(() => localStorage.setItem('rekonime.onboarding', 'completed'));
   const anime = [{ id: 'unrated-airing', title: 'Unrated airing title', genres: ['Action'], themes: [], year: 2026, studio: 'Fixture', cover: '', type: 'TV', communityScore: 8, episodes: [], stats: { scoringVersion: 2, retentionScore: 0, ratingEvidence: { totalEpisodes: null, ratedEpisodes: 0, limited: true, completion: 'airing' } } }];
   await page.route('**/data/anime*.json*', route => route.fulfill({ json: { anime } }));
   await page.goto('/');
@@ -123,7 +119,6 @@ test('Because you watched names the full community metric and scale', async ({ p
   const seed = { id: 'watched-seed', title: 'Watched seed', genres: ['Action'], themes: ['School'], year: 2026, studio: 'Fixture', cover: 'https://cdn.myanimelist.net/images/anime/1779/143584l.jpg', type: 'TV', communityScore: 8, episodes: [{ episode: 1, score: 4 }], stats: { scoringVersion: 2, retentionScore: 70, episodeCount: 12 } };
   const candidate = { ...seed, id: 'similar-candidate', title: 'Similar candidate', communityScore: 8.2 };
   await page.addInitScript(seed => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [{ id: seed.id, status: 'completed', progress: 12, updatedAt: 1000, snapshot: seed }] }));
   }, seed);
   await page.route('**/data/anime*.json*', route => route.fulfill({ json: { anime: [seed, candidate] } }));

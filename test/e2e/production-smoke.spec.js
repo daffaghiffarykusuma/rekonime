@@ -25,7 +25,6 @@ const installFailureCollectors = (page) => {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
 });
@@ -33,7 +32,6 @@ test.beforeEach(async ({ page }) => {
 test('mobile filters, menu, and sidebar work with touch', async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await context.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
   const page = await context.newPage();
@@ -59,7 +57,7 @@ test('mobile filters, menu, and sidebar work with touch', async ({ browser, base
   }
   await page.locator('.header-more-toggle').tap();
   await expect(page.locator('.header-controls .watchlist-link:visible, .mobile-watchlist-link:visible')).toHaveCount(1);
-  await expect(page.locator('.header-more .help-label')).toBeVisible();
+  await expect(page.locator('#help-toggle')).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('mobile-catalog.png') });
 
   for (const path of ['/', '/watchlist.html']) {

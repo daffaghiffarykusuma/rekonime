@@ -4,12 +4,10 @@ for (const width of [1280, 390]) {
   test(`lasting feedback is deliberate and reversible using a keyboard at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.addInitScript(() => {
-      localStorage.setItem('rekonime.onboarding', 'completed');
       localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
     });
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-    await page.getByRole('button', { name: /Help me unwind/ }).click();
     const card = page.locator('#recommendations-grid .recommendation-card').first();
     const id = await card.getAttribute('data-anime-id');
     const title = (await card.locator('.recommendation-title').textContent()).trim();

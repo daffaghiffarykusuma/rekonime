@@ -18,7 +18,6 @@ Use Node.js 24.x and Bun. The Node version is declared in `.nvmrc` for local ver
 - Track your watchlist (planned/watching/completed/dropped) stored locally in your browser.
 - **Surprise Me**: Get a random quality anime recommendation.
 - **Seasonal Discovery**: Quick filters for This Season, Last Season, Next Season.
-- **Trending**: See what's popular right now.
 - **Because You Watched**: Personalized recommendations based on your watchlist.
 - **Filter Presets**: One-click curated filters (Binge-Worthy, Critical Darlings, Hidden Gems, etc.).
 - **Keyboard Shortcuts**: `?` for help, `/` for search, arrow keys for navigation.
@@ -99,8 +98,7 @@ src/
     airing/              Release schedules and airing dashboard
     catalog/             Catalog loading, cache, payload validation
     detail/              Detail views, trailers, community reviews
-    discovery/           Browse filters, scoring, recommendations, intent
-    onboarding/          First-time welcome journey
+    discovery/           Browse filters, scoring, recommendations, session skips
     preferences/         Taste profile and personal data restore
     watchlist/           Saved entries, lifecycle, import, page rendering
       contracts/         Watchlist types and events
@@ -144,10 +142,9 @@ not require these tools.
 - `src/features/discovery/stats.ts`: episode rating and scoring metrics.
 - `src/features/discovery/recommendations.ts`: recommendation + similarity scoring logic.
 - `src/features/detail/reviews.js`: MyAnimeList (via Jikan API) review fetching and rendering.
-- `src/features/discovery/discovery.js`: Surprise Me, seasonal discovery, trending, and personalized recommendations.
+- `src/features/discovery/discovery.js`: Surprise Me and seasonal discovery.
 - `src/features/discovery/filterPresets.ts`: quick filter presets (Binge-Worthy, Critical Darlings, etc.).
 - `src/shared/ui/keyboardShortcuts.ts`: keyboard navigation system.
-- `src/features/onboarding/onboarding.js`: one-step Viewing Intent onboarding journey.
 - `src/shared/ui/themeManager.js`: light/dark/auto theme switching.
 - `src/shared/runtime/serviceWorker.ts`: PWA service worker registration.
 - `sw.js`: service worker for offline caching.
@@ -165,7 +162,6 @@ flowchart TD
   app --> reviews[src/features/detail/reviews.js]
   app --> discovery[src/features/discovery/discovery.js]
   app --> filterPresets[src/features/discovery/filterPresets.ts]
-  app --> onboarding[src/features/onboarding/onboarding.js]
   app --> themeManager[src/shared/ui/themeManager.js]
   app --> keyboardShortcuts[src/shared/ui/keyboardShortcuts.ts]
   app --> serviceWorkerManager[src/shared/runtime/serviceWorker.ts]

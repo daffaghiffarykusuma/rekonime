@@ -192,39 +192,3 @@ test('App initially ranks Explore Every Title by Taste Profile fit', () => {
     Object.assign(App, originals);
   }
 });
-
-test('App applies a Viewing Intent without changing explicit filters', () => {
-  setupDom('<!doctype html><div id="viewing-intent-options"></div><div id="recommendations-grid"></div>');
-  const originals = {
-    activeFilters: App.activeFilters,
-    viewingIntentRuntime: App.viewingIntentRuntime,
-    renderViewingIntents: App.renderViewingIntents,
-    renderRecommendations: App.renderRecommendations
-  };
-
-  try {
-    App.activeFilters = {
-      seasonYear: [],
-      year: [],
-      studio: [],
-      source: [],
-      genres: ['Action'],
-      themes: ['Fantasy'],
-      demographic: []
-    };
-    App.viewingIntentRuntime = null;
-    App.renderViewingIntents = () => {};
-    let rendered = 0;
-    App.renderRecommendations = () => {
-      rendered += 1;
-    };
-
-    assert.equal(App.applyViewingIntent('unwind'), true);
-    assert.deepEqual(App.activeFilters.genres, ['Action']);
-    assert.deepEqual(App.activeFilters.themes, ['Fantasy']);
-    assert.equal(App.getActiveViewingIntent()?.key, 'unwind');
-    assert.equal(rendered, 1);
-  } finally {
-    Object.assign(App, originals);
-  }
-});

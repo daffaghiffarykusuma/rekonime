@@ -24,6 +24,8 @@ test('home header keeps primary actions simple and accessible', () => {
   assert.equal(navigation.getAttribute('aria-label'), 'Secondary navigation');
   assert.match(html, /<nav class="header-actions"[\s\S]*?<\/nav>\s*<\/details>/);
   assert.equal(document.querySelector('.discovery-actions').getAttribute('role'), 'group');
-  assert.equal(document.getElementById('viewing-intent-options').getAttribute('role'), 'group');
+  for (const removed of ['viewing-intent-section', 'recommendation-modes', 'trending-section', 'rankings-section', 'onboarding-modal', 'help-toggle']) {
+    assert.equal(document.getElementById(removed), null, removed);
+  }
   assert.equal(document.getElementById('active-filters').getAttribute('aria-label'), 'Active filters');
 });

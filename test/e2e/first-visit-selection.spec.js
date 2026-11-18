@@ -4,12 +4,10 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 
   test(`a chosen title remains visible with keyboard Undo and persists in Watchlist at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.addInitScript(() => {
-      localStorage.setItem('rekonime.onboarding', 'completed');
       localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
     });
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-    await page.getByRole('button', { name: /Help me unwind/ }).click();
     const title = (await page.locator('#recommendations-grid .recommendation-title').first().textContent()).trim();
     const save = page.getByRole('button', { name: `Want to watch ${title}`, exact: true });
     await save.focus();
@@ -44,12 +42,10 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 
 
 test('failed selection Undo stays retryable and a newer Watchlist change is protected', async ({ page, context }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-  await page.getByRole('button', { name: /Help me unwind/ }).click();
   const title = (await page.locator('#recommendations-grid .recommendation-title').first().textContent()).trim();
   await page.getByRole('button', { name: `Want to watch ${title}`, exact: true }).click();
   const selected = page.getByRole('region', { name: 'Your chosen title' });

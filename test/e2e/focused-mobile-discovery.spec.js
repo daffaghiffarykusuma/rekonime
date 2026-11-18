@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
 });
@@ -17,7 +16,6 @@ test('supporting exploration stays in Browse anime below the initial picks', asy
   const shelf = await browse.boundingBox();
   expect(shelf.y).toBeGreaterThanOrEqual(picks.y + picks.height);
   await expect(browse.locator('#seasonal-filters')).toBeVisible();
-  await expect(browse.locator('#trending-section')).toBeVisible();
   await expect(browse.locator('#catalog-section')).toBeVisible();
   await page.getByRole('button', { name: 'Explore genres', exact: true }).click();
   await expect(browse.getByRole('button', { name: 'Add Action filter', exact: true })).toBeVisible();
@@ -30,20 +28,12 @@ test('mobile Discovery leaves room for a pick and its actions', async ({ page })
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-  // Optional goals must not consume a full screen before the shortlist begins.
-  const goals = await page.locator('#viewing-intent-section').boundingBox();
-  expect(goals.height).toBeLessThan(260);
   const card = page.locator('#recommendations-grid .recommendation-card').first();
   await card.scrollIntoViewIfNeeded();
   const artwork = await card.locator('.recommendation-media').boundingBox();
   expect(artwork.height).toBeLessThanOrEqual(180);
   await expect(card.locator('.recommendation-title')).toBeInViewport();
   await expect(card.getByRole('button', { name: /^Want to watch / })).toBeInViewport();
-  await page.getByRole('button', { name: /Help me unwind/ }).click();
-  await expect(page.locator('#discovery-garden')).toBeHidden();
-  await expect(page.locator('#active-viewing-intent')).toContainText('Help me unwind');
-  await page.locator('#active-viewing-intent').getByRole('button', { name: 'Change', exact: true }).click();
-  await expect(page.getByRole('button', { name: /Help me unwind/ })).toBeFocused();
 });
 
 for (const width of [1280, 390]) {
@@ -60,12 +50,8 @@ for (const width of [1280, 390]) {
       await fresh.setViewportSize({ width, height: width === 390 ? 844 : 720 });
       await fresh.addInitScript(nextTheme => localStorage.setItem('rekonime.theme', nextTheme), theme);
       await fresh.goto('/');
-      await expect(fresh.locator('.onboarding-intent-card').first()).toBeEnabled();
-      await fresh.screenshot({ path: testInfo.outputPath('fresh-welcome.png'), animations: 'disabled' });
-      await fresh.getByRole('button', { name: 'Skip to recommendations', exact: true }).click();
-      await expect(fresh.locator('#onboarding-modal')).toBeHidden();
       await expect(fresh.locator('#discovery-garden')).toBeVisible();
-      await fresh.screenshot({ path: testInfo.outputPath('fresh-skipped.png'), animations: 'disabled' });
+      await fresh.screenshot({ path: testInfo.outputPath('fresh-visit.png'), animations: 'disabled' });
       await fresh.close();
       await page.goto('/');
       await expect(page.locator('.recommendation-title').first()).toBeVisible();
@@ -77,10 +63,6 @@ for (const width of [1280, 390]) {
       await capture('landing');
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       await expect(page.locator('#discovery-garden')).toBeVisible();
-      await page.getByRole('button', { name: /Help me unwind/ }).focus();
-      await page.keyboard.press('Enter');
-      await expect(page.locator('#discovery-garden')).toBeHidden();
-      await capture('active-goal');
       const card = page.getByRole('group', { name: 'Partial episode evidence', exact: true });
       await card.getByText('Ratings and evidence', { exact: true }).focus();
       await page.keyboard.press('Enter');
@@ -105,7 +87,6 @@ for (const width of [1280, 390]) {
       await testInfo.attach('page-reflow', { body: JSON.stringify(reflow, null, 2), contentType: 'application/json' });
       expect(reflow.scrollWidth, '200% text must not require horizontal page scrolling').toBeLessThanOrEqual(width);
       for (const control of [
-        page.locator('#active-viewing-intent').getByRole('button', { name: 'Change', exact: true }),
         card.getByRole('button', { name: /^Want to watch / }),
         card.getByRole('button', { name: /^Skip for now/ }),
         page.getByRole('button', { name: 'Filter & sort', exact: true })
@@ -118,8 +99,6 @@ for (const width of [1280, 390]) {
         await expect(control).toBeEnabled();
         await control.click({ trial: true });
       }
-      await page.locator('#active-viewing-intent').scrollIntoViewIfNeeded();
-      await capture('large-text-intent');
       await card.scrollIntoViewIfNeeded();
       const bounds = await card.boundingBox();
       expect(bounds.x).toBeGreaterThanOrEqual(0);

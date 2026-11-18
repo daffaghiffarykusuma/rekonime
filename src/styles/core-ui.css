@@ -472,7 +472,7 @@ html[data-sidebar-mode="auto-hide"] .app-container { padding-left: clamp(56px, 6
 .help-link:hover { color: var(--accent-hover); }
 
 /* Chips are the only fully rounded shape. Selected chips are filled with ink. */
-.quick-chip, .seasonal-chip, .mode-chip, .filter-pill, .watchlist-filter-chip, .quick-tab {
+.quick-chip, .seasonal-chip, .filter-pill, .watchlist-filter-chip, .quick-tab {
   border: 1.5px solid var(--border-color);
   border-radius: 999px;
   background: transparent;
@@ -481,7 +481,11 @@ html[data-sidebar-mode="auto-hide"] .app-container { padding-left: clamp(56px, 6
   font-weight: 600;
   box-shadow: none;
 }
-.quick-chip:hover, .seasonal-chip:hover, .mode-chip:hover, .filter-pill:hover, .watchlist-filter-chip:hover, .quick-tab:hover,
+.quick-chip:hover,
+.seasonal-chip:hover,
+.filter-pill:hover,
+.watchlist-filter-chip:hover,
+.quick-tab:hover,
 [data-theme="light"] :is(.quick-chip, .seasonal-chip, .filter-pill):hover {
   border-color: var(--text-primary);
   background: transparent;
@@ -492,26 +496,9 @@ html[data-sidebar-mode="auto-hide"] .app-container { padding-left: clamp(56px, 6
   background: transparent;
   color: var(--text-secondary);
 }
-:is(.quick-chip.active, .quick-tab.is-active, .filter-pill.active, .seasonal-chip.is-highlight, .mode-chip.is-active, .watchlist-filter-chip.is-active, .theme-option.is-active, .sidebar-mode-option.is-active),
-[data-theme="light"] :is(.quick-chip.active, .quick-tab.is-active, .filter-pill.active, .seasonal-chip.is-highlight, .mode-chip.is-active, .watchlist-filter-chip.is-active, .theme-option.is-active, .sidebar-mode-option.is-active) {
-  border-color: var(--text-primary);
-  background: var(--text-primary);
-  color: var(--bg-primary);
-  box-shadow: none;
-}
 .sidebar-mode-option.is-active .sidebar-mode-description { color: inherit; opacity: .8; }
 
 /* Labels read in sentence case. The legacy sheets set many in tracked capitals. */
-html :is(.filter-section-title, .ranking-card h3, .score-label, .consistency-label, .stat-label,
-  .detail-alt-label, .detail-stat-label, .detail-watchlist-title, .watchlist-progress-label,
-  .franchise-eyebrow, .franchise-badge, .trailer-control-btn, .trailer-link, .active-filters-label,
-  .active-filter-pill-label, .search-no-results-tip, .airing-summary-label, .airing-card-badge,
-  .seasonal-filters-label, .trending-live-indicator, .mood-cluster-tags, .detail-verdict-label,
-  .watchlist-filters-label, .watchlist-controls-label, .watchlist-controls-progress-label,
-  .shortcuts-section-title, .mal-import-eyebrow) {
-  letter-spacing: 0;
-  text-transform: none;
-}
 html :is(.detail-alt-label, .detail-stat-label, .detail-watchlist-title, .watchlist-progress-label,
   .airing-summary-label, .detail-verdict-label, .watchlist-filters-label, .watchlist-controls-label,
   .watchlist-controls-progress-label, .stat-label, .score-label) {
@@ -592,7 +579,6 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 /* ---------- Supporting headings ----------
    Two levels only. The wide display face is for the page headline and the main
    shelves. Supporting blocks get a plain body-weight label. */
-.viewing-intent-section .mood-filter-title,
 .continue-watching-section .section-header h2,
 .airing-dashboard-section .airing-dashboard-header h2 {
   margin: 0;
@@ -606,65 +592,16 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 }
 
 /* ---------- Viewing goal: a row of chips ---------- */
-.viewing-intent-section {
-  padding: 18px 0 20px;
-  margin: 0;
-  border: 0;
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-.viewing-intent-section .mood-filter-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 14px;
-  margin-bottom: 12px;
-}
 .mood-filter-kicker { display: none; }
 .mood-filter-title { margin: 0; }
 .mood-filter-note { margin: 0; color: var(--text-muted); font-size: .8rem; }
-.mood-filter-clusters { display: flex; flex-wrap: wrap; gap: 8px; }
-.viewing-intent-section .viewing-intent-option { min-width: 0; }
-.mood-cluster {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 8px 18px;
-  border: 1.5px solid var(--border-color);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-  text-align: left;
-  box-shadow: none;
-  cursor: pointer;
-  transition: border-color .15s ease, background-color .15s ease;
-}
-.mood-cluster:hover, .mood-cluster:focus-visible { border-color: var(--text-primary); background: transparent; transform: none; }
-.mood-cluster.active,
-.mood-cluster[aria-pressed="true"] {
-  border-color: var(--text-primary);
-  background: var(--text-primary);
-  color: var(--bg-primary);
-}
-.mood-cluster-label { color: inherit; font-family: var(--font-body); font-size: .9rem; font-weight: 600; line-height: 1.3; }
 /* Descriptions stay in each button's accessible name but are not shown. */
-.viewing-intent-section .mood-cluster-desc,
-.viewing-intent-section .mood-cluster-tags {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 
 /* ---------- Section headings ---------- */
-.recommendations-section, .trending-section, .grid-section, .watchlist-section,
-.because-you-watched-section, .rankings-section {
+.recommendations-section,
+.grid-section,
+.watchlist-section,
+.because-you-watched-section {
   padding: 40px 0 0;
   margin: 0 0 32px;
   border: 0;
@@ -672,13 +609,13 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
   background: transparent;
   box-shadow: none;
 }
-.recommendations-header h2, .section-header h2, .trending-header h2, .byw-header h2 {
+.recommendations-header h2, .section-header h2, .byw-header h2 {
   font-size: clamp(1.6rem, 2.6vw, 2.3rem);
   font-stretch: 108%;
   font-weight: 800;
   letter-spacing: -.02em;
 }
-.section-header h2, .recommendations-header h2, .trending-header h2 { margin: 0; }
+.section-header h2, .recommendations-header h2 { margin: 0; }
 .header-sort .sort-select, .header-sort .select-wrapper { border-radius: var(--radius-sm); }
 .section-subtitle { margin-top: 6px; color: var(--text-muted); font-size: .88rem; line-height: 1.55; }
 
@@ -693,36 +630,12 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
   gap: 8px 24px;
   margin-bottom: 4px;
 }
-.recommendation-modes { grid-column: 1 / -1; margin: 0 0 20px; padding: 0; border: 0; }
-.recommendation-modes .modes-label { display: none; }
-.recommendation-modes summary {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--text-secondary);
-  font-size: .85rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.recommendation-modes summary::-webkit-details-marker { display: none; }
-.recommendation-modes summary::after { content: '+'; margin-left: 8px; font-size: 1.1rem; font-weight: 400; }
-.recommendation-modes[open] summary::after { content: '−'; }
-.recommendation-modes .mode-chips { margin-top: 4px; }
-.mode-chips { gap: 8px; }
-.mode-icon { display: block; flex: 0 0 18px; }
 
 .recommendations-grid {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 36px 28px;
-}
-.recommendation-group-heading {
-  grid-column: 1 / -1;
-  margin: 8px 0 -12px;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  font-stretch: 110%;
 }
 
 .recommendation-card {
@@ -1042,57 +955,6 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 }
 
 /* ---------- Trending list: numbered because it is a ranking ---------- */
-.trending-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 28px; }
-.trending-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 56px minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-  padding: 14px 0;
-  border: 0;
-  border-bottom: 1px solid var(--border-color);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  cursor: pointer;
-}
-.trending-card:hover { transform: none; background: transparent; box-shadow: none; }
-.trending-card:hover .trending-title { color: var(--accent-primary); }
-.trending-rank, .trending-rank.top-3 {
-  position: static;
-  width: 1.6ch;
-  height: auto;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  color: var(--text-muted);
-  font-family: var(--font-display);
-  font-size: 2.2rem;
-  font-stretch: 60%;
-  font-weight: 900;
-  line-height: 1;
-  text-align: right;
-  box-shadow: none;
-}
-.trending-rank.top-3 { color: var(--accent-primary); }
-.trending-cover { width: 56px; height: 78px; border-radius: var(--radius-cover); object-fit: cover; }
-.trending-info { min-width: 0; padding: 0; }
-.trending-title {
-  overflow: hidden;
-  color: var(--text-primary);
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-stretch: 80%;
-  font-weight: 780;
-  line-height: 1.15;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.trending-meta { margin-top: 4px; color: var(--text-muted); font-size: .76rem; line-height: 1.45; }
-
-.ranking-card { border-color: var(--border-color); background: var(--bg-secondary); box-shadow: none; }
 
 /* ---------- Browse area ---------- */
 .browse-anime { min-width: 0; margin: 40px 0 24px; padding-top: 28px; border-top: 1px solid var(--border-color); }
@@ -1334,47 +1196,6 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
 }
 
 /* ---------- First visit ---------- */
-.onboarding-backdrop { background: var(--bg-primary); }
-.onboarding-modal {
-  max-width: 720px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  background: var(--bg-secondary);
-  box-shadow: var(--shadow-lg);
-}
-.onboarding-content { padding: 44px; text-align: left; }
-.onboarding-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 50px;
-  margin: 0 0 28px;
-  border-radius: 2px;
-  background: var(--obi);
-  color: var(--obi-ink);
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-stretch: 60%;
-  font-weight: 900;
-}
-.onboarding-title {
-  font-size: clamp(2.1rem, 4.6vw, 3.4rem);
-  font-stretch: 150%;
-  font-weight: 880;
-  line-height: .95;
-  letter-spacing: -.035em;
-  text-align: left;
-}
-.onboarding-description { color: var(--text-secondary); text-align: left; }
-.onboarding-intent-card {
-  min-height: 76px;
-  border: 1.5px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
-}
-.onboarding-intent-card:hover, .onboarding-intent-card:focus-visible { border-color: var(--text-primary); background: var(--bg-primary); }
-.onboarding-intent-title { color: var(--text-primary); font-family: var(--font-display); font-stretch: 100%; font-weight: 760; }
-.onboarding-intent-copy { color: var(--text-secondary); }
 
 /* ---------- Preferences ---------- */
 .theme-selector,
@@ -1428,7 +1249,6 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .header-search-wrapper { max-width: none; }
   .recommendations-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .anime-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .trending-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
@@ -1452,22 +1272,18 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .mobile-watchlist-link { display: inline-flex; order: 2; }
   .header-more .watchlist-link { display: none; }
   .header-more .header-actions { grid-template-columns: 1fr; width: max-content; min-width: 10rem; }
-  .header-more .help-btn .help-label { display: inline; }
   .header-sort { display: block; flex: 1; max-width: none; }
   .header-sort select { width: 100%; }
   .header-controls .filter-btn { flex: 0 0 auto; width: auto; }
   .header-controls .header-more { flex: 0 0 auto; width: auto; margin-left: 0; }
   .header-controls .header-more-toggle { width: auto; }
   .recommendations-section { display: block; padding-top: 28px; }
-  .recommendations-header, .trending-header { align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .recommendations-header { align-items: flex-start; gap: 8px; flex-wrap: wrap; }
   .recommendations-grid { gap: 36px; }
-  .recommendation-modes, .mode-chips { max-width: 100%; }
-  .mode-chips { flex-wrap: wrap; }
   .anime-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 14px; }
   .anime-card .card-cover { height: 240px; }
   .theme-selector, .sidebar-mode-selector { grid-template-columns: 1fr; }
   .watchlist-page .header > .header-actions { margin-left: 0; min-width: 0; }
-  .onboarding-content { padding: 32px 24px; }
 }
 
 @media (max-width: 640px) {
@@ -1483,14 +1299,7 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .discovery-garden.is-returning { padding: 18px 0 14px; }
   .discovery-garden.is-returning .discovery-title { font-size: 1.6rem; }
   .discovery-garden.is-returning .discovery-actions { width: 100%; }
-  .viewing-intent-section { padding: 12px 0; }
-  .viewing-intent-section.is-complete { padding-block: 10px; }
-  .viewing-intent-section .mood-filter-header { gap: 4px 16px; margin-bottom: 8px; }
-  .viewing-intent-section .mood-filter-note { font-size: .78rem; }
-  .viewing-intent-section .mood-filter-clusters { gap: 6px; }
-  .viewing-intent-section .mood-cluster { padding: 8px 14px; }
   .continue-card { padding: 14px; }
-  .trending-grid { grid-template-columns: 1fr; }
   .has-tooltip .tooltip, .has-tooltip .tooltip--bottom {
     position: fixed; left: 16px; right: 16px; bottom: 16px; top: auto;
     width: auto; max-width: none; transform: none;

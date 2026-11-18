@@ -33,15 +33,12 @@ const initNonCriticalServices = (app) => {
     timeoutMs: 7000,
     loadModules: async () => Promise.all([
         import('../shared/ui/keyboardShortcuts.ts'),
-        import('../shared/runtime/serviceWorker.ts'),
-        import('../features/discovery/recommendations.ts')
+        import('../shared/runtime/serviceWorker.ts')
       ]),
-    onReady: async ([keyboardModule, swModule, recsModule]) => {
+    onReady: async ([keyboardModule, swModule]) => {
       const { KeyboardShortcuts } = keyboardModule;
       const { ServiceWorkerManager } = swModule;
-      const { Recommendations } = recsModule;
 
-      Recommendations.loadModePreference();
       KeyboardShortcuts.configure({
         commands: {
           closeModal: () => app?.handleGlobalEscape?.({ key: 'Escape' }),

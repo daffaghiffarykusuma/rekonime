@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test('first-visit Discovery offers three picks, more on request, and keyboard-accessible rating evidence', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
   await page.goto('/');
@@ -18,10 +17,6 @@ test('first-visit Discovery offers three picks, more on request, and keyboard-ac
   await expect(cards.first().locator('.recommendation-title')).toHaveText(firstTitle);
   await expect(cards.nth(3).locator('.recommendation-title')).toBeFocused();
 
-  await page.locator('#viewing-intent-options').getByRole('button', { name: /Help me unwind/ }).click();
-  await expect(cards).toHaveCount(3);
-  await expect(page.getByRole('heading', { name: 'Suggestions for this goal', exact: true })).toBeVisible();
-  await expect(cards.first().locator('.recommendation-reason')).toContainText('slice-of-life');
   const ratings = cards.first().getByText('Ratings and evidence', { exact: true });
   await ratings.focus();
   await page.keyboard.press('Enter');
@@ -38,8 +33,7 @@ test('first-visit Discovery offers three picks, more on request, and keyboard-ac
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
 });
 
-test('a goal with no matches labels alternatives and missing episode information honestly', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('rekonime.onboarding', 'completed'));
+test('recommendations label missing episode information honestly', async ({ page }) => {
   const anime = [
     { id: 'unknown-episodes', title: 'Unknown episodes', genres: ['Action'], themes: [], communityScore: 8, episodes: [] },
     { id: 'partial-episodes', title: 'Partial episodes', genres: ['Action'], themes: [], communityScore: 8,
@@ -49,10 +43,7 @@ test('a goal with no matches labels alternatives and missing episode information
   await page.route('**/data/anime*.json*', route => route.fulfill({ json: { anime } }));
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-  await page.locator('#viewing-intent-options').getByRole('button', { name: /Help me unwind/ }).click();
   const grid = page.locator('#recommendations-grid');
-  await expect(grid.getByRole('heading', { name: 'General alternatives', exact: true })).toBeVisible();
-  await expect(grid).toContainText('No close matches for this goal.');
   await expect(grid.locator('.recommendation-card')).toHaveCount(2);
   await expect(grid).toContainText('Episode count unknown');
   await expect(grid).toContainText('Through episode 7 observed · total unknown');

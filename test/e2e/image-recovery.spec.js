@@ -18,7 +18,6 @@ for (const cachedProxy of [false, true]) {
   test(`covers recover on home, detail and watchlist when image hosts fail (${cachedProxy ? 'cached proxy' : 'first visit'})`, async ({ page }) => {
     if (cachedProxy) await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript(({ anime, cachedProxy }) => {
-      localStorage.setItem('rekonime.onboarding', 'completed');
       localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
       if (cachedProxy) {
         localStorage.setItem('rekonime.imageProxyStatus', JSON.stringify({ ok: true, checkedAt: Date.now() }));
@@ -48,7 +47,6 @@ for (const cachedProxy of [false, true]) {
 test('a failed proxy retries the original cover before using a placeholder', async ({ page }) => {
   const cover = '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="360"><rect width="240" height="360" fill="green"/></svg>';
   await page.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.imageProxyStatus', JSON.stringify({ ok: true, checkedAt: Date.now() }));
   });
   let proxyRequests = 0;

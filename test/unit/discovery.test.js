@@ -46,36 +46,3 @@ test('Discovery getSeasonalFilters returns only existing seasons', () => {
 
   Discovery.getCurrentSeason = originalCurrent;
 });
-
-test('Discovery getTrending orders by score', () => {
-  const originalRandom = Math.random;
-  Math.random = () => 0;
-
-  const top = createAnime({ id: 'top', communityScore: 9.5, stats: createStats({ retentionScore: 90, worthFinishing: 85 }) });
-  const low = createAnime({ id: 'low', communityScore: 6.0, stats: createStats({ retentionScore: 40, worthFinishing: 40 }) });
-
-  const result = Discovery.getTrending([low, top], 1);
-  assert.equal(result.length, 1);
-  assert.equal(result[0].id, 'top');
-  assert.deepEqual(Discovery.getTrending([low, top], 1), result);
-
-  Math.random = originalRandom;
-});
-
-test('Discovery getPopularThisWeek is stable for same week', () => {
-  const originalWeek = Discovery.getWeekNumber;
-  Discovery.getWeekNumber = () => 5;
-
-  const list = [
-    createAnime({ id: 'a', communityScore: 8.0 }),
-    createAnime({ id: 'b', communityScore: 8.1 }),
-    createAnime({ id: 'c', communityScore: 8.2 })
-  ];
-
-  const first = Discovery.getPopularThisWeek(list, 3).map(item => item.id);
-  const second = Discovery.getPopularThisWeek(list, 3).map(item => item.id);
-
-  assert.deepEqual(first, second);
-
-  Discovery.getWeekNumber = originalWeek;
-});

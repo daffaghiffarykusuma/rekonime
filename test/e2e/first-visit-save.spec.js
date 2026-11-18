@@ -4,12 +4,10 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 
   test(`failed Discovery save can be retried with the keyboard at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.addInitScript(() => {
-      localStorage.setItem('rekonime.onboarding', 'completed');
       localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
     });
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-    await page.getByRole('button', { name: /Help me unwind/ }).click();
     const card = page.locator('#recommendations-grid .recommendation-card').first();
     const title = (await card.locator('.recommendation-title').textContent()).trim();
     const save = page.getByRole('button', { name: `Want to watch ${title}`, exact: true });

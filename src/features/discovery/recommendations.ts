@@ -1,8 +1,7 @@
 // @ts-nocheck
 import { getDeclaredEpisodeCount } from '../catalog/catalog-payload.ts';
 import { prepareDiscoveryCandidates } from './recommendation-eligibility.ts';
-import { getExperienceCues, getExperienceSignals } from './experience-cues.ts';
-import { CacheManager } from '../../shared/services/cache-manager.ts';
+import { getExperienceCues } from './experience-cues.ts';
 
 /**
  * Recommendations module for beginner-friendly anime suggestions
@@ -60,86 +59,29 @@ const Recommendations = {
     }));
   },
 
-  getIntentDefinition(intentKey) {
-    const definitions = {
-      unwind: { signal: 'gentle', reason: 'Suggested from slice-of-life or iyashikei themes' },
-      energy: { signal: 'energy', reason: 'Suggested from action or sports themes' },
-      emotional: { signal: 'emotional', reason: 'Suggested from drama, romance, or music themes' },
-      immersive: { signal: 'immersive', reason: 'Suggested from fantasy, adventure, or sci-fi themes' },
-      surprise: { signal: '', reason: 'A general discovery pick' }
-    };
-    const definition = definitions[intentKey];
-    if (!definition) return null;
-    return { ...definition, score: anime => this.scoreAnime(anime)
-      + (getExperienceSignals(anime)[definition.signal] ? 35 : 0) };
-  },
-
-  getRecommendationsForIntent(animeList, intentKey, {
-    limit = 4,
-    modeKey = this.currentMode
-  } = {}) {
-    if (!Array.isArray(animeList) || animeList.length === 0) return [];
-    const intent = this.getIntentDefinition(intentKey);
-    if (!intent) return this.getRecommendationsWithMode(animeList, modeKey, limit);
-
-    const top = this.selectTopByScore(
-      animeList,
-      limit,
-      anime => (intent.score(anime) * 0.7) +
-        (this.scoreAnimeWithMode(anime, modeKey) * 0.3) +
-        ((Number.isFinite(anime?.tasteScore) ? anime.tasteScore : 0) * 1.4),
-      { minScore: 0.0001 }
-    );
-
-    return top.map(entry => ({
-      ...entry.anime,
-      reason: getExperienceSignals(entry.anime)[intent.signal] ? intent.reason : this.getRecommendationReasonForMode(entry.anime, modeKey),
-      experienceCues: this.getExperienceCues(entry.anime, intentKey)
-    }));
-  },
-
-  getExperienceCues(anime, intentKey = '') {
-    return getExperienceCues(anime, intentKey);
+  getExperienceCues(anime) {
+    return getExperienceCues(anime);
   },
 
   getRecommendationDecision(animeList, {
-    viewingIntent = null as { key: string; label?: string; description?: string } | null,
-    modeKey = this.currentMode,
     limit = 3,
     watchlistEntries = [] as any[]
   } = {}) {
     animeList = prepareDiscoveryCandidates(animeList, watchlistEntries);
-    const intentKey = String(viewingIntent?.key || '');
-    const intent = this.getIntentDefinition(intentKey);
-    const hasGoal = Boolean(intent?.signal);
-    const matches = hasGoal
-      ? this.getRecommendationsForIntent(animeList.filter(anime => getExperienceSignals(anime)[intent.signal]), intentKey, { limit: limit + 1, modeKey })
-      : [];
-    const matchedFranchises = new Set(matches.map(anime => anime.franchise?.id || anime.id));
-    const otherCandidates = hasGoal
-      ? animeList.filter(anime => !getExperienceSignals(anime)[intent.signal] && !matchedFranchises.has(anime.franchise?.id || anime.id))
-      : animeList;
-    const alternatives = intent
-      ? this.getRecommendationsForIntent(otherCandidates, intentKey, { limit: limit + 1, modeKey })
-      : this.getRecommendationsWithMode(otherCandidates, modeKey, limit + 1);
-    const available = [...matches, ...alternatives];
+    const available = this.getRankedPicks(animeList, limit + 1);
     const recommendations = available.slice(0, limit);
 
     return {
-      context: intent && viewingIntent?.label && viewingIntent?.description
-        ? `${viewingIntent.label}: ${viewingIntent.description}`
-        : recommendations.some(anime => anime.tasteReason) ? 'Picks ranked using your saved taste and audience ratings.' : this.getModeContext(modeKey),
+      context: recommendations.some(anime => anime.tasteReason)
+        ? 'Picks ranked using your saved taste and audience ratings.'
+        : 'General picks ranked by episode ratings and community scores.',
       hasMore: available.length > limit,
-      noCloseMatches: hasGoal && matches.length === 0,
       items: recommendations.map(anime => ({
         ...anime,
         episodeSummary: this.getEpisodeSummary(anime),
-        group: hasGoal ? getExperienceSignals(anime)[intent.signal] ? 'intent' : 'alternative' : 'general',
-        fitLabel: hasGoal && getExperienceSignals(anime)[intent.signal] ? 'For this goal' : hasGoal ? 'General alternative' : anime.tasteReason ? 'For your taste' : 'General pick',
-        fitReason: hasGoal && getExperienceSignals(anime)[intent.signal] ? intent.reason : anime.tasteReason || anime.reason || anime.franchiseReason,
-        experienceCues: Array.isArray(anime.experienceCues)
-          ? anime.experienceCues
-          : this.getExperienceCues(anime, intentKey)
+        fitLabel: anime.tasteReason ? 'For your taste' : 'General pick',
+        fitReason: anime.tasteReason || anime.reason || anime.franchiseReason,
+        experienceCues: this.getExperienceCues(anime)
       }))
     };
   },
@@ -312,19 +254,6 @@ const Recommendations = {
     }
 
     return reasons.slice(0, 2).join(' + ');
-  },
-
-  /**
-   * Get ranking titles for the homepage spotlight cards
-   * @returns {Object} Title and metric keys
-   */
-  getRankingTitles() {
-    return {
-      title1: 'Highest Episode Rating Strength',
-      title2: 'Highest Community Score (MAL)',
-      metric1: 'retention',
-      metric2: 'satisfaction'
-    };
   },
 
   /**
@@ -588,178 +517,26 @@ const Recommendations = {
     return 'score-poor';
   },
 
-  // ==========================================
-  // Recommendation Modes (Gap C4)
-  // ==========================================
-
   /**
-   * Available recommendation modes
+   * Score a pick from episode rating strength, community score, and saved taste
    */
-  modes: {
-    balanced: {
-      label: 'Balanced',
-      description: 'Strong episode ratings with broad audience approval',
-      weights: { retention: 0.75, satisfaction: 0.25 }
-    },
-    binge: {
-      label: 'Episode consistency',
-      description: 'Highly rated opening episodes and stable ratings',
-      weights: { retention: 0.9, satisfaction: 0.1 },
-      boosters: ['flowState', 'threeEpisodeHook']
-    },
-    quality: {
-      label: 'Community favorites',
-      description: 'Led by top audience scores',
-      weights: { retention: 0.3, satisfaction: 0.7 }
-    },
-    discovery: {
-      label: 'Hidden Gems',
-      description: 'Strong episode ratings with lower community scores',
-      weights: { retention: 0.8, satisfaction: 0.2 },
-      filter: (anime) => (anime.communityScore || 0) < 7.8
-    },
-    comfort: {
-      label: 'Comfort Shows',
-      description: 'Slice-of-life and iyashikei suggestions',
-      weights: { retention: 0.6, satisfaction: 0.4 },
-      filter: (anime) => getExperienceSignals(anime).gentle
-    }
-  },
-
-  currentMode: 'balanced',
-
-  getCache() {
-    return CacheManager;
-  },
-
-  /**
-   * Set recommendation mode
-   */
-  setMode(modeKey) {
-    if (this.modes[modeKey]) {
-      this.currentMode = modeKey;
-      // Persist preference
-      const cache = this.getCache();
-      cache.setJSON('rekonime.recMode', modeKey, { validate: true });
-      return true;
-    }
-    return false;
-  },
-
-  /**
-   * Load saved mode preference
-   */
-  loadModePreference() {
-    const cache = this.getCache();
-    const saved = cache.getJSON('rekonime.recMode', { fallback: '', validate: true });
-    if (saved && this.modes[saved]) {
-      this.currentMode = saved;
-    }
-  },
-
-  /**
-   * Get current mode
-   */
-  getCurrentMode() {
-    return this.modes[this.currentMode];
-  },
-
-  /**
-   * Enhanced recommendation scoring with mode support
-   */
-  scoreAnimeWithMode(anime, modeKey = this.currentMode) {
-    const mode = this.modes[modeKey];
-    if (!mode) return this.scoreAnime(anime);
-
-    // Apply mode filter if exists
-    if (mode.filter && !mode.filter(anime)) {
-      return 0;
-    }
-
+  scorePick(anime) {
     const retentionScore = anime?.stats?.retentionScore ?? 0;
-    const malSatisfactionScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
-    const malSatisfactionScaled = malSatisfactionScore * 10;
-
-    // Base score from weights
-    let score = (retentionScore * mode.weights.retention) +
-      (malSatisfactionScaled * mode.weights.satisfaction);
-    score += (Number.isFinite(anime?.tasteScore) ? anime.tasteScore : 0) * 2;
-
-    // Apply boosters
-    if (mode.boosters) {
-      mode.boosters.forEach(booster => {
-        const boosterValue = anime?.stats?.[booster];
-        if (Number.isFinite(boosterValue)) {
-          score += boosterValue * 0.1; // 10% boost
-        }
-      });
-    }
-
-    return score;
+    const communityScore = Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
+    const tasteScore = Number.isFinite(anime?.tasteScore) ? anime.tasteScore : 0;
+    return (retentionScore * 0.75) + (communityScore * 10 * 0.25) + (tasteScore * 2);
   },
 
   /**
-   * Get recommendations with mode
+   * Get the top picks, one per franchise
    */
-  getRecommendationsWithMode(animeList, modeKey = this.currentMode, limit = 6) {
-    const mode = this.modes[modeKey];
-    if (!mode) return this.getRecommendations(animeList, limit);
-
+  getRankedPicks(animeList, limit = 6) {
     if (!animeList || animeList.length === 0) return [];
-
-    const top = this.selectTopByScore(
-      animeList,
-      limit,
-      anime => this.scoreAnimeWithMode(anime, modeKey),
-      { minScore: 0.0001 }
-    );
-
+    const top = this.selectTopByScore(animeList, limit, anime => this.scorePick(anime), { minScore: 0.0001 });
     return top.map(entry => ({
       ...entry.anime,
-      reason: this.getRecommendationReasonForMode(entry.anime, modeKey)
+      reason: this.getRecommendationReason(entry.anime)
     }));
-  },
-
-  /**
-   * Get recommendation reason based on mode
-   */
-  getRecommendationReasonForMode(anime, modeKey = this.currentMode) {
-    const stats = anime?.stats;
-
-    switch (modeKey) {
-      case 'binge':
-        if (stats?.flowState >= 85) return 'Consistent episode ratings';
-        if (stats?.threeEpisodeHook >= 85) return 'Highly rated opening episodes';
-        return 'Selected for opening episode ratings';
-
-      case 'quality':
-        if (anime.communityScore >= 8.5) return 'One of the strongest audience favorites';
-        return 'Backed by a standout community score';
-
-      case 'discovery':
-        if (stats?.retentionScore >= 85) return 'Strong episode ratings with a lower community score';
-        return 'A lower community score with promising episode ratings';
-
-      case 'comfort':
-        return 'Suggested from slice-of-life or iyashikei themes';
-
-      default:
-        return this.getRecommendationReason(anime);
-    }
-  },
-
-  /**
-   * Get mode-specific context text
-   */
-  getModeContext(modeKey = this.currentMode) {
-    const contexts = {
-      balanced: 'General picks ranked by episode ratings and community scores.',
-      binge: 'Picks ranked by opening episode ratings and rating stability.',
-      quality: 'Audience-loved titles led by standout community ratings.',
-      discovery: 'Strong episode ratings paired with lower community scores.',
-      comfort: 'Genre-based suggestions from slice-of-life and iyashikei titles.'
-    };
-    return contexts[modeKey] || contexts.balanced;
   },
 
   // ==========================================

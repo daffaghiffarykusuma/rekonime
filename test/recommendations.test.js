@@ -56,7 +56,6 @@ test('prepared taste fit outranks a generic quality lead', () => {
 
   const communityFavorite = baseAnime({ id: 'community-favorite', episodes: [], stats: {}, communityScore: 9 });
   const decision = Recommendations.getRecommendationDecision([genericLead, tasteFit, communityFavorite], {
-    modeKey: 'balanced',
     limit: 3
   });
 
@@ -65,95 +64,23 @@ test('prepared taste fit outranks a generic quality lead', () => {
   assert.ok(Array.isArray(decision.items[0].experienceCues));
   assert.equal(decision.items.find(item => item.id === 'community-favorite').reason, 'A clear community favorite');
   assert.deepEqual(
-    Recommendations.getRecommendationDecision([genericLead, tasteFit, communityFavorite], { modeKey: 'balanced', limit: 1 }).items.map(item => item.id),
+    Recommendations.getRecommendationDecision([genericLead, tasteFit, communityFavorite], { limit: 1 }).items.map(item => item.id),
     ['taste-fit']
   );
 });
 
-test('recommendation decision ranks the active Viewing Intent without removing viable titles', () => {
-  const energetic = baseAnime({
-    id: 'energetic',
-    stats: {
-      retentionScore: 78,
-      threeEpisodeHook: 96,
-      flowState: 95,
-      emotionalStability: 40,
-      worthFinishing: 72
-    }
-  });
-  const gentle = baseAnime({
-    id: 'gentle',
-    genres: ['Slice of Life'],
-    themes: ['Iyashikei'],
-    stats: {
-      retentionScore: 88,
-      threeEpisodeHook: 65,
-      flowState: 68,
-      emotionalStability: 96,
-      comfortScore: 95,
-      worthFinishing: 80
-    }
-  });
-
-  const decision = Recommendations.getRecommendationDecision([gentle, energetic], {
-    viewingIntent: {
-      key: 'energy',
-      label: 'Bring the energy',
-      description: 'Prioritize momentum and a fast hook.'
-    },
-    modeKey: 'balanced',
-    limit: 4
-  });
-
-  assert.equal(decision.items.length, 2);
-  assert.equal(decision.items[0].id, 'energetic');
-  assert.match(decision.items[0].reason, /action|sports/i);
-  assert.equal(decision.context, 'Bring the energy: Prioritize momentum and a fast hook.');
-});
-
-test('recommendation decision returns two or three Experience Cues for the active intent', () => {
+test('recommendation decision returns restrained Experience Cues from genres and themes', () => {
   const anime = baseAnime({
     genres: ['Action', 'Suspense'],
     themes: ['Psychological'],
-    stats: {
-      retentionScore: 88,
-      threeEpisodeHook: 94,
-      flowState: 93,
-      emotionalStability: 35,
-      comfortScore: 30,
-      worthFinishing: 82
-    }
+    stats: { retentionScore: 88 }
   });
-
-  const decision = Recommendations.getRecommendationDecision([anime], {
-    viewingIntent: { key: 'energy', label: 'Energy', description: 'Fast and propulsive.' },
-    limit: 1
-  });
-  const cues = decision.items[0].experienceCues;
+  const cues = Recommendations.getRecommendationDecision([anime], { limit: 1 }).items[0].experienceCues;
 
   assert.ok(cues.length >= 2 && cues.length <= 3);
-  assert.equal(cues[0], 'Action / sports');
-  assert.ok(cues.includes('Dark themes'));
+  assert.equal(cues[0], 'Dark themes');
+  assert.ok(cues.includes('Action / sports'));
   assert.equal(cues.some(cue => ['Action', 'Suspense', 'Psychological'].includes(cue)), false);
-});
-
-test('recommendation decision changes cue priority with intent and uses a restrained fallback', () => {
-  const versatile = baseAnime({
-    genres: ['Drama', 'Fantasy', 'Slice of Life'],
-    stats: { comfortScore: 90, emotionalStability: 88, worthFinishing: 90, flowState: 90 }
-  });
-
-  const unwind = Recommendations.getRecommendationDecision([versatile], {
-    viewingIntent: { key: 'unwind', label: 'Unwind', description: 'Gentler viewing.' },
-    limit: 1
-  }).items[0].experienceCues;
-  const immersive = Recommendations.getRecommendationDecision([versatile], {
-    viewingIntent: { key: 'immersive', label: 'Immersive', description: 'World-rich viewing.' },
-    limit: 1
-  }).items[0].experienceCues;
-  assert.equal(unwind[0], 'Slice of life / iyashikei');
-  assert.equal(immersive[0], 'World exploration');
-  assert.notDeepEqual(unwind, immersive);
 
   const fallback = Recommendations.getRecommendationDecision([baseAnime({
     id: 'unknown',

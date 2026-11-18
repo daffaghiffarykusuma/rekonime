@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test('Skip for now offers keyboard Undo and same-tab recovery without changing saved data', async ({ page, context }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -27,7 +26,6 @@ test('Skip for now offers keyboard Undo and same-tab recovery without changing s
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
   await expect(page.locator('.recommendation-card[data-anime-id]').first()).toBeVisible();
   await expect(page.locator(`.recommendation-card[data-anime-id="${id}"]`)).toHaveCount(0);
-  await page.getByRole('button', { name: 'Help me unwind', exact: false }).first().click();
   await expect(page.locator(`.recommendation-card[data-anime-id="${id}"]`)).toHaveCount(0);
   const review = page.getByText('Review skipped titles (1)', { exact: true });
   await review.focus();

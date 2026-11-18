@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test('catalog sheet shares sorting with desktop and preserves filtering and Discovery', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('rekonime.onboarding', 'completed');
     localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
   });
   const anime = [
@@ -16,7 +15,6 @@ test('catalog sheet shares sorting with desktop and preserves filtering and Disc
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-  await page.locator('#viewing-intent-options').getByRole('button', { name: /Help me unwind/ }).click();
   const picks = await page.locator('#recommendations-grid .recommendation-title').allTextContents();
   const savedTaste = await page.evaluate(() => localStorage.getItem('rekonime.tasteProfile'));
   const trigger = page.getByRole('button', { name: 'Filter & sort', exact: true });
@@ -60,7 +58,6 @@ test('catalog sheet shares sorting with desktop and preserves filtering and Disc
   await page.keyboard.press('Escape');
   await expect(trigger).toBeFocused();
   await expect(desktopSort).toHaveValue('taste');
-  await expect(page.locator('#active-viewing-intent')).toContainText('Help me unwind');
   expect(await page.locator('#recommendations-grid .recommendation-title').allTextContents()).toEqual(picks);
   expect(await page.evaluate(() => localStorage.getItem('rekonime.tasteProfile'))).toBe(savedTaste);
   await trigger.click();
@@ -80,7 +77,6 @@ for (const theme of ['dark', 'light']) {
   for (const width of [1280, 390, 320]) {
     test(`Filter & sort remains usable in ${theme} at ${width}px`, async ({ page }, testInfo) => {
       await page.addInitScript(theme => {
-        localStorage.setItem('rekonime.onboarding', 'completed');
         localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
         localStorage.setItem('rekonime.theme', theme);
       }, theme);

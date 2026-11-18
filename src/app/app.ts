@@ -4,7 +4,6 @@ import { Recommendations } from '../features/discovery/recommendations.ts';
 import { Discovery } from '../features/discovery/discovery.js';
 import { FilterPresets } from '../features/discovery/filterPresets.ts';
 import { BrowseFiltering } from '../features/discovery/browse-filtering.ts';
-import { Onboarding } from '../features/onboarding/onboarding.js';
 import { ThemeManager } from '../shared/ui/themeManager.js';
 import { SidebarPreference } from '../shared/ui/sidebar-preference.ts';
 import { CacheManager } from '../shared/services/cache-manager.ts';
@@ -16,7 +15,7 @@ import { HealthMonitor } from '../shared/runtime/healthMonitor.js';
 import { createImageProxyRuntime } from '../shared/runtime/image-proxy-runtime.js';
 import { buildDetailDecisionData } from '../features/discovery/decision-signal.ts';
 import { createRuntimeCapabilities } from '../shared/runtime/runtime-capabilities.ts';
-import { createViewingIntentRuntime } from '../features/discovery/viewing-intent.ts';
+import { createDiscoverySession } from '../features/discovery/discovery-session.ts';
 import {
   renderWatchlistControlsHtml,
   updateWatchlistControlsElement
@@ -112,9 +111,8 @@ const App = {
     genres: { expanded: false },
     themes: { expanded: false }
   },
-  viewingIntentRuntime: null,
+  discoverySession: null,
   recommendationDisplayLimit: 3,
-  lastRecommendationIds: new Set(),
   headerSearchState: {
     query: '',
     results: [],
@@ -146,8 +144,6 @@ const App = {
   imageDimensions: {
     card: { width: 240, height: 360 },
     recommendation: { width: 320, height: 190 },
-    trending: { width: 280, height: 140 },
-    ranking: { width: 64, height: 90 },
     search: { width: 40, height: 56 },
     similar: { width: 200, height: 140 },
     detail: { width: 150, height: 210 },
@@ -252,7 +248,6 @@ const App = {
         getAnime: (animeId) => this.animeData.find(item => item?.id === animeId) || null,
         getEpisodeLimit: (animeId) => this.getEpisodeLimitForAnime(animeId),
         getLifecycle: () => this.getWatchlistLifecycle(),
-        isLastRecommendation: (animeId) => this.lastRecommendationIds.has(animeId),
         normalizeId: (animeId) => this.normalizeBookmarkId(animeId)
       });
     }
@@ -686,9 +681,6 @@ const App = {
     }
     if (result.effects?.renderRecommendations) {
       this.renderRecommendations();
-    }
-    if (result.effects?.clearViewingIntent) {
-      this.clearViewingIntent({ announce: true });
     }
     return result.compatibilityResult;
   },
@@ -1386,11 +1378,6 @@ const App = {
       this.applyPerformancePreferences();
       this.getImageProxyRuntime().scheduleCheck({ timeout: 5000 });
 
-      // Check and trigger onboarding for first-time users
-      if (!Onboarding.hasCompleted()) {
-        Onboarding.startTour();
-      }
-
       this.syncSearchWithUrl();
       this.setupEventListeners();
       const isCatalogPage = this.isCatalogPage();
@@ -1633,8 +1620,6 @@ const App = {
 
   renderLoadingState() {
     const recommendations = document.getElementById('recommendations-grid');
-    const rankings1 = document.getElementById('best-ranking-1');
-    const rankings2 = document.getElementById('best-ranking-2');
     const grid = document.getElementById('anime-grid');
 
     if (recommendations) {
@@ -1649,14 +1634,6 @@ const App = {
       setHTML(grid, Array.from({ length: 6 }, () => this.renderCardSkeleton('catalog')).join(''));
     }
 
-    if (rankings1) {
-      rankings1.setAttribute('aria-busy', 'true');
-    }
-
-    if (rankings2) {
-      rankings2.setAttribute('aria-busy', 'true');
-    }
-
     this.renderDeferredUiLoadingState();
   },
 
@@ -1664,7 +1641,6 @@ const App = {
     const genreContainer = document.getElementById('genre-chips');
     const themeContainer = document.getElementById('theme-chips');
     const seasonalContainer = document.getElementById('seasonal-chips');
-    const modeContainer = document.getElementById('mode-chips');
 
     if (genreContainer) {
       genreContainer.setAttribute('aria-busy', 'true');
@@ -1688,15 +1664,6 @@ const App = {
       seasonalContainer.setAttribute('aria-busy', 'true');
       setHTML(seasonalContainer, `
         <button class="seasonal-chip is-loading-chip" type="button" disabled aria-hidden="true">Spring 2026</button>
-      `);
-    }
-
-    if (modeContainer) {
-      modeContainer.setAttribute('aria-busy', 'true');
-      setHTML(modeContainer, `
-        <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Personalized</button>
-        <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Safe picks</button>
-        <button class="mode-chip is-loading-chip" type="button" disabled aria-hidden="true">Hidden gems</button>
       `);
     }
   },
@@ -2111,14 +2078,6 @@ const App = {
       });
     }
 
-    const helpToggle = document.getElementById('help-toggle');
-    if (helpToggle) {
-      this.addTrackedListener(helpToggle, 'click', () => {
-        helpToggle.closest('details')?.removeAttribute('open');
-        Onboarding.reopenTour();
-      });
-    }
-
     const closeMetricHelp = document.getElementById('close-metric-help');
     if (closeMetricHelp) {
       this.addTrackedListener(closeMetricHelp, 'click', () => {
@@ -2213,13 +2172,6 @@ const App = {
       this.syncSearchWithUrl({ openDropdown: false });
       this.syncModalWithUrl({ updateUrl: false });
       this.updateMetaForFilters();
-    });
-
-    this.addTrackedListener(window, 'rekonime:onboarding-intent', (event) => {
-      const intentKey = event.detail?.intentKey;
-      if (intentKey) {
-        this.applyViewingIntent(intentKey);
-      }
     });
 
     const queueTooltipPosition = (trigger) => {
@@ -2938,87 +2890,20 @@ const App = {
 
     renderGroup('genres', this.filterOptions.genres, genreContainer);
     renderGroup('themes', this.filterOptions.themes, themeContainer);
-    this.renderViewingIntents();
   },
 
-  getViewingIntentRuntime() {
-    if (!this.viewingIntentRuntime) {
-      this.viewingIntentRuntime = createViewingIntentRuntime();
+  getDiscoverySession() {
+    if (!this.discoverySession) {
+      this.discoverySession = createDiscoverySession();
     }
-    return this.viewingIntentRuntime;
-  },
-
-  getActiveViewingIntent() {
-    return this.getViewingIntentRuntime().getActive({ recordActivity: false });
-  },
-
-  applyViewingIntentEffects({ effects = {} } = {}) {
-    if (effects.collapseOptions) this.viewingIntentExpanded = false;
-    if (effects.renderViewingIntents) this.renderViewingIntents();
-    if (effects.renderRecommendationModes) this.renderRecommendationModes();
-    if (effects.renderRecommendations) this.renderRecommendations();
-    if (effects.announcement) {
-      const status = document.getElementById('recommendations-status');
-      if (status) status.textContent = effects.announcement;
-    }
+    return this.discoverySession;
   },
 
   syncDiscoveryGardenVisibility() {
-    const shouldHide = Boolean(
-      this.getActiveViewingIntent()
-      || this.getActiveFilterCount()
-      || this.getCatalogSearchQuery()
-    );
+    const shouldHide = Boolean(this.getActiveFilterCount() || this.getCatalogSearchQuery());
     const hero = document.getElementById('discovery-garden');
     hero?.classList.toggle('is-hidden', shouldHide);
-    hero?.classList.toggle('is-returning', Onboarding.hasCompleted() || this.getWatchlistLifecycle().getEntries().length > 0);
-  },
-
-  renderViewingIntents() {
-    const container = document.getElementById('viewing-intent-options');
-    if (!container) return;
-
-    const active = this.getActiveViewingIntent();
-    this.syncDiscoveryGardenVisibility();
-    document.getElementById('viewing-intent-section')?.classList.toggle('is-complete', Boolean(active && !this.viewingIntentExpanded));
-    if (active && !this.viewingIntentExpanded) {
-      setHTML(container, `
-        <div class="active-viewing-intent" id="active-viewing-intent">
-          <span><strong>${this.escapeHtml(active.label)}</strong> · ${this.escapeHtml(active.description)}</span>
-          <button class="btn btn-outline btn-sm" type="button" data-action="change-viewing-intent">Change</button>
-        </div>
-      `);
-      container.removeAttribute('aria-busy');
-      return;
-    }
-
-    setHTML(container, this.getViewingIntentRuntime().getOptions().map(intent => {
-      const isActive = active?.key === intent.key;
-      return `
-        <button class="mood-cluster viewing-intent-option ${isActive ? 'active' : ''}"
-                type="button"
-                data-action="apply-viewing-intent"
-                data-intent-key="${this.escapeAttr(intent.key)}"
-                aria-pressed="${isActive ? 'true' : 'false'}">
-          <span class="mood-cluster-label">${this.escapeHtml(intent.label)}</span>
-          <span class="mood-cluster-desc">${this.escapeHtml(intent.description)}</span>
-        </button>
-      `;
-    }).join(''));
-    container.removeAttribute('aria-busy');
-  },
-
-  applyViewingIntent(intentKey) {
-    this.recommendationDisplayLimit = 3;
-    const result = this.getViewingIntentRuntime().apply(intentKey);
-    this.applyViewingIntentEffects(result);
-    return result.changed;
-  },
-
-  clearViewingIntent({ announce = false } = {}) {
-    const result = this.getViewingIntentRuntime().clear({ announce });
-    this.applyViewingIntentEffects(result);
-    return result.changed;
+    hero?.classList.toggle('is-returning', this.getWatchlistLifecycle().getEntries().length > 0);
   },
 
   showSurpriseMe() {
@@ -3150,7 +3035,7 @@ const App = {
     if (!this.prefetchObserver) return;
     if (typeof document === 'undefined') return;
     this.prefetchObserver.disconnect();
-    document.querySelectorAll('.recommendation-card, .trending-card, .similar-card')
+    document.querySelectorAll('.recommendation-card, .similar-card')
       .forEach(card => this.prefetchObserver.observe(card));
   },
 
@@ -3232,7 +3117,6 @@ const App = {
       this.scheduleDeferredFilterUi();
     } else {
       this.renderSeasonalFilters();
-      this.renderRecommendationModes();
     }
     this.renderAnimeGrid();
     this.updatePrefetchObserving();
@@ -3259,9 +3143,7 @@ const App = {
     const constrained = this.shouldDeferHeavyContent();
     const allTasks = [
       ...(skipRecommendations ? [] : [() => this.renderRecommendations()]),
-      () => this.renderRankings(),
-      () => this.renderBecauseYouWatched(),
-      () => this.renderTrending()
+      () => this.renderBecauseYouWatched()
     ];
     const immediateTasks = constrained
       ? []
@@ -3344,7 +3226,6 @@ const App = {
       this.deferFilterUiOnce = false;
       this.deferFilterUiUsed = true;
       this.renderSeasonalFilters();
-      this.renderRecommendationModes();
       this.renderQuickFilters();
       this.updateSortOptions();
       if (this.filterPanelRendered || this.filterPanelOpen) {
@@ -3402,39 +3283,6 @@ const App = {
 
     this.applyFilters();
     this.renderSeasonalFilters();
-  },
-
-  /**
-   * Render recommendation mode selector
-   */
-  renderRecommendationModes() {
-    const container = document.getElementById('mode-chips');
-    if (!container) return;
-
-    const modes = Recommendations.modes;
-    const currentMode = Recommendations.currentMode;
-    const iconPaths = {
-      balanced: 'M12 3v17m-5 1h10M4 7h16M5 7l-3 7h6L5 7Zm14 0-3 7h6l-3-7Z',
-      binge: 'M13 3c1 5-4 5-4 9-2-1-2-3-2-3s-3 3-3 6a8 8 0 0 0 16 0c0-5-4-9-7-12Zm-1 11c2 2 3 3 3 4a3 3 0 0 1-6 0c0-1 1-3 3-4Z',
-      quality: 'm12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z',
-      discovery: 'm3 9 4-5h10l4 5-9 12L3 9Zm0 0h18M8 9l4 12 4-12M7 4l1 5 4-5 4 5 1-5',
-      comfort: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM6 10q2 2 4 0m4 0q2 2 4 0m-10 5q4 4 8 0'
-    };
-
-    setHTML(container, Object.entries(modes).map(([key, mode]) => {
-      const isActive = key === currentMode;
-      return `
-        <button class="mode-chip ${isActive ? 'active' : ''}"
-                data-action="set-rec-mode"
-                data-mode="${this.escapeAttr(key)}"
-                title="${this.escapeAttr(mode.description)}"
-                type="button">
-          <svg class="mode-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${iconPaths[key]}"></path></svg>
-          <span class="mode-label">${this.escapeHtml(mode.label)}</span>
-        </button>
-      `;
-    }).join(''));
-    container.removeAttribute('aria-busy');
   },
 
   /**
@@ -3520,53 +3368,6 @@ const App = {
               <span>Community Score (MAL) ${malScore}</span>
             </div>
             <div class="recommendation-reason">${this.escapeHtml(anime.reason || '')}</div>
-          </div>
-        </div>
-      `;
-    }).join(''));
-  },
-
-  /**
-   * Render Trending section
-   */
-  renderTrending() {
-    const grid = document.getElementById('trending-grid');
-    if (!grid) return;
-    const trendDims = this.getImageProxyRuntime().getDimensions('trending');
-    const trendDimAttrs = trendDims ? `width="${trendDims.width}" height="${trendDims.height}"` : '';
-
-    const trending = Discovery.getTrending(this.animeData, 6);
-
-    setHTML(grid, trending.map((anime, index) => {
-      const rank = index + 1;
-      const rankClass = rank <= 3 ? 'top-3' : '';
-      const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const episodeScore = Recommendations.getPresentationEpisodeScore(anime);
-      const retention = episodeScore !== null ? `${episodeScore}/100` : 'N/A';
-      const safeYear = this.escapeHtml(anime.year || 'Unknown');
-      const labelTitle = anime.title || 'this anime';
-      const labelYear = anime.year ? `, ${anime.year}` : '';
-      const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
-
-      const { src, srcset, sizes, fallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'trending' });
-      const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
-      const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
-      const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
-      const trendFallbackAttrs = this.getImageFallbackAttrs({
-        fallbackSrc: fallback,
-        placeholder: IMAGE_PLACEHOLDER
-      });
-      const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
-      const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
-      return `
-        <div class="trending-card" data-action="open-anime" data-anime-id="${this.escapeAttr(anime.id)}" role="button" tabindex="0" aria-label="${cardLabel}">
-          <div class="trending-rank ${rankClass}">${rank}</div>
-          <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${this.escapeHtml(anime.title)}" class="trending-cover" ${trendDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${trendFallbackAttrs}>
-          <div class="trending-info">
-            <div class="trending-title">${this.escapeHtml(anime.title)}</div>
-            <div class="trending-meta">
-              ${safeYear} · Episode Rating Strength ${retention} · ${this.escapeHtml(Recommendations.getRatingEvidenceLabel(anime))}
-            </div>
           </div>
         </div>
       `;
@@ -4222,7 +4023,7 @@ const App = {
       panel.setAttribute('aria-label', 'Skipped recommendations');
       grid.before(panel);
     }
-    const dismissed = this.getViewingIntentRuntime().getDismissed();
+    const dismissed = this.getDiscoverySession().getDismissed();
     panel.hidden = dismissed.length === 0;
     if (!dismissed.length) { setHTML(panel, ''); return; }
     const expanded = Boolean(panel.querySelector('details[open]'));
@@ -4240,7 +4041,7 @@ const App = {
   },
 
   handleSessionDismissal(action, animeId) {
-    const runtime = this.getViewingIntentRuntime();
+    const runtime = this.getDiscoverySession();
     const anime = this.animeData.find(item => String(item?.id) === String(animeId));
     const title = anime?.title || runtime.getDismissed().find(item => item.id === String(animeId))?.title || 'Title';
     const skipping = action === 'skip-recommendation';
@@ -4266,15 +4067,11 @@ const App = {
     const recDims = this.getImageProxyRuntime().getDimensions('recommendation');
     const recDimAttrs = recDims ? `width="${recDims.width}" height="${recDims.height}"` : '';
 
-    // Get recommendations with current mode
     const recommendationLimit = this.getRecommendationDisplayLimit();
-    const activeIntent = this.getActiveViewingIntent();
     const recommendationSource = this.getTasteProfileStore().prepareRecommendationSource(this.filteredData, {
-      excludedIds: [...this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] }), ...this.getViewingIntentRuntime().getDismissed().map(item => item.id)]
+      excludedIds: [...this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] }), ...this.getDiscoverySession().getDismissed().map(item => item.id)]
     });
     const decision = Recommendations.getRecommendationDecision(recommendationSource, {
-      viewingIntent: activeIntent,
-      modeKey: Recommendations.currentMode,
       limit: recommendationLimit,
       watchlistEntries: this.getWatchlistLifecycle().getEntries()
     });
@@ -4282,21 +4079,20 @@ const App = {
     const moreButton = document.getElementById('more-recommendations');
     if (moreButton) moreButton.hidden = !decision.hasMore;
     const heading = document.getElementById('recommendations-heading');
-    if (heading) heading.textContent = recommendations.some(anime => anime.tasteReason) ? 'Picks for your taste' : activeIntent ? 'Picks for this session' : 'Explore something new';
+    if (heading) heading.textContent = recommendations.some(anime => anime.tasteReason) ? 'Picks for your taste' : 'Explore something new';
     const contextEl = document.getElementById('recommendations-context');
     if (contextEl && contextEl.textContent.trim() !== decision.context) {
       contextEl.textContent = decision.context;
     }
-    this.lastRecommendationIds = new Set(recommendations.map(anime => String(anime.id)));
 
 
     if (recommendations.length === 0) {
-      setHTML(container, `<p class="no-data">${decision.noCloseMatches ? 'No close matches for this goal. ' : ''}No recommendations available. Try changing your goal or browsing the catalog.</p>`);
+      setHTML(container, '<p class="no-data">No recommendations available. Try changing your filters or browsing the catalog.</p>');
       document.getElementById('quick-filters')?.removeAttribute('inert');
       return;
     }
 
-    setHTML(container, `${decision.noCloseMatches ? '<p class="recommendation-group-heading">No close matches for this goal. These are general alternatives.</p>' : ''}` + recommendations.map((anime, index) => {
+    setHTML(container, recommendations.map((anime, index) => {
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const satisfactionTooltipTitle = this.escapeHtml('Community Score (MAL)');
       const satisfactionTooltipText = this.escapeHtml('Community rating from MyAnimeList — overall quality and enjoyment.');
@@ -4329,10 +4125,7 @@ const App = {
       });
       const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
-      const groupHeading = anime.group !== recommendations[index - 1]?.group && anime.group !== 'general'
-        ? `<h3 class="recommendation-group-heading">${anime.group === 'intent' ? 'Suggestions for this goal' : 'General alternatives'}</h3>` : '';
       return `
-        ${groupHeading}
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="group" tabindex="-1" aria-label="${safeTitle}">
           <div class="recommendation-media">
             <span class="recommendation-obi">
@@ -4389,135 +4182,6 @@ const App = {
       `;
     }).join(''));
     document.getElementById('quick-filters')?.removeAttribute('inert');
-  },
-
-  getTopAnimeByMetric(animeList, metric) {
-    if (!Array.isArray(animeList) || animeList.length === 0) return null;
-    let best = null;
-    let bestValue = Number.NEGATIVE_INFINITY;
-
-    const readValue = (anime) => {
-      if (!anime) return Number.NEGATIVE_INFINITY;
-      if (metric === 'retention') {
-        return Number.isFinite(anime?.stats?.retentionScore) ? anime.stats.retentionScore : Number.NEGATIVE_INFINITY;
-      }
-      if (metric === 'satisfaction') {
-        return Number.isFinite(anime?.communityScore) ? anime.communityScore : Number.NEGATIVE_INFINITY;
-      }
-      if (metric === 'consistency') {
-        return Number.isFinite(anime?.stats?.stdDev) ? -anime.stats.stdDev : Number.NEGATIVE_INFINITY;
-      }
-      const fallback = anime?.stats?.[metric];
-      return Number.isFinite(fallback) ? fallback : Number.NEGATIVE_INFINITY;
-    };
-
-    for (let i = 0; i < animeList.length; i += 1) {
-      const anime = animeList[i];
-      const value = readValue(anime);
-      if (value > bestValue) {
-        bestValue = value;
-        best = anime;
-      }
-    }
-
-    return best;
-  },
-
-  /**
-   * Render rankings section
-   */
-  renderRankings() {
-    const container1 = document.getElementById('best-ranking-1');
-    const container2 = document.getElementById('best-ranking-2');
-    const title1 = document.getElementById('ranking-title-1');
-    const title2 = document.getElementById('ranking-title-2');
-
-    if (!container1 || !container2) return;
-    container1.removeAttribute('aria-busy');
-    container2.removeAttribute('aria-busy');
-
-    const dataToUse = this.filteredData;
-
-    // Get ranking config
-    const rankingConfig = Recommendations.getRankingTitles();
-
-    // Update titles
-    if (title1) title1.textContent = rankingConfig.title1;
-    if (title2) title2.textContent = rankingConfig.title2;
-
-    // Ranking 1
-    const best1 = this.getTopAnimeByMetric(dataToUse, rankingConfig.metric1);
-    if (best1) {
-      setHTML(container1, this.renderRankingCard(best1, rankingConfig.metric1));
-    } else {
-      setHTML(container1, '<p class="no-data">No anime match filters</p>');
-    }
-
-    // Ranking 2
-    const best2 = this.getTopAnimeByMetric(dataToUse, rankingConfig.metric2);
-    if (best2) {
-      setHTML(container2, this.renderRankingCard(best2, rankingConfig.metric2));
-    } else {
-      setHTML(container2, '<p class="no-data">No anime match filters</p>');
-    }
-  },
-
-  /**
-   * Render a ranking card with appropriate metric display
-   */
-  renderRankingCard(anime, metric) {
-    let valueDisplay = 'N/A';
-    let labelDisplay = '';
-    let valueClass = '';
-
-    if (metric === 'retention') {
-      const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
-      if (hasEpisodes) {
-        const score = Math.round(anime.stats?.retentionScore ?? 0);
-        valueDisplay = `${score}/100`;
-        valueClass = Recommendations.getRetentionClass(score);
-      }
-      labelDisplay = `Episode Rating Strength · ${Recommendations.getRatingEvidenceLabel(anime)}`;
-    } else if (metric === 'satisfaction') {
-      if (Number.isFinite(anime.communityScore)) {
-        valueDisplay = `${anime.communityScore.toFixed(1)}/10`;
-        valueClass = Recommendations.getMalSatisfactionClass(anime.communityScore);
-      }
-      labelDisplay = 'Community Score (MAL)';
-    } else {
-      valueDisplay = anime.stats.average;
-      labelDisplay = 'avg score';
-      valueClass = anime.stats.scoreClass;
-    }
-
-    const { src: rankSrc, srcset: rankSrcset, sizes: rankSizes, fallback: rankFallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'ranking' });
-    const safeRankCover = this.escapeAttr(rankSrc || this.sanitizeImageUrl(anime.cover));
-    const rankSrcsetAttr = rankSrcset ? `srcset="${this.escapeAttr(rankSrcset)}"` : '';
-    const rankSizesAttr = rankSizes ? `sizes="${this.escapeAttr(rankSizes)}"` : '';
-    const rankFallbackAttrs = this.getImageFallbackAttrs({
-      fallbackSrc: rankFallback,
-      placeholder: IMAGE_PLACEHOLDER
-    });
-    const loadAttrs = this.getImageLoadingAttrs(0, { eagerCount: 1, priorityCount: 1 });
-    const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
-    const rankingDims = this.getImageProxyRuntime().getDimensions('ranking');
-    const rankingDimAttrs = rankingDims ? `width="${rankingDims.width}" height="${rankingDims.height}"` : '';
-    const safeValueClass = this.sanitizeClassList('ranking-score', valueClass);
-    const safeValueDisplay = this.escapeHtml(valueDisplay);
-    const safeLabelDisplay = this.escapeHtml(labelDisplay);
-    return `
-      <div class="ranking-anime">
-        <img src="${safeRankCover}" ${rankSrcsetAttr} ${rankSizesAttr} alt="${this.escapeHtml(anime.title)}" class="ranking-cover" ${rankingDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${rankFallbackAttrs}>
-        <div class="ranking-info">
-          <div class="ranking-title">${this.escapeHtml(anime.title)}</div>
-          <div class="${safeValueClass}">
-            <span class="score-value">${safeValueDisplay}</span>
-            <span class="score-label">${safeLabelDisplay}</span>
-          </div>
-        </div>
-      </div>
-    `;
   },
 
   /**
@@ -4773,7 +4437,7 @@ const App = {
 
       if (actionEl.closest('[data-renderer="watchlist-page"]')) return;
       const action = actionEl.dataset.action;
-      this.getViewingIntentRuntime().recordActivity();
+      this.getDiscoverySession().recordActivity();
       if (action === 'skip-recommendation' || action === 'restore-session-dismissal') {
         event.preventDefault();
         event.stopPropagation();
@@ -4856,21 +4520,6 @@ const App = {
         return;
       }
 
-      if (action === 'apply-viewing-intent') {
-        const intentKey = actionEl.dataset.intentKey;
-        if (intentKey) {
-          this.applyViewingIntent(intentKey);
-        }
-        return;
-      }
-
-      if (action === 'change-viewing-intent') {
-        this.viewingIntentExpanded = true;
-        this.renderViewingIntents();
-        document.querySelector('#viewing-intent-options .viewing-intent-option')?.focus();
-        return;
-      }
-
       if (action === 'quick-save-recommendation') {
         event.preventDefault();
         event.stopPropagation();
@@ -4906,14 +4555,6 @@ const App = {
           if (total && entry.progress >= total) this.setWatchStatus(entry.id, 'completed', { episodeCount: total });
           else this.adjustWatchProgress(entry.id, 1);
         }
-        return;
-      }
-
-      if (action === 'choose-viewing-goal') {
-        this.viewingIntentExpanded = true;
-        this.renderViewingIntents();
-        document.getElementById('viewing-intent-section')?.scrollIntoView({ block: 'start' });
-        document.querySelector('.viewing-intent-option')?.focus({ preventScroll: true });
         return;
       }
 
@@ -4968,11 +4609,6 @@ const App = {
 
       if (action === 'scroll-to-results') {
         this.scrollToResultsSection();
-        return;
-      }
-
-      if (action === 'reopen-onboarding') {
-        Onboarding.reopenTour();
         return;
       }
 
@@ -5076,16 +4712,6 @@ const App = {
         return;
       }
 
-      if (action === 'set-rec-mode') {
-        const modeKey = actionEl.dataset.mode;
-        if (modeKey && Recommendations.setMode(modeKey)) {
-          this.recommendationDisplayLimit = 3;
-          this.renderRecommendationModes();
-          this.renderRecommendations();
-        }
-        return;
-      }
-
       if (action === 'apply-seasonal') {
         const seasonYear = actionEl.dataset.seasonYear;
         if (seasonYear) {
@@ -5179,7 +4805,7 @@ const App = {
     const content = `
       <div class="recommendations-help">
         <h3>Why These Recommendations Stand Out</h3>
-        <p>Rekonime starts with audience ratings, then considers your viewing goal and saved taste:</p>
+        <p>Rekonime starts with audience ratings, then considers your saved taste:</p>
         <div class="help-factor">
           <strong>Episode Rating Strength (/100)</strong>
           <p>A score out of 100 based on episode ratings, their pattern, and available coverage. Small samples are pulled toward the neutral midpoint. It is not a measured retention rate or a completion probability.</p>
@@ -5188,8 +4814,8 @@ const App = {
           <strong>Community Score (MAL, /10)</strong>
           <p>Community sentiment from MyAnimeList that reflects how strongly viewers rated it.</p>
         </div>
-        <div class="help-factor"><strong>Your goal and taste</strong><p>Session goals use genre and theme suggestions. Saved preferences and watchlist evidence adjust ranking. Each pick labels the reason used. Series continuations require completed entries in the catalog watch order, with one pick per known franchise.</p></div>
-        <p class="help-note">Their weights depend on the selected mode. Limited data means ratings are sparse, episode positions are unknown, or known vote counts are low. Unknown completion status and missing voter counts are shown in details.</p>
+        <div class="help-factor"><strong>Your taste</strong><p>Saved preferences and watchlist evidence adjust ranking. Each pick labels the reason used. Series continuations require completed entries in the catalog watch order, with one pick per known franchise.</p></div>
+        <p class="help-note">Limited data means ratings are sparse, episode positions are unknown, or known vote counts are low. Unknown completion status and missing voter counts are shown in details.</p>
       </div>
     `;
 

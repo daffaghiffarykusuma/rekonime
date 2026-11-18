@@ -11,7 +11,6 @@ const createWatchlistLifecycleRuntime = ({
   getAnime,
   getEpisodeLimit,
   getLifecycle,
-  isLastRecommendation = () => false,
   loadBeforeTransition = false,
   now = Date.now,
   renderMode = 'controls',
@@ -56,7 +55,6 @@ const createWatchlistLifecycleRuntime = ({
     });
 
     const effects = {
-      clearViewingIntent: Boolean(effectOptions.clearViewingIntent),
       refreshTasteProfile: Boolean(effectOptions.refreshTasteProfile),
       renderRecommendations: Boolean(effectOptions.renderRecommendations)
     };
@@ -143,7 +141,6 @@ const createWatchlistLifecycleRuntime = ({
       snapshot: context.snapshot
     });
     return buildChangedResult(result, {
-      clearViewingIntent: status === 'watching' && isLastRecommendation(context.key),
       refreshTasteProfile: true,
       renderRecommendations: true
     });

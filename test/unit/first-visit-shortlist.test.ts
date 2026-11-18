@@ -5,39 +5,16 @@ import { Stats } from '../../src/features/discovery/stats.ts';
 import { Recommendations } from '../../src/features/discovery/recommendations.ts';
 
 const title = (id: string, overrides = {}) => ({ id, title: id, genres: ['Action'], themes: [], communityScore: 9, stats: { retentionScore: 95 }, ...overrides });
-const unwind = { key: 'unwind', label: 'Help me unwind', description: 'Genre-based suggestions.' };
-
-test('Discovery starts with three picks and prioritizes supported goal matches over stronger general ratings', () => {
-  const source = [title('general-a'), title('general-b'), title('general-c'), title('gentle', {
-    genres: ['Slice of Life'], communityScore: 5, stats: { retentionScore: 10 }
-  })];
-  const decision = Recommendations.getRecommendationDecision(source, { viewingIntent: unwind });
-  assert.deepEqual(decision.items.map(item => [item.id, item.group]), [
-    ['gentle', 'intent'], ['general-a', 'alternative'], ['general-b', 'alternative']
-  ]);
+test('Discovery starts with three picks, one per franchise, and reports more when available', () => {
+  const source = [title('a'), title('b', { communityScore: 8 }), title('c', { communityScore: 7 }), title('d', { communityScore: 6 })];
+  const decision = Recommendations.getRecommendationDecision(source);
+  assert.deepEqual(decision.items.map(item => item.id), ['a', 'b', 'c']);
   assert.equal(decision.hasMore, true);
-  assert.equal(decision.noCloseMatches, false);
-  assert.match(decision.items[0].fitReason, /slice-of-life/);
-  const expanded = Recommendations.getRecommendationDecision(source, { viewingIntent: unwind, limit: 6 });
+  assert.equal(decision.items[0].fitLabel, 'General pick');
+  const expanded = Recommendations.getRecommendationDecision(source, { limit: 6 });
   assert.equal(expanded.items.length, 4);
   assert.equal(expanded.hasMore, false);
-});
-
-test('Discovery identifies no matches, no eligible titles, and general exploration honestly', () => {
-  const source = [title('dark', { genres: ['Slice of Life', 'Horror'], tasteReason: 'You like this genre', tasteScore: 100 })];
-  const alternatives = Recommendations.getRecommendationDecision(source, { viewingIntent: unwind });
-  assert.equal(alternatives.noCloseMatches, true);
-  assert.equal(alternatives.items[0].group, 'alternative');
-  assert.equal(alternatives.items[0].fitLabel, 'General alternative');
-  assert.equal(alternatives.hasMore, false);
-  const empty = Recommendations.getRecommendationDecision([], { viewingIntent: unwind });
-  assert.equal(empty.noCloseMatches, true);
-  assert.deepEqual(empty.items, []);
-  for (const viewingIntent of [null, { key: 'surprise' }]) {
-    const general = Recommendations.getRecommendationDecision(source, { viewingIntent });
-    assert.equal(general.noCloseMatches, false);
-    assert.equal(general.items[0].group, 'general');
-  }
+  assert.deepEqual(Recommendations.getRecommendationDecision([]).items, []);
 });
 
 test('Discovery distinguishes declared episode counts from observed episodes and unknown totals', () => {
@@ -92,8 +69,4 @@ test('Discovery does not claim consistent or strong episode ratings from one obs
   anime.stats = Stats.calculateAllStats(anime, Stats.defaultScoreProfile);
   const pick = Recommendations.getRecommendationDecision([anime]).items[0];
   assert.equal(pick.fitReason, 'Limited episode rating data');
-  const goalPick = Recommendations.getRecommendationDecision([anime], {
-    viewingIntent: { key: 'energy' }
-  }).items[0];
-  assert.equal(goalPick.fitReason, 'Suggested from action or sports themes');
 });

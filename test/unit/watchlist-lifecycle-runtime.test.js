@@ -13,7 +13,7 @@ const createMemoryStorage = () => {
   };
 };
 
-const createRuntimeHarness = ({ lastRecommendationIds = [], storage = createMemoryStorage() } = {}) => {
+const createRuntimeHarness = ({ storage = createMemoryStorage() } = {}) => {
   const animeData = [{
     id: 'show-1',
     title: 'Show 1',
@@ -29,7 +29,6 @@ const createRuntimeHarness = ({ lastRecommendationIds = [], storage = createMemo
     getAnime: (animeId) => animeData.find(item => item.id === animeId) || null,
     getEpisodeLimit: (animeId) => animeData.find(item => item.id === animeId)?.episodeCount || null,
     getLifecycle: () => lifecycle,
-    isLastRecommendation: (animeId) => lastRecommendationIds.includes(animeId),
     now: () => 1000
   });
   return { lifecycle, runtime };
@@ -185,7 +184,7 @@ test('Watchlist Lifecycle Runtime loads page state and preserves its Snapshot', 
 });
 
 test('Watchlist Lifecycle Runtime owns status transition envelope and follow-up effects', () => {
-  const { lifecycle, runtime } = createRuntimeHarness({ lastRecommendationIds: ['show-1'] });
+  const { lifecycle, runtime } = createRuntimeHarness();
 
   const result = runtime.setStatus('show-1', 'watching');
 
@@ -210,7 +209,6 @@ test('Watchlist Lifecycle Runtime owns status transition envelope and follow-up 
     action: { label: 'View watchlist', href: '/watchlist.html' }
   });
   assert.deepEqual(result.effects, {
-    clearViewingIntent: true,
     refreshTasteProfile: true,
     renderRecommendations: true
   });
@@ -222,7 +220,6 @@ test('Watchlist Lifecycle Runtime owns progress and loved transition effects', (
   const progress = runtime.setProgress('show-1', 20);
   assert.equal(progress.compatibilityResult.entry.progress, 12);
   assert.deepEqual(progress.effects, {
-    clearViewingIntent: false,
     refreshTasteProfile: true,
     renderRecommendations: false
   });
@@ -230,7 +227,6 @@ test('Watchlist Lifecycle Runtime owns progress and loved transition effects', (
   const loved = runtime.setLoved('show-1', true);
   assert.equal(lifecycle.getEntry('show-1').loved, true);
   assert.deepEqual(loved.effects, {
-    clearViewingIntent: false,
     refreshTasteProfile: true,
     renderRecommendations: true
   });
@@ -259,7 +255,6 @@ test('Watchlist Lifecycle Runtime applies one imported batch and returns one eff
   assert.equal(result.transition.render.watchlist.shouldRender, true);
   assert.deepEqual(result.transition.event.payload.changedIds, ['show-1']);
   assert.deepEqual(result.effects, {
-    clearViewingIntent: false,
     refreshTasteProfile: true,
     renderRecommendations: true,
     updateTasteProfileUi: true

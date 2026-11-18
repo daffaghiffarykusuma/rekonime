@@ -64,7 +64,6 @@ const validators = {
     && value.entries.length <= 5000
     && value.entries.every(isWatchlistEntry)
   ),
-  'rekonime.recMode': isNonEmptyString,
   'rekonime.surpriseHistory': value => (
     Array.isArray(value)
     && value.length <= 40
@@ -90,7 +89,6 @@ const validators = {
     && value.data.every(isPlainObject)
   ),
   'rekonime.theme': value => ['dark', 'light', 'auto'].includes(value),
-  'rekonime.onboarding': value => ['completed', 'skipped'].includes(value),
   'rekonime.shortcutsAcknowledged': value => value === 'true',
   'rekonime.anime': value => (
     isPlainObject(value)

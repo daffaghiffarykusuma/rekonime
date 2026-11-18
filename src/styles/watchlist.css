@@ -3283,24 +3283,6 @@ summary:focus-visible,
    Help Button
    ========================================== */
 
-.help-btn {
-  width: 44px;
-  min-width: 44px;
-  padding: 0;
-  justify-content: center;
-  font-weight: 700;
-}
-
-.help-icon {
-  font-size: 1.1rem;
-  line-height: 1;
-}
-
-.help-label {
-  display: none;
-  font-size: 0.85rem;
-}
-
 /* ==========================================
    Help Link in Recommendations
    ========================================== */
@@ -3471,69 +3453,9 @@ summary:focus-visible,
 @media (max-width: 640px) {.preset-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-
-  .help-btn {
-    width: auto;
-    padding: 0.55rem 0.75rem;
-    gap: 0.4rem;
-  }
-
-  .help-label {
-    display: inline;
-  }
 }
 
 /* Recommendation Modes */
-.modes-label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.mode-chips {
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  flex-wrap: wrap;
-}
-
-.mode-chips::-webkit-scrollbar {
-  display: none;
-}
-
-.mode-chip {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.875rem;
-  border-radius: 999px;
-  background: var(--bg-tertiary);
-  border: 1px solid transparent;
-  font-size: 0.85rem;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--text-secondary);
-}
-
-.mode-chip:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
-
-.mode-chip.active {
-  background: var(--sakura-pink);
-  color: var(--bg-primary);
-  border-color: var(--sakura-pink);
-}
-
-.mode-icon {
-  font-size: 1rem;
-}
 
 /* Because You Watched Section */
 /* Trending Section */
@@ -3559,12 +3481,6 @@ summary:focus-visible,
   }
 }
 /* Mobile Responsive for Discovery Features */
-@media (max-width: 640px) {.mode-chips {
-    width: 100%;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
-  }}
 
 @media (max-width: 480px) {
 .no-js-notice h3 {

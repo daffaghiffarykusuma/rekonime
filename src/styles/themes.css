@@ -186,8 +186,7 @@
 
 [data-high-contrast="true"] .anime-card,
 [data-high-contrast="true"] .recommendation-card,
-[data-high-contrast="true"] .modal-content,
-[data-high-contrast="true"] .ranking-card {
+[data-high-contrast="true"] .modal-content {
     border-width: 2px;
 }
 
