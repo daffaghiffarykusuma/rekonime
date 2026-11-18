@@ -64,6 +64,8 @@ jobs:
         run: bun --silent run build:verify
 
       - name: Security checks
+        # Remove the GHSA-fc5q-39xc-vjpf exception in package.json once a fixed
+        # picomatch release is available for Vite's build-time dependency graph.
         run: bun --silent run check:security
 
   python-security:
