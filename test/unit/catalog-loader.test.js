@@ -221,19 +221,15 @@ test('Catalog runtime skips complete records and retries a failed detail fetch',
   assert.equal(fetchCount, 2);
 });
 
-test('App Catalog Runtime applies detail cache and Snapshot effects once', async () => {
+test('App Catalog Runtime signals one enrichment change and owns load state', async () => {
   const originalFetch = globalThis.fetch;
-  let cacheDeletes = 0;
-  let snapshotRefreshes = 0;
+  const changes = [];
   const app = {
     animeData: [{ id: 'one', title: 'One' }],
     getLogger: () => null,
-    detailExperience: { invalidate: () => { cacheDeletes += 1; } },
-    gridSortedCache: ['old'], gridSortedKey: 'old', gridSortedSource: ['old'],
-    refreshWatchlistSnapshotsFromCatalog: (options) => {
-      assert.deepEqual(options, { persist: true });
+    handleCatalogChange: (change) => {
       assert.equal(app.animeData[0].synopsis, 'Enriched');
-      snapshotRefreshes += 1;
+      changes.push(change);
     },
     emitCatalogEvent() {}
   };
@@ -242,11 +238,11 @@ test('App Catalog Runtime applies detail cache and Snapshot effects once', async
     const runtime = createAppCatalogRuntime(app);
     await Promise.all([runtime.loadAnimeDetailChunk('one'), runtime.loadAnimeDetailChunk('one')]);
     await runtime.loadAnimeDetailChunk('one');
-    assert.equal(cacheDeletes, 1);
-    assert.equal(snapshotRefreshes, 1);
-    assert.equal(app.gridSortedCache, null);
-    assert.equal(app.gridSortedKey, '');
-    assert.equal(app.gridSortedSource, null);
+    assert.deepEqual(changes, [{ reason: 'enriched', ids: ['one'] }]);
+    assert.equal(runtime.isFullLoaded(), false);
+    runtime.markFullLoaded(true);
+    assert.equal(runtime.isFullLoaded(), true);
+    assert.equal('isFullDataLoaded' in app, false);
   } finally {
     globalThis.fetch = originalFetch;
   }

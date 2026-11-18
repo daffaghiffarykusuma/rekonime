@@ -2,6 +2,13 @@
 import { getDeclaredEpisodeCount } from '../catalog/catalog-payload.ts';
 import { prepareDiscoveryCandidates } from './recommendation-eligibility.ts';
 import { getExperienceCues } from './experience-cues.ts';
+import {
+  getCommunityScoreClass,
+  getEpisodeRatingStrengthClass,
+  getRatingEvidenceLabel,
+  getRatingSignals,
+  hasEpisodeRatingEvidence
+} from './rating-evidence.ts';
 
 /**
  * Recommendations module for beginner-friendly anime suggestions
@@ -301,21 +308,14 @@ const Recommendations = {
    * @param {Object} anime - Anime object with stats
    * @returns {Array} Stat objects
    */
+  // Presentation reads go through the rating evidence read model (rating-evidence.ts);
+  // ranking continues to use its existing inputs.
   getRatingEvidenceLabel(anime) {
-    const evidence = anime?.stats?.ratingEvidence;
-    if (!evidence) return 'Limited data · coverage unavailable';
-    const coverage = evidence.totalEpisodes
-      ? `${evidence.ratedEpisodes}/${evidence.totalEpisodes} episodes rated`
-      : `${evidence.ratedEpisodes} episodes rated · total unknown`;
-    const unavailable = evidence.ratedEpisodes === 0 ? 'Episode rating data unavailable \u00b7 ' : '';
-    return `${unavailable}${evidence.limited ? 'Limited data · ' : ''}${coverage}${evidence.completion === 'airing' ? ' · Provisional' : ''}`;
+    return getRatingEvidenceLabel(anime);
   },
 
-  // Presentation availability only; ranking continues to use its existing inputs.
   getPresentationEpisodeScore(anime) {
-    return this.hasEpisodeRatingEvidence(anime) && Number.isFinite(anime?.stats?.retentionScore)
-      ? Math.round(anime.stats.retentionScore)
-      : null;
+    return getRatingSignals(anime).episodeRatingStrength;
   },
 
   getCardStats(anime) {
@@ -404,9 +404,7 @@ const Recommendations = {
 
   // Presentation availability only. A declared episode total is not rating evidence.
   hasEpisodeRatingEvidence(anime) {
-    const evidence = anime?.stats?.ratingEvidence;
-    return evidence ? evidence.ratedEpisodes > 0
-      : (anime?.episodes || []).some(episode => Number.isFinite(episode?.score));
+    return hasEpisodeRatingEvidence(anime);
   },
 
   /**
@@ -497,11 +495,7 @@ const Recommendations = {
    * @returns {string} CSS class name
    */
   getRetentionClass(value) {
-    if (value === null || !Number.isFinite(value)) return '';
-    if (value >= 85) return 'score-high';
-    if (value >= 70) return 'score-mid';
-    if (value >= 55) return 'score-low';
-    return 'score-poor';
+    return getEpisodeRatingStrengthClass(value);
   },
 
   /**
@@ -510,11 +504,7 @@ const Recommendations = {
    * @returns {string} CSS class name
    */
   getMalSatisfactionClass(value) {
-    if (value === null || !Number.isFinite(value)) return '';
-    if (value >= 8.5) return 'score-high';
-    if (value >= 7.5) return 'score-mid';
-    if (value >= 6.5) return 'score-low';
-    return 'score-poor';
+    return getCommunityScoreClass(value);
   },
 
   /**

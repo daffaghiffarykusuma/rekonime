@@ -9,6 +9,7 @@
 - Inputs: browser document state, catalog runtime services, watchlist lifecycle state, user input, service worker lifecycle
 - Outputs: booted home app, watchlist page render, app orchestration commands, PWA registration/update prompt
 - Side effects: DOM rendering, event listeners, history state, local storage/cache reads and writes, service worker registration
+- Home click commands: `src/app/home-action-commands.ts` maps each `data-action` to one command that reads its element and calls one domain module through the App. The click delegate in `app.ts` is the adapter at the DOM seam and holds no product rules. `NON_CLICK_ACTIONS` names the actions owned by other delegates; `test/unit/home-action-commands.test.js` checks every rendered action maps to one or the other. Every delegated home action records Discovery session activity.
 
 ### Catalog Loading
 - Runtime module: `src/features/catalog/catalog-loader.ts`
@@ -22,7 +23,9 @@
 - Episode evidence: normalization preserves `declaredEpisodeCount` separately from the observed/progress `episodeCount`; absent declared totals stay unknown through repeated normalization and rating recalculation. Detail enrichment can add declared evidence without discarding a known index total.
 - Runtime index omits `searchText` and `detailPath`; normalization builds search variants from all title fields, and Catalog Runtime derives detail URLs from the encoded anime ID. Build checks verify each derived chunk exists and enforce raw and gzip index budgets.
 - Interface: load the initial/full catalog, track scheduled and active loads, and enrich a requested anime through detail chunks; Catalog Runtime owns detail readiness, request deduplication, requested-title acceptance, Catalog Payload normalization, merging into the current catalog, and accepted-detail bookkeeping. Network fetching and full-catalog cache access stay private to the runtime.
-- Detail enrichment effects: one App adapter callback invalidates detail and grid caches and refreshes Watchlist Snapshots after acceptance. Rejected chunks remain retryable; accepted empty-episode chunks are remembered. Detail Experience refreshes only when enrichment returns a different record for the still-open title.
+- Load state: Catalog Runtime owns full-catalog status, the scheduled and active full loads, the interaction trigger, and detail-chunk bookkeeping. Callers ask the runtime (`isFullLoaded`, `hasInteractionCaptured`, `getScheduledFullLoadHandle`) instead of mirroring its state onto the App.
+- Catalog changes: App Shell applies one invalidation policy in `handleCatalogChange({ reason, ids })`. A replacement (`applyCatalogPayload`) drops the sort order, cached grid cards, visible-card tracking, and every detail view; a detail enrichment drops the sort order and the enriched titles' detail views and refreshes Watchlist Snapshots. Reused grid cards are refreshed in place.
+- Detail enrichment effects: one App adapter callback signals `{ reason: 'enriched', ids }` after acceptance. Rejected chunks remain retryable; accepted empty-episode chunks are remembered. Detail Experience refreshes only when enrichment returns a different record for the still-open title.
 - Side effects: catalog network/cache events (`rekonime:data-load-*`, `emitCatalogEvent`); `src/features/catalog/catalog-payload.ts` owns payload acceptance, normalization, score-profile validation, validation handoff, render-ready catalog state, and downstream refresh intent; the App Shell applies document, cache, Snapshot, Airing Schedule, and filter effects from that intent
 
 ### Browse View Filtering
@@ -55,14 +58,15 @@
 - Interface: apply quality gates and weighted random selection to prepared candidates; calculate seasonal, trending, and weekly catalog exploration models
 - Side effects: Discovery analytics only; Taste Profile owns preference and Watchlist Lifecycle evidence interpretation
 
-### Viewing Intent
-- Runtime module: `src/features/discovery/viewing-intent.ts`
-- Inputs: Viewing Intent key, session activity time, a title to dismiss or restore, and optional completion announcement
-- Outputs: active Viewing Intent definition, Session Dismissals, dismissal/restore outcomes, and apply/clear transition effects
-- Interface: list definitions, read/apply/clear the active Viewing Intent, dismiss/restore titles, read Session Dismissals, and record activity. Session Dismissals work without an active Viewing Intent and survive intent changes and clearing.
-- Session expiry: all reads reject expired state first. `getActive()` retains activity renewal by default; App Shell rendering uses `getActive({ recordActivity: false })` and actual delegated user actions call `recordActivity()`. Reading dismissals never renews activity. Applying a goal, dismissing, or restoring renews the same four-hour sliding window.
-- Browser lifetime: session storage preserves same-tab reloads. A genuinely fresh tab without an opener begins with no Session Dismissals. A duplicated tab, an opener-created tab, or browser session recovery can preserve/copy session storage; there is no promise of deletion when a tab closes. Dismissals never enter personal-data exports.
-- Side effects: Viewing Intent session storage writes only; App Shell executes returned option, recommendation-mode, recommendation, and announcement effects
+### Discovery Shortlist
+- Runtime module: `src/features/discovery/discovery-shortlist.ts`
+- Private session adapter: `src/features/discovery/discovery-session.ts` (Session Dismissals in session storage)
+- Inputs: the browse list, Taste Profile-prepared candidates, Watchlist entries, Session Dismissals, and shortlist actions
+- Outputs: one shortlist model (picks, whether more exist, heading, context, chosen title, Session Dismissals) and, for each action, an outcome with an announcement, an optional error, and a named focus target
+- Interface: `getModel`, `pickSurprise`, `showMore`, `save`, `undoSave`, `skip`, `restore`, `giveFeedback`, `undoFeedback`, `recordActivity`. Outcomes name focus targets (`chosen-undo`, `save`, `pick`, `latest-dismissal-undo`, `dismissal-review`, `taste`); App Shell maps them to DOM nodes and falls back to the first pick, then the heading.
+- Candidate exclusions: saved Watchlist titles and this session's Session Dismissals are excluded the same way for the shortlist and Surprise Me; franchise eligibility applies to both.
+- Session expiry: Session Dismissals expire after four hours without Discovery activity. Reading dismissals never renews activity; dismissing, restoring, and delegated home actions do. Session storage preserves same-tab reloads; duplicated, opener-created, or recovered tabs may copy it. Dismissals never enter personal-data exports.
+- Side effects: Discovery session storage writes only. Saving, undoing a save, and Already seen go through the Watchlist Lifecycle Runtime; lasting feedback goes through the Taste Profile. App Shell renders cards, announcements, toasts, and focus.
 
 ### Watchlist State
 - Entry points: `src/app/app.ts`, `src/app/watchlist-main.ts`
@@ -76,9 +80,11 @@
 - Shared TypeScript contracts: `src/features/watchlist/contracts/watchlist-lifecycle.ts`
 - Storage key: `rekonime.watchlist`
 - Interface: load entries, migrate legacy bookmarks, update status/progress, refresh snapshots, expose filtered entries/items, and build transition envelopes for adapters
-- Side effects: storage writes only; Watchlist Lifecycle Runtime owns shared home/watchlist mutation, ordinary transition snapshot resolution, transition envelopes, Taste Profile intent, recommendation render intent, and Airing Schedule dashboard intent; the pure MAL import planner builds detached creation Snapshots from the full Catalog Payload before the Runtime commits the batch; callers apply the returned event, render, and dashboard scheduling intent; Watchlist Airing Dashboard Adapter owns shared home/watchlist lazy dashboard loading, controller caching, idle scheduling, cancellation, scheduled data-source resolution, controller options, and update failure logging; Watchlist Page Renderer owns filter-chip markup, card DOM assembly, empty-state class updates, snapshot backfill, and dashboard render scheduling; Watchlist Page Interactions owns page-level DOM event listeners, filter changes, card opening, image fallback, settings, and sync events; Watchlist Page Runtime translates page DOM actions into Watchlist Lifecycle Runtime commands and applies returned render intent; Watchlist Entry presentation owns shared control labels, progress visibility, total text, and detail/watchlist page adapters
+- Lifecycle runtime interface: `setStatus`, `setProgress`, `adjustProgress`, `advanceProgress`, `setLoved`, `toggleLoved`, `selectForLater`, `undoSelection`, `applyImport` + `applyEffects`, and `prepareEntries`. Each page creates the runtime once with `host` ports (`updateControls`, `renderWatchlist`, `renderContinueWatching`, `emit`, `scheduleDashboard`, `announce`, `announceFailure`, `refreshTasteProfile`, `updateTasteProfileUi`, `renderRecommendations`), leaving out what it cannot do. Ordinary commands apply their effects through the host before returning, so both pages report storage failures, emit `rekonime:watchlist-updated`, and refresh Taste Profile evidence the same way. Imports return first so Watchlist Import can commit its stage, then call `applyEffects`.
+- Episode totals: one rule (`resolveEpisodeTotal`) uses the catalog total when the title is loaded, otherwise the Snapshot total. `advanceProgress` counts the next episode, or completes the title once progress reaches that total; the promoted Watching entry labels its button with the same rule.
+- Side effects: storage writes only; Watchlist Lifecycle Runtime owns shared home/watchlist mutation, ordinary transition snapshot resolution, transition envelopes, effect application through host ports, legacy migration and Snapshot backfill for display (`prepareEntries`); the pure MAL import planner builds detached creation Snapshots from the full Catalog Payload before the Runtime commits the batch; Watchlist Airing Dashboard Adapter owns shared home/watchlist lazy dashboard loading, controller caching, idle scheduling, cancellation, scheduled data-source resolution, controller options, and update failure logging; Watchlist Page Renderer owns filter-chip markup, card DOM assembly, empty-state class updates, and dashboard render scheduling; Watchlist Page Interactions owns page-level DOM event listeners, filter changes, card opening, image fallback, settings, and sync events (ignoring the page's own transitions, which already re-render through its host); Watchlist Page Runtime translates page DOM actions into Watchlist Lifecycle Runtime commands; Watchlist Entry presentation owns shared control labels, progress visibility, total text, and detail/watchlist page adapters
 - Contract surface: `WatchlistEntry`, `Snapshot`, `WatchlistPersistedPayload`, `WatchlistTransitionResult`, `WatchlistControlModel`, `WatchlistDisplayModel`, and `WatchlistLifecycleEventMap`
-- Discovery selection: `selectForLater` persists Planned and returns an opaque, runtime-local Undo receipt only after success. `undoSelection` reloads current entries, rejects conflicting changes to the selected entry, and commits only that entry's reversal. Unrelated entries and refreshed catalog Snapshots survive Undo; failed persistence keeps the receipt retryable. App Shell retains the latest selected title as an inline confirmation for the current decision context, outside the ranked recommendation pool.
+- Discovery selection: `selectForLater` persists Planned and returns an opaque, runtime-local Undo receipt only after success. `undoSelection` reloads current entries, rejects conflicting changes to the selected entry, and commits only that entry's reversal. Unrelated entries and refreshed catalog Snapshots survive Undo; failed persistence keeps the receipt retryable. Discovery Shortlist retains the latest selected title as an inline confirmation for the current decision context, outside the ranked recommendation pool.
 
 ### Watchlist Import
 - Workflow module: `src/features/watchlist/watchlist-import-workflow.ts`
@@ -90,7 +96,7 @@
 
 ### Detail Experience
 - Stable TypeScript entry point: `src/features/detail/detail-experience.ts`
-- The session owner is available before the first detail request; presentation and media implementations download only when opened. It owns loading/error markup, cancellation, and retry with the original deep-link options. `src/features/discovery/decision-signal.ts` owns the score summary shared by browse cards and detail presentation.
+- The session owner is available before the first detail request; presentation and media implementations download only when opened. It owns loading/error markup, cancellation, and retry with the original deep-link options. `src/features/discovery/rating-evidence.ts` owns the rating read model (Episode Rating Strength, Community Score, evidence label, opening/stability/finish signals, and the headline signal) shared by browse cards, recommendation cards, similar titles, and detail presentation.
 - Media module: `src/features/detail/detail-media.ts`
 - Private Reviews implementation: `src/features/detail/reviews.js`, lazy-loaded by Detail Experience with Jikan and AniList as external adapters
 - Presentation module: `src/features/detail/detail-presentation.ts`
@@ -127,11 +133,12 @@
 - Fresh visits use original covers until the proxy health check succeeds. Failed proxies retry the original cover; unavailable covers end at the embedded `image-placeholder.js` image without another network request. Fallback transitions clear responsive image candidates and stop at the embedded image.
 
 ### Runtime Calculations
-- Stable TypeScript entry points: `src/features/discovery/stats.ts`, `src/features/discovery/recommendations.ts`, `src/features/discovery/filterPresets.ts`
-- Inputs: episode score lists, Catalog Payload anime records, score profiles, Taste Profile-prepared recommendation candidates, active Viewing Intent and recommendation mode facts, and filter preset keys
+- Stable TypeScript entry points: `src/features/discovery/stats.ts`, `src/features/discovery/recommendations.ts`, `src/features/discovery/rating-evidence.ts`, `src/features/discovery/filterPresets.ts`
+- Rating presentation: every displayed score (cards, recommendation cards, similar titles, detail breakdown) comes from `getRatingSignals(anime)`; ranking, sorting, filter presets, and reason text still read `anime.stats` directly. Evidence gating (no strength without rated episodes, no opening signal without episodes 1-3 at known positions) applies once there. Stored keys keep legacy names (`stats.retentionScore` holds Episode Rating Strength) because Snapshots, exports, and the Python build share them.
+- Inputs: episode score lists, Catalog Payload anime records, score profiles, Taste Profile-prepared recommendation candidates, Watchlist entries for franchise eligibility, and filter preset keys
 - Outputs: calculated stats, one render-ready recommendation decision with context, reasons, and Experience Cues, card stat models, badges, similar-title matches, and filter preset view models
-- Interface: calculate statistics and display models; turn prepared candidates plus current intent/mode facts into one complete recommendation decision
-- Discovery shortlist: defaults to three total picks, with an explicit larger limit for more choices. The decision identifies supported goal suggestions, general alternatives, no close matches, and whether more picks exist. Goal membership uses genre/theme rules independently of ranking; eligible suggestions precede alternatives, with one title per franchise. Episode summaries distinguish listed totals from observed episodes using retained rating evidence.
+- Interface: calculate statistics and display models; turn prepared candidates into one complete recommendation decision
+- Recommendation decision: ranks up to the Discovery Shortlist's limit (three by default, three more per request) and reports whether more picks exist, with one title per franchise. Episode summaries distinguish listed totals from observed episodes using retained rating evidence.
 - Side effects: recommendations mode preference may use `CacheManager`; scoring and filter predicates are pure
 
 ### Runtime Capabilities
@@ -141,15 +148,6 @@
 - Outputs: idle task handles, modal open state, scroll lock state
 - Interface: schedules and cancels ordinary idle work and opens/closes native `<dialog>` elements; deferred boot, Shared Image Proxy, App Shell, and Airing Schedule adapters consume the same scheduling functions; the browser owns focus trapping
 - Side effects: dialog attributes/classes, initial focus, body scroll lock, scheduled callbacks
-
-### Onboarding Journey
-- Runtime module: `src/features/onboarding/onboarding.js`
-- First-paint adapter: `public/js/onboarding-gate.js`
-- Static shell: `index.html`
-- Inputs: persisted onboarding status, Viewing Intent choice, skip, and Escape
-- Outputs: selected Viewing Intent event and completed/skipped status
-- Interface: check completion, start or reopen the single welcome journey, and close it through completion or skip
-- Side effects: onboarding storage writes, shell visibility, analytics, and `rekonime:onboarding-intent` dispatch; the gate and runtime are the two adapters at the same static-shell seam
 
 ### Keyboard Shortcuts
 - Stable TypeScript entry point: `src/shared/ui/keyboardShortcuts.ts`

@@ -147,18 +147,16 @@ test('App active filter summary reports matches and keeps clear available', () =
   }
 });
 
-test('App starts with three recommendations on desktop and mobile', () => {
+test('App starts with the same initial grid batches on desktop and mobile', () => {
   setupDom();
   window.matchMedia = query => ({
     matches: query.includes('max-width: 640px') ? false : false
   });
-  assert.equal(App.getRecommendationDisplayLimit(), 3);
   assert.equal(App.initialGridBatchSize, 6);
 
   window.matchMedia = query => ({
     matches: query.includes('max-width: 640px')
   });
-  assert.equal(App.getRecommendationDisplayLimit(), 3);
   assert.equal(App.initialGridBatchSizeMobile, 3);
 });
 

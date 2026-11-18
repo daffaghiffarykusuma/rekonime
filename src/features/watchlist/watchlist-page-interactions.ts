@@ -5,6 +5,7 @@ const createWatchlistPageInteractions = ({
   handleImageError,
   handleWatchlistChange,
   handleWatchlistClick,
+  isOwnWatchlistUpdate = () => false,
   loadFullApp,
   onFilterChange,
   renderWatchlist
@@ -103,6 +104,7 @@ const createWatchlistPageInteractions = ({
   const setupWatchlistSync = () => {
     if (typeof window === 'undefined') return;
     window.addEventListener('rekonime:watchlist-updated', (event) => {
+      if (isOwnWatchlistUpdate()) return;
       renderWatchlist({ cacheOnly: Boolean(event.detail?.summary) });
     });
   };

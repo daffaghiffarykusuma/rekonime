@@ -67,3 +67,31 @@ test('App Shell applies Catalog Payload state and browser effects', async () => 
     'applyFilters'
   ]);
 });
+
+test('App applies one invalidation policy to catalog replacement and enrichment', () => {
+  const invalidated = [];
+  const snapshotRefreshes = [];
+  const app = Object.assign(Object.create(App), {
+    gridSortedCache: ['old'], gridSortedKey: 'k', gridSortedSource: ['old'], gridSortedIsPartial: true, gridSortHandle: null,
+    gridDomCache: new Map([['one', {}], ['two', {}]]),
+    visibleCardIds: new Set(['one', 'two']),
+    detailExperience: { invalidate: (id) => invalidated.push(id ?? 'all') },
+    refreshWatchlistSnapshotsFromCatalog: (options) => snapshotRefreshes.push(options)
+  });
+
+  app.handleCatalogChange({ reason: 'enriched', ids: ['one'] });
+
+  assert.equal(app.gridSortedCache, null);
+  assert.equal(app.gridSortedIsPartial, false);
+  assert.deepEqual([...app.gridDomCache.keys()], ['one', 'two']);
+  assert.deepEqual([...app.visibleCardIds], ['one', 'two']);
+  assert.deepEqual(invalidated, ['one']);
+  assert.deepEqual(snapshotRefreshes, [{ persist: true }]);
+
+  app.handleCatalogChange({ reason: 'replaced' });
+
+  assert.equal(app.gridDomCache.size, 0);
+  assert.equal(app.visibleCardIds.size, 0);
+  assert.deepEqual(invalidated, ['one', 'all']);
+  assert.equal(snapshotRefreshes.length, 1);
+});

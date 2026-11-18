@@ -4,13 +4,42 @@ import {
   normalizeWatchId
 } from './watchlist-state.js';
 import { fingerprintWatchlist, validateMalImportPlan } from './mal-import-plan.ts';
+import { CatalogPayload } from '../catalog/catalog-payload.ts';
 
+const positiveTotal = (value) => (Number.isSafeInteger(value) && value > 0 ? value : null);
+
+// One episode-total rule for every Watchlist surface: the catalog total when the title is
+// loaded, otherwise the total recorded on the entry's Snapshot.
+const resolveEpisodeTotal = (anime, snapshot) => (
+  positiveTotal(CatalogPayload.getEpisodeCount(anime)) || positiveTotal(CatalogPayload.getEpisodeCount(snapshot))
+);
+
+const STORAGE_FAILURE_MESSAGE = "Couldn't save your Watchlist change. Nothing changed. Try again; if it keeps failing, check browser storage.";
+
+/**
+ * Watchlist Lifecycle Runtime: the one place that turns a Watchlist command into a persisted
+ * transition and applies its effects.
+ *
+ * `host` holds the ports a page provides; every port is optional, and a page leaves out what it
+ * cannot do (the dedicated Watchlist page has no Discovery shortlist, for example):
+ *   updateControls(id, entry)   redraw one title's Watchlist controls
+ *   renderWatchlist()           redraw the Watchlist list
+ *   renderContinueWatching()    redraw the promoted Watching entry
+ *   emit(name, payload)         dispatch the Watchlist Lifecycle event
+ *   scheduleDashboard(options)  schedule an Airing Schedule dashboard update
+ *   announce(feedback)          confirm a change ({ message, action? })
+ *   announceFailure(failure)    report a change that could not be saved ({ id, message })
+ *   refreshTasteProfile()       recompute Taste Profile evidence from the Watchlist
+ *   updateTasteProfileUi()      redraw Taste Profile settings
+ *   renderRecommendations()     redraw the Discovery shortlist
+ */
 const createWatchlistLifecycleRuntime = ({
-  buildSnapshot,
+  buildSnapshot = () => null,
   dashboardTimeout = 500,
-  getAnime,
-  getEpisodeLimit,
+  getAnime = () => null,
+  getEpisodeLimit = null,
   getLifecycle,
+  host = null,
   loadBeforeTransition = false,
   now = Date.now,
   renderMode = 'controls',
@@ -28,14 +57,15 @@ const createWatchlistLifecycleRuntime = ({
     const key = normalizeId(animeId);
     if (!key) return null;
     const anime = getAnime(key);
+    const storedSnapshot = lifecycle.getEntry(key)?.snapshot || null;
     const resolvedEpisodeCount = Number.isFinite(episodeCount) && episodeCount > 0
       ? episodeCount
-      : getEpisodeLimit(key);
+      : (getEpisodeLimit?.(key) || resolveEpisodeTotal(anime, storedSnapshot));
     return {
       key,
       anime,
       episodeCount: resolvedEpisodeCount,
-      snapshot: buildSnapshot(anime) || lifecycle.getEntry(key)?.snapshot || null
+      snapshot: buildSnapshot(anime) || storedSnapshot
     };
   };
 
@@ -67,6 +97,34 @@ const createWatchlistLifecycleRuntime = ({
       effects,
       transition
     };
+  };
+
+  const applyEffects = (result) => {
+    if (!host || !result) return result;
+    if (!result.changed) {
+      if (result.compatibilityResult?.reason === 'storage-failed') {
+        const id = normalizeId(result.compatibilityResult.id);
+        if (id) host.updateControls?.(id, getReadyLifecycle().getEntry(id));
+        host.announceFailure?.({ id, message: STORAGE_FAILURE_MESSAGE });
+      }
+      return result;
+    }
+    const { transition, effects } = result;
+    const isImport = transition.operation === 'import';
+    if (transition.render?.controls?.shouldUpdate) {
+      host.updateControls?.(transition.render.controls.id, transition.render.controls.entry);
+    }
+    if (transition.event) host.emit?.(transition.event.name, transition.event.payload);
+    if (transition.dashboard?.shouldSchedule) {
+      host.scheduleDashboard?.({ timeout: transition.dashboard.timeout, ...(isImport ? { cacheOnly: true } : {}) });
+    }
+    if (transition.feedback && !isImport) host.announce?.(transition.feedback);
+    host.renderContinueWatching?.();
+    if (transition.render?.watchlist?.shouldRender) host.renderWatchlist?.();
+    if (effects?.refreshTasteProfile) host.refreshTasteProfile?.();
+    if (effects?.updateTasteProfileUi) host.updateTasteProfileUi?.();
+    if (effects?.renderRecommendations) host.renderRecommendations?.();
+    return result;
   };
 
   const applyImport = (plan) => {
@@ -212,6 +270,13 @@ const createWatchlistLifecycleRuntime = ({
     });
   };
 
+  const toggleLoved = (animeId) => {
+    const lifecycle = getReadyLifecycle();
+    const key = normalizeId(animeId);
+    if (!key) return null;
+    return setLoved(key, !lifecycle.getEntry(key)?.loved);
+  };
+
   const adjustProgress = (animeId, delta, options = {}) => {
     const lifecycle = getReadyLifecycle();
     const context = resolveAnimeContext(lifecycle, animeId, options);
@@ -223,15 +288,57 @@ const createWatchlistLifecycleRuntime = ({
     return buildChangedResult(result, { refreshTasteProfile: true });
   };
 
+  // Continue watching: count the next episode, or finish the title once progress reaches its total.
+  const advanceProgress = (animeId, options = {}) => {
+    const lifecycle = getReadyLifecycle();
+    const context = resolveAnimeContext(lifecycle, animeId, options);
+    if (!context) return null;
+    const entry = lifecycle.getEntry(context.key);
+    if (!entry) return null;
+    if (context.episodeCount && entry.progress >= context.episodeCount) {
+      return setStatus(context.key, 'completed', { episodeCount: context.episodeCount });
+    }
+    return adjustProgress(context.key, 1, { episodeCount: context.episodeCount });
+  };
+
+  // Read the persisted Watchlist for display: migrate legacy bookmarks and give every entry a
+  // Snapshot so it can render before catalog data is available.
+  const prepareEntries = ({ buildFallbackSnapshot = null } = {}) => {
+    const lifecycle = getLifecycle();
+    lifecycle.load();
+    lifecycle.migrateLegacy?.();
+    if (buildFallbackSnapshot) {
+      const map = lifecycle.entries;
+      let changed = false;
+      map.forEach((entry, id) => {
+        if (entry?.snapshot) return;
+        const fallback = buildFallbackSnapshot(entry);
+        if (!fallback?.id) return;
+        map.set(id, { ...entry, snapshot: { ...fallback } });
+        changed = true;
+      });
+      if (changed) lifecycle.save();
+    }
+    return lifecycle.getEntries();
+  };
+
+  const withEffects = (command) => (...args) => applyEffects(command(...args));
+
   return {
-    selectForLater,
-    undoSelection,
-    adjustProgress,
+    // Ordinary transitions apply their effects through the host before returning.
+    selectForLater: withEffects(selectForLater),
+    undoSelection: withEffects(undoSelection),
+    adjustProgress: withEffects(adjustProgress),
+    advanceProgress: withEffects(advanceProgress),
+    setLoved: withEffects(setLoved),
+    toggleLoved: withEffects(toggleLoved),
+    setProgress: withEffects(setProgress),
+    setStatus: withEffects(setStatus),
+    // Imports return before applying effects so the Watchlist Import can commit its stage first.
     applyImport,
-    setLoved,
-    setProgress,
-    setStatus
+    applyEffects,
+    prepareEntries
   };
 };
 
-export { createWatchlistLifecycleRuntime };
+export { createWatchlistLifecycleRuntime, resolveEpisodeTotal };

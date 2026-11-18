@@ -12,8 +12,13 @@ const createRenderer = ({
   const renderer = createWatchlistPageRenderer({
     documentRef: document,
     getCurrentFilter: () => currentFilter,
-    getWatchlistState: () => ({ map, entries, version: 1 }),
-    migrateLegacyBookmarksToWatchlist: () => calls.push(['migrateLegacyBookmarksToWatchlist']),
+    prepareEntries: ({ buildFallbackSnapshot }) => {
+      calls.push(['prepareEntries']);
+      entries.forEach((entry) => {
+        if (!entry.snapshot) entry.snapshot = buildFallbackSnapshot(entry);
+      });
+      return entries;
+    },
     placeholderCover: 'https://placeholder.example/cover.webp',
     resolveImage: ({ coverUrl, placeholder, index }) => ({
       src: coverUrl ? `https://proxy.example/${coverUrl}` : placeholder,
@@ -25,7 +30,6 @@ const createRenderer = ({
       decoding: 'async',
       fetchpriority: index === 0 ? 'high' : 'auto'
     }),
-    saveWatchlistMap: (...args) => calls.push(['saveWatchlistMap', ...args]),
     scheduleAiringDashboardUpdate: (...args) => calls.push(['scheduleAiringDashboardUpdate', ...args])
   });
   return { calls, renderer };
@@ -47,7 +51,7 @@ test('Watchlist Page Renderer renders empty state and schedules empty dashboard 
   assert.equal(document.getElementById('watchlist-section').classList.contains('is-empty'), true);
   assert.equal(document.querySelectorAll('#watchlist-grid .anime-card').length, 0);
   assert.deepEqual(calls, [
-    ['migrateLegacyBookmarksToWatchlist'],
+    ['prepareEntries'],
     ['scheduleAiringDashboardUpdate', [], [], { timeout: 1200 }]
   ]);
 });
@@ -75,10 +79,9 @@ test('Watchlist Page Renderer builds cards, filters, snapshots, and dashboard in
   assert.equal(card.querySelector('img').src, 'https://proxy.example/https://placeholder.example/cover.webp');
   assert.equal(activeFilter.dataset.filter, 'watching');
   assert.equal(entry.snapshot.title, 'Unknown title');
-  assert.equal(calls[0][0], 'migrateLegacyBookmarksToWatchlist');
-  assert.equal(calls[1][0], 'saveWatchlistMap');
-  assert.equal(calls[2][0], 'scheduleAiringDashboardUpdate');
-  assert.equal(calls[2][1][0], entry);
-  assert.equal(calls[2][2][0].id, 'show-1');
-  assert.deepEqual(calls[2][3], { timeout: 1800 });
+  assert.equal(calls[0][0], 'prepareEntries');
+  assert.equal(calls[1][0], 'scheduleAiringDashboardUpdate');
+  assert.equal(calls[1][1][0], entry);
+  assert.equal(calls[1][2][0].id, 'show-1');
+  assert.deepEqual(calls[1][3], { timeout: 1800 });
 });

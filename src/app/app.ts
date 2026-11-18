@@ -13,9 +13,10 @@ import { CatalogPayload } from '../features/catalog/catalog-payload.ts';
 import { Logger } from '../shared/services/logger.ts';
 import { HealthMonitor } from '../shared/runtime/healthMonitor.js';
 import { createImageProxyRuntime } from '../shared/runtime/image-proxy-runtime.js';
-import { buildDetailDecisionData } from '../features/discovery/decision-signal.ts';
+import { getRatingSignals } from '../features/discovery/rating-evidence.ts';
 import { createRuntimeCapabilities } from '../shared/runtime/runtime-capabilities.ts';
-import { createDiscoverySession } from '../features/discovery/discovery-session.ts';
+import { createDiscoveryShortlist } from '../features/discovery/discovery-shortlist.ts';
+import { runHomeAction } from './home-action-commands.ts';
 import {
   renderWatchlistControlsHtml,
   updateWatchlistControlsElement
@@ -36,7 +37,6 @@ import {
   createWatchlistLifecycle
 } from '../features/watchlist/watchlist-state.js';
 import { createWatchlistLifecycleRuntime } from '../features/watchlist/watchlist-lifecycle-runtime.ts';
-import { prepareDiscoveryCandidates } from '../features/discovery/recommendation-eligibility.ts';
 import { buildContinueWatchingModel } from '../features/watchlist/continue-watching.ts';
 import { recordBackupExport, updateBackupStatus } from '../features/preferences/backup-status.ts';
 import { renderMalImport } from '../features/watchlist/mal-import-presentation.ts';
@@ -77,14 +77,7 @@ const App = {
     timeoutMs: 12000
   },
   fullCatalogTimeoutMs: 30000,
-  isFullDataLoaded: false,
-  loadingFullCatalog: false,
-  fullCatalogPromise: null,
-  animeDetailChunkPromises: new Map(),
-  animeDetailChunkLoadedIds: new Set(),
   fullCatalogPreloadPromise: null,
-  fullCatalogScheduleHandle: null,
-  fullCatalogInteractionCaptured: false,
   fullCatalogInteractionListeners: [],
   preloadHintsAdded: false,
   defaultMeta: {
@@ -111,8 +104,7 @@ const App = {
     genres: { expanded: false },
     themes: { expanded: false }
   },
-  discoverySession: null,
-  recommendationDisplayLimit: 3,
+  discoveryShortlist: null,
   headerSearchState: {
     query: '',
     results: [],
@@ -156,7 +148,6 @@ const App = {
   airingDashboardAdapter: null,
   catalogRuntime: null,
   watchlistLifecycleRuntime: null,
-  chosenRecommendation: null,
 
   getCache() {
     return CacheManager;
@@ -167,6 +158,10 @@ const App = {
       this.catalogRuntime = createAppCatalogRuntime(this);
     }
     return this.catalogRuntime;
+  },
+
+  isCatalogFull() {
+    return this.getCatalogRuntime().isFullLoaded();
   },
 
   getDetailExperience() {
@@ -180,18 +175,16 @@ const App = {
     if (!this.watchlistImportWorkflow) {
       this.watchlistImportWorkflow = createWatchlistImportWorkflow({
         getFullCatalog: async () => {
-          const ready = this.isFullDataLoaded || await this.getCatalogRuntime().loadFullCatalog();
-          return ready && this.isFullDataLoaded ? this.animeData : null;
+          const ready = await this.getCatalogRuntime().loadFullCatalog();
+          return ready && this.isCatalogFull() ? this.animeData : null;
         },
         getEntries: () => {
-          if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
+          if (this.isDedicatedWatchlistPage()) this.loadWatchlist();
           return this.getWatchlistLifecycle().getEntries();
         },
-        applyPlan: plan => {
-          if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
-          return this.getWatchlistLifecycleRuntime().applyImport(plan);
-        },
-        applyEffects: result => this.applyWatchlistRuntimeResult(result),
+        // The runtime reloads persisted entries before committing an import plan.
+        applyPlan: plan => this.getWatchlistLifecycleRuntime().applyImport(plan),
+        applyEffects: result => this.getWatchlistLifecycleRuntime().applyEffects(result),
         refreshRecommendations: () => {
           this.refreshTasteProfileEvidence();
           this.updateTasteProfileUi();
@@ -241,14 +234,45 @@ const App = {
     });
   },
 
+  // The dedicated Watchlist page renders its own list and loads this App lazily; it edits the
+  // same persisted Watchlist through its own Watchlist Lifecycle Runtime.
+  isDedicatedWatchlistPage() {
+    return typeof document !== 'undefined' && document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page';
+  },
+
   getWatchlistLifecycleRuntime() {
     if (!this.watchlistLifecycleRuntime) {
+      const dedicatedWatchlistPage = this.isDedicatedWatchlistPage();
       this.watchlistLifecycleRuntime = createWatchlistLifecycleRuntime({
         buildSnapshot: buildWatchlistAnimeSnapshot,
         getAnime: (animeId) => this.animeData.find(item => item?.id === animeId) || null,
-        getEpisodeLimit: (animeId) => this.getEpisodeLimitForAnime(animeId),
         getLifecycle: () => this.getWatchlistLifecycle(),
-        normalizeId: (animeId) => this.normalizeBookmarkId(animeId)
+        // Another lifecycle may have written storage underneath this App on the Watchlist page.
+        loadBeforeTransition: dedicatedWatchlistPage,
+        normalizeId: (animeId) => this.normalizeBookmarkId(animeId),
+        host: {
+          updateControls: (animeId) => this.updateWatchlistControls(animeId),
+          renderWatchlist: () => this.renderWatchlist(),
+          renderContinueWatching: () => this.renderContinueWatching(),
+          emit: (name, payload) => this.emitAppEvent(name, payload),
+          // On the Watchlist page the event re-renders the list, which schedules the dashboard.
+          ...(dedicatedWatchlistPage ? {} : {
+            scheduleDashboard: (options) => this.scheduleAiringDashboardRender(options)
+          }),
+          announce: (feedback) => this.showToast(feedback.message, {
+            action: feedback.action,
+            key: 'watchlist',
+            type: 'success'
+          }),
+          announceFailure: (failure) => this.showToast(failure.message, {
+            key: 'watchlist',
+            type: 'error',
+            duration: 10000
+          }),
+          refreshTasteProfile: () => this.refreshTasteProfileEvidence(),
+          updateTasteProfileUi: () => this.updateTasteProfileUi(),
+          renderRecommendations: () => this.renderRecommendations()
+        }
       });
     }
     return this.watchlistLifecycleRuntime;
@@ -387,7 +411,7 @@ const App = {
   },
 
   setupFullCatalogInteractionTriggers() {
-    if (this.fullCatalogInteractionCaptured || this.isFullDataLoaded) return;
+    if (this.getCatalogRuntime().hasInteractionCaptured() || this.isCatalogFull()) return;
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     if (this.fullCatalogInteractionListeners.length > 0) return;
 
@@ -418,8 +442,9 @@ const App = {
   },
 
   handleFullCatalogInteraction() {
-    if (this.fullCatalogInteractionCaptured || this.isFullDataLoaded) return;
-    this.fullCatalogInteractionCaptured = true;
+    const catalogRuntime = this.getCatalogRuntime();
+    if (catalogRuntime.hasInteractionCaptured() || catalogRuntime.isFullLoaded()) return;
+    catalogRuntime.captureInteraction();
     this.teardownFullCatalogInteractionTriggers();
     this.getRuntimeCapabilities().queueIdleTask(() => {
       this.getCatalogRuntime().loadFullCatalog();
@@ -652,61 +677,29 @@ const App = {
     return total;
   },
 
-  applyWatchlistRuntimeResult(result) {
-    if (!result) return null;
-    if (!result.changed) {
-      if (result.compatibilityResult?.reason === 'storage-failed') {
-        this.updateWatchlistControls(result.compatibilityResult.id);
-        this.showToast("Couldn't save your Watchlist change. Nothing changed. Try again; if it keeps failing, check browser storage.", {
-          key: 'watchlist',
-          type: 'error',
-          duration: 10000
-        });
-      }
-      return result.compatibilityResult;
-    }
-    this.applyWatchlistTransition(result.transition);
-    this.renderContinueWatching();
-    if (result.transition?.render?.watchlist?.shouldRender) {
-      this.renderWatchlist();
-    }
-    if (result.transition?.operation === 'import' && document.getElementById('watchlist-grid')?.dataset.renderer !== 'watchlist-page') {
-      this.scheduleAiringDashboardRender({ timeout: result.transition.dashboard.timeout, cacheOnly: true });
-    }
-    if (result.effects?.refreshTasteProfile) {
-      this.refreshTasteProfileEvidence();
-    }
-    if (result.effects?.updateTasteProfileUi) {
-      this.updateTasteProfileUi();
-    }
-    if (result.effects?.renderRecommendations) {
-      this.renderRecommendations();
-    }
-    return result.compatibilityResult;
-  },
-
+  // Watchlist commands: the Watchlist Lifecycle Runtime applies every effect through its host.
   setWatchStatus(animeId, status, { episodeCount } = {}) {
-    return this.applyWatchlistRuntimeResult(
-      this.getWatchlistLifecycleRuntime().setStatus(animeId, status, { episodeCount })
-    );
+    return this.getWatchlistLifecycleRuntime().setStatus(animeId, status, { episodeCount })?.compatibilityResult ?? null;
   },
 
   setWatchProgress(animeId, progress, { episodeCount } = {}) {
-    return this.applyWatchlistRuntimeResult(
-      this.getWatchlistLifecycleRuntime().setProgress(animeId, progress, { episodeCount })
-    );
+    return this.getWatchlistLifecycleRuntime().setProgress(animeId, progress, { episodeCount })?.compatibilityResult ?? null;
   },
 
   setWatchLoved(animeId, loved) {
-    return this.applyWatchlistRuntimeResult(
-      this.getWatchlistLifecycleRuntime().setLoved(animeId, loved)
-    );
+    return this.getWatchlistLifecycleRuntime().setLoved(animeId, loved)?.compatibilityResult ?? null;
+  },
+
+  toggleWatchLoved(animeId) {
+    return this.getWatchlistLifecycleRuntime().toggleLoved(animeId)?.compatibilityResult ?? null;
   },
 
   adjustWatchProgress(animeId, delta) {
-    return this.applyWatchlistRuntimeResult(
-      this.getWatchlistLifecycleRuntime().adjustProgress(animeId, delta)
-    );
+    return this.getWatchlistLifecycleRuntime().adjustProgress(animeId, delta)?.compatibilityResult ?? null;
+  },
+
+  advanceWatchProgress(animeId) {
+    return this.getWatchlistLifecycleRuntime().advanceProgress(animeId)?.compatibilityResult ?? null;
   },
 
   refreshTasteProfileEvidence() {
@@ -722,44 +715,40 @@ const App = {
   },
 
   handleRecommendationFeedback(action, animeId, actionEl = null) {
-    const anime = this.animeData.find(item => item?.id === animeId);
-    if (!anime) return;
+    const shortlist = this.getDiscoveryShortlist();
+    const outcome = shortlist.giveFeedback(action, animeId, {
+      genre: actionEl?.dataset?.genre || '',
+      theme: actionEl?.dataset?.theme || ''
+    });
     if (action === 'rec-already-seen') {
-      this.setWatchStatus(anime.id, 'completed', { episodeCount: CatalogPayload.getEpisodeCount(anime) });
-    } else {
-      const result = this.getTasteProfileStore().applyRecommendationFeedback(action, anime, {
-        genre: actionEl?.dataset?.genre || '',
-        theme: actionEl?.dataset?.theme || ''
-      });
-      if (!result.changed) {
-        this.showToast(result.message, { type: 'error' });
-        return;
-      }
-      const toastId = this.showToast(result.message, {
-        key: 'taste-feedback',
-        duration: 0,
-        action: { label: 'Undo', onClick: (id) => {
-          const undone = this.getTasteProfileStore().undoRecommendationFeedback(result.undoToken);
-          if (!undone.changed) {
-            this.showToast(undone.message, { type: 'error', key: 'taste-feedback-error' });
-            return;
-          }
-          this.dismissToast(id);
-          this.updateTasteProfileUi();
-          this.renderRecommendations();
-          this.showToast(undone.message);
-          const restored = [...document.querySelectorAll('.recommendation-card')]
-            .find(card => card.dataset.animeId === animeId);
-          (restored?.querySelector('.recommendation-taste summary') || document.querySelector('#recommendations-grid .recommendation-title'))?.focus();
-        } }
-      });
-      this.updateTasteProfileUi();
-      this.renderRecommendations();
-      document.getElementById(toastId)?.querySelector('button')?.focus();
+      // The Watchlist Lifecycle Runtime host already redrew the shortlist.
+      if (outcome.changed) this.updateTasteProfileUi();
       return;
     }
+    if (outcome.error) {
+      this.showToast(outcome.error, { type: 'error' });
+      return;
+    }
+    if (!outcome.changed) return;
+    const toastId = this.showToast(outcome.announcement, {
+      key: 'taste-feedback',
+      duration: 0,
+      action: { label: 'Undo', onClick: (id) => {
+        const undone = shortlist.undoFeedback(outcome.undoToken, animeId);
+        if (!undone.changed) {
+          this.showToast(undone.error, { type: 'error', key: 'taste-feedback-error' });
+          return;
+        }
+        this.dismissToast(id);
+        this.updateTasteProfileUi();
+        this.renderRecommendations();
+        this.showToast(undone.announcement);
+        this.focusShortlistTarget(undone.focus);
+      } }
+    });
     this.updateTasteProfileUi();
     this.renderRecommendations();
+    document.getElementById(toastId)?.querySelector('button')?.focus();
   },
 
   resetTasteProfile() {
@@ -770,7 +759,7 @@ const App = {
   },
 
   exportPersonalData() {
-    if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
+    if (this.isDedicatedWatchlistPage()) this.loadWatchlist();
     const payload = this.getTasteProfileStore().exportData(this.getWatchlistLifecycle().getEntries());
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -811,7 +800,7 @@ const App = {
       if (result.mode === 'full') {
         this.renderWatchlist();
         if (this.currentAnimeId) this.updateWatchlistControls(this.currentAnimeId);
-        if (document.getElementById('watchlist-grid')?.dataset.renderer !== 'watchlist-page') this.scheduleAiringDashboardRender();
+        if (!this.isDedicatedWatchlistPage()) this.scheduleAiringDashboardRender();
         this.emitAppEvent('rekonime:watchlist-updated', { id: '', removed: false, changedIds: this.getWatchlistLifecycle().getEntries().map(entry => entry.id) });
         this.renderContinueWatching();
       }
@@ -864,26 +853,6 @@ const App = {
       });
     }
     requestAnimationFrame(() => dialog?.querySelector('[value="cancel"]')?.focus());
-  },
-
-  applyWatchlistTransition(transition) {
-    if (!transition?.changed) return;
-    if (transition.render?.controls?.shouldUpdate) {
-      this.updateWatchlistControls(transition.render.controls.id);
-    }
-    if (transition.event) {
-      this.emitAppEvent(transition.event.name, transition.event.payload);
-    }
-    if (transition.operation !== 'import' && transition.dashboard?.shouldSchedule && document.getElementById('watchlist-grid')?.dataset.renderer !== 'watchlist-page') {
-      this.scheduleAiringDashboardRender({ timeout: transition.dashboard.timeout });
-    }
-    if (transition.feedback && transition.operation !== 'import') {
-      this.showToast(transition.feedback.message, {
-        action: transition.feedback.action,
-        key: 'watchlist',
-        type: 'success'
-      });
-    }
   },
 
   updateWatchlistControls(animeId) {
@@ -1297,7 +1266,7 @@ const App = {
   refreshWatchlistSnapshotsFromCatalog({ persist = false } = {}) {
     // The dedicated page edits through its own lifecycle while this App loads lazily.
     // Snapshot enrichment must start from those latest persisted entries.
-    if (document.getElementById('watchlist-grid')?.dataset.renderer === 'watchlist-page') this.loadWatchlist();
+    if (this.isDedicatedWatchlistPage()) this.loadWatchlist();
     return this.getWatchlistLifecycle().refreshSnapshotsFromCatalog(this.animeData, { persist, replaceExisting: true });
   },
 
@@ -1310,7 +1279,7 @@ const App = {
     const section = document.getElementById('watchlist-section');
     const grid = document.getElementById('watchlist-grid');
     const empty = document.getElementById('watchlist-empty');
-    if (!section || !grid || !empty || grid.dataset.renderer === 'watchlist-page') return;
+    if (!section || !grid || !empty || this.isDedicatedWatchlistPage()) return;
 
     const items = this.getWatchlistDisplayItems();
     if (items.length === 0) {
@@ -1492,7 +1461,7 @@ const App = {
   },
 
   preloadFullCatalog() {
-    if (this.fullCatalogPreloadPromise || this.isFullDataLoaded) return;
+    if (this.fullCatalogPreloadPromise || this.isCatalogFull()) return;
     if (!this.shouldPrefetchFullCatalog()) return;
     this.fullCatalogPreloadPromise = (async () => {
       await new Promise(resolve => {
@@ -1507,26 +1476,45 @@ const App = {
   },
 
   scheduleFullCatalogLoad() {
-    if (this.fullCatalogScheduleHandle || this.isFullDataLoaded) return;
+    const catalogRuntime = this.getCatalogRuntime();
+    if (catalogRuntime.getScheduledFullLoadHandle() || catalogRuntime.isFullLoaded()) return;
     if (typeof window === 'undefined') {
-      this.getCatalogRuntime().loadFullCatalog();
+      catalogRuntime.loadFullCatalog();
       return;
     }
     const delayMs = this.shouldPrefetchFullCatalog() ? 0 : 8000;
     const schedule = () => {
-      this.fullCatalogScheduleHandle = this.getRuntimeCapabilities().queueIdleTask(() => {
-        this.fullCatalogScheduleHandle = null;
-        this.getCatalogRuntime().loadFullCatalog();
-      }, { timeout: 2000 });
-      this.getCatalogRuntime().setScheduledFullLoadHandle(this.fullCatalogScheduleHandle);
+      catalogRuntime.setScheduledFullLoadHandle(this.getRuntimeCapabilities().queueIdleTask(() => {
+        catalogRuntime.setScheduledFullLoadHandle(null);
+        catalogRuntime.loadFullCatalog();
+      }, { timeout: 2000 }));
     };
 
     if (delayMs > 0) {
-      this.fullCatalogScheduleHandle = window.setTimeout(schedule, delayMs);
-      this.getCatalogRuntime().setScheduledFullLoadHandle(this.fullCatalogScheduleHandle);
+      catalogRuntime.setScheduledFullLoadHandle(window.setTimeout(schedule, delayMs));
       return;
     }
     schedule();
+  },
+
+  // One invalidation policy for every catalog change. A replacement drops every derived
+  // view; an enrichment drops the sort order and the enriched titles' detail views. Cached
+  // grid cards stay attached because getGridCardElement refreshes a reused card in place.
+  handleCatalogChange({ reason, ids = [] } = {}) {
+    this.gridSortedCache = null;
+    this.gridSortedKey = '';
+    this.gridSortedSource = null;
+    this.gridSortedIsPartial = false;
+    if (this.gridSortHandle) this.getRuntimeCapabilities().cancelIdleTask(this.gridSortHandle);
+    this.gridSortHandle = null;
+    if (reason === 'enriched') {
+      ids.forEach((id) => this.detailExperience?.invalidate(id));
+      this.refreshWatchlistSnapshotsFromCatalog({ persist: true });
+      return;
+    }
+    this.gridDomCache.clear();
+    this.visibleCardIds.clear();
+    this.detailExperience?.invalidate();
   },
 
   async applyCatalogPayload(payload, { isFull = false, preserveFilters = true } = {}) {
@@ -1546,20 +1534,12 @@ const App = {
 
     this.scoreProfile = state.scoreProfile;
     this.animeData = state.animeData;
-    this.isFullDataLoaded = state.isFullDataLoaded;
+    this.getCatalogRuntime().markFullLoaded(state.isFullDataLoaded);
     if (typeof document !== 'undefined') {
       document.documentElement.dataset.catalogStatus = state.catalogStatus;
       document.documentElement.dataset.catalogReady = String(state.catalogReady);
     }
-    this.gridSortedCache = state.gridState.sortedCache;
-    this.gridSortedKey = state.gridState.sortedKey;
-    this.gridSortedSource = state.gridState.sortedSource;
-    this.gridSortedIsPartial = state.gridState.sortedIsPartial;
-    if (this.gridSortHandle) this.getRuntimeCapabilities().cancelIdleTask(this.gridSortHandle);
-    this.gridSortHandle = null;
-    this.gridDomCache.clear();
-    this.detailExperience?.invalidate();
-    this.visibleCardIds.clear();
+    this.handleCatalogChange({ reason: 'replaced' });
     this.markCatalogFresh();
     if (state.activeFilters) this.activeFilters = state.activeFilters;
 
@@ -1966,20 +1946,6 @@ const App = {
   },
 
   /**
-   * Calculate statistics for all anime
-   */
-  async calculateAllStats() {
-    const Stats = await this.loadStatsModule();
-    const scoreProfile = Stats.buildScoreProfile(this.animeData);
-    this.scoreProfile = scoreProfile;
-    this.animeData = this.animeData.map((anime, index) => ({
-      ...anime,
-      stats: Stats.calculateAllStats(anime, scoreProfile),
-      colorIndex: index
-    }));
-  },
-
-  /**
    * Extract unique filter options from data
    */
   extractFilterOptions() {
@@ -2119,8 +2085,7 @@ const App = {
       if (action === 'watch-status') {
         const animeId = target.dataset.animeId || this.currentAnimeId;
         if (!animeId) return;
-        const episodeCount = this.getEpisodeLimitForAnime(animeId);
-        this.setWatchStatus(animeId, target.value, { episodeCount });
+        this.setWatchStatus(animeId, target.value);
         target.focus({ preventScroll: true });
         return;
       }
@@ -2128,8 +2093,7 @@ const App = {
       if (action === 'watch-progress') {
         const animeId = target.dataset.animeId || this.currentAnimeId;
         if (!animeId) return;
-        const episodeCount = this.getEpisodeLimitForAnime(animeId);
-        this.setWatchProgress(animeId, target.value, { episodeCount });
+        this.setWatchProgress(animeId, target.value);
         return;
       }
 
@@ -2892,11 +2856,47 @@ const App = {
     renderGroup('themes', this.filterOptions.themes, themeContainer);
   },
 
-  getDiscoverySession() {
-    if (!this.discoverySession) {
-      this.discoverySession = createDiscoverySession();
+  getDiscoveryShortlist() {
+    if (!this.discoveryShortlist) {
+      this.discoveryShortlist = createDiscoveryShortlist({
+        findAnime: (animeId) => this.animeData.find(item => String(item?.id) === String(animeId)) || null,
+        getTasteProfile: () => this.getTasteProfileStore(),
+        getWatchlistEntries: () => this.getWatchlistLifecycle().getEntries(),
+        getWatchlistRuntime: () => this.getWatchlistLifecycleRuntime(),
+        getEpisodeCount: (anime) => CatalogPayload.getEpisodeCount(anime),
+        recommendations: Recommendations,
+        discovery: Discovery
+      });
     }
-    return this.discoverySession;
+    return this.discoveryShortlist;
+  },
+
+  // Render a Discovery Shortlist outcome: announce it, show any error, and move focus.
+  applyShortlistOutcome(outcome) {
+    if (!outcome) return;
+    const status = document.getElementById('recommendations-status');
+    if (status && outcome.announcement) status.textContent = outcome.announcement;
+    if (outcome.error) this.showToast(outcome.error, { key: 'watchlist', type: 'error' });
+    this.focusShortlistTarget(outcome.focus);
+  },
+
+  focusShortlistTarget(focus) {
+    if (!focus) return;
+    const byId = (selector) => [...document.querySelectorAll(selector)].find(element => element.dataset.animeId === focus.id);
+    const targets = {
+      'chosen-undo': () => document.querySelector('#chosen-title button[data-action="undo-recommendation-selection"]'),
+      save: () => byId('[data-action="quick-save-recommendation"]'),
+      pick: () => document.querySelectorAll('#recommendations-grid .recommendation-title')[focus.index],
+      'latest-dismissal-undo': () => document.querySelector('#session-dismissals > p button'),
+      'dismissal-review': () => document.querySelector('#session-dismissals:not([hidden]) summary'),
+      taste: () => byId('.recommendation-card')?.querySelector('.recommendation-taste summary')
+    };
+    const target = targets[focus.target]?.()
+      || document.querySelector('#recommendations-grid .recommendation-title')
+      || document.getElementById('recommendations-heading');
+    if (!target) return;
+    if (target.tagName === 'H2' && !target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    target.focus();
   },
 
   syncDiscoveryGardenVisibility() {
@@ -2907,14 +2907,8 @@ const App = {
   },
 
   showSurpriseMe() {
-    const source = this.getTasteProfileStore().prepareDiscoverySource(this.animeData, {
-      excludedIds: this.getWatchlistLifecycle().getIds()
-    });
-    const eligible = new Set(prepareDiscoveryCandidates(source.map(entry => entry.anime), this.getWatchlistLifecycle().getEntries()).map(anime => anime.id));
-    const surprise = Discovery.getSurpriseMe(source.filter(entry => eligible.has(entry.anime.id)));
-    if (!surprise) return null;
-    Discovery.recordSurprise(surprise.id);
-    this.showAnimeDetail(surprise.id);
+    const surprise = this.getDiscoveryShortlist().pickSurprise(this.animeData);
+    if (surprise) this.showAnimeDetail(surprise.id);
     return surprise;
   },
 
@@ -3339,9 +3333,9 @@ const App = {
     // Render recommendations
     setHTML(grid, recommendations.map((anime, index) => {
       const episodeCount = CatalogPayload.getEpisodeCount(anime);
-      const episodeScore = Recommendations.getPresentationEpisodeScore(anime);
-      const retention = episodeScore !== null ? `${episodeScore}/100` : 'N/A';
-      const malScore = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
+      const signals = getRatingSignals(anime);
+      const retention = signals.episodeRatingStrength !== null ? `${signals.episodeRatingStrength}/100` : 'N/A';
+      const malScore = signals.communityScore !== null ? `${signals.communityScore.toFixed(1)}/10` : 'N/A';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
       const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
@@ -3364,7 +3358,7 @@ const App = {
           <div class="recommendation-info">
             <div class="recommendation-title">${this.escapeHtml(anime.title)}</div>
             <div class="recommendation-meta">
-              <span>Episode Rating Strength ${retention}</span><span>${this.escapeHtml(Recommendations.getRatingEvidenceLabel(anime))}</span>
+              <span>Episode Rating Strength ${retention}</span><span>${this.escapeHtml(signals.evidenceLabel)}</span>
               <span>Community Score (MAL) ${malScore}</span>
             </div>
             <div class="recommendation-reason">${this.escapeHtml(anime.reason || '')}</div>
@@ -3665,98 +3659,6 @@ const App = {
     container.replaceChildren(fragment);
   },
 
-  /**
-   * Render anime cards HTML
-   */
-  renderAnimeCards(animeList, { startIndex = 0 } = {}) {
-    const cardDims = this.getImageProxyRuntime().getDimensions('card');
-    const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
-    return animeList.map((anime, localIndex) => {
-      const badges = Recommendations.getBadges(anime);
-      const decision = this.getCardDecisionData(anime);
-      const cardStats = Recommendations.getCardStats(anime)
-        .filter(stat => stat.label.toLowerCase() !== decision.label.toLowerCase());
-      const safeId = this.escapeAttr(anime.id);
-      const safeTitle = this.escapeHtml(anime.title);
-      const safeYear = this.escapeHtml(anime.year || 'Unknown');
-      const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
-      const labelTitle = anime.title || 'this anime';
-      const labelYear = anime.year ? `, ${anime.year}` : '';
-      const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
-      const decisionClass = this.sanitizeClassList('card-primary-signal', decision.className);
-
-      // Build responsive image attributes
-      const { src, srcset, sizes, fallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'card' });
-      const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
-      const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
-      const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
-      const cardFallbackAttrs = this.getImageFallbackAttrs({
-        fallbackSrc: fallback,
-        placeholder: IMAGE_PLACEHOLDER
-      });
-
-      const index = startIndex + localIndex;
-      const loadingAttrs = this.getImageLoadingAttrs(index);
-      return `
-        <div class="anime-card"
-             data-action="open-anime"
-             data-anime-id="${safeId}"
-             role="button"
-             tabindex="0"
-             aria-label="${cardLabel}">
-          <div class="card-media">
-            <img src="${safeCover}" ${srcsetAttr} ${sizesAttr} alt="${safeTitle}" class="card-cover" ${cardDimAttrs} loading="${loadingAttrs.loading}" decoding="${loadingAttrs.decoding}" ${cardFallbackAttrs}>
-          </div>
-          <div class="card-body">
-            <div class="card-title-row">
-              <h3 class="card-title">${safeTitle}</h3>
-            </div>
-            <div class="card-year">${safeYear} &bull; ${safeStudio}</div>
-            <div class="card-scoreboard">
-            <div class="${decisionClass}">
-              <div class="card-primary-score">
-                <span class="card-primary-value">${this.renderCardScoreValue(decision.value)}</span>
-                <span class="card-primary-label">${this.escapeHtml(decision.label)}</span>
-              </div>
-              <span class="card-primary-note">${this.escapeHtml(decision.note)}</span>
-            </div>
-            <div class="card-stats">
-              ${cardStats.map(stat => {
-        const safeValue = this.escapeHtml(stat.value);
-        const safeSuffix = this.escapeHtml(stat.suffix || '');
-        const safeLabel = this.escapeHtml(stat.label);
-        const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
-        const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
-        const statValueClass = this.sanitizeClassList('stat-value', stat.class);
-        return `
-                <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
-                  <span class="${statValueClass}">${safeValue}<small>${safeSuffix}</small></span>
-                  <span class="stat-label">${safeLabel}</span>
-                  ${stat.tooltip ? `
-                    <div class="tooltip tooltip--bottom" role="tooltip">
-                      <div class="tooltip-title">${safeTooltipTitle}</div>
-                      <div class="tooltip-text">${safeTooltipText}</div>
-                    </div>
-                  ` : ''}
-                </div>
-              `;
-      }).join('')}
-            </div>
-            </div>
-            ${badges.length > 0 ? `
-              <div class="card-badges">
-                ${badges.map((badge) => {
-        const badgeClass = this.sanitizeClassList('card-badge', badge.class);
-        return `<span class="${badgeClass}">${this.escapeHtml(badge.label)}</span>`;
-      }).join('')}
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
-  },
-
   renderSettingsPanel({ includeTitle = true } = {}) {
     const settings = this.getSettings();
     const autoplayEnabled = Boolean(settings.trailerAutoplay);
@@ -3942,10 +3844,6 @@ const App = {
     }).join(''));
   },
 
-  getRecommendationDisplayLimit() {
-    return this.recommendationDisplayLimit;
-  },
-
   renderCardScoreValue(value) {
     const match = String(value).match(/^(\d+(?:\.\d+)?)\/(\d+)$/);
     const [, score, scale] = match || ['', String(value), ''];
@@ -3953,14 +3851,13 @@ const App = {
   },
 
   getCardDecisionData(anime) {
-    const decision = buildDetailDecisionData(anime, { episodeCount: CatalogPayload.getEpisodeCount(anime) });
-    return decision;
+    return getRatingSignals(anime).headline;
   },
 
   /**
    * Render recommendations section
    */
-  renderChosenTitle(grid) {
+  renderChosenTitle(grid, chosen) {
     let panel = document.getElementById('chosen-title');
     if (!panel) {
       panel = document.createElement('section');
@@ -3969,13 +3866,12 @@ const App = {
       panel.setAttribute('aria-label', 'Your chosen title');
       grid.before(panel);
     }
-    const selection = this.chosenRecommendation;
-    const entry = selection && this.getWatchlistLifecycle().getEntry(selection.id);
-    panel.hidden = !entry;
-    if (!entry) { setHTML(panel, ''); return; }
+    const selection = chosen;
+    panel.hidden = !selection;
+    if (!selection) { setHTML(panel, ''); return; }
     const title = this.escapeHtml(selection.title);
     setHTML(panel, `
-      <p class="chosen-title-confirmation">${entry.status === 'planned' ? 'Saved to Want to watch' : 'Saved in your Watchlist'}</p>
+      <p class="chosen-title-confirmation">${selection.status === 'planned' ? 'Saved to Want to watch' : 'Saved in your Watchlist'}</p>
       <button class="recommendation-title" type="button" data-action="open-anime" data-anime-id="${this.escapeAttr(selection.id)}" aria-label="View details for ${this.escapeAttr(selection.title)}">${title}</button>
       <div class="chosen-title-actions">
         <button class="btn btn-secondary btn-sm" type="button" data-action="undo-recommendation-selection" aria-label="Undo saving ${this.escapeAttr(selection.title)}">Undo</button>
@@ -3984,37 +3880,27 @@ const App = {
     `);
   },
 
-  selectRecommendation(anime) {
-    const result = this.getWatchlistLifecycleRuntime().selectForLater(anime.id, { episodeCount: CatalogPayload.getEpisodeCount(anime) });
-    if (result?.changed) this.chosenRecommendation = { id: String(anime.id), title: anime.title, undoToken: result.undoToken };
-    this.applyWatchlistRuntimeResult(result);
-    if (result?.changed) {
-      const status = document.getElementById('recommendations-status');
-      if (status) status.textContent = `Saved ${anime.title} to Want to watch. You can undo this selection or view your Watchlist.`;
-      document.querySelector('#chosen-title button[data-action="undo-recommendation-selection"]')?.focus();
-    }
+  // Discovery Shortlist actions. The shortlist records its decision context (such as the
+  // chosen title) after the Watchlist change returns, so redraw once the action completes.
+  // A failed Watchlist save leaves the page as it was so focus stays on the control.
+  runShortlistAction(action, animeId) {
+    const shortlist = this.getDiscoveryShortlist();
+    const commands = {
+      'quick-save-recommendation': () => shortlist.save(animeId),
+      'undo-recommendation-selection': () => shortlist.undoSave(),
+      'skip-recommendation': () => shortlist.skip(animeId),
+      'restore-session-dismissal': () => shortlist.restore(animeId),
+      'more-recommendations': () => shortlist.showMore()
+    };
+    const command = commands[action];
+    if (!command) return null;
+    const outcome = command();
+    if (outcome?.changed || ['skip-recommendation', 'restore-session-dismissal'].includes(action)) this.renderRecommendations();
+    this.applyShortlistOutcome(outcome);
+    return outcome;
   },
 
-  undoRecommendationSelection() {
-    const selection = this.chosenRecommendation;
-    if (!selection) return;
-    const result = this.getWatchlistLifecycleRuntime().undoSelection(selection.undoToken);
-    if (result?.changed) this.chosenRecommendation = null;
-    this.applyWatchlistRuntimeResult(result);
-    const status = document.getElementById('recommendations-status');
-    if (result?.changed) {
-      if (status) status.textContent = `Undid saving ${selection.title}. Your other Watchlist entries are unchanged.`;
-      const save = [...document.querySelectorAll('[data-action="quick-save-recommendation"]')].find(button => button.dataset.animeId === selection.id);
-      const focusTarget = save || document.querySelector('#recommendations-grid .recommendation-title') || document.getElementById('recommendations-heading');
-      if (focusTarget?.tagName === 'H2') focusTarget.setAttribute('tabindex', '-1');
-      focusTarget?.focus();
-    } else if (result?.compatibilityResult?.reason === 'stale-selection') {
-      if (status) status.textContent = `Couldn't undo saving ${selection.title} because its Watchlist entry changed. Your newer changes are preserved.`;
-      this.showToast("Couldn't undo this selection because its Watchlist entry changed. Your newer changes are preserved.", { key: 'watchlist', type: 'error' });
-    }
-  },
-
-  renderSessionDismissals(grid) {
+  renderSessionDismissals(grid, dismissed) {
     let panel = document.getElementById('session-dismissals');
     if (!panel) {
       panel = document.createElement('section');
@@ -4023,7 +3909,6 @@ const App = {
       panel.setAttribute('aria-label', 'Skipped recommendations');
       grid.before(panel);
     }
-    const dismissed = this.getDiscoverySession().getDismissed();
     panel.hidden = dismissed.length === 0;
     if (!dismissed.length) { setHTML(panel, ''); return; }
     const expanded = Boolean(panel.querySelector('details[open]'));
@@ -4040,49 +3925,25 @@ const App = {
     `);
   },
 
-  handleSessionDismissal(action, animeId) {
-    const runtime = this.getDiscoverySession();
-    const anime = this.animeData.find(item => String(item?.id) === String(animeId));
-    const title = anime?.title || runtime.getDismissed().find(item => item.id === String(animeId))?.title || 'Title';
-    const skipping = action === 'skip-recommendation';
-    const result = skipping ? runtime.dismiss({ id: animeId, title }) : runtime.restore(animeId);
-    this.renderRecommendations();
-    const status = document.getElementById('recommendations-status');
-    if (status) status.textContent = result.changed
-      ? `${skipping ? 'Skipped for now' : 'Restored'}: ${title}. ${skipping ? 'Your taste and Watchlist are unchanged.' : 'This title can appear in recommendations again.'}`
-      : 'Could not update this session. It may have expired or browser storage may be unavailable. Try again.';
-    const focusTarget = skipping && result.changed
-      ? document.querySelector('#session-dismissals > p button')
-      : document.querySelector('#session-dismissals:not([hidden]) summary') || document.querySelector('#recommendations-grid .recommendation-title') || document.getElementById('recommendations-heading');
-    if (focusTarget) { if (!focusTarget.hasAttribute('tabindex') && focusTarget.tagName === 'H2') focusTarget.setAttribute('tabindex', '-1'); focusTarget.focus(); }
-  },
-
   renderRecommendations() {
     const container = document.getElementById('recommendations-grid');
     if (!container) return;
-    this.renderSessionDismissals(container);
-    this.renderChosenTitle(container);
+    const model = this.getDiscoveryShortlist().getModel(this.filteredData);
+    this.renderSessionDismissals(container, model.dismissed);
+    this.renderChosenTitle(container, model.chosen);
     container.classList.remove('is-loading');
     container.removeAttribute('aria-busy');
     const recDims = this.getImageProxyRuntime().getDimensions('recommendation');
     const recDimAttrs = recDims ? `width="${recDims.width}" height="${recDims.height}"` : '';
 
-    const recommendationLimit = this.getRecommendationDisplayLimit();
-    const recommendationSource = this.getTasteProfileStore().prepareRecommendationSource(this.filteredData, {
-      excludedIds: [...this.getWatchlistLifecycle().getIds({ statuses: ['planned', 'watching', 'completed', 'dropped'] }), ...this.getDiscoverySession().getDismissed().map(item => item.id)]
-    });
-    const decision = Recommendations.getRecommendationDecision(recommendationSource, {
-      limit: recommendationLimit,
-      watchlistEntries: this.getWatchlistLifecycle().getEntries()
-    });
-    const recommendations = decision.items;
+    const recommendations = model.items;
     const moreButton = document.getElementById('more-recommendations');
-    if (moreButton) moreButton.hidden = !decision.hasMore;
+    if (moreButton) moreButton.hidden = !model.hasMore;
     const heading = document.getElementById('recommendations-heading');
-    if (heading) heading.textContent = recommendations.some(anime => anime.tasteReason) ? 'Picks for your taste' : 'Explore something new';
+    if (heading) heading.textContent = model.heading;
     const contextEl = document.getElementById('recommendations-context');
-    if (contextEl && contextEl.textContent.trim() !== decision.context) {
-      contextEl.textContent = decision.context;
+    if (contextEl && contextEl.textContent.trim() !== model.context) {
+      contextEl.textContent = model.context;
     }
 
 
@@ -4431,308 +4292,15 @@ const App = {
   },
 
   setupActionDelegates() {
+    // Adapter at the DOM seam: find the action element and run its command from the table.
     this.addTrackedListener(document, 'click', (event) => {
       const actionEl = event.target.closest('[data-action]');
       if (!actionEl) return;
-
+      // The dedicated Watchlist page handles its own controls.
       if (actionEl.closest('[data-renderer="watchlist-page"]')) return;
-      const action = actionEl.dataset.action;
-      this.getDiscoverySession().recordActivity();
-      if (action === 'skip-recommendation' || action === 'restore-session-dismissal') {
-        event.preventDefault();
-        event.stopPropagation();
-        this.handleSessionDismissal(action, actionEl.dataset.animeId);
-        return;
-      }
-      if (action === 'more-recommendations') {
-        const previousCount = document.querySelectorAll('#recommendations-grid .recommendation-card').length;
-        this.recommendationDisplayLimit += 3;
-        this.renderRecommendations();
-        document.querySelectorAll('#recommendations-grid .recommendation-title')[previousCount]?.focus();
-        const status = document.getElementById('recommendations-status');
-        if (status) status.textContent = 'More picks shown.';
-        return;
-      }
-      if (action === 'home-shortcut') {
-        if (this.isCatalogPage()) {
-          event.preventDefault();
-          if (this.currentAnimeId) {
-            this.closeDetailModal({ updateUrl: false });
-          }
-          this.clearAllFilters();
-        }
-        return;
-      }
-
-      if (action === 'check-connectivity') {
-        event.preventDefault();
-        if (HealthMonitor?.performHealthChecks) {
-          HealthMonitor.performHealthChecks();
-        }
-        return;
-      }
-
-      if (action === 'toggle-filter') {
-        const type = actionEl.dataset.filterType;
-        const value = actionEl.dataset.filterValue;
-        const isQuickChip = actionEl.classList.contains('quick-chip');
-        if (type && value !== undefined) {
-          this.toggleFilter(type, value);
-        }
-        if (isQuickChip) {
-          const isMobile = window.matchMedia?.('(max-width: 640px)')?.matches;
-          if (this.getActiveFilterCount() >= 2) {
-            this.scrollToResultsSection();
-          }
-        }
-        return;
-      }
-
-      if (action === 'clear-search') {
-        this.clearHeaderSearchQuery({ scroll: true });
-        return;
-      }
-
-      if (action === 'quick-tab') {
-        const tabKey = actionEl.dataset.tab;
-        const tabs = document.querySelectorAll('.quick-tab');
-        const tracks = document.querySelectorAll('.quick-filters-track');
-        if (!tabKey || tabs.length === 0 || tracks.length === 0) return;
-        tabs.forEach(tab => {
-          const isActive = tab === actionEl;
-          tab.classList.toggle('is-active', isActive);
-          tab.setAttribute('aria-selected', String(isActive));
-          tab.setAttribute('tabindex', isActive ? '0' : '-1');
-        });
-        tracks.forEach(track => {
-          const isActive = track.dataset.filterGroup === tabKey;
-          track.classList.toggle('is-active', isActive);
-          track.toggleAttribute('hidden', !isActive);
-        });
-        return;
-      }
-
-      if (action === 'toggle-quick-more') {
-        const type = actionEl.dataset.filterType;
-        if (!type || !this.quickFilterState[type]) return;
-        this.quickFilterState[type].expanded = !this.quickFilterState[type].expanded;
-        this.renderQuickFilters();
-        return;
-      }
-
-      if (action === 'quick-save-recommendation') {
-        event.preventDefault();
-        event.stopPropagation();
-        const animeId = actionEl.dataset.animeId;
-        const anime = this.animeData.find(item => String(item?.id) === String(animeId));
-        if (anime) {
-          this.selectRecommendation(anime);
-        }
-        return;
-      }
-
-      if (action === 'undo-recommendation-selection') {
-        event.preventDefault();
-        event.stopPropagation();
-        this.undoRecommendationSelection();
-        return;
-      }
-
-      if (['rec-more-like', 'rec-not-for-me', 'rec-less-tag', 'rec-already-seen'].includes(action)) {
-        event.preventDefault();
-        event.stopPropagation();
-        const animeId = actionEl.dataset.animeId;
-        if (animeId) {
-          this.handleRecommendationFeedback(action, animeId, actionEl);
-        }
-        return;
-      }
-
-      if (action === 'continue-progress') {
-        const entry = this.getWatchlistLifecycle().getEntry(actionEl.dataset.animeId);
-        if (entry) {
-          const total = this.getEpisodeLimitForAnime(entry.id) || entry.snapshot?.stats?.episodeCount;
-          if (total && entry.progress >= total) this.setWatchStatus(entry.id, 'completed', { episodeCount: total });
-          else this.adjustWatchProgress(entry.id, 1);
-        }
-        return;
-      }
-
-      if (action === 'edit-taste-profile') {
-        this.ensureSettingsRendered();
-        this.getRuntimeCapabilities().setModalVisibility('settings-modal', true, { initialFocusSelector: '#taste-profile-heading' });
-        const heading = document.getElementById('taste-profile-heading');
-        heading?.scrollIntoView({ block: 'start' });
-        requestAnimationFrame(() => document.getElementById('taste-profile-heading')?.focus({ preventScroll: true }));
-        return;
-      }
-
-      if (action === 'reset-taste-profile') {
-        this.resetTasteProfile();
-        return;
-      }
-
-      if (action === 'export-personal-data') {
-        this.exportPersonalData();
-        return;
-      }
-
-      if (action === 'restore-personal-data') {
-        document.getElementById('personal-data-restore')?.click();
-        return;
-      }
-
-      if (action === 'retry-mal-watchlist-import' || action === 'retry-mal-recommendations') {
-        void this.getWatchlistImportWorkflow().retry();
-        return;
-      }
-
-      if (action === 'cancel-mal-watchlist-import') {
-        this.getWatchlistImportWorkflow().cancel();
-        return;
-      }
-
-      if (action === 'confirm-mal-watchlist-import') {
-        this.openMalWatchlistConfirmation();
-        return;
-      }
-
-      if (action === 'apply-mal-watchlist-import') {
-        this.getWatchlistImportWorkflow().apply();
-        return;
-      }
-
-      if (action === 'scroll-to-filters') {
-        this.scrollToFiltersSection();
-        return;
-      }
-
-      if (action === 'scroll-to-results') {
-        this.scrollToResultsSection();
-        return;
-      }
-
-      if (action === 'explain-recommendations') {
-        this.showRecommendationsHelp();
-        return;
-      }
-
-      if (action === 'apply-preset') {
-        const presetKey = actionEl.dataset.preset;
-        if (presetKey) {
-          this.applyFilterPreset(presetKey);
-        }
-        return;
-      }
-
-      if (action === 'set-theme') {
-        const theme = actionEl.dataset.themeOption;
-        if (theme) {
-          ThemeManager.handleThemeSelection(theme);
-          // Update UI to reflect selection
-          document.querySelectorAll('[data-theme-option]').forEach(btn => {
-            const isActive = btn.dataset.themeOption === theme;
-            btn.classList.toggle('is-active', isActive);
-            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-          });
-        }
-        return;
-      }
-
-      if (action === 'watch-progress-inc') {
-        const animeId = actionEl.dataset.animeId || this.currentAnimeId;
-        if (animeId) {
-          this.adjustWatchProgress(animeId, 1);
-        }
-        return;
-      }
-
-      if (action === 'watch-progress-dec') {
-        const animeId = actionEl.dataset.animeId || this.currentAnimeId;
-        if (animeId) {
-          this.adjustWatchProgress(animeId, -1);
-        }
-        return;
-      }
-
-      if (action === 'set-sidebar-mode') {
-        const mode = actionEl.dataset.sidebarOption;
-        if (mode) SidebarPreference.applyMode(mode);
-        return;
-      }
-
-      if (action === 'watch-loved') {
-        const animeId = actionEl.dataset.animeId || this.currentAnimeId;
-        if (animeId) {
-          this.setWatchLoved(animeId, actionEl.getAttribute('aria-pressed') !== 'true');
-        }
-        return;
-      }
-
-      if (action === 'detail-tab') {
-        const tabKey = actionEl.dataset.detailTab;
-        const root = actionEl.closest('.detail-tabs');
-        if (!tabKey || !root) return;
-        root.querySelectorAll('[role="tab"]').forEach(tab => {
-          const isActive = tab.dataset.detailTab === tabKey;
-          tab.classList.toggle('is-active', isActive);
-          tab.setAttribute('aria-selected', String(isActive));
-        });
-        root.querySelectorAll('[data-detail-panel]').forEach(panel => {
-          const isActive = panel.dataset.detailPanel === tabKey;
-          panel.classList.toggle('is-active', isActive);
-          panel.toggleAttribute('hidden', !isActive);
-        });
-        return;
-      }
-
-      if (action === 'toggle-trailer') {
-        this.detailExperience?.toggleTrailerPlayback();
-        return;
-      }
-
-      if (action === 'open-anime') {
-        const animeId = actionEl.dataset.animeId;
-        if (animeId) {
-          this.showAnimeDetail(animeId);
-        }
-        const dropdown = actionEl.closest('.header-search-dropdown');
-        if (dropdown) {
-          this.resetHeaderSearch({ clearInput: true });
-        }
-        return;
-      }
-
-      if (action === 'load-more') {
-        this.loadMoreAnime();
-      }
-
-      if (action === 'surprise-me') {
-        this.showSurpriseMe();
-        return;
-      }
-
-      if (action === 'apply-seasonal') {
-        const seasonYear = actionEl.dataset.seasonYear;
-        if (seasonYear) {
-          this.applySeasonalFilter(seasonYear);
-        }
-        return;
-      }
-
-      if (action === 'close-detail') {
-        this.closeDetailModal();
-        return;
-      }
-
-      if (action === 'retry-reviews') {
-        void this.detailExperience?.refreshCommunityReviews();
-        return;
-      }
-      if (action === 'retry-detail') {
-        void this.detailExperience?.retry();
-        return;
-      }
+      // Any delegated home action counts as activity for the Discovery session's sliding expiry.
+      this.getDiscoveryShortlist().recordActivity();
+      runHomeAction(this, actionEl, event);
     });
 
     this.addTrackedListener(document, 'keydown', (event) => {
@@ -4878,93 +4446,6 @@ const App = {
    */
   buildImageSrcset(coverUrl, { sizeKey = 'card', preferOptimized } = {}) {
     return this.getImageProxyRuntime().resolveImage({ coverUrl, sizeKey, preferOptimized });
-  },
-
-  /**
-   * Render anime card with responsive image srcset
-   */
-  renderAnimeCardWithSrcset(anime, options = {}) {
-    const { index = 0 } = options;
-    const badges = Recommendations.getBadges(anime);
-    const cardStats = Recommendations.getCardStats(anime);
-    const episodeCount = CatalogPayload.getEpisodeCount(anime);
-    const hasEpisodes = Recommendations.hasEpisodeRatingEvidence(anime);
-    const rawRetention = anime?.stats?.retentionScore;
-    const retentionLevel = Recommendations.hasEpisodeRatingEvidence(anime) && Number.isFinite(rawRetention) ? Math.round(rawRetention) : null;
-    const reason = Recommendations.getRecommendationReason(anime);
-
-    const safeId = this.escapeAttr(anime.id);
-    const safeTitle = this.escapeHtml(anime.title);
-    const safeYear = this.escapeHtml(anime.year || 'Unknown');
-    const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
-    const safeReason = this.escapeHtml(reason);
-    const labelTitle = anime.title || 'this anime';
-    const labelYear = anime.year ? `, ${anime.year}` : '';
-    const cardLabel = this.escapeAttr(`View details for ${labelTitle}${labelYear}`);
-
-    // Build responsive image attributes
-    const { src, srcset, sizes, fallback } = this.buildImageSrcset(anime.cover, { sizeKey: 'card' });
-    const safeCover = this.escapeAttr(src || this.sanitizeImageUrl(anime.cover));
-    const srcsetAttr = srcset ? `srcset="${this.escapeAttr(srcset)}"` : '';
-    const sizesAttr = sizes ? `sizes="${this.escapeAttr(sizes)}"` : '';
-    const cardFallbackAttrs = this.getImageFallbackAttrs({
-      fallbackSrc: fallback,
-      placeholder: IMAGE_PLACEHOLDER
-    });
-
-    const loadingAttrs = this.getImageLoadingAttrs(index);
-    const fetchPriorityAttr = loadingAttrs.fetchpriority ? `fetchpriority="${loadingAttrs.fetchpriority}"` : '';
-    const cardDims = this.getImageProxyRuntime().getDimensions('card');
-    const cardDimAttrs = cardDims ? `width="${cardDims.width}" height="${cardDims.height}"` : '';
-    return `
-      <div class="anime-card" data-action="open-anime" data-anime-id="${safeId}" role="button" tabindex="0" aria-label="${cardLabel}">
-        <div class="card-media">
-          <img
-            src="${safeCover}"
-            ${srcsetAttr}
-            ${sizesAttr}
-            alt="${safeTitle}"
-            class="card-cover"
-            ${cardDimAttrs}
-            loading="${loadingAttrs.loading}"
-            decoding="${loadingAttrs.decoding}"
-            ${fetchPriorityAttr}
-            ${cardFallbackAttrs}>
-        </div>
-        <div class="card-body">
-          <div class="card-title-row">
-            <h3 class="card-title">${safeTitle}</h3>
-          </div>
-          <div class="card-year">${safeYear} &bull; ${safeStudio}</div>
-          ${badges.length > 0 ? `
-            <div class="card-badges">
-              ${badges.map((badge) => {
-      const badgeClass = this.sanitizeClassList('card-badge', badge.class);
-      return `<span class="${badgeClass}">${this.escapeHtml(badge.label)}</span>`;
-    }).join('')}
-            </div>
-          ` : ''}
-          <div class="card-stats">
-            ${cardStats.map(stat => {
-      const safeValue = this.escapeHtml(stat.value);
-      const safeSuffix = this.escapeHtml(stat.suffix || '');
-      const safeLabel = this.escapeHtml(stat.label);
-      const statValueClass = this.sanitizeClassList('stat-value', stat.class);
-      return `
-                <div class="stat">
-                  <span class="${statValueClass}">${safeValue}${safeSuffix}</span>
-                  <span class="stat-label">${safeLabel}</span>
-                </div>
-              `;
-    }).join('')}
-          </div>
-          <div class="retention-meter ${hasEpisodes ? '' : 'is-muted'}">
-            ${retentionLevel !== null ? `<progress class="retention-progress" value="${retentionLevel}" max="100" aria-label="Episode Rating Strength"></progress>` : `<span>Episode rating data unavailable</span>`}
-          </div>
-          <div class="card-reason">${safeReason}</div>
-        </div>
-      </div>
-    `;
   }
 };
 

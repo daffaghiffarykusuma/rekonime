@@ -249,7 +249,8 @@ const createDetailExperience = (app, dependencies = {}) => {
       await ensureView();
       if (session !== owner) return false;
       let anime = app.animeData.find(entry => entry?.id === owner.animeId) || null;
-      if (!anime && deepLink && !app.isFullDataLoaded) {
+      // The Catalog Runtime returns at once when the full catalog is already loaded.
+      if (!anime && deepLink) {
         await catalogRuntime.loadFullCatalog();
         if (session !== owner) return false;
         anime = app.animeData.find(entry => entry?.id === owner.animeId) || null;

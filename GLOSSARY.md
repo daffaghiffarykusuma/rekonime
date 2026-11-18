@@ -25,12 +25,20 @@ The user-initiated replacement of saved Taste Profile data and, for a complete c
 _Avoid_: JSON merge, import helper, settings upload
 
 **Session Dismissal**:
-The user's temporary choice to set aside a recommended title during the current discovery session without changing the Taste Profile or the title's Watchlist Entry. It can be undone and expires after four hours without discovery activity.
+The user's temporary choice to set aside a recommended title during the current discovery session without changing the Taste Profile or the title's Watchlist Entry. A dismissed title stays out of the Discovery Shortlist and Surprise Me until it is restored. It can be undone and expires after four hours without discovery activity.
 _Avoid_: dislike, permanent exclusion, negative taste signal
 
 **Discovery**:
 The catalog exploration behavior that powers Surprise Me and seasonal choices. Discovery consumes Taste Profile-prepared candidates for personalized selection; it does not interpret Watchlist Lifecycle evidence itself.
 _Avoid_: discovery helper, random picker utility, watchlist preference logic
+
+**Discovery Shortlist**:
+The home page's small set of ranked picks and the decision the user makes about them: how many picks are shown, the chosen title awaiting Undo, and this session's Session Dismissals. It excludes saved Watchlist titles and Session Dismissals the same way for the picks and for Surprise Me.
+_Avoid_: recommendation grid, rec cards, picks helper
+
+**Rating Signals**:
+The read model that turns a title's stored ratings into what surfaces display: Episode Rating Strength, Community Score, the evidence label, opening/stability/finish patterns, and the one headline signal a card leads with. Evidence gating happens here, once.
+_Avoid_: decision data, score summary, retention display
 
 **Experience Cue**:
 A concise, curated label that sets expectations about a title's viewing experience or explains its fit for a viewing outcome. Experience Cues are derived through documented rules rather than displayed directly from raw catalog tags.
@@ -77,6 +85,12 @@ Browser-level capabilities shared by product flows, including idle scheduling, m
 _Avoid_: browser utilities, app helpers, UI plumbing
 
 ## Example Dialogue
+
+Dev: "Should the card template decide whether to show Episode Rating Strength when only a few episodes are rated?"
+Domain expert: "No. Rating Signals decides availability and the evidence label. The card renders the signal it is given."
+
+Dev: "If a title was skipped for now, can Surprise Me still pick it?"
+Domain expert: "No. The Discovery Shortlist applies the same exclusions to its picks and to Surprise Me."
 
 Dev: "When progress changes from 0 to 2, should that be handled by the page?"
 Domain expert: "No. That is a Watchlist Lifecycle transition. The page only asks to update a Watchlist Entry."
