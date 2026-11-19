@@ -28,8 +28,6 @@ html:not([data-theme="light"]) {
   --accent-primary: #9aa8ff;
   --accent-secondary: #c0c8ff;
   --accent-hover: #bcc5ff;
-  --accent-brand: #9aa8ff;
-  --accent-glow: rgb(255 255 255 / 6%);
   --obi: #2b3fe0;
   --obi-ink: #ffffff;
   --primary-bg: #f5f5f5;
@@ -48,7 +46,6 @@ html:not([data-theme="light"]) {
   --border-hover: #404040;
   --shadow: 0 1px 0 rgb(0 0 0 / 40%), 0 10px 30px rgb(0 0 0 / 50%);
   --shadow-lg: 0 30px 80px rgb(0 0 0 / 70%);
-  --shadow-sakura: none;
   --radius: 12px;
   --radius-md: 10px;
   --radius-sm: 6px;
@@ -57,24 +54,9 @@ html:not([data-theme="light"]) {
   --focus-ring-soft: rgb(255 212 59 / 25%);
   --font-display: 'Anybody', 'Arial Narrow', Arial, sans-serif;
   --font-body: 'M PLUS 1', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  --font-display-adjust: none;
-  --font-body-adjust: none;
   --button-ink: #0a0a0a;
   --overlay: rgb(0 0 0 / 72%);
 
-  /* Legacy names still read by styles.css and watchlist.css. */
-  --sakura-pink: var(--accent-primary);
-  --sakura-deep: var(--accent-secondary);
-  --sakura-pale: var(--text-secondary);
-  --sakura-shadow: var(--obi);
-  --twilight-purple: var(--accent-primary);
-  --twilight-lavender: var(--text-secondary);
-  --twilight-deep: var(--bg-secondary);
-  --moss-green: var(--success);
-  --warm-gold: var(--marker);
-  --paper-cream: var(--text-primary);
-  --hero-bg: transparent;
-  --hero-ink: var(--text-primary);
   color-scheme: dark;
 }
 
@@ -92,8 +74,6 @@ html[data-theme="light"] {
   --accent-primary: #2638d9;
   --accent-secondary: #1c2aa8;
   --accent-hover: #1a27a0;
-  --accent-brand: #2638d9;
-  --accent-glow: rgb(0 0 0 / 5%);
   --obi: #2638d9;
   --obi-ink: #ffffff;
   --primary-bg: #0a0a0a;
@@ -294,8 +274,6 @@ html[data-sidebar-mode="auto-hide"] .sidebar-edge-trigger { display: inline-flex
 
 /* ---------- Page frame and masthead ---------- */
 .app-container {
-  width: auto;
-  max-width: 1600px;
   min-height: 100vh;
   padding: 20px clamp(24px, 4vw, 64px) 72px;
   transition: width .2s ease, margin-left .2s ease;
@@ -505,6 +483,8 @@ html :is(.detail-alt-label, .detail-stat-label, .detail-watchlist-title, .watchl
   color: var(--text-muted);
   font-size: .8rem;
   font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
 html .detail-stat-label { text-decoration-color: var(--border-hover); }
 .quick-filters-track::before { letter-spacing: 0; text-transform: none; }
@@ -528,7 +508,6 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
   box-shadow: none;
 }
 .discovery-garden-content { display: block; position: relative; max-width: none; }
-.discovery-eyebrow, .discovery-art { display: none; }
 
 /* Wide, heavy, tight: set like a series logo on a box cover. */
 .discovery-title {
@@ -574,6 +553,7 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
   line-height: 1;
 }
 .discovery-garden.is-returning .discovery-actions { margin-top: 0; }
+.discovery-garden.is-returning .discovery-subtitle { display: none; }
 
 /* ---------- Supporting headings ----------
    Two levels only. The wide display face is for the page headline and the main
@@ -592,7 +572,6 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 
 /* ---------- Viewing goal: a row of chips ---------- */
 .mood-filter-kicker { display: none; }
-.mood-filter-title { margin: 0; }
 .mood-filter-note { margin: 0; color: var(--text-muted); font-size: .8rem; }
 /* Descriptions stay in each button's accessible name but are not shown. */
 
@@ -713,10 +692,8 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
   opacity: .9;
 }
 .recommendation-obi-score {
-  display: grid;
   place-items: center;
   width: 100%;
-  min-height: 52px;
   background: var(--marker);
   color: var(--marker-ink);
   font-family: var(--font-display);
@@ -766,35 +743,14 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   line-height: 1.5;
 }
 .recommendation-episodes { color: var(--text-primary); font-size: .85rem; font-weight: 600; }
-.recommendation-ratings { border-top: 1px solid var(--border-color); margin-top: 6px; }
-.recommendation-ratings summary {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--text-secondary);
-  font-size: .82rem;
-  font-weight: 600;
-  cursor: pointer;
-}
 .recommendation-rating-explanation { color: var(--text-secondary); font-size: .78rem; line-height: 1.55; }
 .recommendation-signal { padding: 0; border: 0; background: transparent; }
-.recommendation-signal-label { color: var(--text-primary); }
 .recommendation-stat { color: var(--text-secondary); }
-.recommendation-quick-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 10px; }
+.recommendation-quick-actions { display: flex; gap: 8px; margin-top: auto; }
 .recommendation-quick-actions .btn { flex: 1; }
-.recommendation-taste summary {
-  display: flex;
-  align-items: center;
-  min-height: 40px;
-  color: var(--text-muted);
-  font-size: .8rem;
-  font-weight: 600;
-  cursor: pointer;
-}
 .recommendation-taste-note { color: var(--text-muted); font-size: .78rem; }
 .recommendation-feedback { gap: 6px; padding-top: 8px; border-color: var(--border-color); }
 .rec-feedback-btn {
-  min-height: 34px;
   padding: 4px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -816,7 +772,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   text-underline-offset: 3px;
 }
 
-.recommendations-footer { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
+.recommendations-footer { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 10px; margin-top: 32px; }
 #more-recommendations[hidden] { display: none; }
 
 .chosen-title {
@@ -875,7 +831,12 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 .recommendation-scoreboard .recommendation-community-label {
   font-size: .72rem; font-weight: 500; line-height: 1.35; letter-spacing: 0;
   text-transform: none; text-decoration: none; border: 0; color: var(--text-secondary);
+  /* Narrow score columns must still reflow at large text sizes. */
+  overflow-wrap: anywhere;
 }
+/* At large text sizes a score may wrap, but only between the number and its scale. */
+.card-scoreboard :is(.card-primary-value, .stat-value) { white-space: normal; }
+.card-scoreboard :is(.card-primary-value, .stat-value) small { display: inline-block; }
 .card-scoreboard .card-primary-note,
 .recommendation-scoreboard .recommendation-signal-note {
   grid-column: 1 / -1; grid-row: 2; max-width: none;
@@ -943,7 +904,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   padding: 0; border: 0; border-radius: 0; background: transparent;
   color: var(--text-secondary); font-size: .72rem; font-weight: 500; line-height: 1.5;
 }
-@container (max-width: 220px) {
+@container (max-width: 250px) {
   .card-scoreboard { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 8px; }
   .card-scoreboard .card-primary-value, .card-scoreboard .stat-value { font-size: 1.15rem; }
   .card-scoreboard .stat:not(.has-tooltip) {
@@ -1002,7 +963,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 
 /* ---------- Continue watching and airing ---------- */
 .continue-watching-section { margin: 24px 0 0; }
-.continue-watching-section .section-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.continue-watching-section .section-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .continue-watching-section .section-header { margin-bottom: 10px; }
 .continue-watching-section .section-header a,
 .airing-dashboard-section .airing-dashboard-link {
@@ -1074,7 +1035,6 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   box-shadow: none;
 }
 .airing-card-title { font-stretch: 85%; font-weight: 800; }
-.experience-cue { border-color: var(--border-color); background: var(--bg-tertiary); }
 
 /* ---------- Watchlist ---------- */
 .watchlist-page .header { justify-content: space-between; }
@@ -1089,7 +1049,6 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 }
 .watchlist-section .discovery-eyebrow { display: none; }
 .watchlist-empty {
-  padding: 64px 24px;
   border: 1.5px dashed var(--border-hover);
   border-radius: var(--radius);
   background: transparent;
@@ -1099,7 +1058,6 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   place-items: center;
   width: 44px;
   height: 64px;
-  margin: 0 auto 24px;
   border-radius: 2px;
   background: var(--obi);
   color: var(--obi-ink);
@@ -1131,7 +1089,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 .watchlist-backup-tools h2 { font-size: 1.1rem; }
 .watchlist-backup-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
 .watchlist-manage-data { margin-top: 8px; }
-.watchlist-manage-data > summary { width: fit-content; min-height: 44px; padding: 8px 4px; color: var(--text-primary); font-weight: 700; cursor: pointer; }
+.watchlist-manage-data > summary { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 44px; padding: 8px 0; list-style: none; color: var(--text-primary); font-weight: 700; cursor: pointer; }
 .watchlist-manage-data .btn { min-height: 44px; white-space: normal; text-align: left; }
 
 /* ---------- Dialogs and detail ---------- */
@@ -1152,10 +1110,12 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   background: var(--bg-secondary);
   color: var(--text-primary);
 }
-.filter-modal-header, .filter-modal-footer, .settings-modal-header,
+.filter-modal-header,
+.settings-modal-header,
 [data-theme="light"] .filter-modal-header { border-color: var(--border-color); background: var(--bg-secondary); }
 .filter-section-title { font-family: var(--font-display); font-stretch: 110%; font-weight: 760; letter-spacing: 0; text-transform: none; }
-.taste-profile-panel, .settings-section, .filter-group { border-color: var(--border-color); }
+.taste-profile-panel,
+.settings-section { border-color: var(--border-color); }
 
 .detail-header { gap: 28px; }
 .detail-cover { border-radius: var(--radius-cover); box-shadow: var(--shadow); }
@@ -1228,7 +1188,7 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
 /* ---------- Toasts and status ---------- */
 .offline-indicator { background: var(--marker); color: var(--marker-ink); box-shadow: none; transition: transform .3s ease, visibility .3s; }
 .offline-indicator:not(.visible) { visibility: hidden; }
-.toast, .update-toast, .shortcut-hint {
+.toast {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -1236,7 +1196,287 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   box-shadow: var(--shadow-lg);
 }
 
+/* ---------- Pick card: actions first, then quiet disclosure rows ---------- */
+.recommendation-quick-actions { padding-top: 14px; }
+.recommendation-more { margin-top: 14px; border-top: 1px solid var(--border-color); }
+.recommendation-more .recommendation-ratings { border-top: 0; border-bottom: 1px solid var(--border-color); }
+.recommendation-more :is(.recommendation-ratings, .recommendation-taste) { margin: 0; }
+.recommendation-more :is(.recommendation-ratings, .recommendation-taste) > summary {
+  display: flex;
+  padding: 0;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  list-style: none;
+  color: var(--text-secondary);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.recommendation-more summary::-webkit-details-marker,
+.watchlist-manage-data > summary::-webkit-details-marker { display: none; }
+.recommendation-more summary::after,
+.watchlist-manage-data > summary::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform .15s ease;
+}
+.recommendation-more details[open] > summary::after,
+.watchlist-manage-data[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+.recommendation-more summary:hover { color: var(--text-primary); }
+.recommendation-more .recommendation-scoreboard { border-top: 0; padding-top: 4px; }
+.recommendation-more .recommendation-rating-explanation { margin: 0 0 14px; }
+.recommendation-taste-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.recommendation-taste-row > .recommendation-taste { grid-row: 1; grid-column: 1 / -1; }
+.recommendation-taste-row > .recommendation-taste[open] { padding-bottom: 12px; }
+/* The summary keeps clear of the "Already seen" button that sits over its row.
+   The reserve is in em so it grows with text size, and the label wraps instead. */
+.recommendation-taste-row > .recommendation-taste > summary { padding-inline-end: 7.5em; }
+.recommendation-taste-row > .recommendation-seen-btn {
+  position: relative;
+  z-index: 1;
+  grid-row: 1;
+  grid-column: 2;
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: .82rem;
+  text-decoration: underline;
+  text-decoration-color: var(--border-hover);
+  text-underline-offset: 3px;
+}
+.recommendation-taste-row > .recommendation-seen-btn:hover { color: var(--text-primary); text-decoration-color: currentColor; }
+.recommendation-taste-note { margin: 0 0 4px; line-height: 1.5; }
+
+/* Several picks side by side share row tracks, so titles, reasons, and actions
+   line up, and opening one card's disclosure does not stretch its neighbours. */
+@media (min-width: 481px) {
+  .recommendations-grid { row-gap: 0; }
+  .recommendation-card:not(.skeleton-card) {
+    display: grid;
+    grid-row: span 8;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+    align-content: start;
+    min-height: 0;
+    padding-bottom: 40px;
+    content-visibility: visible;
+    contain: none;
+  }
+  .recommendation-card:not(.skeleton-card) > .recommendation-info { display: contents; }
+  .recommendation-card:not(.skeleton-card) > .recommendation-info > * { margin-top: 6px; }
+  .recommendation-card:not(.skeleton-card) .recommendation-title { margin-top: 16px; align-self: start; }
+  .recommendation-card:not(.skeleton-card) .recommendation-fit-label { margin-top: 10px; }
+  .recommendation-card:not(.skeleton-card) .recommendation-reason { align-self: start; }
+  .recommendation-card:not(.skeleton-card) .recommendation-quick-actions { margin-top: 0; align-self: end; }
+  .recommendation-card:not(.skeleton-card) .recommendation-more { margin-top: 14px; align-self: start; }
+}
+
+/* The community label reads as a label, matching its neighbour. */
+.recommendation-scoreboard .recommendation-community-label { padding: 0; border-radius: 0; background: transparent; }
+
+/* The obi states its scale so a bare number is never ambiguous. */
+.recommendation-obi-score { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; }
+.recommendation-obi-score small { font-size: .5em; font-stretch: 100%; font-weight: 700; opacity: .65; }
+
+/* Help link sits flush with the text column instead of floating as a pill. */
+.help-link, .help-link:hover { padding: 6px 0; border-radius: 0; background: transparent; }
+
+/* Catalog: cards in one shelf row share row tracks. Title and year travel
+   together, so a short title sits on its year and any spare height falls
+   above the score row, which lines up across the row. */
+#anime-grid { row-gap: 0; }
+#anime-grid .anime-card:not(.skeleton-card) {
+  display: grid;
+  grid-row: span 4;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+  align-content: start;
+  padding-bottom: 36px;
+  /* Containment (content-visibility on virtualised or low-motion cards) would
+     switch subgrid off; the grid itself still skips rendering when off screen. */
+  content-visibility: visible;
+  contain: none;
+}
+#anime-grid .anime-card:not(.skeleton-card) > .card-body { display: contents; }
+#anime-grid .card-heading { padding-top: 14px; }
+/* The score row is its own size container: containment on the card itself would switch subgrid off. */
+#anime-grid .card-score-wrap { align-self: start; container-type: inline-size; }
+#anime-grid .card-badges { align-self: start; }
+#anime-grid .card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.grid-section > .section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+}
+.catalog-sort { flex: 0 0 auto; align-self: flex-end; }
+/* The catalog is a shelf inside Browse anime, so its heading steps down a level. */
+.grid-section > .section-header h2 { font-size: clamp(1.3rem, 1.9vw, 1.7rem); font-stretch: 100%; }
+
+.load-more-container { display: flex; justify-content: center; grid-column: 1 / -1; margin-top: 12px; }
+.load-more-btn, [data-theme="light"] .load-more-btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  width: auto;
+  min-height: 48px;
+  padding: 12px 28px;
+  border: 1.5px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 700;
+  box-shadow: none;
+  transform: none;
+}
+.load-more-btn:hover, [data-theme="light"] .load-more-btn:hover { border-color: var(--text-primary); background: transparent; transform: none; }
+.load-more-count { color: var(--text-muted); font-size: .82rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* Seasonal shortcuts read as one left-aligned row. */
+.seasonal-filters { justify-content: flex-start; text-align: left; }
+.seasonal-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.seasonal-chip { display: inline-flex; align-items: center; gap: 8px; }
+.seasonal-chip-note {
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: var(--obi);
+  color: var(--obi-ink);
+  font-size: .68rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* Buttons and links styled as buttons share one line box. */
+button.btn { line-height: inherit; }
+
+/* Header menu: plain rows inside the popover, not a stack of outlined buttons. */
+.header-more[open] .header-actions { display: grid; gap: 2px; padding: 6px; }
+.header-more .header-actions .btn {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 44px;
+  border-color: transparent;
+  background: transparent;
+}
+.header-more .header-actions .btn:hover { border-color: transparent; background: var(--bg-tertiary); }
+
+/* Airing panel with nothing on air collapses to one quiet line. */
+.airing-dashboard-section:has(.airing-dashboard-empty:not([hidden])) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 16px;
+  padding-block: 8px;
+}
+.airing-dashboard-section:has(.airing-dashboard-empty:not([hidden])) :is(.section-subtitle, .airing-dashboard-summary, .airing-dashboard-grid) { display: none; }
+.airing-dashboard-section:has(.airing-dashboard-empty:not([hidden])) .airing-dashboard-header { display: contents; }
+.airing-dashboard-section:has(.airing-dashboard-empty:not([hidden])) .airing-dashboard-empty { order: 1; margin: 0; color: var(--text-muted); font-size: .85rem; }
+.airing-dashboard-section:has(.airing-dashboard-empty:not([hidden])) .airing-dashboard-link { order: 2; margin-left: auto; }
+
+.watchlist-section .watchlist-controls-stepper { justify-content: flex-start; }
+
+/* ---------- Watchlist entries ---------- */
+.watchlist-filter-chip.is-active,
+[data-theme="light"] .watchlist-filter-chip.is-active {
+  border-color: var(--primary-bg);
+  background: var(--primary-bg);
+  color: var(--primary-ink);
+  box-shadow: none;
+}
+.watchlist-filter-chip:hover, .watchlist-filter-chip:focus-visible { box-shadow: none; }
+.watchlist-filter-chip.is-active .chip-count { background: transparent; color: inherit; opacity: .7; }
+.watchlist-controls {
+  gap: 10px 20px;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  border-radius: 0;
+  background: transparent;
+}
+.watchlist-controls-label { min-width: 0; }
+.watchlist-controls-select { border-radius: var(--radius-sm); border: 1.5px solid var(--border-hover); background-color: var(--bg-primary); }
+.watchlist-controls-stepper { flex-wrap: nowrap; gap: 6px; }
+.watchlist-controls-stepper-btn,
+.watchlist-controls-input {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1.5px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.watchlist-controls-input { width: 3.5rem; }
+.watchlist-controls-stepper-btn { font-size: 1.1rem; line-height: 1; }
+.watchlist-controls-stepper-btn:hover, .watchlist-controls-stepper-btn:focus-visible {
+  border-color: var(--text-primary);
+  background: transparent;
+  color: var(--text-primary);
+}
+.watchlist-controls-total { min-width: 0; padding: 0 2px; color: var(--text-muted); font-size: .85rem; }
+.watchlist-controls-total:empty { display: none; }
+.watchlist-loved-toggle {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1.5px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.watchlist-loved-toggle:hover { border-color: var(--text-primary); }
+.watchlist-loved-toggle[aria-pressed="true"] { border-color: var(--marker); background: var(--marker); color: var(--marker-ink); }
+
+/* Hidden notices stay out of the page and the accessibility tree. */
+.update-notification[hidden] { display: none; }
+
+/* Watchlist empty state follows the page's left edge. */
+.watchlist-empty { text-align: left; padding: clamp(28px, 5vw, 48px) clamp(20px, 4vw, 40px); }
+.watchlist-empty-icon { margin: 0 0 20px; }
+.watchlist-empty > p { max-width: 52ch; margin-inline: 0; }
+.watchlist-empty-actions { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 10px; }
+
 /* ---------- Responsive ---------- */
+@media (min-width: 1024px) {
+  /* First visit: the headline and its actions share one band so the picks reach the fold. */
+  .discovery-garden:not(.is-returning) { padding: clamp(28px, 4vw, 48px) 0 8px; }
+  .discovery-garden:not(.is-returning) .discovery-garden-content {
+    display: grid;
+    grid-template-columns: auto minmax(240px, 26rem);
+    grid-template-rows: 1fr auto auto;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0 clamp(32px, 5vw, 80px);
+  }
+  .discovery-garden:not(.is-returning) .discovery-title { grid-row: 1 / -1; margin: 0; font-size: clamp(3.2rem, 5.2vw, 5rem); }
+  .discovery-garden:not(.is-returning) .discovery-subtitle { grid-column: 2; grid-row: 2; }
+  .discovery-garden:not(.is-returning) .discovery-actions { grid-column: 2; grid-row: 3; margin-top: 16px; }
+}
+
 @media (min-width: 1500px) {
   .recommendation-media { height: 360px; }
   .anime-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
@@ -1254,7 +1494,7 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .app-container, html[data-sidebar-mode] .app-container { margin-left: 0; width: 100%; padding: 16px 16px 48px; }
   html[data-sidebar-mode] .app-sidebar { width: min(248px, calc(100vw - 40px)); transform: translateX(-100%); }
   html[data-sidebar-mode] .sidebar-edge-trigger {
-    display: inline-flex; top: 16px; bottom: auto; width: 40px; height: 44px; align-items: center; padding-top: 0;
+    position: absolute; display: inline-flex; top: 16px; bottom: auto; width: 40px; height: 44px; align-items: center; padding-top: 0;
     border: 1px solid var(--border-color); border-left: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     background: var(--bg-secondary);
   }
@@ -1272,7 +1512,6 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .header-more .watchlist-link { display: none; }
   .header-more .header-actions { grid-template-columns: 1fr; width: max-content; min-width: 10rem; }
   .header-sort { display: block; flex: 1; max-width: none; }
-  .header-sort select { width: 100%; }
   .header-controls .filter-btn { flex: 0 0 auto; width: auto; }
   .header-controls .header-more { flex: 0 0 auto; width: auto; margin-left: 0; }
   .header-controls .header-more-toggle { width: auto; }
@@ -1280,6 +1519,7 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .recommendations-header { align-items: flex-start; gap: 8px; flex-wrap: wrap; }
   .recommendations-grid { gap: 36px; }
   .anime-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 14px; }
+  #anime-grid .anime-card:not(.skeleton-card) { padding-bottom: 28px; }
   .anime-card .card-cover { height: 240px; }
   .theme-selector, .sidebar-mode-selector { grid-template-columns: 1fr; }
   .watchlist-page .header > .header-actions { margin-left: 0; min-width: 0; }
@@ -1298,7 +1538,9 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .discovery-garden.is-returning { padding: 18px 0 14px; }
   .discovery-garden.is-returning .discovery-title { font-size: 1.6rem; }
   .discovery-garden.is-returning .discovery-actions { width: 100%; }
-  .continue-card { padding: 14px; }
+  .continue-card { flex-direction: column; align-items: stretch; gap: 4px; padding: 14px 16px; }
+  .continue-card p { flex: none; }
+  .continue-card .btn { margin-top: 10px; }
   .has-tooltip .tooltip, .has-tooltip .tooltip--bottom {
     position: fixed; left: 16px; right: 16px; bottom: 16px; top: auto;
     width: auto; max-width: none; transform: none;
@@ -1307,10 +1549,13 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   /* Shorter covers keep the title and actions on screen. */
   #recommendations-grid .recommendation-media { height: 176px; }
   #recommendations-grid .recommendation-title { display: block; overflow: visible; font-size: 1.45rem; }
-  .recommendation-obi { width: 46px; }
-  .recommendation-obi { justify-content: space-between; }
-  .recommendation-obi-label { display: none; }
+  /* The short mobile cover keeps its label by running it condensed on Anybody's width axis. */
+  .recommendation-obi { width: 46px; gap: 6px; padding-top: 10px; }
+  .recommendation-obi-label { font-size: .7rem; font-stretch: 62%; letter-spacing: .01em; }
+  .recommendation-obi-score { min-height: 50px; }
   .recommendation-media .recommendation-rank { font-size: 1.7rem; }
+  .seasonal-filters { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .seasonal-filters-label { flex: 0 0 100%; text-align: left; }
 }
 
 @media (max-width: 480px) {
@@ -1322,8 +1567,7 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-container, .app-sidebar, .recommendation-card, .anime-card, .recommendation-cover, .card-cover { transition: none; animation: none; }
+  .app-container, .app-sidebar, .recommendation-card, .anime-card, .recommendation-cover, .card-cover { transition: none; }
   .recommendation-card:hover .recommendation-cover, .anime-card:hover .card-cover { transform: none; }
+  .recommendation-more summary::after, .watchlist-manage-data > summary::after { transition: none; }
 }
-
-[data-high-contrast="true"] { --border-color: currentColor; --border-hover: currentColor; }

@@ -157,7 +157,7 @@ test('App starts with the same initial grid batches on desktop and mobile', () =
   window.matchMedia = query => ({
     matches: query.includes('max-width: 640px')
   });
-  assert.equal(App.initialGridBatchSizeMobile, 3);
+  assert.equal(App.initialGridBatchSizeMobile, 4);
 });
 
 test('App initially ranks Explore Every Title by Taste Profile fit', () => {

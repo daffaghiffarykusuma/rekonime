@@ -86,7 +86,9 @@ test('complete discovery-to-watchlist journey', async ({ browser, baseURL }) => 
   await expect(page.locator('#onboarding-modal')).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
   const card = page.locator('#recommendations-grid .recommendation-card').first();
-  await expect(card.locator('.recommendation-fit-label')).toHaveCount(1);
+  // An all-general shelf states its kind once in the subtitle instead of on every card.
+  await expect(card.locator('.recommendation-fit-label')).toHaveCount(0);
+  await expect(page.locator('#recommendations-context')).toContainText('General picks');
   await card.scrollIntoViewIfNeeded();
   await expect(card).toBeVisible();
   const cardBox = await card.boundingBox();

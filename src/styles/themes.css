@@ -1,109 +1,6 @@
-/* ==========================================
-   Theme System for Rekonime
-   Light/Dark mode with CSS custom properties
-   ========================================== */
-
-/*
- * Theme Variables
- * 
- * Dark theme is the default (defined in main styles.css :root)
- * Light theme overrides are defined here using [data-theme="light"]
- * 
- * Usage: document.documentElement.setAttribute('data-theme', 'light');
- */
-
-/* ==========================================
-   Light Theme Overrides
-   ========================================== */
-
-[data-theme="light"] {
-    /* Core Pastel Dreamland Palette - adapted for light backgrounds */
-    --sakura-pink: #D96D9E;
-    --sakura-deep: #B85284;
-    --sakura-pale: #E4C1F9;
-    --sakura-shadow: #A24675;
-
-    /* Twilight Accent Colors */
-    --twilight-purple: #9E73BE;
-    --twilight-lavender: #7D718A;
-    --twilight-deep: #3D354D;
-
-    /* Natural Complements */
-    --moss-green: #5B9870;
-    --warm-gold: #B79A29;
-    --paper-cream: #F6F1FA;
-
-    /* Light Mode Base - Paper/Parchment Theme */
-    --bg-primary: #F6F1FA;
-    --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F0E7F6;
-    --card-bg: #FFFFFF;
-    --bg-elevated: #FAF6FC;
-
-    /* Text Colors with Warm Undertones (reversed for light) */
-    --text-primary: #211B2C;
-    --text-secondary: #4E445D;
-    --text-muted: #70667C;
-    --text-tertiary: #70667C;
-
-    /* Accent Application (similar, slightly adjusted for contrast) */
-    --accent-primary: var(--sakura-deep);
-    --accent-secondary: var(--sakura-pink);
-    --accent-hover: var(--sakura-deep);
-    --accent-brand: var(--sakura-deep);
-    --accent-glow: rgba(217, 109, 158, 0.2);
-
-    /* Semantic Colors - Warmer Palette for light */
-    --success: #4E8A65;
-    --warning: #A88A1F;
-    --error: #B85284;
-    --info: #3D7DA2;
-
-    /* Semantic Background Colors */
-    --success-bg: rgba(78, 138, 101, 0.12);
-    --warning-bg: rgba(168, 138, 31, 0.12);
-    --error-bg: rgba(184, 82, 132, 0.12);
-
-    /* Border Colors */
-    --border-color: #E7D7F0;
-    --border-hover: #D4BDE2;
-
-    /* Shadows (softer for light theme) */
-    --shadow: 0 2px 8px rgba(42, 31, 35, 0.08);
-    --shadow-lg: 0 4px 16px rgba(42, 31, 35, 0.12);
-    --shadow-sakura: 0 4px 20px rgba(217, 109, 158, 0.15);
-
-    /* Focus Rings */
-    --focus-ring-strong: rgba(217, 109, 158, 0.9);
-    --focus-ring-soft: rgba(217, 109, 158, 0.2);
-}
-
-/* ==========================================
-   Light Mode Component Overrides
-   ========================================== */
-
-/* Quick filters track - override dark background */
-[data-theme="light"] .quick-filters-track {
-    background: var(--bg-tertiary);
-    border-color: var(--border-color);
-}
-
 [data-theme="light"] .quick-filters-track[data-filter-group="genres"],
 [data-theme="light"] .quick-filters-track[data-filter-group="themes"] {
     background: var(--bg-tertiary);
-}
-
-/* Filter pills in modal */
-[data-theme="light"] .filter-pill {
-    background: var(--bg-tertiary);
-    border-color: var(--border-color);
-    color: var(--text-secondary);
-}
-
-[data-theme="light"] .filter-pill:hover {
-    background: var(--bg-secondary);
-    border-color: var(--border-hover);
-    color: var(--text-primary);
 }
 
 [data-theme="light"] .filter-pill.active {
@@ -112,37 +9,10 @@
     color: var(--bg-primary);
 }
 
-/* Quick chips */
-[data-theme="light"] .quick-chip {
-    background: linear-gradient(135deg, rgba(228, 154, 171, 0.1), rgba(139, 107, 158, 0.06));
-    border-color: var(--border-color);
-    color: var(--text-secondary);
-}
-
-[data-theme="light"] .quick-chip:hover {
-    background: var(--bg-secondary);
-    border-color: var(--border-hover);
-    color: var(--text-primary);
-}
-
 [data-theme="light"] .quick-chip.active {
     background: var(--accent-primary);
     border-color: var(--accent-primary);
     color: var(--bg-primary);
-}
-
-/* Filter modal */
-[data-theme="light"] .filter-modal-content {
-    background: var(--bg-secondary);
-}
-
-[data-theme="light"] .filter-modal-header {
-    background: var(--bg-secondary);
-    border-color: var(--border-color);
-}
-
-[data-theme="light"] .settings-modal-content {
-    background: var(--bg-secondary);
 }
 
 /* Active filters bar */
@@ -151,37 +21,10 @@
     border-color: var(--border-color);
 }
 
-/* Seasonal chips */
-[data-theme="light"] .seasonal-chip {
-    background: var(--bg-primary);
-    border-color: var(--border-color);
-}
-
-[data-theme="light"] .seasonal-chip:hover {
-    border-color: var(--accent-primary);
-}
-
 [data-theme="light"] .seasonal-chip.is-highlight {
-    background: linear-gradient(135deg, var(--sakura-pink) 0%, var(--sakura-deep) 100%);
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
     border-color: transparent;
     color: #fff;
-}
-
-/* Modal overlay backdrop */
-[data-theme="light"] .modal-overlay {
-    background: rgba(42, 31, 35, 0.75);
-}
-
-/* ==========================================
-   High Contrast Mode
-   ========================================== */
-
-[data-high-contrast="true"] {
-    --border-color: currentColor;
-    --border-hover: currentColor;
-    --text-muted: currentColor;
-    --shadow: none;
-    --shadow-lg: none;
 }
 
 [data-high-contrast="true"] .anime-card,
@@ -215,9 +58,6 @@
    ========================================== */
 
 @media (prefers-reduced-motion: reduce) {
-    html {
-        scroll-behavior: auto;
-    }
 
     *,
     *::before,
@@ -226,16 +66,6 @@
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
-    }
-
-    /* Disable particle effect */
-    .app-container::before {
-        display: none;
-    }
-
-    /* Disable floating petals */
-    .floating-petal {
-        animation: none;
     }
 
     /* Disable shimmer */
@@ -262,11 +92,6 @@
     /* Disable particle effect */
     .app-container::before {
         display: none;
-    }
-
-    /* Disable floating petals */
-    .floating-petal {
-        animation: none;
     }
 
     /* Disable shimmer */
@@ -318,10 +143,6 @@
 .anime-card:focus-within {
     outline: 2px solid var(--accent-primary);
     outline-offset: 4px;
-    transform: translateY(-4px);
-    box-shadow:
-        0 12px 24px rgba(0, 0, 0, 0.15),
-        0 0 0 2px var(--accent-primary);
     z-index: 10;
 }
 
@@ -329,84 +150,17 @@
 .recommendation-card:focus-within {
     outline: 2px solid var(--accent-primary);
     outline-offset: 4px;
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg), 0 0 0 2px var(--accent-primary);
     z-index: 10;
-}
-
-/* Quick filter chips */
-.quick-chip:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
-}
-
-/* Filter pills */
-.filter-pill:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
-}
-
-/* Modal close buttons */
-.modal-close:focus-visible {
-    outline: 2px solid var(--error);
-    outline-offset: 3px;
 }
 
 /* Search input */
 .header-search-input:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
     box-shadow: 0 0 0 4px var(--focus-ring-soft);
-}
-
-/* Buttons */
-.btn:focus-visible,
-button:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 3px;
 }
 
 /* Links */
 .logo-link:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 4px;
     border-radius: var(--radius);
-}
-
-/* Select dropdowns */
-.sort-select:focus-visible,
-select:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
-}
-
-/* Bookmark toggles */
-.watchlist-card-toggle:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
-}
-
-/* Theme options */
-.theme-option:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
-}
-
-/* Skip link for keyboard navigation */
-.skip-link {
-    position: absolute;
-    top: -40px;
-    left: 0;
-    background: var(--accent-primary);
-    color: var(--bg-primary);
-    padding: 8px;
-    text-decoration: none;
-    z-index: 10000;
-    transition: top 0.3s;
-}
-
-.skip-link:focus {
-    top: 0;
 }
 
 /* ==========================================
@@ -578,8 +332,6 @@ select:focus-visible {
    ========================================== */
 
 .theme-selector {
-    display: flex;
-    gap: 0.75rem;
     margin-bottom: 0.75rem;
 }
 
@@ -589,11 +341,6 @@ select:focus-visible {
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-    padding: 1rem 0.75rem;
-    background: var(--bg-tertiary);
-    border: 2px solid transparent;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
     transition: all 0.2s ease;
 }
 
@@ -612,107 +359,8 @@ select:focus-visible {
     color: var(--bg-primary);
 }
 
-.theme-option-icon {
-    font-size: 1.5rem;
-}
-
 .theme-option-label {
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--text-secondary);
-}
-
-/* ==========================================
-   Accessibility Settings Section
-   ========================================== */
-
-.settings-section--accessibility {
-    margin-top: 1.5rem;
-}
-
-.accessibility-options {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 0.75rem;
-}
-
-.accessibility-option {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-color);
-}
-
-.accessibility-option-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.accessibility-option-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.accessibility-option-desc {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
-
-/* Toggle switch for accessibility options */
-.a11y-toggle {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-}
-
-.a11y-toggle-input {
-    position: absolute;
-    opacity: 0;
-    width: 1px;
-    height: 1px;
-}
-
-.a11y-toggle-slider {
-    width: 2.75rem;
-    height: 1.5rem;
-    border-radius: 999px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-    position: relative;
-    transition: background 0.2s ease, border-color 0.2s ease;
-    cursor: pointer;
-}
-
-.a11y-toggle-slider::after {
-    content: '';
-    position: absolute;
-    width: 1.1rem;
-    height: 1.1rem;
-    border-radius: 999px;
-    background: var(--text-secondary);
-    top: 50%;
-    left: 0.2rem;
-    transform: translateY(-50%);
-    transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.a11y-toggle-input:checked+.a11y-toggle-slider {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
-}
-
-.a11y-toggle-input:checked+.a11y-toggle-slider::after {
-    background: var(--bg-primary);
-    transform: translate(1.2rem, -50%);
-}
-
-.a11y-toggle-input:focus-visible+.a11y-toggle-slider {
-    box-shadow: 0 0 0 2px var(--focus-ring-soft);
 }

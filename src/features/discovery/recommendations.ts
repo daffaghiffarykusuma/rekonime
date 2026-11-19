@@ -260,7 +260,8 @@ const Recommendations = {
       return 'A dependable next watch';
     }
 
-    return reasons.slice(0, 2).join(' + ');
+    const [first, second] = reasons;
+    return second ? `${first} and ${second.charAt(0).toLowerCase()}${second.slice(1)}` : first;
   },
 
   /**

@@ -136,7 +136,7 @@ const createWatchlistControlsElement = (item, entry, {
   dec.setAttribute('data-action', 'watch-progress-dec');
   dec.setAttribute('data-anime-id', item.id);
   dec.setAttribute('aria-label', 'Decrease watched episodes');
-  dec.textContent = '-';
+  dec.textContent = '−';
 
   const input = document.createElement('input');
   input.className = 'watchlist-controls-input';

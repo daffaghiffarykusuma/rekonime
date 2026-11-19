@@ -1347,7 +1347,8 @@ const App = {
   gridInitialBatchRendered: false,
   gridDeferredRenderHandle: null,
   initialGridBatchSize: 6,
-  initialGridBatchSizeMobile: 3,
+  // Even, so the two-column mobile shelf never ends on a lone card.
+  initialGridBatchSizeMobile: 4,
   gridSortedCache: null,
   gridSortedKey: '',
   gridSortedSource: null,
@@ -2069,13 +2070,12 @@ const App = {
       });
     }
 
-    const settingsToggle = document.getElementById('settings-toggle');
-    if (settingsToggle) {
+    document.querySelectorAll('#settings-toggle, #header-settings-toggle').forEach((settingsToggle) => {
       this.addTrackedListener(settingsToggle, 'click', () => {
         settingsToggle.closest('details')?.removeAttribute('open');
         this.toggleSettingsModal();
       });
-    }
+    });
 
     const closeMetricHelp = document.getElementById('close-metric-help');
     if (closeMetricHelp) {
@@ -3107,16 +3107,16 @@ const App = {
       const isActive = this.activeFilters.seasonYear.includes(filter.value);
       const highlightClass = filter.highlight && isActive ? 'is-highlight' : '';
       const activeClass = isActive ? 'active' : '';
-      const filterLabel = filter.value
-        ? `${filter.label}: ${filter.value}`
-        : filter.label;
+      // The row is labelled "By season", so each chip leads with the season itself.
+      // Screen readers still hear the relative name ("This season: Fall 2026").
+      const visibleLabel = filter.value || filter.label;
+      const relativeLabel = filter.value ? `<span class="visually-hidden">${this.escapeHtml(filter.label)}: </span>` : '';
+      const nowNote = filter.key === 'current' ? '<span class="seasonal-chip-note" aria-hidden="true">Now</span>' : '';
       return `
         <button class="seasonal-chip ${highlightClass} ${activeClass}"
                 data-action="apply-seasonal"
                 data-season-year="${this.escapeAttr(filter.value)}"
-                type="button">
-          ${this.escapeHtml(filterLabel)}
-        </button>
+                type="button">${relativeLabel}${this.escapeHtml(visibleLabel)}${nowNote}</button>
       `;
     }).join(''));
     container.removeAttribute('aria-busy');
@@ -3308,10 +3308,13 @@ const App = {
           <img class="card-cover" ${cardDimAttrs} loading="lazy" data-fallback-src="${IMAGE_PLACEHOLDER}">
         </div>
         <div class="card-body">
-          <div class="card-title-row">
-            <h3 class="card-title"></h3>
+          <div class="card-heading">
+            <div class="card-title-row">
+              <h3 class="card-title"></h3>
+            </div>
+            <div class="card-year"></div>
           </div>
-          <div class="card-year"></div>
+          <div class="card-score-wrap">
           <div class="card-scoreboard">
           <div class="card-primary-signal">
             <div class="card-primary-score">
@@ -3321,6 +3324,7 @@ const App = {
             <span class="card-primary-note"></span>
           </div>
           <div class="card-stats"></div>
+          </div>
           </div>
           <div class="card-badges"></div>
         </div>
@@ -3812,6 +3816,9 @@ const App = {
       return;
     }
 
+    // The fit label only earns its place when picks of different kinds share the
+    // shelf; otherwise the section heading and subtitle already say it.
+    const showFitLabel = new Set(recommendations.map(anime => anime.fitLabel)).size > 1;
     setHTML(container, recommendations.map((anime, index) => {
       const malSatisfaction = Number.isFinite(anime.communityScore) ? `${anime.communityScore.toFixed(1)}/10` : 'N/A';
       const satisfactionTooltipTitle = this.escapeHtml('Community Score (MAL)');
@@ -3824,9 +3831,10 @@ const App = {
       const decision = this.getCardDecisionData(anime);
       const decisionClass = this.sanitizeClassList('recommendation-signal', decision.className);
       const obiLabel = decision.kind === 'episode' ? 'Episode strength' : decision.kind === 'community' ? 'MAL score' : '';
-      const obiScore = String(decision.value).split('/')[0];
+      const [obiScore, obiScale] = String(decision.value).split('/');
+      const obiScaleMarkup = obiScale ? `<small>/${this.escapeHtml(obiScale)}</small>` : '';
       const obiMarkup = obiLabel
-        ? `<span class="recommendation-obi-label" aria-hidden="true">${obiLabel}</span><span class="recommendation-obi-score" aria-hidden="true">${this.escapeHtml(obiScore)}</span>`
+        ? `<span class="recommendation-obi-label" aria-hidden="true">${obiLabel}</span><span class="recommendation-obi-score" aria-hidden="true">${this.escapeHtml(obiScore)}${obiScaleMarkup}</span>`
         : '';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
@@ -3857,9 +3865,14 @@ const App = {
           <div class="recommendation-info">
             <button class="recommendation-title" type="button" data-action="open-anime" data-anime-id="${safeId}" aria-label="${cardLabel}">${safeTitle}</button>
             <div class="recommendation-submeta">${safeYear} &bull; ${safeStudio}</div>
-            <div class="recommendation-fit-label">${this.escapeHtml(anime.fitLabel)}</div>
+            ${showFitLabel ? `<div class="recommendation-fit-label">${this.escapeHtml(anime.fitLabel)}</div>` : ''}
             <div class="recommendation-reason">${safeReason}</div>
             <div class="recommendation-episodes">${this.escapeHtml(anime.episodeSummary)}</div>
+              <div class="recommendation-quick-actions">
+                <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
+                <button class="btn btn-secondary btn-sm" type="button" data-action="skip-recommendation" data-anime-id="${safeId}">Skip for now</button>
+              </div>
+            <div class="recommendation-more">
             <details class="recommendation-ratings" data-action="recommendation-ratings">
             <summary>Ratings and evidence</summary>
             <div class="recommendation-scoreboard">
@@ -3883,10 +3896,7 @@ const App = {
               </div>
               <p class="recommendation-rating-explanation">Episode Rating Strength (/100) is an episode-rating index adjusted for coverage and sample size, not a completion probability. Community Score (MAL, /10) is the audience rating from MyAnimeList.</p>
               </details>
-              <div class="recommendation-quick-actions">
-                <button class="btn btn-primary btn-sm" type="button" data-action="quick-save-recommendation" data-anime-id="${safeId}" aria-label="Want to watch ${this.escapeAttr(labelTitle)}">Want to watch</button>
-                <button class="btn btn-secondary btn-sm" type="button" data-action="skip-recommendation" data-anime-id="${safeId}">Skip for now</button>
-              </div>
+              <div class="recommendation-taste-row">
               <details class="recommendation-taste" data-action="taste-preferences">
                 <summary>Taste preferences</summary>
                 <p class="recommendation-taste-note">These preferences stay saved. Not for me: Hide this title from future recommendations.</p>
@@ -3896,7 +3906,9 @@ const App = {
                 ${lessLabel ? `<button class="rec-feedback-btn" type="button" data-action="rec-less-tag" data-anime-id="${safeId}" data-genre="${this.escapeAttr(lessGenre)}" data-theme="${this.escapeAttr(lessTheme)}">Less ${this.escapeHtml(lessLabel)}</button>` : ''}
                 </div>
               </details>
-              <button class="rec-feedback-btn" type="button" data-action="rec-already-seen" data-anime-id="${safeId}">Already seen</button>
+              <button class="rec-feedback-btn recommendation-seen-btn" type="button" data-action="rec-already-seen" data-anime-id="${safeId}">Already seen</button>
+              </div>
+            </div>
             </div>
         </div>
       `;
@@ -3942,7 +3954,9 @@ const App = {
       : targetEndIndex;
     const visibleAnime = sorted.slice(startIndex, endIndex);
     const countForMore = this.gridSortedIsPartial ? totalCount : sorted.length;
-    const hasMore = requestedEndIndex < countForMore;
+    // Compare against what is on screen: a deferred first batch can render fewer
+    // cards than the page requests, and the rest must stay reachable.
+    const hasMore = endIndex < countForMore;
 
     if (!shouldAppend) {
       this.diffRenderAnimeGrid(container, visibleAnime, { startIndex });
@@ -3986,7 +4000,7 @@ const App = {
       insertHTML(container, 'beforeend', `
         <div class="load-more-container">
           <button class="load-more-btn" data-action="load-more">
-            Load More (${Math.max(countForMore - requestedEndIndex, 0)} remaining)
+            Show more titles <span class="load-more-count">${Math.max(countForMore - endIndex, 0).toLocaleString('en-US')} left</span>
           </button>
         </div>
       `);
@@ -4051,7 +4065,10 @@ const App = {
    * Load more anime cards
    */
   loadMoreAnime() {
-    this.gridCurrentPage++;
+    // Finish the current page first when a deferred first batch left it short.
+    if (this.gridRenderedCount >= this.gridCurrentPage * this.gridPageSize) {
+      this.gridCurrentPage++;
+    }
     this.renderAnimeGrid({ append: true });
   },
 

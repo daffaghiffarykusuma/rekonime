@@ -25,227 +25,6 @@
   <link rel="preconnect" href="https://cdn.myanimelist.net" crossorigin>
   <link rel="dns-prefetch" href="https://api.jikan.moe">
   <link rel="dns-prefetch" href="https://graphql.anilist.co">
-  <style>
-    :root {
-      --sakura-pink: #9aa8ff;
-      --sakura-deep: #c0c8ff;
-      --sakura-pale: #b8b8b8;
-      --sakura-shadow: #2b3fe0;
-      --twilight-purple: #9aa8ff;
-      --twilight-lavender: #b8b8b8;
-      --twilight-deep: #141414;
-      --moss-green: #86dcae;
-      --warm-gold: #ffd43b;
-      --paper-cream: #f5f5f5;
-      --bg-primary: #0a0a0a;
-      --bg-secondary: #141414;
-      --bg-tertiary: #1f1f1f;
-      --card-bg: #141414;
-      --bg-elevated: #2a2a2a;
-      --text-primary: #f5f5f5;
-      --text-secondary: #b8b8b8;
-      --text-muted: #8c8c8c;
-      --text-tertiary: #8c8c8c;
-      --accent-primary: var(--sakura-pink);
-      --accent-secondary: var(--sakura-deep);
-      --accent-hover: #bcc5ff;
-      --accent-brand: var(--sakura-pink);
-      --accent-glow: rgb(154 168 255 / 14%);
-      --success: #86dcae;
-      --warning: #ffd43b;
-      --error: #ff8f9f;
-      --info: #9aa8ff;
-      --border-color: #262626;
-      --border-hover: #404040;
-      --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-      --shadow-sakura: 0 4px 20px rgba(246, 148, 193, 0.18);
-      --radius: 12px;
-      --radius-md: 10px;
-      --radius-sm: 6px;
-      --focus-ring-strong: #ffd43b;
-      --focus-ring-soft: rgb(255 212 59 / 25%);
-      --success-bg: rgba(211, 248, 226, 0.12);
-      --warning-bg: rgba(237, 231, 177, 0.14);
-      --error-bg: rgba(246, 148, 193, 0.12);
-      --font-display: 'Anybody', 'Arial Narrow', Arial, sans-serif;
-      --font-body: 'M PLUS 1', 'Segoe UI', "Helvetica Neue", Arial, sans-serif;
-      --font-display-adjust: none;
-      --font-body-adjust: none;
-    }
-
-    [data-theme="light"] {
-      --bg-primary: #ffffff;
-      --bg-secondary: #f7f7f7;
-      --bg-tertiary: #efefef;
-      --card-bg: #f7f7f7;
-      --bg-elevated: #e5e5e5;
-      --text-primary: #0a0a0a;
-      --text-secondary: #474747;
-      --text-muted: #6b6b6b;
-      --text-tertiary: #6b6b6b;
-      --border-color: #e3e3e3;
-      --border-hover: #c2c2c2;
-      --shadow: 0 2px 8px rgba(42, 31, 35, 0.08);
-      --shadow-lg: 0 4px 16px rgba(42, 31, 35, 0.12);
-    }
-
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html {
-      font-size: 16px;
-      scroll-behavior: smooth;
-    }
-
-    body {
-      font-family: var(--font-body);
-      font-size-adjust: var(--font-body-adjust);
-      background: var(--bg-primary);
-      color: var(--text-primary, #f5f5f5);
-      line-height: 1.7;
-      min-height: 100vh;
-    }
-
-    h1,
-    h2,
-    h3,
-    h4 {
-      font-family: var(--font-display);
-      font-size-adjust: var(--font-display-adjust);
-      font-weight: 600;
-      letter-spacing: 0;
-      line-height: 1.25;
-      color: var(--text-primary, #f5f5f5);
-    }
-
-    .is-hidden {
-      display: none;
-    }
-
-    .app-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 1.5rem 2rem 3rem;
-    }
-
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.25rem;
-      padding-bottom: 1rem;
-      margin-bottom: 0.75rem;
-      border-bottom: 1px solid var(--border-color);
-      flex-wrap: nowrap;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-      color: inherit;
-    }
-
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-sm);
-      background: var(--accent-primary);
-      color: var(--bg-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-
-    .logo-text {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .logo-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-      line-height: 1.1;
-    }
-
-    .logo-tagline {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      padding: 0.625rem 1.25rem;
-      border-radius: var(--radius-sm);
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      border: 1px solid transparent;
-      background: var(--bg-tertiary);
-      color: var(--text-secondary);
-    }
-
-    .btn-sm {
-      padding: 0.375rem 0.75rem;
-      font-size: 0.75rem;
-      border-radius: var(--radius-sm);
-    }
-
-    .btn-outline {
-      background: var(--bg-tertiary);
-      border-color: var(--border-color);
-      color: var(--text-secondary);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--sakura-pink) 0%, var(--sakura-deep) 100%);
-      color: var(--bg-primary);
-      border: none;
-      font-weight: 600;
-    }
-
-    @media (max-width: 640px) {
-      .app-container {
-        padding: 0.75rem 0.9rem 1.5rem;
-      }
-
-      .header {
-        gap: 0.5rem;
-        margin-bottom: 0.35rem;
-        padding-bottom: 0.5rem;
-      }
-
-      .logo-icon {
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 0.75rem;
-        font-size: 1.35rem;
-      }
-
-      .logo-title {
-        font-size: 1.15rem;
-      }
-
-      .logo-tagline {
-        font-size: 0.7rem;
-      }
-    }
-  </style>
   <!-- Styles -->
   <link rel="preload" href="/fonts/anybody-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/m-plus-1-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
@@ -302,7 +81,7 @@
         </div>
       </a>
       <div class="header-actions">
-        <a class="btn btn-sm btn-outline" href="/" data-home-link aria-label="Go back to the anime catalog">Return to discoveries</a>
+        <a class="btn btn-sm btn-outline" href="/" data-home-link >Back to Discover</a>
       </div>
     </header>
 
@@ -363,13 +142,12 @@
       <div class="watchlist-empty" id="watchlist-empty">
         <div class="watchlist-empty-icon" aria-hidden="true"><i class="ph ph-bookmark-simple"></i></div>
         <h2>Make room for a new favorite.</h2>
-        <p>Your watchlist is empty. Mark any title to build a lineup worth coming back to.</p>
+        <p>Your watchlist is empty. Choose <strong>Want to watch</strong> on any title to save it here.</p>
         <div class="watchlist-empty-actions">
           <a class="btn btn-sm btn-primary" href="/">Browse recommendations</a>
           <button class="btn btn-sm btn-outline" id="mal-import-toggle" type="button">Import from MAL</button>
           <a class="btn btn-sm btn-outline" href="/#catalog-section">Explore catalog</a>
         </div>
-        <p class="watchlist-empty-note">Watch statuses and episode progress are saved in this browser.</p>
       </div>
     </section>
   </main>

@@ -98,6 +98,8 @@ const KeyboardShortcuts = {
             const cache = this.getCache();
             const acknowledged = cache.getRaw(this.STORAGE_KEY, { validate: true });
             if (acknowledged) return;
+            // Touch-only devices have no keyboard to use the shortcuts with.
+            if (!window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches) return;
 
             // Show hint after a delay
             setTimeout(() => {
