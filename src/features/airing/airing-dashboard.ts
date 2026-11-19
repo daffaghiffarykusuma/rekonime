@@ -81,7 +81,10 @@ export const createAiringDashboardController = ({
   summaryId = 'airing-dashboard-summary',
   gridId = 'airing-dashboard-grid',
   emptyId = 'airing-dashboard-empty',
-  hideWhenNoEntries = true
+  hideWhenNoEntries = true,
+  // Home page: an empty "nothing airing" strip pushes picks down without telling
+  // the viewer anything actionable, so the section stays hidden until it has items.
+  hideWhenNothingAiring = false
 } = {}) => {
   const section = typeof document !== 'undefined' ? document.getElementById(sectionId) : null;
   const subtitle = typeof document !== 'undefined' ? document.getElementById(subtitleId) : null;
@@ -99,7 +102,8 @@ export const createAiringDashboardController = ({
 
   let usesSavedSchedules = false;
   const render = (model) => {
-    if (!model || (hideWhenNoEntries && model.eligibleEntries === 0)) {
+    const nothingToShow = hideWhenNothingAiring && (!model || !Array.isArray(model.items) || model.items.length === 0);
+    if (!model || nothingToShow || (hideWhenNoEntries && model.eligibleEntries === 0)) {
       setSectionVisibility(section, false);
       setHTML(summary, '');
       setHTML(grid, '');
@@ -129,7 +133,7 @@ export const createAiringDashboardController = ({
 
   return {
     showLoading(entryCount = 0) {
-      if (!entryCount && hideWhenNoEntries) {
+      if ((!entryCount && hideWhenNoEntries) || hideWhenNothingAiring) {
         setSectionVisibility(section, false);
         return;
       }

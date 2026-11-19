@@ -21,6 +21,13 @@ const stop = (event) => {
   event.stopPropagation();
 };
 
+const focusNextWatchControl = (element) => {
+  const controls = element?.closest?.('.detail-watchlist-controls, .watchlist-controls');
+  if (!controls || !element.classList.contains('is-hidden')) return;
+  const next = controls.querySelector('.watchlist-start-btn:not(.is-hidden), .watchlist-progress:not(.is-hidden) input, .watchlist-controls-progress:not(.is-hidden) input, select');
+  next?.focus?.();
+};
+
 const titleOrCurrent = (app, data) => data.animeId || app.currentAnimeId;
 
 const shortlist = (action, { stopEvent = true } = {}) => ({ app, data, event }) => {
@@ -69,6 +76,20 @@ const HOME_ACTION_COMMANDS = {
   'watch-progress-dec': ({ app, data }) => {
     const animeId = titleOrCurrent(app, data);
     if (animeId) app.adjustWatchProgress(animeId, -1);
+  },
+  // The pressed button hides once the status changes, so hand focus to the
+  // control that now holds the next step instead of dropping it to the page.
+  'watch-plan': ({ app, element, data }) => {
+    const animeId = titleOrCurrent(app, data);
+    if (!animeId) return;
+    app.setWatchStatus(animeId, 'planned');
+    focusNextWatchControl(element);
+  },
+  'watch-start': ({ app, element, data }) => {
+    const animeId = titleOrCurrent(app, data);
+    if (!animeId) return;
+    app.setWatchStatus(animeId, 'watching');
+    focusNextWatchControl(element);
   },
   'watch-loved': ({ app, data }) => {
     const animeId = titleOrCurrent(app, data);

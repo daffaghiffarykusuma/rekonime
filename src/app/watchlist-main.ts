@@ -132,7 +132,12 @@ const watchlistPageHost = {
       applyingOwnTransition = false;
     }
   },
-  announce: (feedback) => showToast(feedback.message, { ...feedbackToastOptions(feedback), key: 'watchlist', type: 'success' }),
+  // A "View watchlist" link is pointless on the Watchlist page itself; keep Undo.
+  announce: (feedback) => showToast(feedback.message, {
+    ...feedbackToastOptions({ ...feedback, action: feedback.action?.href === '/watchlist.html' ? null : feedback.action }),
+    key: 'watchlist',
+    type: 'success'
+  }),
   announceFailure: (failure) => showToast(failure.message, { key: 'watchlist', type: 'error', duration: 10000 }),
   // Taste Profile lives in the full App, which loads lazily on this page (for settings).
   refreshTasteProfile: () => {

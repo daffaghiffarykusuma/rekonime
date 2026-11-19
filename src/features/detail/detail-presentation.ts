@@ -149,8 +149,8 @@ const renderDetailTabs = ({
       <button class="detail-tab" type="button" role="tab" id="detail-tab-similar" aria-selected="false" aria-controls="detail-panel-similar" data-action="detail-tab" data-detail-tab="similar">Similar titles</button>
     </div>
     <section class="detail-tab-panel is-active" role="tabpanel" id="detail-panel-overview" aria-labelledby="detail-tab-overview" data-detail-panel="overview">
-      ${breakdown}
       <div id="synopsis-section">${synopsisSection}</div>
+      ${breakdown}
       ${trailerSection}
     </section>
     <section class="detail-tab-panel" role="tabpanel" id="detail-panel-watch-order" aria-labelledby="detail-tab-watch-order" data-detail-panel="watch-order" hidden>
@@ -222,6 +222,7 @@ const renderDetailContent = (anime, {
         <div class="detail-tags">
           ${renderTagList(anime.genres, { escapeHtml })}${renderTagList(anime.themes, { escapeHtml })}
         </div>
+        ${renderWatchlistControls(anime)}
         <div class="detail-decision-panel">
           <div class="${detailDecisionClass}">
             <span class="detail-verdict-label">${escapeHtml(decision.label)}</span>
@@ -243,7 +244,6 @@ const renderDetailContent = (anime, {
               <span class="detail-stat-label">Episodes</span>
             </div>
           </div>
-          ${renderWatchlistControls(anime)}
         </div>
       </div>
     </div>

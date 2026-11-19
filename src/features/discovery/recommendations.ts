@@ -249,11 +249,13 @@ const Recommendations = {
 
     if (evidence?.limited) return 'Limited episode rating data';
 
-    if (retentionScore !== null && retentionScore >= 85) reasons.push('Strong episode ratings');
-    if (churnRiskScore !== null && churnRiskScore <= 25) reasons.push('Few weak episode ratings');
-    if (hookScore !== null && hookScore >= 80) reasons.push('Highly rated opening episodes');
-    if (finishScore !== null && finishScore >= 70) reasons.push('Later episodes rate higher');
-    if (flowScore !== null && flowScore >= 85) reasons.push('Consistent episode ratings');
+    // One phrase per idea: "few weak episodes" and "consistent ratings" describe the
+    // same steadiness, so they share a single reason instead of reading as a repeat.
+    const steady = (churnRiskScore !== null && churnRiskScore <= 25) || (flowScore !== null && flowScore >= 85);
+    if (hookScore !== null && hookScore >= 80) reasons.push('Strong opening episodes');
+    if (finishScore !== null && finishScore >= 70) reasons.push('Later episodes rate even higher');
+    if (steady) reasons.push('Few dips in episode ratings');
+    if (retentionScore !== null && retentionScore >= 85) reasons.push('Strong episode ratings throughout');
     if (malSatisfactionScore !== null && malSatisfactionScore >= 8.1) reasons.push('Widely praised by viewers');
 
     if (reasons.length === 0) {

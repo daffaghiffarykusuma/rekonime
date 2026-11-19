@@ -97,6 +97,13 @@ const createWatchlistPageRenderer = ({
     const studio = item.studio || 'Unknown';
     meta.textContent = `${year} • ${studio}`;
     body.appendChild(title);
+    const englishTitle = typeof item.titleEnglish === 'string' ? item.titleEnglish.trim() : '';
+    if (englishTitle && englishTitle.toLowerCase() !== String(item.title || '').trim().toLowerCase()) {
+      const altTitle = documentRef.createElement('div');
+      altTitle.className = 'card-alt-title';
+      altTitle.textContent = englishTitle;
+      body.appendChild(altTitle);
+    }
     body.appendChild(meta);
 
     const episodeCount = getEpisodeCountFromItem(item);
@@ -109,7 +116,7 @@ const createWatchlistPageRenderer = ({
       const nextEpisode = Math.max(1, (Number(watchEntry.progress) || 0) + 1);
       nextAction.textContent = episodeCount && nextEpisode > episodeCount
         ? 'Ready to mark finished'
-        : `Continue from episode ${nextEpisode}`;
+        : nextEpisode === 1 ? 'Start with episode 1' : `Continue from episode ${nextEpisode}`;
       body.appendChild(nextAction);
     }
     body.appendChild(createWatchlistControlsElement(item, watchEntry));

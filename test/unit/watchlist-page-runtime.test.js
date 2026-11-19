@@ -14,7 +14,8 @@ const createRuntime = () => {
     runtime: {
       setStatus: record('setStatus'),
       setProgress: record('setProgress'),
-      adjustProgress: record('adjustProgress')
+      adjustProgress: record('adjustProgress'),
+      toggleLoved: record('toggleLoved')
     }
   };
 };
@@ -75,4 +76,25 @@ test('Watchlist Page Runtime ignores targets outside Watchlist controls and unkn
   assert.equal(pageRuntime.handleWatchlistClick(document.getElementById('outside')), false);
   assert.equal(pageRuntime.handleWatchlistChange(document.getElementById('other')), false);
   assert.deepEqual(calls, []);
+});
+
+test('Watchlist Page Runtime starts a planned title and toggles Loved from card buttons', () => {
+  setupDom(`
+    <article class="anime-card" data-anime-id="show-1" data-episode-count="12">
+      <div class="watchlist-controls">
+        <button data-action="watch-start" data-anime-id="show-1">Start watching</button>
+        <button data-action="watch-loved" data-anime-id="show-1" aria-pressed="false">Mark loved</button>
+      </div>
+    </article>
+  `);
+  const { calls, runtime } = createRuntime();
+  const pageRuntime = createPageRuntime(runtime);
+
+  assert.equal(pageRuntime.handleWatchlistClick(document.querySelector('[data-action="watch-start"]')), true);
+  assert.equal(pageRuntime.handleWatchlistClick(document.querySelector('[data-action="watch-loved"]')), true);
+
+  assert.deepEqual(calls, [
+    ['setStatus', 'show-1', 'watching', { episodeCount: 12 }],
+    ['toggleLoved', 'show-1']
+  ]);
 });

@@ -248,6 +248,9 @@ const createWatchlistLifecycleRuntime = ({
     const entry = lifecycle.getEntry(animeId);
     const previousEntry = entry ? structuredClone(entry) : null;
     const result = applyStatus(lifecycle, animeId, 'planned', options);
+    // Discovery confirms a selection in its own chosen-title panel (with Undo and a
+    // Watchlist link), so a second toast saying the same thing is only noise.
+    if (result?.changed && result.transition) result.transition.feedback = null;
     return issueUndoToken(animeId, previousEntry, result, 'Undid Watchlist selection');
   };
 

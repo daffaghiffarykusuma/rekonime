@@ -368,7 +368,10 @@ html[data-sidebar-mode="auto-hide"] .app-container { padding-left: clamp(56px, 6
 .header-sort { max-width: 240px; }
 .header-sort .sort-select { width: 100%; max-width: none; min-width: 220px; }
 .sort-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.mobile-watchlist-link { display: none; }
+/* The Watchlist is a primary destination, so it sits in the header at every width
+   rather than behind Menu; Menu keeps the secondary Preferences entry. */
+.mobile-watchlist-link { display: inline-flex; align-items: center; }
+.header-more .watchlist-link { display: none; }
 
 .active-filters {
   position: static;
@@ -631,7 +634,8 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 
 .recommendation-media {
   position: relative;
-  height: 300px;
+  /* Scales with viewport height so a laptop screen shows the picks' actions above the fold. */
+  height: clamp(200px, 30vh, 300px);
   overflow: hidden;
   border-radius: var(--radius-cover);
   background: var(--bg-tertiary);
@@ -656,7 +660,7 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 12px 0 0;
+  padding: 14px 0 0;
   background: var(--obi);
   color: var(--obi-ink);
   box-shadow: -1px 0 0 rgb(255 255 255 / 25%);
@@ -724,6 +728,40 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 button.recommendation-title { padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
 button.recommendation-title:hover { color: var(--accent-primary); }
 .recommendation-submeta { color: var(--text-muted); font-size: .8rem; }
+.card-alt-title {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: .8rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-alt-title:empty { display: none; }
+.recommendation-alt-title {
+  margin-top: -2px;
+  color: var(--text-secondary);
+  font-size: .85rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.recommendation-genres { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Empty slots stay in the side-by-side subgrid (so tracks line up); in the
+   single-column layout they would only add stray gaps. */
+@media (max-width: 480px) {
+  .recommendation-genres:empty, .recommendation-alt-title:empty { display: none; }
+}
+.recommendation-genre {
+  padding: 2px 9px;
+  border: 1px solid var(--border-color, rgb(255 255 255 / 14%));
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: .75rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
 .recommendation-fit-label {
   margin-top: 4px;
   color: var(--accent-primary);
@@ -1038,10 +1076,11 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 
 /* ---------- Watchlist ---------- */
 .watchlist-page .header { justify-content: space-between; }
-.watchlist-section > .section-header { padding: 32px 0 24px; }
-.watchlist-section > .section-header .section-subtitle { margin-top: 14px; font-size: .95rem; }
+/* A page title, not a poster: the list itself should lead. */
+.watchlist-section > .section-header { padding: 24px 0 20px; }
+.watchlist-section > .section-header .section-subtitle { margin-top: 10px; font-size: .95rem; }
 .watchlist-section h1 {
-  font-size: clamp(2.6rem, 6vw, 5rem);
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
   font-stretch: 150%;
   font-weight: 880;
   line-height: .92;
@@ -1076,7 +1115,9 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 .watchlist-grid .anime-card .card-media { border-radius: 0; box-shadow: none; }
 .watchlist-grid .anime-card .card-cover { height: 100%; }
 .watchlist-grid .anime-card .card-body { padding: 16px 18px; }
-.watchlist-controls-progress.is-hidden { display: none; }
+.watchlist-controls-progress.is-hidden,
+.watchlist-progress.is-hidden,
+.watchlist-loved-toggle.is-hidden { display: none; }
 .watchlist-backup-tools {
   min-width: 0;
   margin-bottom: 20px;
@@ -1264,7 +1305,7 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .recommendations-grid { row-gap: 0; }
   .recommendation-card:not(.skeleton-card) {
     display: grid;
-    grid-row: span 8;
+    grid-row: span 10;
     grid-template-rows: subgrid;
     row-gap: 0;
     align-content: start;
@@ -1277,6 +1318,8 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   .recommendation-card:not(.skeleton-card) > .recommendation-info > * { margin-top: 6px; }
   .recommendation-card:not(.skeleton-card) .recommendation-title { margin-top: 16px; align-self: start; }
   .recommendation-card:not(.skeleton-card) .recommendation-fit-label { margin-top: 10px; }
+  .recommendation-card:not(.skeleton-card) > .recommendation-info > :empty { margin-top: 0; }
+  .recommendation-card:not(.skeleton-card) .recommendation-genres { align-self: start; }
   .recommendation-card:not(.skeleton-card) .recommendation-reason { align-self: start; }
   .recommendation-card:not(.skeleton-card) .recommendation-quick-actions { margin-top: 0; align-self: end; }
   .recommendation-card:not(.skeleton-card) .recommendation-more { margin-top: 14px; align-self: start; }
@@ -1414,6 +1457,14 @@ button.btn { line-height: inherit; }
   background: transparent;
 }
 .watchlist-controls-label { min-width: 0; }
+.watchlist-start-btn { order: 3; min-height: 40px; }
+.watchlist-start-btn.is-hidden,
+.watchlist-plan-btn.is-hidden { display: none; }
+.detail-watchlist-controls :is(.watchlist-plan-btn, .watchlist-start-btn) { order: 0; min-height: 44px; padding-inline: 20px; }
+/* Label above, actions in one row: the primary save/start button leads, the status menu follows. */
+.detail-watchlist { flex-direction: column; align-items: stretch; justify-self: stretch; margin: 0 0 4px; }
+.detail-watchlist-controls .watchlist-select-wrapper { flex: 1 1 9rem; min-width: 0; max-width: 16rem; }
+.detail-watchlist-controls { width: 100%; justify-content: flex-start; }
 .watchlist-controls-select { border-radius: var(--radius-sm); border: 1.5px solid var(--border-hover); background-color: var(--bg-primary); }
 .watchlist-controls-stepper { flex-wrap: nowrap; gap: 6px; }
 .watchlist-controls-stepper-btn,
@@ -1478,7 +1529,7 @@ button.btn { line-height: inherit; }
 }
 
 @media (min-width: 1500px) {
-  .recommendation-media { height: 360px; }
+  .recommendation-media { height: clamp(220px, 34vh, 360px); }
   .anime-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 
@@ -1570,4 +1621,17 @@ button.btn { line-height: inherit; }
   .app-container, .app-sidebar, .recommendation-card, .anime-card, .recommendation-cover, .card-cover { transition: none; }
   .recommendation-card:hover .recommendation-cover, .anime-card:hover .card-cover { transform: none; }
   .recommendation-more summary::after, .watchlist-manage-data > summary::after { transition: none; }
+}
+
+/* Short desktop screens (1366x768 and similar laptops): the display headline and
+   tall covers would push the picks' Want to watch / Skip actions below the fold. */
+@media (min-width: 901px) and (max-height: 820px) {
+  .discovery-garden:not(.is-returning) { padding: 18px 0 0; }
+  .discovery-garden:not(.is-returning) .discovery-title { font-size: clamp(2.6rem, 4vw, 3.3rem); }
+  .discovery-garden:not(.is-returning) .discovery-actions { margin-top: 12px; }
+  .recommendations-section { padding-top: 36px; }
+  .recommendation-media { height: clamp(170px, 23vh, 210px); }
+  .recommendation-obi { gap: 8px; padding-top: 10px; }
+  .recommendation-obi-label { font-size: .68rem; font-stretch: 62%; letter-spacing: .01em; }
+  .recommendation-obi-score { min-height: 50px; }
 }

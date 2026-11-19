@@ -101,8 +101,17 @@ const KeyboardShortcuts = {
             // Touch-only devices have no keyboard to use the shortcuts with.
             if (!window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches) return;
 
-            // Show hint after a delay
-            setTimeout(() => {
+            // Wait until the visitor navigates by keyboard: the hint only helps keyboard
+            // users, and a timed popup would sit on top of the first picks for everyone else.
+            const isNavigationKey = (event) => ['Tab', 'ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'j', 'k'].includes(event.key)
+                && !event.target?.matches?.('input, textarea, select');
+            const onFirstKeyboardUse = (event) => {
+                if (!isNavigationKey(event)) return;
+                document.removeEventListener('keydown', onFirstKeyboardUse);
+                showHint();
+            };
+            document.addEventListener('keydown', onFirstKeyboardUse);
+            const showHint = () => {
                 const hint = document.createElement('div');
                 hint.className = 'keyboard-hint';
                 hint.setAttribute('role', 'status');
@@ -138,9 +147,13 @@ const KeyboardShortcuts = {
                     document.removeEventListener('click', markAcknowledged);
                 };
 
-                document.addEventListener('keydown', markAcknowledged, { once: true });
-                document.addEventListener('click', markAcknowledged, { once: true });
-            }, 2000);
+                // The keydown that revealed the hint is still dispatching, so start
+                // listening for acknowledgement on the next one.
+                setTimeout(() => {
+                    document.addEventListener('keydown', markAcknowledged, { once: true });
+                    document.addEventListener('click', markAcknowledged, { once: true });
+                }, 0);
+            };
         } catch (error) {
             // Ignore storage errors
         }

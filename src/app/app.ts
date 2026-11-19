@@ -52,6 +52,8 @@ import { dismissToast as dismissToastNotification, feedbackToastOptions, showToa
  * Main application logic for Anime Scoring Dashboard
  */
 
+// MyAnimeList lists accolades alongside genres; they say nothing about what a show is.
+const NON_GENRE_TAGS = new Set(['Award Winning']);
 const App = {
   ...appSeoMethods,
   animeData: [],
@@ -643,7 +645,8 @@ const App = {
   getAiringDashboardAdapter() {
     if (!this.airingDashboardAdapter) {
       this.airingDashboardAdapter = createWatchlistAiringDashboardAdapter({
-        logger: this.getLogger()
+        logger: this.getLogger(),
+        controllerOptions: { hideWhenNothingAiring: true }
       });
     }
     return this.airingDashboardAdapter;
@@ -3312,6 +3315,7 @@ const App = {
             <div class="card-title-row">
               <h3 class="card-title"></h3>
             </div>
+            <div class="card-alt-title"></div>
             <div class="card-year"></div>
           </div>
           <div class="card-score-wrap">
@@ -3420,6 +3424,11 @@ const App = {
     const titleEl = card.querySelector('.card-title');
     if (titleEl) {
       titleEl.textContent = anime.title || '';
+    }
+
+    const altTitleEl = card.querySelector('.card-alt-title');
+    if (altTitleEl) {
+      altTitleEl.textContent = this.getDistinctEnglishTitle(anime);
     }
 
     const yearEl = card.querySelector('.card-year');
@@ -3788,6 +3797,12 @@ const App = {
     `);
   },
 
+  // Romanized titles alone are hard to recognize; cards add the English title when it differs.
+  getDistinctEnglishTitle(anime) {
+    const englishTitle = typeof anime?.titleEnglish === 'string' ? anime.titleEnglish.trim() : '';
+    return englishTitle && englishTitle.toLowerCase() !== String(anime?.title || '').trim().toLowerCase() ? englishTitle : '';
+  },
+
   renderRecommendations() {
     const container = document.getElementById('recommendations-grid');
     if (!container) return;
@@ -3828,6 +3843,13 @@ const App = {
       const safeReason = this.escapeHtml(anime.fitReason || anime.reason || '');
       const safeYear = this.escapeHtml(anime.year || 'Unknown');
       const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
+      const safeAltTitle = this.escapeHtml(this.getDistinctEnglishTitle(anime));
+      // Genres answer "what is this about?" before any rating does.
+      const genreTags = [...(Array.isArray(anime.genres) ? anime.genres : []), ...(Array.isArray(anime.themes) ? anime.themes : [])]
+        .filter((tag, tagIndex, tags) => typeof tag === 'string' && tag && !NON_GENRE_TAGS.has(tag) && tags.indexOf(tag) === tagIndex)
+        .slice(0, 3)
+        .map(tag => `<span class="recommendation-genre">${this.escapeHtml(tag)}</span>`)
+        .join('');
       const decision = this.getCardDecisionData(anime);
       const decisionClass = this.sanitizeClassList('recommendation-signal', decision.className);
       const obiLabel = decision.kind === 'episode' ? 'Episode strength' : decision.kind === 'community' ? 'MAL score' : '';
@@ -3856,15 +3878,14 @@ const App = {
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="group" tabindex="-1" aria-label="${safeTitle}">
           <div class="recommendation-media">
-            <span class="recommendation-obi">
-              <span class="recommendation-rank"><span class="visually-hidden">Pick </span>${index + 1}</span>
-              ${obiMarkup}
-            </span>
+            ${obiMarkup ? `<span class="recommendation-obi">${obiMarkup}</span>` : ''}
             <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" ${recDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${recFallbackAttrs}>
           </div>
           <div class="recommendation-info">
             <button class="recommendation-title" type="button" data-action="open-anime" data-anime-id="${safeId}" aria-label="${cardLabel}">${safeTitle}</button>
+            <div class="recommendation-alt-title">${safeAltTitle}</div>
             <div class="recommendation-submeta">${safeYear} &bull; ${safeStudio}</div>
+            <div class="recommendation-genres">${genreTags}</div>
             ${showFitLabel ? `<div class="recommendation-fit-label">${this.escapeHtml(anime.fitLabel)}</div>` : ''}
             <div class="recommendation-reason">${safeReason}</div>
             <div class="recommendation-episodes">${this.escapeHtml(anime.episodeSummary)}</div>

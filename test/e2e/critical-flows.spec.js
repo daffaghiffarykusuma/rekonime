@@ -68,10 +68,12 @@ test('recommendation quick-save persists without replacing detail access', async
   await expect(save).toBeFocused();
   await page.keyboard.press('Enter');
 
-  const toast = page.getByRole('status').filter({ hasText: 'Saved to Want to watch' });
-  await expect(toast).toBeVisible();
+  // The chosen-title panel is the single confirmation; no duplicate toast.
+  const chosen = page.getByRole('region', { name: 'Your chosen title' });
+  await expect(chosen).toContainText('Saved to Want to watch');
+  await expect(page.locator('.toast').filter({ hasText: 'Saved to Want to watch' })).toHaveCount(0);
   await expect(page.locator('#recommendations-grid .recommendation-card').filter({ has: page.getByRole('button', { name: `Want to watch ${title}`, exact: true }) })).toHaveCount(0);
-  await toast.getByRole('link', { name: 'View watchlist' }).click();
+  await chosen.getByRole('link', { name: 'View watchlist' }).click();
   await expect(page).toHaveURL(/watchlist\.html/);
   await expect(page.locator('.card-title', { hasText: title })).toBeVisible();
 
@@ -99,14 +101,15 @@ test('complete discovery-to-watchlist journey', async ({ browser, baseURL }) => 
   await expect(page.locator('#detail-modal.visible')).toBeVisible();
   await page.getByRole('button', { name: 'Close details' }).click();
 
-  const save = page.getByRole('button', { name: `Want to watch ${title}`, exact: true });
+  const save = page.locator('#recommendations-grid').getByRole('button', { name: `Want to watch ${title}`, exact: true });
   await save.focus();
   await expect(save).toBeFocused();
   await page.keyboard.press('Enter');
-  const toast = page.getByRole('status').filter({ hasText: 'Saved to Want to watch' });
-  await expect(toast).toBeVisible();
-  await expect(toast).toHaveAttribute('aria-live', 'polite');
-  await toast.getByRole('link', { name: 'View watchlist' }).click();
+  const chosen = page.getByRole('region', { name: 'Your chosen title' });
+  await expect(chosen).toContainText('Saved to Want to watch');
+  await expect(page.locator('#recommendations-status')).toHaveAttribute('aria-live', 'polite');
+  await expect(page.locator('#recommendations-status')).toContainText(`Saved ${title} to Want to watch`);
+  await chosen.getByRole('link', { name: 'View watchlist' }).click();
 
   const watchCard = page.locator('#watchlist-grid .anime-card').filter({ hasText: title });
   await expect(watchCard).toBeVisible();

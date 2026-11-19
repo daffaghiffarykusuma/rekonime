@@ -10,7 +10,17 @@ const CHANGE_COMMANDS = {
 
 const CLICK_COMMANDS = {
   'watch-progress-inc': (runtime, animeId, options) => runtime.adjustProgress(animeId, 1, options),
-  'watch-progress-dec': (runtime, animeId, options) => runtime.adjustProgress(animeId, -1, options)
+  'watch-progress-dec': (runtime, animeId, options) => runtime.adjustProgress(animeId, -1, options),
+  'watch-start': (runtime, animeId, options) => runtime.setStatus(animeId, 'watching', options),
+  'watch-loved': (runtime, animeId) => runtime.toggleLoved(animeId)
+};
+
+const focusEntryControls = (documentRef, animeId) => {
+  const cards = documentRef?.querySelectorAll?.('#watchlist-grid .anime-card') || [];
+  const card = [...cards].find(element => element.dataset.animeId === animeId);
+  const control = card?.querySelector('.watchlist-controls-progress:not(.is-hidden) .watchlist-controls-input')
+    || card?.querySelector('.watchlist-controls-select');
+  control?.focus?.();
 };
 
 const createWatchlistPageRuntime = ({
@@ -43,7 +53,12 @@ const createWatchlistPageRuntime = ({
     const command = CLICK_COMMANDS[actionEl?.dataset?.action];
     if (!command) return true;
     const resolved = resolveCardTarget(target, actionEl);
-    if (resolved) command(getWatchlistRuntime(), resolved.animeId, resolved.options);
+    if (resolved) {
+      command(getWatchlistRuntime(), resolved.animeId, resolved.options);
+      // Status changes re-render the list and drop the pressed button; keep the
+      // keyboard user on the same title's controls.
+      if (actionEl?.dataset?.action === 'watch-start') focusEntryControls(target.ownerDocument, resolved.animeId);
+    }
     return true;
   };
 

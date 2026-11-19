@@ -33,7 +33,7 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 
     await expect(failure).toBeVisible();
     await expect(failure).toHaveAttribute('aria-live', 'assertive');
     await expect(failure).toContainText('Try again');
-    await expect(page.getByRole('status').filter({ hasText: 'Saved to Want to watch' })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Your chosen title' })).toBeHidden();
     await expect(save).toBeFocused();
     const box = await failure.boundingBox();
     expect(box.x).toBeGreaterThanOrEqual(0);
@@ -45,9 +45,9 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 
 
     await page.evaluate(() => { window.blockWatchlistSave = false; });
     await page.keyboard.press('Enter');
-    const success = page.getByRole('status').filter({ hasText: 'Saved to Want to watch' });
-    await expect(success).toBeVisible();
-    await expect(success).toHaveAttribute('aria-live', 'polite');
+    const success = page.getByRole('region', { name: 'Your chosen title' });
+    await expect(success).toContainText('Saved to Want to watch');
+    await expect(page.locator('#recommendations-status')).toHaveAttribute('aria-live', 'polite');
     await success.getByRole('link', { name: 'View watchlist' }).click();
     await expect(page.locator('.card-title', { hasText: title })).toBeVisible();
     await page.reload();

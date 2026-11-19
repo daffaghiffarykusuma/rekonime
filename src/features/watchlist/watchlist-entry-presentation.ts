@@ -40,6 +40,10 @@ const renderWatchlistControlsHtml = (entry, {
           <span class="detail-watchlist-subtitle">Save progress and pick up where you left off</span>
         </div>
         <div class="detail-watchlist-controls">
+          <button class="btn btn-primary btn-sm watchlist-plan-btn ${model.status ? 'is-hidden' : ''}" type="button"
+            data-action="watch-plan" data-anime-id="${safeId}" aria-label="Want to watch ${attr(anime.title || 'this anime')}">Want to watch</button>
+          <button class="btn btn-primary btn-sm watchlist-start-btn ${model.status === 'planned' ? '' : 'is-hidden'}" type="button"
+            data-action="watch-start" data-anime-id="${safeId}" aria-label="Start watching ${attr(anime.title || 'this anime')}">Start watching</button>
           <label class="watchlist-select-wrapper">
             <span class="visually-hidden">Choose your watch status</span>
             <select class="watchlist-select" id="watchlist-select" data-action="watch-status" data-anime-id="${safeId}">
@@ -102,6 +106,18 @@ const createWatchlistControlsElement = (item, entry, {
   const wrapper = document.createElement('div');
   wrapper.className = 'watchlist-controls';
   wrapper.setAttribute('data-watchlist', 'true');
+
+  // A planned title's next step is almost always "start it", so offer that directly
+  // instead of making people find "Watching now" inside the status menu.
+  const start = document.createElement('button');
+  start.type = 'button';
+  start.className = 'btn btn-primary btn-sm watchlist-start-btn';
+  if (model.status !== 'planned') start.classList.add('is-hidden');
+  start.setAttribute('data-action', 'watch-start');
+  start.setAttribute('data-anime-id', item.id);
+  start.setAttribute('aria-label', `Start watching ${item.title}`);
+  start.textContent = 'Start watching';
+  wrapper.appendChild(start);
 
   const label = document.createElement('div');
   label.className = 'watchlist-controls-label';
@@ -197,10 +213,14 @@ const updateWatchlistControlsElement = (root, entry, {
   const input = root.querySelector('.watchlist-controls-input, #watchlist-progress-input');
   const total = root.querySelector('.watchlist-controls-total, #watchlist-progress-total');
   const loved = root.querySelector('.watchlist-loved-toggle');
+  const start = root.querySelector('.watchlist-start-btn');
+  const plan = root.querySelector('.watchlist-plan-btn');
   if (!select || !progressWrap || !input) return false;
 
   const model = buildWatchlistEntryPresentationModel(entry, { anime, episodeCount });
   select.value = model.status;
+  start?.classList.toggle('is-hidden', model.status !== 'planned');
+  plan?.classList.toggle('is-hidden', Boolean(model.status));
   progressWrap.classList.toggle('is-hidden', !model.showProgress);
   input.value = String(model.progress);
 
