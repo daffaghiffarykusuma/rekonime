@@ -66,6 +66,8 @@ Run these before opening a PR:
 5. `bun run test:coverage`
 6. `bun run check:security`
 
+Or run the same checks as CI in one command: `bun run check:pr` (needs a clean working tree for the build-clean step, so commit first).
+
 Useful grouped commands:
 - `bun run check:quick` (unit + integration + data validation)
 - `bun run data:validate:strict` (raw validator with no baseline allowances)

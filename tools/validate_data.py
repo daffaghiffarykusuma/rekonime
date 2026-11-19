@@ -95,7 +95,11 @@ def normalize_title(anime: Dict[str, Any]) -> str:
 
 def normalize_score(anime: Dict[str, Any]) -> Any:
     meta = anime.get("metadata") or {}
-    return meta["score"] if "score" in meta else anime.get("score")
+    for source in (meta, anime):
+        for key in ("score", "communityScore"):
+            if source.get(key) is not None:
+                return source[key]
+    return None
 
 
 def normalize_anilist_id(anime: Dict[str, Any]) -> Any:

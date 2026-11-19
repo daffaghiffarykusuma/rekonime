@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { CatalogCache } from './catalog-cache.ts';
 import { getDeclaredEpisodeCount, isValidCatalogPayload, normalizeAnimeData } from './catalog-payload.ts';
+import { expandCatalogStats } from './catalog-stats-defaults.js';
 
 const DEFAULT_FETCH_CONFIG = {
   maxRetries: 3,
@@ -199,7 +200,7 @@ const createCatalogRuntime = ({
         if (externalSignal) {
           externalSignal.removeEventListener('abort', onExternalAbort);
         }
-        return data;
+        return expandCatalogStats(data);
       } catch (error) {
         clearTimeout(timeoutId);
         if (externalSignal) {
@@ -245,7 +246,7 @@ const createCatalogRuntime = ({
       const logger = getLogger();
       logger?.info?.('[loadCachedFullCatalog] Loaded full catalog from IndexedDB cache');
       emitCatalogEvent('indexeddb-full-hit');
-      return payload;
+      return expandCatalogStats(payload);
     } catch (error) {
       const logger = getLogger();
       logger?.warn?.('[loadCachedFullCatalog] Unable to read cached full catalog', { error });

@@ -3,7 +3,8 @@ dist/
 coverage/
 test-results/
 .playwright-cli/
-output/playwright/
+output/
+.scratch/**/evidence/
 .build-state.json
 package-lock.json
 

@@ -41,7 +41,7 @@ const KeyboardShortcuts = {
                 scope: 'Global'
             },
             'b': {
-                action: 'goToBookmarks',
+                action: 'goToWatchlist',
                 description: 'Go to watchlist page',
                 scope: 'Global'
             },
@@ -203,8 +203,8 @@ const KeyboardShortcuts = {
             case 'closeModal':
                 this.closeModal();
                 break;
-            case 'goToBookmarks':
-                this.goToBookmarks();
+            case 'goToWatchlist':
+                this.goToWatchlist();
                 break;
             case 'openFilters':
                 this.openFilters();
@@ -401,7 +401,7 @@ const KeyboardShortcuts = {
     /**
      * Navigate to watchlist page
      */
-    goToBookmarks() {
+    goToWatchlist() {
         window.location.href = 'watchlist.html';
     },
 

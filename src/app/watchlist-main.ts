@@ -19,7 +19,7 @@ import {
 import { createWatchlistPageInteractions } from '../features/watchlist/watchlist-page-interactions.ts';
 import { createWatchlistPageRenderer } from '../features/watchlist/watchlist-page-renderer.ts';
 import { createWatchlistPageRuntime } from '../features/watchlist/watchlist-page-runtime.ts';
-import { showToast } from '../shared/ui/toast.ts';
+import { feedbackToastOptions, showToast } from '../shared/ui/toast.ts';
 import './bootstrap/watchlist-cover-preload.js';
 
 const PLACEHOLDER_COVER = IMAGE_PLACEHOLDER;
@@ -132,7 +132,7 @@ const watchlistPageHost = {
       applyingOwnTransition = false;
     }
   },
-  announce: (feedback) => showToast(feedback.message, { key: 'watchlist', type: 'success' }),
+  announce: (feedback) => showToast(feedback.message, { ...feedbackToastOptions(feedback), key: 'watchlist', type: 'success' }),
   announceFailure: (failure) => showToast(failure.message, { key: 'watchlist', type: 'error', duration: 10000 }),
   // Taste Profile lives in the full App, which loads lazily on this page (for settings).
   refreshTasteProfile: () => {

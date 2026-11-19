@@ -15,6 +15,7 @@ const resolveEpisodeTotal = (anime, snapshot) => (
 );
 
 const STORAGE_FAILURE_MESSAGE = "Couldn't save your Watchlist change. Nothing changed. Try again; if it keeps failing, check browser storage.";
+const STALE_UNDO_MESSAGE = "Couldn't undo because this Watchlist entry changed again. Your newer changes are preserved.";
 
 /**
  * Watchlist Lifecycle Runtime: the one place that turns a Watchlist command into a persisted
@@ -27,7 +28,7 @@ const STORAGE_FAILURE_MESSAGE = "Couldn't save your Watchlist change. Nothing ch
  *   renderContinueWatching()    redraw the promoted Watching entry
  *   emit(name, payload)         dispatch the Watchlist Lifecycle event
  *   scheduleDashboard(options)  schedule an Airing Schedule dashboard update
- *   announce(feedback)          confirm a change ({ message, action? })
+ *   announce(feedback)          confirm a change ({ message, action?, undo? }); call undo() to revert it
  *   announceFailure(failure)    report a change that could not be saved ({ id, message })
  *   refreshTasteProfile()       recompute Taste Profile evidence from the Watchlist
  *   updateTasteProfileUi()      redraw Taste Profile settings
@@ -118,7 +119,11 @@ const createWatchlistLifecycleRuntime = ({
     if (transition.dashboard?.shouldSchedule) {
       host.scheduleDashboard?.({ timeout: transition.dashboard.timeout, ...(isImport ? { cacheOnly: true } : {}) });
     }
-    if (transition.feedback && !isImport) host.announce?.(transition.feedback);
+    if (transition.feedback && !isImport) {
+      host.announce?.(result.offerUndo && result.undoToken
+        ? { ...transition.feedback, undo: () => undoFromFeedback(result.undoToken) }
+        : transition.feedback);
+    }
     host.renderContinueWatching?.();
     if (transition.render?.watchlist?.shouldRender) host.renderWatchlist?.();
     if (effects?.refreshTasteProfile) host.refreshTasteProfile?.();
@@ -190,8 +195,23 @@ const createWatchlistLifecycleRuntime = ({
     });
   };
 
-  const setStatus = (animeId, status, options = {}) => {
-    const lifecycle = getReadyLifecycle();
+  // An undo receipt restores the entry captured before a change, but only while
+  // the entry still matches what that change saved.
+  // `offerUndo` asks callers to show Undo with the change's own feedback; the
+  // recommendation selection shows its own Undo control instead.
+  const issueUndoToken = (id, previousEntry, result, undoMessage, { offerUndo = false } = {}) => {
+    if (!result?.changed) return result;
+    const undoToken = {};
+    selections.set(undoToken, {
+      id: normalizeId(id),
+      previousEntry: previousEntry ? structuredClone(previousEntry) : null,
+      savedEntry: result.transition.entry ? structuredClone(result.transition.entry) : null,
+      undoMessage
+    });
+    return { ...result, undoToken, offerUndo };
+  };
+
+  const applyStatus = (lifecycle, animeId, status, options = {}) => {
     const context = resolveAnimeContext(lifecycle, animeId, options);
     if (!context) return null;
     const result = lifecycle.setStatus(context.key, status, {
@@ -202,6 +222,13 @@ const createWatchlistLifecycleRuntime = ({
       refreshTasteProfile: true,
       renderRecommendations: true
     });
+  };
+
+  const setStatus = (animeId, status, options = {}) => {
+    const lifecycle = getReadyLifecycle();
+    const previousEntry = lifecycle.getEntry(normalizeId(animeId));
+    const snapshot = previousEntry ? structuredClone(previousEntry) : null;
+    return issueUndoToken(animeId, snapshot, applyStatus(lifecycle, animeId, status, options), 'Undid Watchlist change', { offerUndo: true });
   };
 
   const setProgress = (animeId, progress, options = {}) => {
@@ -218,16 +245,10 @@ const createWatchlistLifecycleRuntime = ({
   const selectForLater = (animeId, options = {}) => {
     const lifecycle = getReadyLifecycle();
     lifecycle.load();
-    const previousEntry = lifecycle.getEntry(animeId);
-    const result = setStatus(animeId, 'planned', options);
-    if (!result?.changed) return result;
-    const undoToken = {};
-    selections.set(undoToken, {
-      id: normalizeId(animeId),
-      previousEntry: previousEntry ? structuredClone(previousEntry) : null,
-      savedEntry: structuredClone(result.transition.entry)
-    });
-    return { ...result, undoToken };
+    const entry = lifecycle.getEntry(animeId);
+    const previousEntry = entry ? structuredClone(entry) : null;
+    const result = applyStatus(lifecycle, animeId, 'planned', options);
+    return issueUndoToken(animeId, previousEntry, result, 'Undid Watchlist selection');
   };
 
   const undoSelection = (undoToken) => {
@@ -245,15 +266,16 @@ const createWatchlistLifecycleRuntime = ({
     };
     if (JSON.stringify(selectionState(current)) !== JSON.stringify(selectionState(receipt.savedEntry))) return reject('stale-selection');
     const candidate = new Map(lifecycle.getEntries().map(entry => [entry.id, entry]));
-    if (receipt.previousEntry) candidate.set(receipt.id, { ...receipt.previousEntry, snapshot: current.snapshot });
+    // A removed entry has no current Snapshot, so restore the one it had.
+    if (receipt.previousEntry) candidate.set(receipt.id, { ...receipt.previousEntry, snapshot: current?.snapshot ?? receipt.previousEntry.snapshot });
     else candidate.delete(receipt.id);
     if (!lifecycle.commitEntries(candidate)) return reject('storage-failed');
     selections.delete(undoToken);
     const result = buildChangedResult({
       changed: true, id: receipt.id, entry: lifecycle.getEntry(receipt.id),
       removed: !receipt.previousEntry, previousEntry: current, operation: 'selection-undo'
-    }, { refreshTasteProfile: true, renderRecommendations: true });
-    result.transition.feedback = { message: 'Undid Watchlist selection' };
+    }, { refreshTasteProfile: true, renderRecommendations: true, renderMode: 'watchlist' });
+    result.transition.feedback = { message: receipt.undoMessage || 'Undid Watchlist selection' };
     return result;
   };
 
@@ -323,6 +345,15 @@ const createWatchlistLifecycleRuntime = ({
   };
 
   const withEffects = (command) => (...args) => applyEffects(command(...args));
+
+  // Undo offered with a change's feedback. Storage failures are reported by applyEffects.
+  const undoFromFeedback = (undoToken) => {
+    const result = applyEffects(undoSelection(undoToken));
+    if (!result?.changed && result?.compatibilityResult?.reason === 'stale-selection') {
+      host?.announceFailure?.({ id: result.compatibilityResult.id, message: STALE_UNDO_MESSAGE });
+    }
+    return result;
+  };
 
   return {
     // Ordinary transitions apply their effects through the host before returning.

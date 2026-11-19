@@ -256,7 +256,7 @@ const createDetailExperience = (app, dependencies = {}) => {
         anime = app.animeData.find(entry => entry?.id === owner.animeId) || null;
       }
       if (!anime) {
-        const key = app.normalizeBookmarkId(owner.animeId);
+        const key = app.normalizeWatchlistId(owner.animeId);
         anime = key ? app.getWatchlistSnapshot(key) : null;
       }
       if (!anime) {

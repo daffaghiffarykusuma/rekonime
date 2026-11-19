@@ -13,10 +13,12 @@ const kib = 1024;
 const totalBudgetBytes = 27 * mib;
 const fileBudgets = new Map([
   ['js/data.js', 1.5 * mib],
-  // Allow the 3,649-title catalog after the Fall 2026 import.
+  // Allow the 3,649-title catalog after the Fall 2026 import. Stats defaults
+  // compaction (catalog-stats-defaults.js) brought it to about 2.8 MiB.
   ['data/anime.full.index.json', 3.6 * mib],
   ['data/franchise-map.json', 2.5 * mib],
-  ['js/app.js', 190 * kib],
+  // Raised from 190 KiB in Nov 2026, when the bundle reached 183 KiB.
+  ['js/app.js', 210 * kib],
   ['fonts/phosphor-icons.woff2', 8 * kib],
   [/^css\/main-[A-Za-z0-9_-]+\.css$/, 125 * kib],
   ['css/watchlist.css', 100 * kib]

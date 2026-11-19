@@ -190,3 +190,19 @@ test('App initially ranks Explore Every Title by Taste Profile fit', () => {
     Object.assign(App, originals);
   }
 });
+
+test('Ranked sorts list unscored titles after every scored title', () => {
+  const catalog = [
+    { id: 'unscored', communityScore: null, stats: {} },
+    { id: 'zero', communityScore: 0, stats: { retentionScore: 0 } },
+    { id: 'high', communityScore: 8.4, stats: { retentionScore: 90 } },
+    { id: 'mid', communityScore: 7.1, stats: { retentionScore: 60 } }
+  ];
+
+  for (const metric of ['satisfaction', 'retention']) {
+    assert.deepEqual(App.sortAnimeByMetric(catalog, metric).map(item => item.id), ['high', 'mid', 'zero', 'unscored']);
+    assert.deepEqual(App.selectTopAnimeByMetric(catalog, metric, 3).map(item => item.id), ['high', 'mid', 'zero']);
+    // A limit above the catalog size must still return a sorted list.
+    assert.deepEqual(App.selectTopAnimeByMetric(catalog, metric, 10).map(item => item.id), ['high', 'mid', 'zero', 'unscored']);
+  }
+});

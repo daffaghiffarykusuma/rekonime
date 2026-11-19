@@ -407,3 +407,70 @@ test('toggling loved flips the persisted affinity rather than trusting page stat
   runtime.toggleLoved('show-1');
   assert.equal(Boolean(lifecycle.getEntry('show-1').loved), false);
 });
+
+test('a status change offers Undo that restores the previous entry', () => {
+  const { lifecycle, runtime } = createRuntimeHarness();
+  runtime.setStatus('show-1', 'watching');
+  runtime.setProgress('show-1', 4);
+  const before = structuredClone(lifecycle.getEntry('show-1'));
+
+  const changed = runtime.setStatus('show-1', 'dropped');
+  assert.equal(changed.offerUndo, true);
+  const undone = runtime.undoSelection(changed.undoToken);
+  assert.equal(undone.changed, true);
+  assert.equal(undone.transition.feedback.message, 'Undid Watchlist change');
+  assert.equal(undone.transition.render.watchlist.shouldRender, true);
+  lifecycle.load();
+  assert.deepEqual(lifecycle.getEntry('show-1'), before);
+});
+
+test('Undo brings back a removed Watchlist entry with its Snapshot', () => {
+  const { lifecycle, runtime } = createRuntimeHarness();
+  runtime.setStatus('show-1', 'completed');
+  const before = structuredClone(lifecycle.getEntry('show-1'));
+
+  const removed = runtime.setStatus('show-1', '');
+  assert.equal(removed.transition.removed, true);
+  assert.equal(runtime.undoSelection(removed.undoToken).changed, true);
+  lifecycle.load();
+  assert.deepEqual(lifecycle.getEntry('show-1'), before);
+});
+
+test('status Undo is rejected after a newer change to the same entry', () => {
+  const { lifecycle, runtime } = createRuntimeHarness();
+  const changed = runtime.setStatus('show-1', 'watching');
+  runtime.setProgress('show-1', 3);
+  const rejected = runtime.undoSelection(changed.undoToken);
+  assert.equal(rejected.changed, false);
+  assert.equal(rejected.compatibilityResult.reason, 'stale-selection');
+  assert.equal(lifecycle.getEntry('show-1').progress, 3);
+});
+
+test('a Discovery selection keeps its own Undo control instead of a toast Undo', () => {
+  const { runtime } = createRuntimeHarness();
+  const selected = runtime.selectForLater('show-1');
+  assert.equal(selected.offerUndo, false);
+  assert.ok(selected.undoToken);
+});
+
+test('status feedback carries Undo through the host and reports a stale Undo', () => {
+  const lifecycle = createWatchlistLifecycle({ storage: createMemoryStorage(), now: () => 1000 });
+  const { calls, host } = createRecordingHost(['announce', 'announceFailure']);
+  const runtime = createWatchlistLifecycleRuntime({ getLifecycle: () => lifecycle, host });
+
+  runtime.setStatus('show-1', 'watching', { episodeCount: 12 });
+  const [, saved] = calls.find(call => call[0] === 'announce');
+  assert.equal(typeof saved.undo, 'function');
+  saved.undo();
+  assert.equal(lifecycle.getEntry('show-1'), null);
+  assert.equal(calls.at(-1)[1].message, 'Undid Watchlist change');
+  assert.equal(calls.at(-1)[1].undo, undefined);
+
+  runtime.setStatus('show-1', 'watching', { episodeCount: 12 });
+  const [, second] = calls.at(-1);
+  runtime.setProgress('show-1', 2, { episodeCount: 12 });
+  second.undo();
+  assert.equal(calls.at(-1)[0], 'announceFailure');
+  assert.match(calls.at(-1)[1].message, /changed again/);
+  assert.equal(lifecycle.getEntry('show-1').progress, 2);
+});

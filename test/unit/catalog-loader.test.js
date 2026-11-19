@@ -247,3 +247,18 @@ test('App Catalog Runtime signals one enrichment change and owns load state', as
     globalThis.fetch = originalFetch;
   }
 });
+
+test('Catalog runtime restores compacted stats defaults before applying the full index', async () => {
+  setupDom(undefined, { url: 'https://example.com/' });
+  const compacted = {
+    statsDefaults: { scoringVersion: 2, ratingEvidence: { coverage: 1 } },
+    anime: [{ id: 'full-entry', title: 'Full Entry', stats: { average: 4 } }]
+  };
+  const { runtime, applied } = createRuntimeHarness({
+    fetchFn: async (path) => jsonResponse(path === 'data/anime.full.index.json' ? compacted : null)
+  });
+
+  assert.equal(await runtime.loadInitialData(), true);
+  assert.deepEqual(applied[0].payload.anime[0].stats, { average: 4, scoringVersion: 2, ratingEvidence: { coverage: 1 } });
+  assert.equal('statsDefaults' in applied[0].payload, false);
+});

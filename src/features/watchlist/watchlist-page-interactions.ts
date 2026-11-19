@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { WATCHLIST_STORAGE_KEY } from './watchlist-state.js';
 
 const createWatchlistPageInteractions = ({
   documentRef = typeof document !== 'undefined' ? document : null,
@@ -106,6 +107,11 @@ const createWatchlistPageInteractions = ({
     window.addEventListener('rekonime:watchlist-updated', (event) => {
       if (isOwnWatchlistUpdate()) return;
       renderWatchlist({ cacheOnly: Boolean(event.detail?.summary) });
+    });
+    // Another tab saved Watchlist changes; render the newer persisted entries.
+    window.addEventListener('storage', (event) => {
+      if (event.key !== null && event.key !== WATCHLIST_STORAGE_KEY) return;
+      renderWatchlist();
     });
   };
 

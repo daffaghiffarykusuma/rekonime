@@ -23,7 +23,7 @@ const createAppHarness = (overrides = {}, dependencyOverrides = {}) => {
     }),
     updateUrlForAnime: (...args) => calls.push(['updateUrlForAnime', ...args]),
     resetMetaToDefault: () => calls.push(['resetMetaToDefault']),
-    normalizeBookmarkId: (value) => String(value ?? '').trim(),
+    normalizeWatchlistId: (value) => String(value ?? '').trim(),
     getWatchlistSnapshot: () => null,
     loadAnimeDetailChunk: async () => null,
     getSynopsisForAnime: (anime) => anime.synopsis || '',

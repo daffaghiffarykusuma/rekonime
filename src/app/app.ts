@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { IMAGE_PLACEHOLDER } from '../shared/runtime/image-placeholder.js';
+import { appSeoMethods } from './app-seo.ts';
 import { Recommendations } from '../features/discovery/recommendations.ts';
 import { Discovery } from '../features/discovery/discovery.js';
 import { FilterPresets } from '../features/discovery/filterPresets.ts';
@@ -27,7 +28,6 @@ import { readImportText } from '../shared/security/import-limits.ts';
 import {
   setHTML,
   insertHTML,
-  setScriptText,
   setScriptSource
 } from '../shared/security/trusted-types.js';
 import {
@@ -41,18 +41,19 @@ import { buildContinueWatchingModel } from '../features/watchlist/continue-watch
 import { recordBackupExport, updateBackupStatus } from '../features/preferences/backup-status.ts';
 import { renderMalImport } from '../features/watchlist/mal-import-presentation.ts';
 import { createWatchlistImportWorkflow } from '../features/watchlist/watchlist-import-workflow.ts';
-import { createTasteProfileStore } from '../features/preferences/taste-profile.ts';
+import { createTasteProfileStore, TASTE_PROFILE_STORAGE_KEY } from '../features/preferences/taste-profile.ts';
 import {
   recoverPendingPersonalDataRestore,
   restorePersonalData
 } from '../features/preferences/personal-data-restore.ts';
-import { dismissToast as dismissToastNotification, showToast as showToastNotification } from '../shared/ui/toast.ts';
+import { dismissToast as dismissToastNotification, feedbackToastOptions, showToast as showToastNotification } from '../shared/ui/toast.ts';
 
 /**
  * Main application logic for Anime Scoring Dashboard
  */
 
 const App = {
+  ...appSeoMethods,
   animeData: [],
   filteredData: [],
   currentSort: 'taste',
@@ -249,7 +250,7 @@ const App = {
         getLifecycle: () => this.getWatchlistLifecycle(),
         // Another lifecycle may have written storage underneath this App on the Watchlist page.
         loadBeforeTransition: dedicatedWatchlistPage,
-        normalizeId: (animeId) => this.normalizeBookmarkId(animeId),
+        normalizeId: (animeId) => this.normalizeWatchlistId(animeId),
         host: {
           updateControls: (animeId) => this.updateWatchlistControls(animeId),
           renderWatchlist: () => this.renderWatchlist(),
@@ -260,7 +261,7 @@ const App = {
             scheduleDashboard: (options) => this.scheduleAiringDashboardRender(options)
           }),
           announce: (feedback) => this.showToast(feedback.message, {
-            action: feedback.action,
+            ...feedbackToastOptions(feedback),
             key: 'watchlist',
             type: 'success'
           }),
@@ -554,7 +555,7 @@ const App = {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   },
 
-  normalizeBookmarkId(value) {
+  normalizeWatchlistId(value) {
     const key = String(value ?? '').trim();
     return key || '';
   },
@@ -613,7 +614,7 @@ const App = {
   },
 
   getWatchlistSnapshot(animeId) {
-    const key = this.normalizeBookmarkId(animeId);
+    const key = this.normalizeWatchlistId(animeId);
     if (!key) return null;
     const entry = this.watchlistEntries.get(key);
     if (!entry?.snapshot) return null;
@@ -772,6 +773,38 @@ const App = {
     URL.revokeObjectURL(url);
     recordBackupExport();
     this.showToast('Personal data export started.');
+  },
+
+  // Another tab changed saved personal data; reload it so this tab neither shows
+  // stale progress nor overwrites the newer entries on its next save.
+  handleExternalStorageChange(event) {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return false;
+    const key = event?.key ?? null;
+    const watchlistChanged = key === null || key === this.watchlistStorageKey;
+    const tasteChanged = key === null || key === TASTE_PROFILE_STORAGE_KEY;
+    if (!watchlistChanged && !tasteChanged) return false;
+    try {
+      if (watchlistChanged) this.loadWatchlist();
+      if (tasteChanged) this.getTasteProfileStore().load();
+      this.refreshTasteProfileEvidence();
+      // Re-rendering settings would discard focus or an in-progress import review.
+      const settingsContent = document.getElementById('settings-content');
+      if (!settingsContent?.contains(document.activeElement)) this.updateTasteProfileUi();
+      this.renderRecommendations();
+      if (watchlistChanged) {
+        // The Watchlist page re-renders itself from its own storage listener.
+        if (document.getElementById('watchlist-grid')?.dataset.renderer !== 'watchlist-page') {
+          this.renderWatchlist();
+          this.scheduleAiringDashboardRender();
+        }
+        if (this.currentAnimeId) this.updateWatchlistControls(this.currentAnimeId);
+        this.renderContinueWatching();
+      }
+      return true;
+    } catch (error) {
+      this.getLogger()?.warn?.('Failed to apply personal data changed in another tab', { error });
+      return false;
+    }
   },
 
   async restorePersonalDataFile(file) {
@@ -2126,6 +2159,10 @@ const App = {
       }
     });
 
+    this.addTrackedListener(window, 'storage', (event) => {
+      this.handleExternalStorageChange(event);
+    });
+
     this.addTrackedListener(window, 'popstate', () => {
       const filtersChanged = this.setActiveFiltersFromUrl({ updateUi: true });
       const searchQuery = this.getCatalogSearchQuery();
@@ -2383,184 +2420,6 @@ const App = {
     } catch (error) {
       return '';
     }
-  },
-
-  getMetaContent(key, isProperty = false) {
-    const attr = isProperty ? 'property' : 'name';
-    const tag = document.querySelector(`meta[${attr}="${key}"]`);
-    return tag ? tag.getAttribute('content') || '' : '';
-  },
-
-  setMetaContent(key, content, isProperty = false) {
-    const attr = isProperty ? 'property' : 'name';
-    let tag = document.querySelector(`meta[${attr}="${key}"]`);
-    if (!tag) {
-      tag = document.createElement('meta');
-      tag.setAttribute(attr, key);
-      document.head.appendChild(tag);
-    }
-    tag.setAttribute('content', content);
-  },
-
-  setCanonicalUrl(url) {
-    if (!url) return;
-    let tag = document.querySelector('link[rel="canonical"]');
-    if (!tag) {
-      tag = document.createElement('link');
-      tag.setAttribute('rel', 'canonical');
-      document.head.appendChild(tag);
-    }
-    tag.setAttribute('href', url);
-  },
-
-  applyMetaTags({ title, description, image, url, imageAlt } = {}) {
-    const safeTitle = title || this.defaultMeta.title || this.siteName;
-    const safeDescription = description || this.defaultMeta.description || '';
-    const safeImage = image || this.defaultMeta.image || '';
-    const safeUrl = url || this.defaultMeta.url || this.buildCanonicalUrl(window.location.href);
-    const resolvedUrl = this.resolveUrl(safeUrl);
-    const resolvedImage = this.resolveUrl(safeImage);
-    const twitterCard = resolvedImage ? 'summary_large_image' : 'summary';
-
-    if (safeTitle) {
-      document.title = safeTitle;
-      this.setMetaContent('og:title', safeTitle, true);
-      this.setMetaContent('twitter:title', safeTitle);
-    }
-
-    if (safeDescription) {
-      this.setMetaContent('description', safeDescription);
-      this.setMetaContent('og:description', safeDescription, true);
-      this.setMetaContent('twitter:description', safeDescription);
-    }
-
-    if (resolvedUrl) {
-      this.setMetaContent('og:url', resolvedUrl, true);
-      this.setCanonicalUrl(resolvedUrl);
-    }
-
-    this.setMetaContent('twitter:card', twitterCard);
-
-    if (resolvedImage) {
-      this.setMetaContent('og:image', resolvedImage, true);
-      this.setMetaContent('twitter:image', resolvedImage);
-    }
-
-    if (imageAlt) {
-      this.setMetaContent('og:image:alt', imageAlt, true);
-    }
-  },
-
-  buildMetaDescription(text) {
-    const cleaned = String(text || '')
-      .replace(/<[^>]*>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (!cleaned) return '';
-    if (cleaned.length <= 160) return cleaned;
-    return `${cleaned.slice(0, 157).trim()}...`;
-  },
-
-  getSynopsisForAnime(anime) {
-    if (!anime) return '';
-    const synopsis = String(anime.synopsis || '').trim();
-    if (synopsis) return synopsis;
-    const cacheKey = anime.anilistId || anime.title;
-    return this.getCachedSynopsis(cacheKey);
-  },
-
-  updateMetaForAnime(anime, descriptionOverride = '') {
-    if (!anime) {
-      this.resetMetaToDefault();
-      return;
-    }
-
-    const description = this.buildMetaDescription(descriptionOverride || anime.synopsis);
-    const title = `${anime.title} | ${this.siteName}`;
-    const url = this.buildCanonicalUrl(this.buildUrlForAnime(anime.id));
-    const image = anime.cover || this.defaultMeta.image;
-
-    this.applyMetaTags({
-      title,
-      description: description || this.defaultMeta.description,
-      image,
-      url,
-      imageAlt: anime.title
-    });
-
-    this.updateStructuredData({
-      title,
-      description: description || this.defaultMeta.description,
-      url,
-      image
-    });
-  },
-
-  resetMetaToDefault() {
-    const url = this.buildCanonicalUrl(this.basePageUrl || window.location.href);
-    this.applyMetaTags({
-      title: this.defaultMeta.title,
-      description: this.defaultMeta.description,
-      image: this.defaultMeta.image,
-      url,
-      imageAlt: 'Rekonime logo'
-    });
-
-    this.updateStructuredData({
-      title: this.defaultMeta.title,
-      description: this.defaultMeta.description,
-      url,
-      image: this.defaultMeta.image
-    });
-  },
-
-  updateStructuredData({ title, description, url, image } = {}) {
-    let script = document.getElementById('structured-data');
-    if (!script) {
-      script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.id = 'structured-data';
-      const nonce = document.querySelector('meta[name="csp-nonce"]')?.getAttribute('content');
-      if (nonce) {
-        script.setAttribute('nonce', nonce);
-      }
-      document.head.appendChild(script);
-    }
-
-    const pageUrl = url || this.buildCanonicalUrl(window.location.href);
-    const siteUrl = this.basePageUrl || this.getBaseUrl(pageUrl) || pageUrl;
-    const resolvedImage = this.resolveUrl(image);
-
-    const data = {
-      '@context': 'https://schema.org',
-      '@graph': [
-        {
-          '@type': 'WebSite',
-          '@id': `${siteUrl}#website`,
-          'name': this.siteName,
-          'url': siteUrl,
-          'description': this.defaultMeta.description || description || ''
-        },
-        {
-          '@type': 'WebPage',
-          '@id': `${pageUrl}#webpage`,
-          'name': title || this.defaultMeta.title || this.siteName,
-          'url': pageUrl,
-          'description': description || this.defaultMeta.description || '',
-          'isPartOf': { '@id': `${siteUrl}#website` }
-        }
-      ]
-    };
-
-    if (resolvedImage) {
-      data['@graph'][1].primaryImageOfPage = {
-        '@type': 'ImageObject',
-        'url': resolvedImage
-      };
-    }
-
-    setScriptText(script, JSON.stringify(data));
   },
 
   /**
@@ -4231,38 +4090,36 @@ const App = {
     if (metricKey === 'taste') {
       return this.getTasteProfileStore().prepareRecommendationSource(animeList).sort((a, b) =>
         b.tasteScore - a.tasteScore ||
-        (b.stats?.retentionScore ?? 0) - (a.stats?.retentionScore ?? 0)
+        this.compareRankValues(
+          Number.isFinite(a.stats?.retentionScore) ? a.stats.retentionScore : null,
+          Number.isFinite(b.stats?.retentionScore) ? b.stats.retentionScore : null
+        )
       );
     }
-    const list = [...animeList];
-    const key = metricKey === 'satisfaction' ? 'satisfaction' : 'retention';
+    const getValue = this.getRankValueGetter(metricKey);
+    return [...animeList].sort((a, b) => this.compareRankValues(getValue(a), getValue(b)));
+  },
 
-    list.sort((a, b) => {
-      const aVal = key === 'satisfaction'
-        ? (Number.isFinite(a.communityScore) ? a.communityScore : 0)
-        : (a.stats?.retentionScore ?? 0);
-      const bVal = key === 'satisfaction'
-        ? (Number.isFinite(b.communityScore) ? b.communityScore : 0)
-        : (b.stats?.retentionScore ?? 0);
-      return bVal - aVal;
-    });
+  // Ranked views list titles without the ranked score after every scored title,
+  // including scored titles whose value is genuinely 0.
+  getRankValueGetter(metricKey) {
+    return metricKey === 'satisfaction'
+      ? (anime) => (Number.isFinite(anime?.communityScore) ? anime.communityScore : null)
+      : (anime) => (Number.isFinite(anime?.stats?.retentionScore) ? anime.stats.retentionScore : null);
+  },
 
-    return list;
+  compareRankValues(aValue, bValue) {
+    if (aValue === null || bValue === null) return (aValue === null ? 1 : 0) - (bValue === null ? 1 : 0);
+    return bValue - aValue;
   },
 
   selectTopAnimeByMetric(animeList, metricKey, limit) {
     if (!Array.isArray(animeList) || animeList.length === 0) return [];
     const maxItems = Math.max(1, limit || 1);
     if (metricKey === 'taste') return this.sortAnimeByMetric(animeList, metricKey).slice(0, maxItems);
-    const key = metricKey === 'satisfaction' ? 'satisfaction' : 'retention';
+    const getValue = this.getRankValueGetter(metricKey);
+    const byValue = (a, b) => this.compareRankValues(a.value, b.value);
     const top = [];
-
-    const getValue = (anime) => {
-      if (key === 'satisfaction') {
-        return Number.isFinite(anime?.communityScore) ? anime.communityScore : 0;
-      }
-      return Number.isFinite(anime?.stats?.retentionScore) ? anime.stats.retentionScore : 0;
-    };
 
     for (let i = 0; i < animeList.length; i += 1) {
       const anime = animeList[i];
@@ -4271,16 +4128,18 @@ const App = {
       if (top.length < maxItems) {
         top.push({ anime, value });
         if (top.length === maxItems) {
-          top.sort((a, b) => b.value - a.value);
+          top.sort(byValue);
         }
         continue;
       }
 
-      if (value <= top[top.length - 1].value) continue;
+      if (this.compareRankValues(value, top[top.length - 1].value) >= 0) continue;
       top[top.length - 1] = { anime, value };
-      top.sort((a, b) => b.value - a.value);
+      top.sort(byValue);
     }
 
+    // Fewer titles than the limit never reached the sort above.
+    if (top.length < maxItems) top.sort(byValue);
     return top.map(entry => entry.anime);
   },
 

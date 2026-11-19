@@ -15,7 +15,7 @@ const dismissToast = (toastId) => {
   }, 250);
 };
 
-const showToast = (message, { action = null, type = 'info', duration = 4500, key = '' } = {}) => {
+const showToast = (message, { action = null, actions = null, type = 'info', duration = 4500, key = '' } = {}) => {
   if (typeof document === 'undefined' || !message) return '';
   let region = document.getElementById('toast-region');
   if (!region) {
@@ -49,19 +49,22 @@ const showToast = (message, { action = null, type = 'info', duration = 4500, key
   const text = document.createElement('span');
   text.textContent = message;
   toast.appendChild(text);
-  if (typeof action?.onClick === 'function' && action?.label) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'toast-action';
-    button.textContent = action.label;
-    button.addEventListener('click', () => action.onClick(toastId));
-    toast.appendChild(button);
-  } else if (action?.href && action?.label) {
-    const link = document.createElement('a');
-    link.className = 'toast-action';
-    link.href = action.href;
-    link.textContent = action.label;
-    toast.appendChild(link);
+  const toastActions = (Array.isArray(actions) ? actions : [action]).filter(Boolean);
+  for (const item of toastActions) {
+    if (typeof item.onClick === 'function' && item.label) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'toast-action';
+      button.textContent = item.label;
+      button.addEventListener('click', () => item.onClick(toastId));
+      toast.appendChild(button);
+    } else if (item.href && item.label) {
+      const link = document.createElement('a');
+      link.className = 'toast-action';
+      link.href = item.href;
+      link.textContent = item.label;
+      toast.appendChild(link);
+    }
   }
 
   region.appendChild(toast);
@@ -70,4 +73,16 @@ const showToast = (message, { action = null, type = 'info', duration = 4500, key
   return toastId;
 };
 
-export { dismissToast, showToast };
+// Toast options for Watchlist feedback ({ message, action?, undo? }): Undo comes
+// first and gets a longer duration so there is time to reach it.
+const feedbackToastOptions = (feedback) => {
+  const undo = typeof feedback?.undo === 'function'
+    ? { label: 'Undo', onClick: (toastId) => { dismissToast(toastId); feedback.undo(); } }
+    : null;
+  return {
+    actions: [undo, feedback?.action || null],
+    ...(undo ? { duration: 8000 } : {})
+  };
+};
+
+export { dismissToast, feedbackToastOptions, showToast };

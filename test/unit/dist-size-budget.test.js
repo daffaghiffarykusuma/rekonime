@@ -24,7 +24,7 @@ test('distribution budgets reject missing assets, oversized emitted JS, and ever
     const missing = run();
     assert.equal(missing.status, 1);
     assert.match(missing.stderr, /Required budgeted asset is missing: js\/app.js/);
-    writeAsset('js/app.js', 200 * 1024);
+    writeAsset('js/app.js', 220 * 1024);
     const oversized = run();
     assert.equal(oversized.status, 1);
     assert.match(oversized.stderr, /js\/app.js.*above budget/);

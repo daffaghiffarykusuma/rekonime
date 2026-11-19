@@ -109,3 +109,21 @@ test('Watchlist Page Interactions applies image fallback and records proxy failu
   assert.equal(img.src, 'https://cdn.example/show.webp');
   assert.deepEqual(calls, [['handleImageError']]);
 });
+
+test('Watchlist Page Interactions re-renders when another tab saves the Watchlist', () => {
+  setupDom('<div id="watchlist-grid"></div>');
+  const { calls, interactions } = createInteractions();
+  interactions.setupWatchlistSync();
+
+  const dispatchStorage = (key) => {
+    const event = new window.Event('storage');
+    Object.defineProperty(event, 'key', { value: key });
+    window.dispatchEvent(event);
+  };
+
+  dispatchStorage('rekonime.theme');
+  assert.deepEqual(calls, []);
+  dispatchStorage('rekonime.watchlist');
+  dispatchStorage(null);
+  assert.deepEqual(calls, [['renderWatchlist'], ['renderWatchlist']]);
+});

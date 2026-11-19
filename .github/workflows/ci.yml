@@ -45,27 +45,20 @@ jobs:
       - name: TypeScript typecheck
         run: bun --silent run typecheck
 
-      - name: Unit tests
-        run: bun --silent run test:unit
-
-      - name: Integration tests
-        run: bun --silent run test:integration
-
       - name: Python golden fixtures
         run: bun --silent run test:golden
 
       - name: Data validation
         run: bun --silent run data:validate
 
-      - name: Coverage
+      - name: Tests with coverage
+        # Runs the unit, integration, and contract suites once.
         run: bun --silent run test:coverage
 
       - name: Build verification
         run: bun --silent run build:verify
 
       - name: Security checks
-        # Remove the GHSA-fc5q-39xc-vjpf exception in package.json once a fixed
-        # picomatch release is available for Vite's build-time dependency graph.
         run: bun --silent run check:security
 
   python-security:
