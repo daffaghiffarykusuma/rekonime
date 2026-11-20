@@ -15,7 +15,7 @@ import { Logger } from '../shared/services/logger.ts';
 import { HealthMonitor } from '../shared/runtime/healthMonitor.js';
 import { createImageProxyRuntime } from '../shared/runtime/image-proxy-runtime.js';
 import { getRatingSignals } from '../features/discovery/rating-evidence.ts';
-import { createRuntimeCapabilities } from '../shared/runtime/runtime-capabilities.ts';
+import { createRuntimeCapabilities, yieldToMain } from '../shared/runtime/runtime-capabilities.ts';
 import { createDiscoveryShortlist } from '../features/discovery/discovery-shortlist.ts';
 import { runHomeAction } from './home-action-commands.ts';
 import {
@@ -126,8 +126,10 @@ const App = {
   prefetchObserver: null,
   prefetchQueue: new Set(),
   prefetchLimit: 10,
-  eagerImageCount: 4,
-  highPriorityImageCount: 2,
+  // Catalog cards sit below the Discovery picks, so their covers load lazily
+  // and never outrank the first pick's cover, the page's largest image.
+  eagerImageCount: 0,
+  highPriorityImageCount: 0,
   secondaryRenderHandle: null,
   secondaryRenderInFlight: false,
   secondaryDeferredTimeoutId: null,
@@ -1597,6 +1599,9 @@ const App = {
     if (intent.filterPanel === 'render') this.renderFilterPanel({ force: true });
     if (intent.filterPanel === 'schedule') this.scheduleFilterPanelRender();
     if (intent.renderQuickFilters) this.renderQuickFilters();
+    // Preparing a full catalog is long; let the browser paint and take input
+    // before rendering it.
+    await yieldToMain();
     this.applyFilters(intent.applyFilters);
     return state;
   },
@@ -1635,6 +1640,23 @@ const App = {
     `;
   },
 
+  // Sanitizes one skeleton per type, then clones it; the page shell already
+  // ships its placeholders, which stay in place instead of being rebuilt.
+  renderSkeletons(container, type, count) {
+    if (container.querySelector(':scope > .skeleton-card')) return;
+    this.skeletonTemplates ||= {};
+    if (!this.skeletonTemplates[type]) {
+      const template = document.createElement('template');
+      setHTML(template, this.renderCardSkeleton(type).trim());
+      this.skeletonTemplates[type] = template;
+    }
+    const fragment = document.createDocumentFragment();
+    for (let index = 0; index < count; index += 1) {
+      fragment.appendChild(this.skeletonTemplates[type].content.cloneNode(true));
+    }
+    container.replaceChildren(fragment);
+  },
+
   renderLoadingState() {
     const recommendations = document.getElementById('recommendations-grid');
     const grid = document.getElementById('anime-grid');
@@ -1642,25 +1664,30 @@ const App = {
     if (recommendations) {
       recommendations.classList.add('is-loading');
       recommendations.setAttribute('aria-busy', 'true');
-      setHTML(recommendations, Array.from({ length: 3 }, () => this.renderCardSkeleton('recommendation')).join(''));
+      this.renderSkeletons(recommendations, 'recommendation', 3);
     }
 
     if (grid) {
       grid.classList.add('is-loading');
       grid.setAttribute('aria-busy', 'true');
-      setHTML(grid, Array.from({ length: 6 }, () => this.renderCardSkeleton('catalog')).join(''));
+      this.renderSkeletons(grid, 'catalog', 6);
     }
 
     this.renderDeferredUiLoadingState();
   },
 
   renderDeferredUiLoadingState() {
+    // The page shell ships these placeholder chips; keep them rather than re-render.
+    const needsPlaceholder = (container) => {
+      if (!container) return false;
+      container.setAttribute('aria-busy', 'true');
+      return !container.querySelector(':scope > .is-loading-chip');
+    };
     const genreContainer = document.getElementById('genre-chips');
     const themeContainer = document.getElementById('theme-chips');
     const seasonalContainer = document.getElementById('seasonal-chips');
 
-    if (genreContainer) {
-      genreContainer.setAttribute('aria-busy', 'true');
+    if (needsPlaceholder(genreContainer)) {
       setHTML(genreContainer, `
         <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Action</button>
         <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Drama</button>
@@ -1668,8 +1695,7 @@ const App = {
       `);
     }
 
-    if (themeContainer) {
-      themeContainer.setAttribute('aria-busy', 'true');
+    if (needsPlaceholder(themeContainer)) {
       setHTML(themeContainer, `
         <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">School</button>
         <button class="quick-chip is-loading-chip" type="button" disabled aria-hidden="true">Isekai</button>
@@ -1677,8 +1703,7 @@ const App = {
       `);
     }
 
-    if (seasonalContainer) {
-      seasonalContainer.setAttribute('aria-busy', 'true');
+    if (needsPlaceholder(seasonalContainer)) {
       setHTML(seasonalContainer, `
         <button class="seasonal-chip is-loading-chip" type="button" disabled aria-hidden="true">Spring 2026</button>
       `);
@@ -2588,9 +2613,12 @@ const App = {
     if (!container) return;
     if (!force && !this.filterPanelOpen && !this.filterPanelRendered) return;
 
-    let html = '';
-
-    html += FilterPresets.renderPresetSection();
+    // Hundreds of studio and year pills are built as nodes: text and attribute
+    // values cannot become markup, so they skip the HTML sanitizer entirely.
+    const fragment = document.createDocumentFragment();
+    const presets = document.createElement('template');
+    setHTML(presets, FilterPresets.renderPresetSection());
+    fragment.appendChild(presets.content);
 
     const filterConfig = [
       { key: 'genres', label: 'Genres' },
@@ -2602,40 +2630,37 @@ const App = {
       { key: 'source', label: 'Sources', advanced: true }
     ];
 
-    const filtersMarkup = filterConfig.map(config => {
+    filterConfig.forEach(config => {
       const options = this.filterOptions[config.key];
-      if (!options || options.length === 0) return '';
+      if (!options || options.length === 0) return;
 
-      const safeLabel = this.escapeHtml(config.label);
-      const safeType = this.escapeAttr(config.key);
-
-      const pills = `
-        <div class="filter-pills">
-            ${options.map(option => {
+      const active = new Set(this.activeFilters[config.key].map(String));
+      const pills = document.createElement('div');
+      pills.className = 'filter-pills';
+      options.forEach(option => {
         const optionStr = String(option);
-        const isActive = this.activeFilters[config.key].includes(optionStr) || this.activeFilters[config.key].includes(option);
-        const safeOptionText = this.escapeHtml(optionStr);
-        const safeOptionAttr = this.escapeAttr(optionStr);
-        const ariaLabel = this.escapeAttr(`${isActive ? 'Remove' : 'Add'} ${optionStr} filter`);
-        return `
-              <button class="filter-pill ${isActive ? 'active' : ''}"
-                      data-action="toggle-filter"
-                      data-filter-type="${safeType}"
-                      data-filter-value="${safeOptionAttr}"
-                      aria-pressed="${isActive ? 'true' : 'false'}"
-                      aria-label="${ariaLabel}">
-                ${safeOptionText}
-              </button>
-       `}).join('')}
-        </div>
-      `;
-      return config.advanced
-        ? `<details class="filter-section filter-disclosure"><summary class="filter-section-title">${safeLabel}</summary>${pills}</details>`
-        : `<div class="filter-section"><div class="filter-section-title">${safeLabel}</div>${pills}</div>`;
-    }).join('');
+        const isActive = active.has(optionStr);
+        const pill = document.createElement('button');
+        pill.className = isActive ? 'filter-pill active' : 'filter-pill';
+        pill.dataset.action = 'toggle-filter';
+        pill.dataset.filterType = config.key;
+        pill.dataset.filterValue = optionStr;
+        pill.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        pill.setAttribute('aria-label', `${isActive ? 'Remove' : 'Add'} ${optionStr} filter`);
+        pill.textContent = optionStr;
+        pills.appendChild(pill);
+      });
 
-    html += filtersMarkup;
-    setHTML(container, html);
+      const section = document.createElement(config.advanced ? 'details' : 'div');
+      section.className = config.advanced ? 'filter-section filter-disclosure' : 'filter-section';
+      const title = document.createElement(config.advanced ? 'summary' : 'div');
+      title.className = 'filter-section-title';
+      title.textContent = config.label;
+      section.append(title, pills);
+      fragment.appendChild(section);
+    });
+
+    container.replaceChildren(fragment);
     this.filterPanelRendered = true;
   },
 
@@ -2974,11 +2999,13 @@ const App = {
     } else {
       this.renderSeasonalFilters();
     }
-    this.renderAnimeGrid();
-    this.updatePrefetchObserving();
+    // Picks first: they sit above the catalog, and the first pick's cover is
+    // the largest image on screen, so its request should not wait on the grid.
     if (refreshRecommendations) {
       this.renderRecommendations();
     }
+    this.renderAnimeGrid();
+    this.updatePrefetchObserving();
     this.scheduleSecondaryRenders({ force: refreshRecommendations, skipRecommendations: refreshRecommendations });
   },
 
@@ -3354,9 +3381,6 @@ const App = {
     const decision = this.getCardDecisionData(anime);
     const cardStats = Recommendations.getCardStats(anime)
       .filter(stat => stat.label.toLowerCase() !== decision.label.toLowerCase());
-    const safeTitle = this.escapeHtml(anime.title);
-    const safeYear = this.escapeHtml(anime.year || 'Unknown');
-    const safeStudio = this.escapeHtml(anime.studio || 'Unknown');
     const labelTitle = anime.title || 'this anime';
     const labelYear = anime.year ? `, ${anime.year}` : '';
     const cardLabel = `View details for ${labelTitle}${labelYear}`;
@@ -3431,9 +3455,11 @@ const App = {
       altTitleEl.textContent = this.getDistinctEnglishTitle(anime);
     }
 
+    // Card contents are built as nodes and text, never parsed from markup, so
+    // each card skips the HTML sanitizer: grids render 24 at a time.
     const yearEl = card.querySelector('.card-year');
     if (yearEl) {
-      setHTML(yearEl, `${safeYear} &bull; ${safeStudio}`);
+      yearEl.textContent = `${anime.year || 'Unknown'} • ${anime.studio || 'Unknown'}`;
     }
 
     const primarySignal = card.querySelector('.card-primary-signal');
@@ -3444,7 +3470,7 @@ const App = {
       primarySignal.className = this.sanitizeClassList('card-primary-signal', decision.className);
     }
     if (primaryValue) {
-      setHTML(primaryValue, this.renderCardScoreValue(decision.value));
+      primaryValue.replaceChildren(...this.createCardScoreValueNodes(decision.value));
     }
     if (primaryLabel) {
       primaryLabel.textContent = decision.label;
@@ -3456,12 +3482,9 @@ const App = {
     const badgesContainer = card.querySelector('.card-badges');
     if (badgesContainer) {
       if (badges.length > 0) {
-        setHTML(badgesContainer, badges
-          .map((badge) => {
-            const badgeClass = this.sanitizeClassList('card-badge', badge.class);
-            return `<span class="${badgeClass}">${this.escapeHtml(badge.label)}</span>`;
-          })
-          .join(''));
+        badgesContainer.replaceChildren(...badges.map((badge) => (
+          this.createTextElement('span', this.sanitizeClassList('card-badge', badge.class), badge.label)
+        )));
         badgesContainer.hidden = false;
       } else {
         badgesContainer.replaceChildren();
@@ -3471,26 +3494,23 @@ const App = {
 
     const statsContainer = card.querySelector('.card-stats');
     if (statsContainer) {
-      setHTML(statsContainer, cardStats.map(stat => {
-        const safeValue = this.escapeHtml(stat.value);
-        const safeSuffix = this.escapeHtml(stat.suffix || '');
-        const safeLabel = this.escapeHtml(stat.label);
-        const safeTooltipTitle = stat.tooltip ? this.escapeHtml(stat.tooltip.title) : '';
-        const safeTooltipText = stat.tooltip ? this.escapeHtml(stat.tooltip.text) : '';
-        const statValueClass = this.sanitizeClassList('stat-value', stat.class);
-        return `
-          <div class="stat ${stat.tooltip ? 'has-tooltip' : ''}" ${stat.tooltip ? 'tabindex="0"' : ''}>
-            <span class="${statValueClass}">${safeValue}<small>${safeSuffix}</small></span>
-            <span class="stat-label">${safeLabel}</span>
-            ${stat.tooltip ? `
-              <div class="tooltip tooltip--bottom" role="tooltip">
-                <div class="tooltip-title">${safeTooltipTitle}</div>
-                <div class="tooltip-text">${safeTooltipText}</div>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }).join(''));
+      statsContainer.replaceChildren(...cardStats.map(stat => {
+        const statEl = this.createTextElement('div', stat.tooltip ? 'stat has-tooltip' : 'stat');
+        if (stat.tooltip) statEl.tabIndex = 0;
+        const valueEl = this.createTextElement('span', this.sanitizeClassList('stat-value', stat.class), String(stat.value ?? ''));
+        valueEl.appendChild(this.createTextElement('small', '', String(stat.suffix || '')));
+        statEl.append(valueEl, this.createTextElement('span', 'stat-label', String(stat.label ?? '')));
+        if (stat.tooltip) {
+          const tooltip = this.createTextElement('div', 'tooltip tooltip--bottom');
+          tooltip.setAttribute('role', 'tooltip');
+          tooltip.append(
+            this.createTextElement('div', 'tooltip-title', String(stat.tooltip.title ?? '')),
+            this.createTextElement('div', 'tooltip-text', String(stat.tooltip.text ?? ''))
+          );
+          statEl.appendChild(tooltip);
+        }
+        return statEl;
+      }));
     }
 
   },
@@ -3716,6 +3736,22 @@ const App = {
     }).join(''));
   },
 
+  createTextElement(tagName, className = '', text = '') {
+    const element = document.createElement(tagName);
+    if (className) element.className = className;
+    if (text) element.textContent = text;
+    return element;
+  },
+
+  // Node form of renderCardScoreValue: "8.4/10" becomes 8.4 with a small "/10".
+  createCardScoreValueNodes(value) {
+    const match = String(value).match(/^(\d+(?:\.\d+)?)\/(\d+)$/);
+    const [, score, scale] = match || ['', String(value), ''];
+    const nodes = [document.createTextNode(score)];
+    if (scale) nodes.push(this.createTextElement('small', '', `/${scale}`));
+    return nodes;
+  },
+
   renderCardScoreValue(value) {
     const match = String(value).match(/^(\d+(?:\.\d+)?)\/(\d+)$/);
     const [, score, scale] = match || ['', String(value), ''];
@@ -3873,7 +3909,8 @@ const App = {
         fallbackSrc: recFallback,
         placeholder: IMAGE_PLACEHOLDER
       });
-      const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: 2, priorityCount: 1 });
+      // Phones stack the picks, so only the first cover is on screen at load.
+      const loadAttrs = this.getImageLoadingAttrs(index, { eagerCount: this.isMobileViewport() ? 1 : 2, priorityCount: 1 });
       const fetchPriorityAttr = loadAttrs.fetchpriority ? `fetchpriority="${loadAttrs.fetchpriority}"` : '';
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="group" tabindex="-1" aria-label="${safeTitle}">
@@ -4126,13 +4163,11 @@ const App = {
    */
   sortAnimeByMetric(animeList, metricKey) {
     if (metricKey === 'taste') {
-      return this.getTasteProfileStore().prepareRecommendationSource(animeList).sort((a, b) =>
-        b.tasteScore - a.tasteScore ||
-        this.compareRankValues(
-          Number.isFinite(a.stats?.retentionScore) ? a.stats.retentionScore : null,
-          Number.isFinite(b.stats?.retentionScore) ? b.stats.retentionScore : null
-        )
-      );
+      // A stable sort keeps catalog order among equal taste and retention scores.
+      const retention = (anime) => (Number.isFinite(anime.stats?.retentionScore) ? anime.stats.retentionScore : null);
+      return this.getTasteProfileStore().scoreForTaste(animeList)
+        .sort((a, b) => b.tasteScore - a.tasteScore || this.compareRankValues(retention(a.anime), retention(b.anime)))
+        .map(entry => entry.anime);
     }
     const getValue = this.getRankValueGetter(metricKey);
     return [...animeList].sort((a, b) => this.compareRankValues(getValue(a), getValue(b)));

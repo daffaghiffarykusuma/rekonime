@@ -12,6 +12,14 @@ const queueIdleTask = (callback, { timeout = 1500 } = {}) => {
     : window.setTimeout(callback, 0);
 };
 
+// Ends the current task so input and paint can run before the next stage of
+// a long job. Prefers scheduler.yield, which resumes ahead of other queued work.
+const yieldToMain = () => {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (typeof window.scheduler?.yield === 'function') return window.scheduler.yield();
+  return new Promise(resolve => window.setTimeout(resolve, 0));
+};
+
 const cancelIdleTask = (handle) => {
   if (typeof window === 'undefined' || handle == null) return;
   if ('cancelIdleCallback' in window) window.cancelIdleCallback(handle);
@@ -69,6 +77,7 @@ const createRuntimeCapabilities = ({
   return {
     queueIdleTask,
     cancelIdleTask,
+    yieldToMain,
     getModalElement,
     isModalVisible,
     getOpenModalId,
@@ -78,4 +87,4 @@ const createRuntimeCapabilities = ({
   };
 };
 
-export { cancelIdleTask, createRuntimeCapabilities, queueIdleTask };
+export { cancelIdleTask, createRuntimeCapabilities, queueIdleTask, yieldToMain };

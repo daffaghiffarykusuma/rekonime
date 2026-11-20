@@ -344,7 +344,7 @@ body.is-scroll-locked {
       rgba(255, 255, 255, 0.08) 60%,
       transparent 100%);
   transform: translateX(-100%);
-  animation: shimmer 1.4s infinite;
+  animation: skeleton-sweep 1.4s infinite;
 }
 
 .is-loading-chip {
@@ -370,6 +370,8 @@ body.is-scroll-locked {
 
 .skeleton-card.anime-card,
 .skeleton-card.recommendation-card {
+  position: relative;
+  overflow: hidden;
   cursor: default;
 }
 
@@ -397,7 +399,7 @@ body.is-scroll-locked {
       rgba(255, 255, 255, 0.08) 60%,
       transparent 100%);
   transform: translateX(-100%);
-  animation: shimmer 1.4s infinite;
+  animation: skeleton-sweep 1.4s infinite;
 }
 
 .skeleton-card .card-media,
@@ -405,8 +407,10 @@ body.is-scroll-locked {
   background: var(--bg-secondary);
 }
 
-.skeleton-card .recommendation-media {
-  height: 190px;
+/* Placeholder picks keep the real cover height and reserve the copy and
+   actions below it, so loaded picks replace them without moving the page. */
+.skeleton-card.recommendation-card .recommendation-info {
+  min-height: 24rem;
 }
 
 .skeleton-title {
@@ -1273,6 +1277,18 @@ body.is-scroll-locked {
 
 .loading-shimmer.short {
   width: 60%;
+}
+
+/* Skeleton overlays sweep by transform, which the compositor animates without
+   repainting on the main thread while the catalog loads. */
+@keyframes skeleton-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes shimmer {
@@ -2663,18 +2679,19 @@ body::before {
   display: grid;
 }
 
-.recommendations-section,
+/* Picks sit above the fold, so they render eagerly: skipping them would swap a
+   placeholder size for the real one during first paint and shift the page.
+   `auto` lets below-fold sections remember their last rendered size. */
 .because-you-watched-section,
 .grid-section {
   content-visibility: auto;
-  contain-intrinsic-size: 1px 800px;
+  contain-intrinsic-size: auto 1px auto 800px;
 }
 
-.recommendations-grid,
 .byw-grid,
 .anime-grid {
   content-visibility: auto;
-  contain-intrinsic-size: 1px 600px;
+  contain-intrinsic-size: auto 1px auto 600px;
 }
 
 .anime-card {
@@ -2686,7 +2703,7 @@ body::before {
 }
 
 .anime-card.is-virtual {
-  contain-intrinsic-size: 16rem 24rem;
+  contain-intrinsic-size: auto 16rem auto 24rem;
 }
 
 /* Staggered card entrance animations */
@@ -4557,20 +4574,16 @@ button.toast-action {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
+/* Picks stay rendered: they open the page, and a skipped card would paint at
+   its placeholder size first and then shift everything below it. `auto`
+   keeps each catalog card's real size once it has rendered. */
 [data-low-motion="true"] .anime-card {
   content-visibility: auto;
-  contain-intrinsic-size: 16rem 24rem;
-}
-
-[data-low-motion="true"] .recommendation-card {
-  content-visibility: auto;
-  contain-intrinsic-size: 16rem 18rem;
+  contain-intrinsic-size: auto 16rem auto 24rem;
 }
 
 [data-low-motion="true"] .anime-card:hover,
-[data-low-motion="true"] .anime-card:focus-within,
-[data-low-motion="true"] .recommendation-card:hover,
-[data-low-motion="true"] .recommendation-card:focus-within {
+[data-low-motion="true"] .anime-card:focus-within {
   content-visibility: visible;
   contain: none;
 }

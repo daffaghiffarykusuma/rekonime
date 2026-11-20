@@ -64,7 +64,10 @@ const CatalogCache = {
     return Boolean(resolveIndexedDB(options.indexedDBImpl, hasOverride));
   },
 
-  async putFullCatalog(payload, { now = Date.now, source = 'network', indexedDBImpl } = {}) {
+  // Pass the response body as `payloadText` when it is at hand. IndexedDB
+  // copies a string in one block, while the parsed catalog is thousands of
+  // objects that it must structured-clone on the main thread.
+  async putFullCatalog(payload, { now = Date.now, source = 'network', indexedDBImpl, payloadText } = {}) {
     if (!isValidCatalogPayload(payload)) {
       return false;
     }
@@ -76,11 +79,11 @@ const CatalogCache = {
     const cachedAt = now();
     const record = {
       id: FULL_CATALOG_KEY,
-      schemaVersion: 1,
+      schemaVersion: typeof payloadText === 'string' ? 2 : 1,
       source,
       cachedAt,
       generatedAt: payload.generatedAt || null,
-      payload
+      ...(typeof payloadText === 'string' ? { payloadText } : { payload })
     };
 
     try {
@@ -99,7 +102,8 @@ const CatalogCache = {
 
     try {
       const record = await withStore('readonly', (store) => requestToPromise(store.get(FULL_CATALOG_KEY)), dbOptions);
-      if (!record || !isValidCatalogPayload(record.payload)) {
+      const payload = typeof record?.payloadText === 'string' ? JSON.parse(record.payloadText) : record?.payload;
+      if (!record || !isValidCatalogPayload(payload)) {
         return null;
       }
 
@@ -110,7 +114,7 @@ const CatalogCache = {
         return null;
       }
 
-      return record.payload;
+      return payload;
     } catch (error) {
       return null;
     }

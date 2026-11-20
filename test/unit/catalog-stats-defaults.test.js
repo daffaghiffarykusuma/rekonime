@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compactCatalogStats, expandCatalogStats } from '../../src/features/catalog/catalog-stats-defaults.js';
+import { compactCatalogColorIndex, compactCatalogStats, expandCatalogStats } from '../../src/features/catalog/catalog-stats-defaults.js';
 
 const evidence = (overrides = {}) => ({ ratedEpisodes: 12, coverage: 1, medianVotes: null, limited: false, ...overrides });
 const sample = () => [
@@ -49,4 +49,34 @@ test('catalog stats expansion gives each title its own copy of object defaults',
 test('catalog stats expansion leaves payloads without defaults unchanged', () => {
   const payload = { anime: [{ id: 'a', stats: { average: 4 } }] };
   assert.deepEqual(expandCatalogStats(structuredClone(payload)), payload);
+});
+
+test('catalog color index compaction omits position indexes and expansion restores them', () => {
+  const original = [
+    { id: 'a', colorIndex: 0 },
+    { id: 'b', colorIndex: 7 },
+    { id: 'c', colorIndex: 2 },
+    { id: 'd' }
+  ];
+  const { anime, colorIndexFromPosition } = compactCatalogColorIndex(structuredClone(original));
+
+  assert.equal(colorIndexFromPosition, true);
+  assert.deepEqual(anime, [{ id: 'a' }, { id: 'b', colorIndex: 7 }, { id: 'c' }, { id: 'd' }]);
+
+  const expanded = expandCatalogStats({ colorIndexFromPosition, anime });
+  assert.deepEqual(expanded.anime, [
+    { id: 'a', colorIndex: 0 },
+    { id: 'b', colorIndex: 7 },
+    { id: 'c', colorIndex: 2 },
+    { id: 'd', colorIndex: 3 }
+  ]);
+  assert.equal('colorIndexFromPosition' in expanded, false);
+});
+
+test('catalog color index compaction leaves lists without position indexes unchanged', () => {
+  const list = [{ id: 'a', colorIndex: 4 }];
+  const { anime, colorIndexFromPosition } = compactCatalogColorIndex(list);
+  assert.equal(anime, list);
+  assert.equal(colorIndexFromPosition, false);
+  assert.deepEqual(expandCatalogStats({ anime: [{ id: 'x' }] }).anime, [{ id: 'x' }]);
 });

@@ -334,7 +334,7 @@ body.is-scroll-locked {
       rgba(255, 255, 255, 0.08) 60%,
       transparent 100%);
   transform: translateX(-100%);
-  animation: shimmer 1.4s infinite;
+  animation: skeleton-sweep 1.4s infinite;
 }
 
 .card-title {
@@ -765,6 +765,18 @@ body.is-scroll-locked {
 
 .loading-shimmer.short {
   width: 60%;
+}
+
+/* Skeleton overlays sweep by transform, which the compositor animates without
+   repainting on the main thread while the catalog loads. */
+@keyframes skeleton-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes shimmer {
@@ -1662,7 +1674,7 @@ body::before {
 
 .anime-card.is-virtual {
   content-visibility: auto;
-  contain-intrinsic-size: 16rem 24rem;
+  contain-intrinsic-size: auto 16rem auto 24rem;
 }
 
 /* Staggered card entrance animations */

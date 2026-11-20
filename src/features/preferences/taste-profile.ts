@@ -215,11 +215,24 @@ const buildTasteIndex = ({ explicit, inferred }) => {
   };
 };
 
+// Every ranking pass scores the whole catalog, so each tag list's lookup keys
+// are derived once and reused for as long as the list itself is unchanged.
+const tagKeysCache = new WeakMap();
+const getTagKeys = (tags) => {
+  if (!Array.isArray(tags) || tags.length === 0) return [];
+  let keys = tagKeysCache.get(tags);
+  if (!keys) {
+    keys = [...new Set(tags.map(tag => normalizeTag(tag).toLowerCase()))];
+    tagKeysCache.set(tags, keys);
+  }
+  return keys;
+};
+
 const scoreWithIndex = (anime, index) => {
   const tagScore = (tags, weights) => {
+    if (weights.size === 0) return 0;
     let total = 0;
-    const keys = new Set((Array.isArray(tags) ? tags : []).map(tag => normalizeTag(tag).toLowerCase()));
-    for (const key of keys) total += weights.get(key) || 0;
+    for (const key of getTagKeys(tags)) total += weights.get(key) || 0;
     return total;
   };
   const id = normalizeId(anime?.id);
@@ -394,6 +407,18 @@ const createTasteProfileStore = ({
       .sort((left, right) => right.tasteScore - left.tasteScore || left.index - right.index);
   };
 
+  // Taste scores for ordering a list in place of copying it: catalog order,
+  // hidden titles removed, each entry pointing at the original anime.
+  const scoreForTaste = (animeList) => {
+    const taste = indexForProfile();
+    const entries = [];
+    for (const anime of Array.isArray(animeList) ? animeList : []) {
+      if (taste.hidden.has(normalizeId(anime?.id))) continue;
+      entries.push({ anime, tasteScore: scoreWithIndex(anime, taste) });
+    }
+    return entries;
+  };
+
   const prepareRecommendationSource = (animeList, options = {}) => (
     prepareTasteCandidates(animeList, options).map(entry => ({
       ...entry.anime,
@@ -470,6 +495,7 @@ const createTasteProfileStore = ({
     }),
     applyRecommendationFeedback,
     undoRecommendationFeedback,
+    scoreForTaste,
     prepareRecommendationSource,
     prepareDiscoverySource,
     getSettingsSummary

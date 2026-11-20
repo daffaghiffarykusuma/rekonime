@@ -92,14 +92,18 @@ const bootstrap = () => {
     }
 
     if (shouldPrioritizeFirstPaint()) {
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(() => {
-          void runApp();
-        }, { timeout: 1500 });
+      // Boot right after the next paint. Waiting for idle time instead held the
+      // app back for up to 1.5s on busy phones while its catalog sat downloaded.
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(() => {
+          window.setTimeout(() => {
+            void runApp();
+          }, 0);
+        });
       } else {
         window.setTimeout(() => {
           void runApp();
-        }, 350);
+        }, 0);
       }
       return;
     }

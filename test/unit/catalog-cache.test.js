@@ -130,3 +130,21 @@ test('CatalogCache is a no-op when IndexedDB is unavailable', async () => {
   assert.equal(stored, false);
   assert.equal(cached, null);
 });
+
+test('CatalogCache stores response text and returns the parsed catalog', async () => {
+  const indexedDBImpl = createFakeIndexedDB();
+  const payloadText = JSON.stringify(payload);
+
+  const stored = await CatalogCache.putFullCatalog(JSON.parse(payloadText), {
+    indexedDBImpl,
+    now: () => 1000,
+    payloadText
+  });
+  const cached = await CatalogCache.getFullCatalog({
+    indexedDBImpl,
+    now: () => 2000
+  });
+
+  assert.equal(stored, true);
+  assert.deepEqual(cached, payload);
+});

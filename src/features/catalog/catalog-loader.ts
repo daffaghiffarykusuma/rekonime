@@ -2,6 +2,7 @@
 import { CatalogCache } from './catalog-cache.ts';
 import { getDeclaredEpisodeCount, isValidCatalogPayload, normalizeAnimeData } from './catalog-payload.ts';
 import { expandCatalogStats } from './catalog-stats-defaults.js';
+import { yieldToMain } from '../../shared/runtime/runtime-capabilities.ts';
 
 const DEFAULT_FETCH_CONFIG = {
   maxRetries: 3,
@@ -43,6 +44,10 @@ const getCatalogRetryDelay = (baseDelay, attempt, maxDelay) => {
 };
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Response bodies of fetched catalogs, kept so the offline cache can store the
+// compact text rather than structured-cloning the parsed catalog.
+const catalogResponseText = new WeakMap();
 
 const createCatalogSession = ({
   isFullLoaded = false,
@@ -190,7 +195,8 @@ const createCatalogRuntime = ({
           error.response = response;
           throw error;
         }
-        const data = await response.json();
+        const text = await response.text();
+        const data = JSON.parse(text);
 
         if (!isValidCatalogPayload(data)) {
           throw new Error('Invalid catalog payload');
@@ -200,6 +206,7 @@ const createCatalogRuntime = ({
         if (externalSignal) {
           externalSignal.removeEventListener('abort', onExternalAbort);
         }
+        catalogResponseText.set(data, text);
         return expandCatalogStats(data);
       } catch (error) {
         clearTimeout(timeoutId);
@@ -225,7 +232,9 @@ const createCatalogRuntime = ({
 
   const cacheFullCatalog = async (payload) => {
     try {
-      const stored = await catalogCache.putFullCatalog(payload);
+      const payloadText = catalogResponseText.get(payload);
+      catalogResponseText.delete(payload);
+      const stored = await catalogCache.putFullCatalog(payload, payloadText === undefined ? undefined : { payloadText });
       emitCatalogEvent(stored ? 'cache-write-ok' : 'cache-write-failed', { source: 'network-full' });
       return stored;
     } catch (error) {
@@ -335,6 +344,8 @@ const createCatalogRuntime = ({
         }
 
         emitCatalogEvent('network-full-loaded', { path: dataSources.full });
+        // Parsing ends one task; preparing and rendering the catalog start another.
+        await yieldToMain();
         await applyCatalogPayload(fullPayload, { isFull: true, preserveFilters: true });
         await cacheFullCatalog(fullPayload);
         return true;

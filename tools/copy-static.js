@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { compactCatalogStats } from '../src/features/catalog/catalog-stats-defaults.js';
+import { compactCatalogColorIndex, compactCatalogStats } from '../src/features/catalog/catalog-stats-defaults.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -93,11 +93,13 @@ const copyChunkedFullData = () => {
   });
 
   fs.mkdirSync(path.dirname(indexPath), { recursive: true });
-  const { anime, statsDefaults } = compactCatalogStats(animeList.map(toFullIndexAnime));
+  const { anime: statsCompacted, statsDefaults } = compactCatalogStats(animeList.map(toFullIndexAnime));
+  const { anime, colorIndexFromPosition } = compactCatalogColorIndex(statsCompacted);
   fs.writeFileSync(indexPath, JSON.stringify({
     generatedAt: payload.generatedAt,
     scoreProfile: payload.scoreProfile,
     ...(statsDefaults ? { statsDefaults } : {}),
+    ...(colorIndexFromPosition ? { colorIndexFromPosition } : {}),
     anime
   }), 'utf8');
 };

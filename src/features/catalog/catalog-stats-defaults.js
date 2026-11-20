@@ -5,12 +5,25 @@
 //
 // A field is only compacted when every title defines it, so a field that is
 // genuinely absent can never be mistaken for one that was omitted.
+//
+// A title's `colorIndex` is likewise omitted when it equals the title's
+// position, and `colorIndexFromPosition` tells the loader to restore it.
 
 const STATS_DEFAULTS_KEY = 'statsDefaults';
+const COLOR_INDEX_KEY = 'colorIndexFromPosition';
 const NESTED_STATS_KEYS = ['ratingEvidence'];
 
 const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-const cloneValue = (value) => (value !== null && typeof value === 'object' ? JSON.parse(JSON.stringify(value)) : value);
+// Defaults are parsed JSON, so a plain recursive copy is exact. It runs once
+// per title per object default, where JSON round trips or structuredClone
+// cost far more than the copy itself.
+const cloneValue = (value) => {
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(cloneValue);
+  const copy = {};
+  for (const key of Object.keys(value)) copy[key] = cloneValue(value[key]);
+  return copy;
+};
 const hasOwn = (record, key) => Object.prototype.hasOwnProperty.call(record, key);
 
 const pickDefaults = (records, { exclude = [] } = {}) => {
@@ -80,29 +93,71 @@ const compactCatalogStats = (animeList = []) => {
 };
 
 /**
- * Restores omitted stats values in place. Payloads without `statsDefaults`
+ * @param {Array<Record<string, any>>} animeList Runtime index entries.
+ * @returns {{ anime: Array<Record<string, any>>, colorIndexFromPosition: boolean }}
+ */
+const compactCatalogColorIndex = (animeList = []) => {
+  const list = Array.isArray(animeList) ? animeList : [];
+  let omitted = false;
+  const anime = list.map((entry, index) => {
+    if (!isPlainObject(entry) || entry.colorIndex !== index) return entry;
+    omitted = true;
+    const { colorIndex, ...rest } = entry;
+    return rest;
+  });
+  return { anime: omitted ? anime : list, colorIndexFromPosition: omitted };
+};
+
+const expandCatalogColorIndex = (payload) => {
+  if (payload?.[COLOR_INDEX_KEY] !== true || !Array.isArray(payload.anime)) return;
+  payload.anime.forEach((anime, index) => {
+    if (isPlainObject(anime) && !hasOwn(anime, 'colorIndex')) anime.colorIndex = index;
+  });
+  delete payload[COLOR_INDEX_KEY];
+};
+
+/**
+ * Restores omitted stats values (and position color indexes) in place. Payloads without `statsDefaults`
  * (embedded data, the raw dev catalog, older caches) are returned unchanged.
  * @template T
  * @param {T} payload
  * @returns {T}
  */
 const expandCatalogStats = (payload) => {
+  expandCatalogColorIndex(payload);
   const statsDefaults = payload?.[STATS_DEFAULTS_KEY];
   if (!isPlainObject(statsDefaults) || !Array.isArray(payload?.anime)) return payload;
+
+  // Read the defaults once; the loop below runs for every title in the catalog.
+  const defaults = Object.entries(statsDefaults).map(([key, value]) => ({
+    key,
+    value,
+    isObject: value !== null && typeof value === 'object',
+    nested: NESTED_STATS_KEYS.includes(key) && isPlainObject(value)
+      ? Object.entries(value).map(([nestedKey, nestedValue]) => ({
+        key: nestedKey,
+        value: nestedValue,
+        isObject: nestedValue !== null && typeof nestedValue === 'object'
+      }))
+      : null
+  }));
 
   for (const anime of payload.anime) {
     if (!isPlainObject(anime?.stats)) continue;
     const stats = anime.stats;
-    for (const [key, value] of Object.entries(statsDefaults)) {
-      if (NESTED_STATS_KEYS.includes(key) && isPlainObject(value)) {
-        if (stats[key] !== undefined && !isPlainObject(stats[key])) continue;
-        const nested = isPlainObject(stats[key]) ? stats[key] : {};
-        for (const [nestedKey, nestedValue] of Object.entries(value)) {
-          if (!hasOwn(nested, nestedKey)) nested[nestedKey] = cloneValue(nestedValue);
+    for (const entry of defaults) {
+      if (entry.nested) {
+        const current = stats[entry.key];
+        if (current !== undefined && !isPlainObject(current)) continue;
+        const nested = isPlainObject(current) ? current : {};
+        for (const nestedEntry of entry.nested) {
+          if (!hasOwn(nested, nestedEntry.key)) {
+            nested[nestedEntry.key] = nestedEntry.isObject ? cloneValue(nestedEntry.value) : nestedEntry.value;
+          }
         }
-        stats[key] = nested;
-      } else if (!hasOwn(stats, key)) {
-        stats[key] = cloneValue(value);
+        stats[entry.key] = nested;
+      } else if (!hasOwn(stats, entry.key)) {
+        stats[entry.key] = entry.isObject ? cloneValue(entry.value) : entry.value;
       }
     }
   }
@@ -111,7 +166,9 @@ const expandCatalogStats = (payload) => {
 };
 
 export {
+  COLOR_INDEX_KEY,
   STATS_DEFAULTS_KEY,
+  compactCatalogColorIndex,
   compactCatalogStats,
   expandCatalogStats
 };
