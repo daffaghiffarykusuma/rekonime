@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { HealthMonitor } from '../shared/runtime/healthMonitor.js';
-import { ThemeManager } from '../shared/ui/themeManager.js';
 import { SidebarPreference } from '../shared/ui/sidebar-preference.ts';
 
 /**
@@ -164,16 +163,6 @@ const HOME_ACTION_COMMANDS = {
   'apply-mal-watchlist-import': ({ app }) => app.getWatchlistImportWorkflow().apply(),
 
   // Settings and connectivity
-  'set-theme': ({ data }) => {
-    const theme = data.themeOption;
-    if (!theme) return;
-    ThemeManager.handleThemeSelection(theme);
-    document.querySelectorAll('[data-theme-option]').forEach(button => {
-      const active = button.dataset.themeOption === theme;
-      button.classList.toggle('is-active', active);
-      button.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-  },
   'set-sidebar-mode': ({ data }) => {
     if (data.sidebarOption) SidebarPreference.applyMode(data.sidebarOption);
   },

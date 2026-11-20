@@ -20,6 +20,8 @@ const fileBudgets = new Map([
   // Raised from 190 KiB in Nov 2026, when the bundle reached 183 KiB.
   ['js/app.js', 210 * kib],
   ['fonts/phosphor-icons.woff2', 8 * kib],
+  // The single text font replaced two files totalling 85.6 KiB (87,692 bytes); keep it below that.
+  ['fonts/archivo-latin-variable.woff2', 85 * kib],
   [/^css\/main-[A-Za-z0-9_-]+\.css$/, 125 * kib],
   ['css/watchlist.css', 100 * kib]
 ]);

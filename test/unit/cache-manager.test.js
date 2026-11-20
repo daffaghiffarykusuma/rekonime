@@ -38,11 +38,9 @@ test('CacheManager falls back to memory when storage unavailable', () => {
 
 test('CacheManager validation rejects invalid payloads', () => {
   clearStorage();
-  const success = CacheManager.setJSON('rekonime.theme', 'dark', { validate: true });
-  const failure = CacheManager.setJSON('rekonime.theme', 'invalid', { validate: true });
+  const success = CacheManager.setJSON('rekonime.shortcutsAcknowledged', 'true', { validate: true });
+  const failure = CacheManager.setJSON('rekonime.shortcutsAcknowledged', 'yes', { validate: true });
   assert.equal(success, true);
   assert.equal(failure, false);
-  assert.equal(CacheManager.getJSON('rekonime.theme', { validate: true }), 'dark');
-  assert.equal(CacheManager.setJSON('rekonime.theme', 'light', { validate: true }), true);
-  assert.equal(CacheManager.getJSON('rekonime.theme', { validate: true }), 'light');
+  assert.equal(CacheManager.getJSON('rekonime.shortcutsAcknowledged', { validate: true }), 'true');
 });

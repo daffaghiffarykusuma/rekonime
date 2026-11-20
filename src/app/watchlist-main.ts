@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { IMAGE_PLACEHOLDER } from '../shared/runtime/image-placeholder.js';
-import { ThemeManager } from '../shared/ui/themeManager.js';
 import { updateBackupStatus } from '../features/preferences/backup-status.ts';
 import { SidebarPreference } from '../shared/ui/sidebar-preference.ts';
 import { Logger } from '../shared/services/logger.ts';
@@ -230,7 +229,6 @@ const handleWatchlistClick = (target) => {
 
 const bootstrap = () => {
   Logger.init({ level: 'info', captureGlobalErrors: true });
-  ThemeManager.init();
   SidebarPreference.init();
   updateBackupStatus();
   for (const id of ['watchlist-grid', 'airing-dashboard-grid']) {

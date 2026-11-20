@@ -13,6 +13,18 @@ const runAfterWindowLoad = (callback) => {
   window.addEventListener('load', callback, { once: true });
 };
 
+// Preferences for features that no longer exist. Removing them keeps exported
+// browser data and storage quota free of dead values.
+const RETIRED_STORAGE_KEYS = ['rekonime.theme'];
+
+const removeRetiredStorageKeys = (storage = globalThis.localStorage) => {
+  try {
+    for (const key of RETIRED_STORAGE_KEYS) storage?.removeItem(key);
+  } catch {
+    // Storage can be unavailable (private mode, blocked site data).
+  }
+};
+
 const initDeferredRuntimeServices = ({
   timeoutMs = 2000,
   loadModules,
@@ -20,6 +32,7 @@ const initDeferredRuntimeServices = ({
   onError
 } = {}) => {
   const run = () => queueIdleTask(async () => {
+    removeRetiredStorageKeys();
     try {
       const modules = typeof loadModules === 'function' ? await loadModules() : [];
       if (typeof onReady === 'function') {
@@ -36,6 +49,8 @@ const initDeferredRuntimeServices = ({
 };
 
 export {
+  RETIRED_STORAGE_KEYS,
+  removeRetiredStorageKeys,
   runAfterWindowLoad,
   initDeferredRuntimeServices
 };

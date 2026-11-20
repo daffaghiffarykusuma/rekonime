@@ -195,43 +195,39 @@ test('production MAL import loads tools on file selection and applies a reviewed
 });
 
 for (const width of [1280, 390]) {
-  for (const theme of ['dark', 'light']) {
-    test(`production Watchlist Manage data is readable and operable at ${width}px in ${theme}`, async ({ browser, baseURL }) => {
-      const context = await browser.newContext({ baseURL, viewport: { width, height: 900 }, hasTouch: width === 390, isMobile: width === 390 });
-      const anime = JSON.parse(readFileSync('dist/data/anime.full.index.json', 'utf8')).anime.find(item => item.episodeCount > 4 && item.malId);
-      await context.addInitScript(({ anime, theme }) => {
-        localStorage.setItem('rekonime.theme', theme);
-        localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [{ id: anime.id, status: 'watching', progress: 3, updatedAt: 1000, snapshot: anime }] }));
-      }, { anime, theme });
-      await context.route('https://graphql.anilist.co/**', route => route.fulfill({ json: { data: { Page: { media: [] } } } }));
-      const page = await context.newPage();
-      await page.goto('/watchlist.html');
-      const manage = page.getByText('Manage data', { exact: true });
-      const progress = page.locator('#watchlist-grid input[type="number"]');
-      await expect(progress).toHaveValue('3');
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-      for (const scale of [100, 200]) {
-        await page.evaluate(scale => { document.documentElement.style.fontSize = `${scale}%`; }, scale);
-        test.info().annotations.push({ type: 'page-width', description: `${width}px ${theme} ${scale}% root text: ${await page.evaluate(() => document.documentElement.scrollWidth)}px` });
-        await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeHidden();
-        await page.screenshot({ path: test.info().outputPath(`watchlist-${width}-${theme}-${scale}-closed.png`), fullPage: true });
-        if (width === 390) await manage.tap();
-        else { await manage.focus(); await page.keyboard.press('Enter'); }
-        for (const name of ['Export backup', 'Restore backup', 'Import MAL progress']) {
-          const button = page.getByRole('button', { name, exact: true });
-          await expect(button).toBeVisible();
-          const box = await button.boundingBox();
-          expect(box.height).toBeGreaterThanOrEqual(44);
-          expect(box.x).toBeGreaterThanOrEqual(0);
-          expect(box.x + box.width).toBeLessThanOrEqual(width);
-        }
-        await expect(progress).toHaveValue('3');
-        await page.screenshot({ path: test.info().outputPath(`watchlist-${width}-${theme}-${scale}-open.png`), fullPage: true });
-        if (width === 390) await manage.tap();
-        else { await manage.focus(); await page.keyboard.press('Space'); }
-        await expect(progress).toHaveValue('3');
+  test(`production Watchlist Manage data is readable and operable at ${width}px`, async ({ browser, baseURL }) => {
+    const context = await browser.newContext({ baseURL, viewport: { width, height: 900 }, hasTouch: width === 390, isMobile: width === 390 });
+    const anime = JSON.parse(readFileSync('dist/data/anime.full.index.json', 'utf8')).anime.find(item => item.episodeCount > 4 && item.malId);
+    await context.addInitScript(({ anime }) => {
+      localStorage.setItem('rekonime.watchlist', JSON.stringify({ version: 1, entries: [{ id: anime.id, status: 'watching', progress: 3, updatedAt: 1000, snapshot: anime }] }));
+    }, { anime });
+    await context.route('https://graphql.anilist.co/**', route => route.fulfill({ json: { data: { Page: { media: [] } } } }));
+    const page = await context.newPage();
+    await page.goto('/watchlist.html');
+    const manage = page.getByText('Manage data', { exact: true });
+    const progress = page.locator('#watchlist-grid input[type="number"]');
+    await expect(progress).toHaveValue('3');
+    for (const scale of [100, 200]) {
+      await page.evaluate(scale => { document.documentElement.style.fontSize = `${scale}%`; }, scale);
+      test.info().annotations.push({ type: 'page-width', description: `${width}px ${scale}% root text: ${await page.evaluate(() => document.documentElement.scrollWidth)}px` });
+      await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeHidden();
+      await page.screenshot({ path: test.info().outputPath(`watchlist-${width}-${scale}-closed.png`), fullPage: true });
+      if (width === 390) await manage.tap();
+      else { await manage.focus(); await page.keyboard.press('Enter'); }
+      for (const name of ['Export backup', 'Restore backup', 'Import MAL progress']) {
+        const button = page.getByRole('button', { name, exact: true });
+        await expect(button).toBeVisible();
+        const box = await button.boundingBox();
+        expect(box.height).toBeGreaterThanOrEqual(44);
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(width);
       }
-      await context.close();
-    });
-  }
+      await expect(progress).toHaveValue('3');
+      await page.screenshot({ path: test.info().outputPath(`watchlist-${width}-${scale}-open.png`), fullPage: true });
+      if (width === 390) await manage.tap();
+      else { await manage.focus(); await page.keyboard.press('Space'); }
+      await expect(progress).toHaveValue('3');
+    }
+    await context.close();
+  });
 }

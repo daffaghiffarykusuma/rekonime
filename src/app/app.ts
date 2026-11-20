@@ -5,7 +5,6 @@ import { Recommendations } from '../features/discovery/recommendations.ts';
 import { Discovery } from '../features/discovery/discovery.js';
 import { FilterPresets } from '../features/discovery/filterPresets.ts';
 import { BrowseFiltering } from '../features/discovery/browse-filtering.ts';
-import { ThemeManager } from '../shared/ui/themeManager.js';
 import { SidebarPreference } from '../shared/ui/sidebar-preference.ts';
 import { CacheManager } from '../shared/services/cache-manager.ts';
 import { createDetailExperience } from '../features/detail/detail-experience.ts';
@@ -3566,15 +3565,11 @@ const App = {
       ? '<div class="filter-section-title">Viewing preferences</div>'
       : '';
 
-    const themeSelector = ThemeManager.renderThemeSelector();
     const sidebarSelector = SidebarPreference.renderSelector();
 
     return `
       <div class="filter-section settings-section">
         ${titleMarkup}
-        
-        <!-- Theme Selection -->
-        ${themeSelector}
         ${sidebarSelector}
         
         <!-- Playback Settings -->
@@ -3888,11 +3883,12 @@ const App = {
         .join('');
       const decision = this.getCardDecisionData(anime);
       const decisionClass = this.sanitizeClassList('recommendation-signal', decision.className);
-      const obiLabel = decision.kind === 'episode' ? 'Episode strength' : decision.kind === 'community' ? 'MAL score' : '';
-      const [obiScore, obiScale] = String(decision.value).split('/');
-      const obiScaleMarkup = obiScale ? `<small>/${this.escapeHtml(obiScale)}</small>` : '';
-      const obiMarkup = obiLabel
-        ? `<span class="recommendation-obi-label" aria-hidden="true">${obiLabel}</span><span class="recommendation-obi-score" aria-hidden="true">${this.escapeHtml(obiScore)}${obiScaleMarkup}</span>`
+      // The poster's score chip repeats the scoreboard, so it is hidden from assistive tech.
+      const badgeLabel = decision.kind === 'episode' ? 'Episode strength' : decision.kind === 'community' ? 'MAL score' : '';
+      const [badgeScore, badgeScale] = String(decision.value).split('/');
+      const badgeScaleMarkup = badgeScale ? `<small>/${this.escapeHtml(badgeScale)}</small>` : '';
+      const badgeMarkup = badgeLabel
+        ? `<span class="recommendation-badge" aria-hidden="true"><span class="recommendation-badge-score">${this.escapeHtml(badgeScore)}${badgeScaleMarkup}</span><span class="recommendation-badge-label">${badgeLabel}</span></span>`
         : '';
       const labelTitle = anime.title || 'this anime';
       const labelYear = anime.year ? `, ${anime.year}` : '';
@@ -3915,7 +3911,7 @@ const App = {
       return `
         <div class="recommendation-card" data-action="open-anime" data-anime-id="${safeId}" role="group" tabindex="-1" aria-label="${safeTitle}">
           <div class="recommendation-media">
-            ${obiMarkup ? `<span class="recommendation-obi">${obiMarkup}</span>` : ''}
+            ${badgeMarkup}
             <img src="${safeRecCover}" ${recSrcsetAttr} ${recSizesAttr} alt="${safeTitle}" class="recommendation-cover" ${recDimAttrs} loading="${loadAttrs.loading}" decoding="${loadAttrs.decoding}" ${fetchPriorityAttr} ${recFallbackAttrs}>
           </div>
           <div class="recommendation-info">

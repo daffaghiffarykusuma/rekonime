@@ -18,7 +18,8 @@ test('distribution budgets reject missing assets, oversized emitted JS, and ever
     fs.copyFileSync('tools/check-dist-size-budget.js', path.join(root, 'tools/check-dist-size-budget.js'));
     fs.writeFileSync(path.join(root, 'package.json'), '{"type":"module"}');
     for (const name of ['js/data.js', 'data/anime.full.index.json', 'data/franchise-map.json',
-      'js/app.js', 'fonts/phosphor-icons.woff2', 'css/main-test.css', 'css/watchlist.css']) writeAsset(name);
+      'js/app.js', 'fonts/phosphor-icons.woff2', 'fonts/archivo-latin-variable.woff2', 'css/main-test.css',
+      'css/watchlist.css']) writeAsset(name);
     assert.equal(run().status, 0);
     fs.unlinkSync(path.join(root, 'dist/js/app.js'));
     const missing = run();
@@ -29,6 +30,11 @@ test('distribution budgets reject missing assets, oversized emitted JS, and ever
     assert.equal(oversized.status, 1);
     assert.match(oversized.stderr, /js\/app.js.*above budget/);
     writeAsset('js/app.js');
+    writeAsset('fonts/archivo-latin-variable.woff2', 86 * 1024);
+    const heavyFont = run();
+    assert.equal(heavyFont.status, 1);
+    assert.match(heavyFont.stderr, /archivo-latin-variable.woff2.*above budget/);
+    writeAsset('fonts/archivo-latin-variable.woff2');
     writeAsset('css/main-z-second.css', 130 * 1024);
     const secondMatch = run();
     assert.equal(secondMatch.status, 1);

@@ -23,7 +23,7 @@ The HTML script URLs point directly at `/src/app/main.ts` and `/src/app/watchlis
 This slice does not rewrite the large shell internals into fully typed implementation code. The converted shell files use `// @ts-nocheck` as a migration bridge so runtime behavior remains the controlling acceptance criterion.
 
 Remaining JavaScript runtime surfaces:
-- `src/features/detail/reviews.js`, `src/shared/ui/themeManager.js`, `src/features/discovery/discovery.js`, `src/features/onboarding/onboarding.js`, `src/shared/runtime/image-proxy*.js`, and small bootstrap helpers remain JavaScript.
+- `src/features/detail/reviews.js`, `src/shared/ui/themeManager.js` (removed on 2026-11-20 with the light theme), `src/features/discovery/discovery.js`, `src/features/onboarding/onboarding.js`, `src/shared/runtime/image-proxy*.js`, and small bootstrap helpers remain JavaScript.
 - Owner: Runtime team.
 - Removal condition: convert after the app shell is stable on direct TypeScript entrypoints and after each module has focused behavior tests or is proven to be pure side-effect bootstrap code.
 

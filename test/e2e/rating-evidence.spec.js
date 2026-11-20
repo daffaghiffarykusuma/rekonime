@@ -3,16 +3,13 @@ import { test, expect } from '@playwright/test';
 const captureRatingLayouts = async (page, card, testInfo) => {
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 720 });
-    for (const theme of ['dark', 'light']) {
-      for (const scale of [100, 200]) {
-        await page.evaluate(({ theme, scale }) => {
-          document.documentElement.dataset.theme = theme;
-          document.documentElement.style.fontSize = `${scale}%`;
-        }, { theme, scale });
-        await page.evaluate(() => document.fonts.ready);
-        await card.scrollIntoViewIfNeeded();
-        await card.screenshot({ path: testInfo.outputPath(`rating-${width}-${theme}-${scale}.png`), animations: 'disabled' });
-      }
+    for (const scale of [100, 200]) {
+      await page.evaluate((scale) => {
+        document.documentElement.style.fontSize = `${scale}%`;
+      }, scale);
+      await page.evaluate(() => document.fonts.ready);
+      await card.scrollIntoViewIfNeeded();
+      await card.screenshot({ path: testInfo.outputPath(`rating-${width}-${scale}.png`), animations: 'disabled' });
     }
   }
   await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
@@ -45,14 +42,11 @@ test('ratings use named scales and MAL attribution from Discovery through catalo
   await expect(page.locator('#sort-select option[value="retention"]')).toHaveText('Highest Episode Rating Strength (/100)');
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 720 });
-    for (const theme of ['dark', 'light']) {
-      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
-      await pick.scrollIntoViewIfNeeded();
-      await pick.screenshot({ path: ` .scratch/ui-design/evidence/02/${anime[0].id}-discovery-${width}-${theme}.png`.trim() });
-      await catalog.scrollIntoViewIfNeeded();
-      await expect(catalog.getByText("Community Score (MAL)", { exact: true }).first()).toBeVisible();
-      await catalog.screenshot({ path: `.scratch/ui-design/evidence/02/${anime[0].id}-catalog-${width}-${theme}.png` });
-    }
+    await pick.scrollIntoViewIfNeeded();
+    await pick.screenshot({ path: ` .scratch/ui-design/evidence/02/${anime[0].id}-discovery-${width}.png`.trim() });
+    await catalog.scrollIntoViewIfNeeded();
+    await expect(catalog.getByText("Community Score (MAL)", { exact: true }).first()).toBeVisible();
+    await catalog.screenshot({ path: `.scratch/ui-design/evidence/02/${anime[0].id}-catalog-${width}.png` });
   }
   await pick.locator('.recommendation-title').click();
   const detail = page.locator('#detail-modal');

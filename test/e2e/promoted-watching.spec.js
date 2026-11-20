@@ -34,7 +34,7 @@ test('homepage omits the promoted section without Watching entries', async ({ pa
 });
 
 for (const scenario of ['zero-multiple', 'positive-multiple', 'positive-single']) {
-  test(`promoted Watching layout: ${scenario} on desktop/mobile in both themes`, async ({ page }) => {
+  test(`promoted Watching layout: ${scenario} on desktop and mobile`, async ({ page }) => {
     const saved = scenario === 'positive-single' ? [entries[0]] : entries.map(entry => entry.id === 'recent' && scenario === 'positive-multiple' ? { ...entry, progress: 2 } : entry);
     await openHome(page, saved);
     const section = page.locator('#continue-watching-section');
@@ -42,19 +42,16 @@ for (const scenario of ['zero-multiple', 'positive-multiple', 'positive-single']
     await expect(section).toContainText(scenario === 'positive-single' ? '3 / 12 episodes watched' : `${scenario === 'zero-multiple' ? 0 : 2} episodes watched · total unknown`);
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 720 });
-      for (const theme of ['dark', 'light']) {
-        await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
-        await section.scrollIntoViewIfNeeded();
-        const box = await section.boundingBox();
-        expect(box.x).toBeGreaterThanOrEqual(0);
-        expect(box.x + box.width).toBeLessThanOrEqual(width);
-        await section.screenshot({ path: `.scratch/ui-design/evidence/04/${scenario}-${width}-${theme}.png` });
-        await page.screenshot({ path: `.scratch/ui-design/evidence/04/${scenario}-${width}-${theme}-page.png` });
-      }
+      await section.scrollIntoViewIfNeeded();
+      const box = await section.boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      await section.screenshot({ path: `.scratch/ui-design/evidence/04/${scenario}-${width}.png` });
+      await page.screenshot({ path: `.scratch/ui-design/evidence/04/${scenario}-${width}-page.png` });
     }
     await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
     await section.scrollIntoViewIfNeeded();
-    await section.screenshot({ path: `.scratch/ui-design/evidence/04/${scenario}-390-light-text200.png` });
+    await section.screenshot({ path: `.scratch/ui-design/evidence/04/${scenario}-390-text200.png` });
     const sectionBox = await section.boundingBox();
     expect(sectionBox.x + sectionBox.width).toBeLessThanOrEqual(390);
   });

@@ -121,7 +121,7 @@ test('Watchlist Page Interactions re-renders when another tab saves the Watchlis
     window.dispatchEvent(event);
   };
 
-  dispatchStorage('rekonime.theme');
+  dispatchStorage('rekonime.unrelated');
   assert.deepEqual(calls, []);
   dispatchStorage('rekonime.watchlist');
   dispatchStorage(null);

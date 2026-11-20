@@ -124,26 +124,20 @@ test('complete discovery-to-watchlist journey', async ({ browser, baseURL }) => 
 
   const panel = page.locator('.airing-dashboard-section');
   await expect(panel).toBeVisible();
-  for (const theme of ['dark', 'light']) {
-    await page.evaluate((nextTheme) => {
-      localStorage.setItem('rekonime.theme', nextTheme);
-      document.documentElement.dataset.theme = nextTheme;
-    }, theme);
-    const colors = await panel.evaluate((element) => ({
-      background: getComputedStyle(element).backgroundColor,
-      foregrounds: [
-        'h2',
-        '.airing-summary-value',
-        '.airing-summary-label',
-        '.airing-dashboard-empty',
-        '.airing-dashboard-link'
-      ].flatMap((selector) => [...element.querySelectorAll(selector)])
-        .filter((node) => getComputedStyle(node).display !== 'none')
-        .map((node) => getComputedStyle(node).color)
-    }));
-    for (const foreground of colors.foregrounds) {
-      expect(contrastRatio(foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
-    }
+  const colors = await panel.evaluate((element) => ({
+    background: getComputedStyle(element).backgroundColor,
+    foregrounds: [
+      'h2',
+      '.airing-summary-value',
+      '.airing-summary-label',
+      '.airing-dashboard-empty',
+      '.airing-dashboard-link'
+    ].flatMap((selector) => [...element.querySelectorAll(selector)])
+      .filter((node) => getComputedStyle(node).display !== 'none')
+      .map((node) => getComputedStyle(node).color)
+  }));
+  for (const foreground of colors.foregrounds) {
+    expect(contrastRatio(foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
   }
 
   const watchBox = await watchCard.boundingBox();
@@ -157,7 +151,7 @@ test('complete discovery-to-watchlist journey', async ({ browser, baseURL }) => 
   await context.close();
 });
 
-test('light-theme Airing Schedule keeps readable foreground contrast', async ({ page }) => {
+test('Watchlist Airing Schedule keeps readable foreground contrast', async ({ page }) => {
   await page.goto('/');
   await page.waitForSelector('#anime-grid .anime-card');
   await page.locator('#anime-grid .anime-card').first().click();
@@ -166,7 +160,6 @@ test('light-theme Airing Schedule keeps readable foreground contrast', async ({ 
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await expect(page.locator('#watchlist-select')).toHaveValue('planned');
-  await page.evaluate(() => localStorage.setItem('rekonime.theme', 'light'));
 
   await page.goto('/watchlist.html');
   const panel = page.locator('.airing-dashboard-section');
@@ -188,7 +181,7 @@ test('light-theme Airing Schedule keeps readable foreground contrast', async ({ 
   }
 });
 
-test('tertiary review attribution remains readable in both themes and narrow layouts', async ({ page }) => {
+test('tertiary review attribution remains readable in narrow layouts', async ({ page }) => {
   // This checks attribution contrast, not the availability of the review API.
   await page.route('https://api.jikan.moe/v4/anime/**', route => route.fulfill({
     json: new URL(route.request().url()).pathname.endsWith('/reviews')
@@ -203,18 +196,15 @@ test('tertiary review attribution remains readable in both themes and narrow lay
 
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 844 });
-    for (const theme of ['dark', 'light']) {
-      await page.evaluate((nextTheme) => { document.documentElement.dataset.theme = nextTheme; }, theme);
-      const colors = await attribution.evaluate((element) => {
-        const foreground = getComputedStyle(element).color;
-        let background = 'rgba(0, 0, 0, 0)';
-        for (let node = element; node && background === 'rgba(0, 0, 0, 0)'; node = node.parentElement) {
-          background = getComputedStyle(node).backgroundColor;
-        }
-        return { foreground, background };
-      });
-      expect(contrastRatio(colors.foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
-    }
+    const colors = await attribution.evaluate((element) => {
+      const foreground = getComputedStyle(element).color;
+      let background = 'rgba(0, 0, 0, 0)';
+      for (let node = element; node && background === 'rgba(0, 0, 0, 0)'; node = node.parentElement) {
+        background = getComputedStyle(node).backgroundColor;
+      }
+      return { foreground, background };
+    });
+    expect(contrastRatio(colors.foreground, colors.background)).toBeGreaterThanOrEqual(4.5);
     const modalBox = await page.locator('#detail-modal .modal-content').boundingBox();
     expect(modalBox.x).toBeGreaterThanOrEqual(0);
     expect(modalBox.x + modalBox.width).toBeLessThanOrEqual(width);

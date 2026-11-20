@@ -127,10 +127,8 @@ body.is-scroll-locked {
 }
 
 .select-wrapper select:hover,
-.select-wrapper select:focus {
+.select-wrapper select:focus-visible {
   border-color: var(--accent-primary);
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(246, 148, 193, 0.2);
 }
 
 .select-wrapper::after {
@@ -304,10 +302,6 @@ body.is-scroll-locked {
   transform: translate(1.2rem, -50%);
 }
 
-.settings-toggle-input:focus-visible+.settings-toggle-slider {
-  box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.35);
-}
-
 .no-results h3 {
   font-size: 1.25rem;
   margin-bottom: 0.5rem;
@@ -327,7 +321,7 @@ body.is-scroll-locked {
 
 /* Anime Grid */
 .grid-section h2 {
-  color: var(--text-primary, #F6F1FA);
+  color: var(--text-primary);
 }
 
 .skeleton-card::after,
@@ -502,7 +496,7 @@ body.is-scroll-locked {
 
 /* Consistency Colors */
 .consistency-high {
-  background: rgba(34, 197, 94, 0.2);
+  background: rgb(95 211 154 / 0.2);
   color: var(--success);
 }
 
@@ -512,7 +506,7 @@ body.is-scroll-locked {
 }
 
 .consistency-low {
-  background: rgba(234, 179, 8, 0.2);
+  background: rgb(255 159 67 / 0.2);
   color: var(--warning);
 }
 
@@ -936,8 +930,8 @@ body.is-scroll-locked {
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
   background:
-    radial-gradient(circle at top right, rgba(246, 148, 193, 0.16), transparent 38%),
-    linear-gradient(135deg, rgba(246, 148, 193, 0.08), rgba(228, 193, 249, 0.06));
+    radial-gradient(circle at top right, rgb(216 31 54 / 0.16), transparent 38%),
+    linear-gradient(135deg, rgb(216 31 54 / 0.08), rgb(255 255 255 / 0.06));
 }
 
 .franchise-summary-copy {
@@ -1004,13 +998,13 @@ body.is-scroll-locked {
 }
 
 .franchise-card.is-current {
-  border-color: rgba(246, 148, 193, 0.42);
-  box-shadow: 0 0 0 1px rgba(246, 148, 193, 0.18);
+  border-color: rgb(216 31 54 / 0.42);
+  box-shadow: 0 0 0 1px rgb(216 31 54 / 0.18);
 }
 
 .franchise-card.is-entry {
   background:
-    radial-gradient(circle at top left, rgba(246, 148, 193, 0.12), transparent 45%),
+    radial-gradient(circle at top left, rgb(216 31 54 / 0.12), transparent 45%),
     var(--bg-secondary);
 }
 
@@ -1070,7 +1064,7 @@ body.is-scroll-locked {
 }
 
 .franchise-badge--entry {
-  border-color: rgba(246, 148, 193, 0.34);
+  border-color: rgb(216 31 54 / 0.34);
   color: var(--text-primary);
 }
 
@@ -1752,14 +1746,14 @@ body::before {
   right: 0;
   bottom: 0;
   background-image:
-    radial-gradient(2px 2px at 20px 30px, rgba(246, 148, 193, 0.3), transparent),
-    radial-gradient(2px 2px at 40px 70px, rgba(228, 193, 249, 0.2), transparent),
-    radial-gradient(1px 1px at 90px 40px, rgba(246, 148, 193, 0.25), transparent),
-    radial-gradient(2px 2px at 130px 80px, rgba(232, 154, 171, 0.2), transparent),
-    radial-gradient(1px 1px at 160px 120px, rgba(196, 181, 224, 0.15), transparent),
-    radial-gradient(2px 2px at 200px 50px, rgba(246, 148, 193, 0.2), transparent),
-    radial-gradient(1px 1px at 230px 90px, rgba(228, 193, 249, 0.25), transparent),
-    radial-gradient(2px 2px at 280px 140px, rgba(246, 148, 193, 0.15), transparent);
+    radial-gradient(2px 2px at 20px 30px, rgb(216 31 54 / 0.3), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgb(255 255 255 / 0.2), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgb(216 31 54 / 0.25), transparent),
+    radial-gradient(2px 2px at 130px 80px, rgb(216 31 54 / 0.2), transparent),
+    radial-gradient(1px 1px at 160px 120px, rgb(255 255 255 / 0.15), transparent),
+    radial-gradient(2px 2px at 200px 50px, rgb(216 31 54 / 0.2), transparent),
+    radial-gradient(1px 1px at 230px 90px, rgb(255 255 255 / 0.25), transparent),
+    radial-gradient(2px 2px at 280px 140px, rgb(216 31 54 / 0.15), transparent);
   background-size: 300px 200px;
   animation: particle-drift 60s linear infinite;
   pointer-events: none;
@@ -1781,10 +1775,6 @@ body::before {
   color: var(--accent-primary);
 }
 
-.logo-link:hover .logo-icon,
-.logo-link:focus-visible .logo-icon {
-  box-shadow: 0 0 0 3px rgba(246, 148, 193, 0.2);
-}
 
 .logo-text {
   flex-direction: column;
@@ -2271,13 +2261,6 @@ body::before {
   text-align: center;
 }
 
-.quick-chip:nth-child(5n) {
-  background: linear-gradient(135deg, rgba(246, 148, 193, 0.12), rgba(237, 231, 177, 0.08));
-}
-
-.quick-chip:nth-child(5n + 2) {
-  background: linear-gradient(135deg, rgba(211, 248, 226, 0.12), rgba(246, 148, 193, 0.06));
-}
 
 .quick-chip.active {
   background: var(--accent-primary);
@@ -2400,7 +2383,7 @@ body::before {
   width: 12rem;
   height: 12rem;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(211, 248, 226, 0.18), transparent 68%);
+  background: radial-gradient(circle, rgb(95 211 154 / 0.18), transparent 68%);
   pointer-events: none;
 }
 
@@ -2428,7 +2411,7 @@ body::before {
   gap: 0.18rem;
   padding: 0.9rem 1rem;
   min-height: 4.5rem;
-  border: 1px solid rgba(246, 148, 193, 0.14);
+  border: 1px solid rgb(216 31 54 / 0.14);
 }
 
 .airing-summary-card.is-loading {
@@ -2455,15 +2438,15 @@ body::before {
   gap: 0.9rem;
   padding: 0.85rem;
   border-radius: 1.1rem;
-  border: 1px solid rgba(246, 148, 193, 0.14);
-  background: rgba(26, 20, 24, 0.62);
+  border: 1px solid rgb(216 31 54 / 0.14);
+  background: rgb(18 18 22 / 0.62);
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .airing-card:hover {
   transform: translateY(-0.125rem);
-  border-color: rgba(246, 148, 193, 0.3);
+  border-color: rgb(216 31 54 / 0.3);
   box-shadow: 0 0.8rem 1.5rem rgba(0, 0, 0, 0.16);
 }
 
@@ -2511,17 +2494,17 @@ body::before {
 }
 
 .airing-card-badge.is-ready {
-  background: rgba(211, 248, 226, 0.18);
+  background: rgb(95 211 154 / 0.18);
   color: var(--success);
 }
 
 .airing-card-badge.is-today {
-  background: rgba(237, 231, 177, 0.2);
-  color: var(--warning);
+  background: rgb(216 31 54 / 0.22);
+  color: var(--text-primary);
 }
 
 .airing-card-badge.is-next {
-  background: rgba(155, 184, 232, 0.18);
+  background: rgb(143 180 255 / 0.18);
   color: var(--info);
 }
 
@@ -2757,9 +2740,9 @@ body::before {
 }
 
 .badge-retention {
-  background: rgba(246, 148, 193, 0.15);
+  background: rgb(216 31 54 / 0.15);
   color: var(--accent-primary);
-  border-color: rgba(246, 148, 193, 0.3);
+  border-color: rgb(216 31 54 / 0.3);
 }
 
 .card-stats {
@@ -3348,7 +3331,7 @@ summary:focus-visible,
    ========================================== */
 
 .filter-section--presets {
-  background: linear-gradient(135deg, rgba(246, 148, 193, 0.05) 0%, rgba(228, 193, 249, 0.05) 100%);
+  background: linear-gradient(135deg, rgb(216 31 54 / 0.05) 0%, rgb(255 255 255 / 0.05) 100%);
   border-radius: var(--radius-sm);
   padding: 1rem 1.25rem;
   margin-bottom: 1rem;
@@ -3673,7 +3656,7 @@ summary:focus-visible,
 .recommendation-signal,
 .detail-verdict {
   border: 1px solid var(--border-color);
-  background: linear-gradient(135deg, rgba(246, 148, 193, 0.12), rgba(255, 255, 255, 0.03));
+  background: linear-gradient(135deg, rgb(216 31 54 / 0.12), rgba(255, 255, 255, 0.03));
 }
 
 .card-primary-signal {
@@ -3683,16 +3666,6 @@ summary:focus-visible,
   margin-top: 0.75rem;
   padding: 0.7rem 0.75rem;
   border-radius: var(--radius-sm);
-}
-
-.recommendation-rank {
-  top: 0.75rem;
-  left: 0.75rem;
-  z-index: 2;
-  min-width: 2.25rem;
-  min-height: 2.25rem;
-  place-items: center;
-  backdrop-filter: blur(8px);
 }
 
 .recommendation-signal {
@@ -4132,7 +4105,7 @@ summary:focus-visible,
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  box-shadow: var(--shadow-lg), 0 0 20px rgba(246, 148, 193, 0.2);
+  box-shadow: var(--shadow-lg), 0 0 20px rgb(216 31 54 / 0.2);
   z-index: 9999;
   transform: translateY(150%);
   transition: transform 0.4s var(--ease-bloom);
@@ -4723,7 +4696,7 @@ button.toast-action {
 
   .seasonal-chip.is-highlight {
     color: #fff;
-    text-shadow: 0 1px 1px rgba(50, 20, 35, 0.28);
+    text-shadow: 0 1px 1px rgb(0 0 0 / 0.28);
   }
 
   .seasonal-chip {

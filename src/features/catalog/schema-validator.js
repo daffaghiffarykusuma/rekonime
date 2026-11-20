@@ -88,7 +88,6 @@ const validators = {
     && Array.isArray(value.data)
     && value.data.every(isPlainObject)
   ),
-  'rekonime.theme': value => ['dark', 'light', 'auto'].includes(value),
   'rekonime.shortcutsAcknowledged': value => value === 'true',
   'rekonime.anime': value => (
     isPlainObject(value)

@@ -1,32 +1,3 @@
-[data-theme="light"] .quick-filters-track[data-filter-group="genres"],
-[data-theme="light"] .quick-filters-track[data-filter-group="themes"] {
-    background: var(--bg-tertiary);
-}
-
-[data-theme="light"] .filter-pill.active {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
-    color: var(--bg-primary);
-}
-
-[data-theme="light"] .quick-chip.active {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
-    color: var(--bg-primary);
-}
-
-/* Active filters bar */
-[data-theme="light"] .active-filters {
-    background: var(--bg-secondary);
-    border-color: var(--border-color);
-}
-
-[data-theme="light"] .seasonal-chip.is-highlight {
-    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-    border-color: transparent;
-    color: #fff;
-}
-
 [data-high-contrast="true"] .anime-card,
 [data-high-contrast="true"] .recommendation-card,
 [data-high-contrast="true"] .modal-content {
@@ -325,42 +296,4 @@
     font-size: 0.875rem;
     color: var(--text-secondary);
     line-height: 1.5;
-}
-
-/* ==========================================
-   Theme Selector in Settings
-   ========================================== */
-
-.theme-selector {
-    margin-bottom: 0.75rem;
-}
-
-.theme-option {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-}
-
-.theme-option:hover {
-    background: var(--bg-secondary);
-    border-color: var(--border-hover);
-}
-
-.theme-option.is-active {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
-}
-
-.theme-option.is-active .theme-option-icon,
-.theme-option.is-active .theme-option-label {
-    color: var(--bg-primary);
-}
-
-.theme-option-label {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--text-secondary);
 }

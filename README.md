@@ -21,7 +21,7 @@ Use Node.js 24.x and Bun. The Node version is declared in `.nvmrc` for local ver
 - **Because You Watched**: Personalized recommendations based on your watchlist.
 - **Filter Presets**: One-click curated filters (Binge-Worthy, Critical Darlings, Hidden Gems, etc.).
 - **Keyboard Shortcuts**: `?` for help, `/` for search, arrow keys for navigation.
-- **Themes**: Switch between Dark, Light, or Auto (OS preference) modes.
+- **One dark theme**: A black, movie-platform look. There is no light mode.
 - **Offline Support**: Works offline with cached data via Service Worker.
 
 ## Data and updates (human view)
@@ -108,7 +108,7 @@ src/
     runtime/             Browser capabilities, images, health, worker registration
     security/            URL policies and Trusted Types
     services/            Cache manager and logging
-    ui/                  Theme, sidebar, keyboard shortcuts, toast
+    ui/                  Sidebar, keyboard shortcuts, toast
   styles/                Page and shared stylesheets
 public/                  Files served directly, including fonts and fallback data
 data/                    Source and derived catalogs
@@ -135,11 +135,20 @@ is kept in `tools/fonts/phosphor-regular.woff2` and is not shipped. The checked-
 subset was generated with FontTools 4.66.1 and Brotli 1.2.0; ordinary builds do
 not require these tools.
 
+The text font in `public/fonts/archivo-latin-variable.woff2` is Archivo (SIL Open
+Font License 1.1, shipped as `public/fonts/OFL-Archivo.txt`), the Google Fonts v25 Latin subset with its weight (100–900)
+and width axes. The width axis was pinned from 62–125% to the 75–115% the styles
+use with fontTools' `instancer` (FontTools 4.68.0, Brotli 1.2.1), which saves
+about 5 KB. `src/styles/fonts.css` also
+defines `Archivo Fallback`, local Arial and Arial Bold scaled to Archivo's
+metrics at normal width, so body text holds its place when the web font arrives.
+Widened or condensed headings can still rewrap slightly.
+
 ### Key files
 - `index.html`, `watchlist.html`: pages and static markup (watchlist lives in `watchlist.html`).
 - `src/styles/styles.css`: styles, layout, and responsive rules.
 - `src/styles/mal-watchlist-import.css`: MyAnimeList import styles and the shared surface, label, control, and empty-state language used across the catalog and watchlist.
-- `src/styles/themes.css`: theme system with light/dark modes and accessibility features.
+- `src/styles/themes.css`: accessibility modes (high contrast, large text, reduced motion), focus states, and shortcut styles.
 - `src/app/app.ts`: app state, rendering, filters, modal, watchlist, SEO.
 - `src/features/discovery/stats.ts`: episode rating and scoring metrics.
 - `src/features/discovery/recommendations.ts`: recommendation + similarity scoring logic.
@@ -147,7 +156,6 @@ not require these tools.
 - `src/features/discovery/discovery.js`: Surprise Me and seasonal discovery.
 - `src/features/discovery/filterPresets.ts`: quick filter presets (Binge-Worthy, Critical Darlings, etc.).
 - `src/shared/ui/keyboardShortcuts.ts`: keyboard navigation system.
-- `src/shared/ui/themeManager.js`: light/dark/auto theme switching.
 - `src/shared/runtime/serviceWorker.ts`: PWA service worker registration.
 - `sw.js`: service worker for offline caching.
 - `data/`: JSON catalogs (source, preview, full).
@@ -164,7 +172,6 @@ flowchart TD
   app --> reviews[src/features/detail/reviews.js]
   app --> discovery[src/features/discovery/discovery.js]
   app --> filterPresets[src/features/discovery/filterPresets.ts]
-  app --> themeManager[src/shared/ui/themeManager.js]
   app --> keyboardShortcuts[src/shared/ui/keyboardShortcuts.ts]
   app --> serviceWorkerManager[src/shared/runtime/serviceWorker.ts]
   app --> css[src/styles/styles.css]
@@ -188,5 +195,5 @@ flowchart TD
   - Press `?` anywhere to see all available shortcuts.
 - Can I use the app offline?
   - Yes, the Service Worker caches data for offline use.
-- How do I change the theme?
-  - Click the settings button (⚙️) and choose Dark, Light, or Auto.
+- Is there a light theme?
+  - No. Rekonime has one dark theme.

@@ -73,41 +73,37 @@ test('catalog sheet shares sorting with desktop and preserves filtering and Disc
   await expect(desktopSort.locator('option:checked')).toHaveText('Highest Episode Rating Strength (/100)');
 });
 
-for (const theme of ['dark', 'light']) {
-  for (const width of [1280, 390, 320]) {
-    test(`Filter & sort remains usable in ${theme} at ${width}px`, async ({ page }, testInfo) => {
-      await page.addInitScript(theme => {
-        localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
-        localStorage.setItem('rekonime.theme', theme);
-      }, theme);
-      await page.setViewportSize({ width, height: width === 1280 ? 720 : 844 });
-      await page.goto('/');
-      await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
-      if (width === 320) await page.addStyleTag({ content: 'html { font-size: 125%; }' });
-      const trigger = page.getByRole('button', { name: 'Filter & sort', exact: true });
-      await trigger.focus();
-      await page.keyboard.press('Enter');
-      const sheet = page.getByRole('dialog', { name: 'Filter & sort', exact: true });
-      const sort = sheet.getByRole('combobox', { name: 'Catalog order', exact: true });
-      await expect(sort).toBeVisible();
-      await expect(page.locator('#close-filter-modal')).toBeFocused();
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-      await sort.selectOption('satisfaction');
-      if (width === 320) await expect(sheet.getByText('Current order: Highest Community Score (MAL, /10)', { exact: true })).toBeVisible();
-      for (const control of [sort, sheet.getByRole('button', { name: 'Show matches' })]) {
-        const box = await control.boundingBox();
-        expect(box.x).toBeGreaterThanOrEqual(0);
-        expect(box.x + box.width).toBeLessThanOrEqual(width);
-        expect(box.height).toBeGreaterThanOrEqual(44);
-      }
-      const before = await page.evaluate(() => window.scrollY);
-      await page.mouse.move(width - 2, 300);
-      await page.mouse.wheel(0, 600);
-      expect(await page.evaluate(() => window.scrollY)).toBe(before);
-      await page.screenshot({ path: testInfo.outputPath(`filter-sort-${theme}-${width}.png`) });
-      await page.keyboard.press('Escape');
-      await expect(sheet).toBeHidden();
-      await expect(trigger).toBeFocused();
+for (const width of [1280, 390, 320]) {
+  test(`Filter & sort remains usable at ${width}px`, async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('rekonime.shortcutsAcknowledged', 'true');
     });
-  }
+    await page.setViewportSize({ width, height: width === 1280 ? 720 : 844 });
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.dataset.catalogReady === 'true');
+    if (width === 320) await page.addStyleTag({ content: 'html { font-size: 125%; }' });
+    const trigger = page.getByRole('button', { name: 'Filter & sort', exact: true });
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    const sheet = page.getByRole('dialog', { name: 'Filter & sort', exact: true });
+    const sort = sheet.getByRole('combobox', { name: 'Catalog order', exact: true });
+    await expect(sort).toBeVisible();
+    await expect(page.locator('#close-filter-modal')).toBeFocused();
+    await sort.selectOption('satisfaction');
+    if (width === 320) await expect(sheet.getByText('Current order: Highest Community Score (MAL, /10)', { exact: true })).toBeVisible();
+    for (const control of [sort, sheet.getByRole('button', { name: 'Show matches' })]) {
+      const box = await control.boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    const before = await page.evaluate(() => window.scrollY);
+    await page.mouse.move(width - 2, 300);
+    await page.mouse.wheel(0, 600);
+    expect(await page.evaluate(() => window.scrollY)).toBe(before);
+    await page.screenshot({ path: testInfo.outputPath(`filter-sort-${width}.png`) });
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
 }

@@ -4,23 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Rekonime Health Status</title>
-    <link rel="preload" href="/fonts/anybody-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/m-plus-1-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#08080a" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/src/styles/fonts.css" />
     <style>
       :root {
-        color-scheme: light;
-        --bg: #f3efe7;
-        --bg-accent: #e5dccb;
-        --ink: #1a1712;
-        --muted: #5b5248;
-        --accent: #0f7a66;
-        --accent-2: #b6532e;
-        --warning: #d88922;
-        --danger: #c4452e;
-        --card: #fffaf2;
-        --shadow: 0 20px 40px rgba(26, 23, 18, 0.12);
-        --radius: 20px;
+        color-scheme: dark;
+        --bg: #08080a;
+        --ink: #f4f4f6;
+        --muted: #b4b4be;
+        --accent: #5fd39a;
+        --warning: #ff9f43;
+        --danger: #ff7d88;
+        --card: #121216;
+        --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        --radius: 12px;
       }
 
       * {
@@ -29,8 +29,8 @@
 
       body {
         margin: 0;
-        font-family: 'M PLUS 1', 'Segoe UI', sans-serif;
-        background: radial-gradient(circle at top, var(--bg), var(--bg-accent));
+        font-family: 'Archivo', 'Archivo Fallback', 'Segoe UI', Arial, sans-serif;
+        background: var(--bg);
         color: var(--ink);
         min-height: 100vh;
       }
@@ -50,7 +50,9 @@
 
       .hero h1 {
         margin: 0;
-        font-family: 'Anybody', 'Arial Narrow', Arial, sans-serif;
+        font-family: 'Archivo', 'Archivo Fallback', Arial, sans-serif;
+        font-stretch: 88%;
+        font-weight: 800;
         font-size: clamp(2rem, 4vw, 3rem);
         letter-spacing: 0.04em;
         text-transform: uppercase;
@@ -71,8 +73,8 @@
       }
 
       .hero-meta span {
-        background: rgba(15, 122, 102, 0.1);
-        color: var(--accent);
+        background: #1b1b21;
+        color: var(--muted);
         padding: 0.4rem 0.8rem;
         border-radius: 999px;
         font-weight: 600;
@@ -88,7 +90,7 @@
         border-radius: var(--radius);
         padding: 1.5rem;
         box-shadow: var(--shadow);
-        border: 1px solid rgba(26, 23, 18, 0.08);
+        border: 1px solid #26262d;
         display: grid;
         gap: 0.75rem;
         position: relative;
@@ -99,7 +101,7 @@
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(120deg, rgba(15, 122, 102, 0.1), transparent);
+        background: linear-gradient(120deg, rgba(95, 211, 154, 0.1), transparent);
         opacity: 0;
         transition: opacity 0.3s ease;
       }
@@ -109,12 +111,12 @@
       }
 
       .status-card[data-status="degraded"]::after {
-        background: linear-gradient(120deg, rgba(216, 137, 34, 0.2), transparent);
+        background: linear-gradient(120deg, rgba(255, 159, 67, 0.14), transparent);
         opacity: 1;
       }
 
       .status-card[data-status="down"]::after {
-        background: linear-gradient(120deg, rgba(196, 69, 46, 0.2), transparent);
+        background: linear-gradient(120deg, rgba(255, 125, 136, 0.14), transparent);
         opacity: 1;
       }
 
@@ -137,22 +139,22 @@
       }
 
       .status-pill.pending {
-        background: rgba(26, 23, 18, 0.1);
+        background: #1b1b21;
         color: var(--muted);
       }
 
       .status-pill.healthy {
-        background: rgba(15, 122, 102, 0.15);
+        background: rgba(95, 211, 154, 0.14);
         color: var(--accent);
       }
 
       .status-pill.degraded {
-        background: rgba(216, 137, 34, 0.2);
+        background: rgba(255, 159, 67, 0.14);
         color: var(--warning);
       }
 
       .status-pill.down {
-        background: rgba(196, 69, 46, 0.2);
+        background: rgba(255, 125, 136, 0.14);
         color: var(--danger);
       }
 

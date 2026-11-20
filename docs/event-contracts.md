@@ -34,11 +34,6 @@
   - `changedIds`: affected anime ids, optional for a batch import or backup restore
   - `summary`: numeric import totals, optional
 
-## `rekonime:theme-changed`
-- Emitter: `src/shared/ui/themeManager.js`
-- Payload:
-  - `theme`: `light | dark | auto`
-
 ## Contract Rules
 - Event names are stable and kebab-case after `rekonime:`.
 - Payload fields must be additive-only for backward compatibility.

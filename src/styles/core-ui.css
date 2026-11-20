@@ -1,108 +1,77 @@
 ﻿/* ==========================================================================
-   Rekonime — "Obi & ink"
-   Neutral black (default) or white base. Ultramarine and yellow are accents only.
+   Rekonime — "Screening room"
+   One theme: a black room where the posters are the light. Neutral greys
+   carry the interface and colour is rationed, one meaning per hue:
+   - White is the interactive accent and the colour of a choice. It fills the
+     primary action and selected chips, the way a play button does, outlines
+     a selected option card, and sets links.
+   - Crimson (--brand) marks the brand, where you are, what is switched on or
+     live, and progress. Links carry it as their underline.
+   - Gold (--marker) sits behind scores, so a gold number is always a rating.
+     The focus ring borrows it because it must show against anything.
+   - Pink-red (--error) means something went wrong. Orange (--warning) means
+     take care, which includes flagging a weak score.
    Shared design layer for discovery, watchlist, and dialogs. Loaded last.
 
-   The idea comes from Japanese Blu-ray and manga packaging: crisp paper,
-   ultramarine print ink, and the obi, a paper band wrapped around a release
-   that carries its selling point. Picks wear an obi with their rank and
-   headline score. Everything else stays quiet.
-
-   Type: Anybody (display) uses its width axis on purpose. Headlines run wide,
-   titles run condensed so long anime names fit. M PLUS 1 sets body text.
+   Type: Archivo for everything, from one variable file. Its width axis does
+   the work: headlines run slightly wide, titles run condensed so long anime
+   names fit.
    ========================================================================== */
 
 /* ---------- Tokens ---------- */
-:root,
-html:not([data-theme="light"]) {
-  /* Neutral black. Colour only appears in the obi, the score marker, and links. */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #141414;
-  --bg-tertiary: #1f1f1f;
-  --bg-elevated: #2a2a2a;
-  --card-bg: #141414;
-  --text-primary: #f5f5f5;
-  --text-secondary: #b8b8b8;
-  --text-muted: #8c8c8c;
-  --text-tertiary: #8c8c8c;
-  --accent-primary: #9aa8ff;
-  --accent-secondary: #c0c8ff;
-  --accent-hover: #bcc5ff;
-  --obi: #2b3fe0;
-  --obi-ink: #ffffff;
-  --primary-bg: #f5f5f5;
-  --primary-bg-hover: #d9d9d9;
-  --primary-ink: #0a0a0a;
-  --marker: #ffd43b;
-  --marker-ink: #0a0a0a;
-  --success: #86dcae;
-  --warning: #ffd43b;
-  --error: #ff8f9f;
-  --info: #9aa8ff;
-  --success-bg: rgb(134 220 174 / 12%);
-  --warning-bg: rgb(255 212 59 / 12%);
-  --error-bg: rgb(255 143 159 / 12%);
-  --border-color: #262626;
-  --border-hover: #404040;
-  --shadow: 0 1px 0 rgb(0 0 0 / 40%), 0 10px 30px rgb(0 0 0 / 50%);
+:root {
+  --bg-primary: #08080a;
+  --bg-secondary: #121216;
+  --bg-tertiary: #1b1b21;
+  --bg-elevated: #25252d;
+  --card-bg: #121216;
+  --text-primary: #f4f4f6;
+  --text-secondary: #b4b4be;
+  --text-muted: #8e8e9a;
+  --text-tertiary: #8e8e9a;
+  --accent-primary: #ececf1;
+  --accent-secondary: #ffffff;
+  --accent-hover: #ffffff;
+  --brand: #d81f36;
+  --brand-ink: #ffffff;
+  --primary-bg: #f4f4f6;
+  --primary-bg-hover: #d6d6dc;
+  --primary-ink: #08080a;
+  --marker: #f5c249;
+  --marker-ink: #08080a;
+  --success: #5fd39a;
+  --warning: #ff9f43;
+  --warning-ink: #08080a;
+  --error: #ff7d88;
+  --info: #8fb4ff;
+  --success-bg: rgb(95 211 154 / 12%);
+  --warning-bg: rgb(255 159 67 / 12%);
+  --error-bg: rgb(255 125 136 / 12%);
+  --border-color: #26262d;
+  --border-hover: #42424d;
+  --shadow: 0 1px 0 rgb(0 0 0 / 40%), 0 12px 32px rgb(0 0 0 / 55%);
   --shadow-lg: 0 30px 80px rgb(0 0 0 / 70%);
   --radius: 12px;
   --radius-md: 10px;
   --radius-sm: 6px;
-  --radius-cover: 3px;
-  --focus-ring-strong: #ffd43b;
-  --focus-ring-soft: rgb(255 212 59 / 25%);
-  --font-display: 'Anybody', 'Arial Narrow', Arial, sans-serif;
-  --font-body: 'M PLUS 1', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  --button-ink: #0a0a0a;
-  --overlay: rgb(0 0 0 / 72%);
+  --radius-cover: 6px;
+  --focus-ring-strong: #f5c249;
+  --focus-ring-soft: rgb(245 194 73 / 25%);
+  --font-display: 'Archivo', 'Archivo Fallback', Arial, sans-serif;
+  --font-body: 'Archivo', 'Archivo Fallback', 'Segoe UI', Arial, sans-serif;
+  --button-ink: #08080a;
+  --overlay: rgb(0 0 0 / 75%);
 
   color-scheme: dark;
 }
 
-html[data-theme="light"] {
-  /* Plain white. */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f7f7f7;
-  --bg-tertiary: #efefef;
-  --bg-elevated: #e5e5e5;
-  --card-bg: #f7f7f7;
-  --text-primary: #0a0a0a;
-  --text-secondary: #474747;
-  --text-muted: #6b6b6b;
-  --text-tertiary: #6b6b6b;
-  --accent-primary: #2638d9;
-  --accent-secondary: #1c2aa8;
-  --accent-hover: #1a27a0;
-  --obi: #2638d9;
-  --obi-ink: #ffffff;
-  --primary-bg: #0a0a0a;
-  --primary-bg-hover: #333333;
-  --primary-ink: #ffffff;
-  --marker: #ffd43b;
-  --marker-ink: #0a0a0a;
-  --success: #1d7348;
-  --warning: #806000;
-  --error: #c4223a;
-  --info: #2638d9;
-  --success-bg: rgb(29 115 72 / 9%);
-  --warning-bg: rgb(255 212 59 / 28%);
-  --error-bg: rgb(196 34 58 / 8%);
-  --border-color: #e3e3e3;
-  --border-hover: #c2c2c2;
-  --shadow: 0 1px 0 rgb(0 0 0 / 5%), 0 10px 28px rgb(0 0 0 / 7%);
-  --shadow-lg: 0 30px 80px rgb(0 0 0 / 18%);
-  --focus-ring-strong: #2638d9;
-  --focus-ring-soft: rgb(38 56 217 / 18%);
-  --button-ink: #ffffff;
-  --overlay: rgb(0 0 0 / 40%);
-  color-scheme: light;
-}
-
 /* ---------- Base ---------- */
+/* A faint crimson spill at the top of the page, like light off a screen.
+   It scrolls away with the page and is painted once. */
 body {
   background: var(--bg-primary);
-  background-image: none;
+  background-image: radial-gradient(90rem 30rem at 50% -14rem, rgb(216 31 54 / 9%), transparent 72%);
+  background-repeat: no-repeat;
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size-adjust: none;
@@ -114,14 +83,14 @@ body {
 :is(h1, h2, h3, h4) {
   font-family: var(--font-display);
   font-size-adjust: none;
-  font-stretch: 115%;
+  font-stretch: 104%;
   font-weight: 760;
   letter-spacing: -.01em;
   line-height: 1.1;
   color: var(--text-primary);
 }
 
-::selection { background: var(--marker); color: var(--marker-ink); }
+::selection { background: var(--brand); color: var(--brand-ink); }
 
 /* Wide display type must still wrap at 200% text on a phone. */
 :is(h1, h2, .logo-title, .recommendation-title, .card-title) { overflow-wrap: anywhere; }
@@ -172,7 +141,7 @@ body {
 .sidebar-brand-name {
   font-family: var(--font-display);
   font-size: 1.05rem;
-  font-stretch: 140%;
+  font-stretch: 112%;
   font-weight: 800;
   letter-spacing: -.01em;
 }
@@ -222,7 +191,7 @@ body {
 .sidebar-item .ph { width: 20px; flex: 0 0 20px; font-size: 1.2rem; text-align: center; }
 .sidebar-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
-/* The current page wears a small obi on the left edge. */
+/* The current page is marked by a crimson bar on the left edge. */
 .sidebar-item.is-active { background: var(--bg-tertiary); color: var(--text-primary); font-weight: 700; }
 .sidebar-item.is-active::before {
   content: '';
@@ -230,9 +199,8 @@ body {
   inset: 8px auto 8px 0;
   width: 3px;
   border-radius: 0 2px 2px 0;
-  background: var(--obi);
+  background: var(--brand);
 }
-html:not([data-theme="light"]) .sidebar-item.is-active::before { background: var(--marker); }
 
 .sidebar-footer { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border-color); }
 
@@ -291,20 +259,14 @@ html[data-sidebar-mode="auto-hide"] .app-container { padding-left: clamp(56px, 6
 }
 .header > .logo { display: flex; flex-shrink: 0; align-items: center; gap: 10px; text-decoration: none; }
 
-/* The logo mark is a tiny obi: a tall band with the initial. */
+/* The logo mark is the favicon: a cinema ticket with a star on a crimson tile. */
 .logo-icon {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 38px;
-  border-radius: 2px;
-  background: var(--obi);
-  color: var(--obi-ink);
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-stretch: 60%;
-  font-weight: 900;
-  line-height: 1;
+  display: block;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 0;
+  background: none;
   box-shadow: none;
 }
 .logo-text { display: grid; gap: 1px; }
@@ -312,7 +274,7 @@ html[data-sidebar-mode="auto-hide"] .app-container { padding-left: clamp(56px, 6
   color: var(--text-primary);
   font-family: var(--font-display);
   font-size: 1.35rem;
-  font-stretch: 140%;
+  font-stretch: 112%;
   font-weight: 850;
   letter-spacing: -.015em;
   line-height: 1;
@@ -402,31 +364,27 @@ html[data-sidebar-mode="auto-hide"] .app-container { padding-left: clamp(56px, 6
 }
 .btn:hover { transform: none; box-shadow: none; }
 
-.btn-primary,
-[data-theme="light"] .btn-primary {
+.btn-primary {
   border: 1.5px solid var(--primary-bg);
   background: var(--primary-bg);
   background-image: none;
   color: var(--primary-ink);
   box-shadow: none;
 }
-.btn-primary:hover,
-[data-theme="light"] .btn-primary:hover {
+.btn-primary:hover {
   border-color: var(--primary-bg-hover);
   background: var(--primary-bg-hover);
   color: var(--primary-ink);
 }
 
 .btn-outline,
-.btn-secondary,
-[data-theme="light"] :is(.btn-outline, .btn-secondary) {
+.btn-secondary {
   border: 1.5px solid var(--border-hover);
   background: transparent;
   color: var(--text-primary);
 }
 .btn-outline:hover,
-.btn-secondary:hover,
-[data-theme="light"] :is(.btn-outline, .btn-secondary):hover {
+.btn-secondary:hover {
   border-color: var(--text-primary);
   background: transparent;
   color: var(--text-primary);
@@ -447,10 +405,29 @@ html[data-sidebar-mode="auto-hide"] .app-container { padding-left: clamp(56px, 6
   font-size: .8rem;
   font-weight: 700;
   text-decoration: underline;
-  text-decoration-thickness: 1px;
+  text-decoration-color: var(--brand);
+  text-decoration-thickness: 1.5px;
   text-underline-offset: 3px;
 }
-.help-link:hover { color: var(--accent-hover); }
+.help-link:hover { color: var(--accent-hover); text-decoration-color: currentColor; }
+
+/* Switched on reads as crimson with a white knob, like a live indicator. */
+.settings-toggle-input:checked + .settings-toggle-slider { border-color: var(--brand); background: var(--brand); }
+.settings-toggle-input:checked + .settings-toggle-slider::after { background: var(--brand-ink); }
+.settings-toggle-input:focus-visible + .settings-toggle-slider { box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--focus-ring-strong); }
+
+/* Links inside running text are told apart by underline, not colour alone. */
+:is(.reviews-attribution a, .review-link) {
+  text-decoration: underline;
+  text-decoration-color: var(--brand);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+:is(.reviews-attribution a, .review-link):hover { text-decoration-color: currentColor; }
+
+/* Progress is crimson, as on a player's scrub bar. */
+.breakdown-progress::-webkit-progress-value { background: var(--brand); }
+.breakdown-progress::-moz-progress-bar { background: var(--brand); }
 
 /* Chips are the only fully rounded shape. Selected chips are filled with ink. */
 .quick-chip, .seasonal-chip, .filter-pill, .watchlist-filter-chip, .quick-tab {
@@ -466,16 +443,10 @@ html[data-sidebar-mode="auto-hide"] .app-container { padding-left: clamp(56px, 6
 .seasonal-chip:hover,
 .filter-pill:hover,
 .watchlist-filter-chip:hover,
-.quick-tab:hover,
-[data-theme="light"] :is(.quick-chip, .seasonal-chip, .filter-pill):hover {
+.quick-tab:hover {
   border-color: var(--text-primary);
   background: transparent;
   color: var(--text-primary);
-}
-[data-theme="light"] :is(.quick-chip, .seasonal-chip, .filter-pill) {
-  border-color: var(--border-color);
-  background: transparent;
-  color: var(--text-secondary);
 }
 .sidebar-mode-option.is-active .sidebar-mode-description { color: inherit; opacity: .8; }
 
@@ -512,14 +483,14 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 }
 .discovery-garden-content { display: block; position: relative; max-width: none; }
 
-/* Wide, heavy, tight: set like a series logo on a box cover. */
+/* Heavy, slightly wide, tight: set like a title card. */
 .discovery-title {
   max-width: 14ch;
   margin: 0 0 18px;
   color: var(--text-primary);
   font-size: clamp(2.6rem, 6.4vw, 5.6rem);
-  font-stretch: 140%;
-  font-weight: 880;
+  font-stretch: 112%;
+  font-weight: 860;
   line-height: .92;
   letter-spacing: -.035em;
   text-wrap: balance;
@@ -592,7 +563,7 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 }
 .recommendations-header h2, .section-header h2, .byw-header h2 {
   font-size: clamp(1.6rem, 2.6vw, 2.3rem);
-  font-stretch: 108%;
+  font-stretch: 102%;
   font-weight: 800;
   letter-spacing: -.02em;
 }
@@ -600,7 +571,7 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 .header-sort .sort-select, .header-sort .select-wrapper { border-radius: var(--radius-sm); }
 .section-subtitle { margin-top: 6px; color: var(--text-muted); font-size: .88rem; line-height: 1.55; }
 
-/* ---------- Picks: each release wears an obi ---------- */
+/* ---------- Picks: each poster carries its headline score ---------- */
 .recommendations-section { display: grid; grid-template-columns: 1fr auto; gap: 0 24px; align-items: start; }
 .recommendations-header {
   grid-column: 1 / -1;
@@ -650,62 +621,39 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
 }
 .recommendation-card:hover .recommendation-cover { transform: scale(1.02); }
 
-/* The obi: a vertical band on the right edge of the cover. */
-.recommendation-obi {
+/* The headline score sits on a scrim at the foot of the poster, as on a
+   streaming tile. The chip states its scale so a bare number is never ambiguous. */
+.recommendation-badge {
   position: absolute;
-  inset: 0 0 0 auto;
+  inset: auto 0 0;
   z-index: 2;
   display: flex;
-  width: 52px;
-  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 14px 0 0;
-  background: var(--obi);
-  color: var(--obi-ink);
-  box-shadow: -1px 0 0 rgb(255 255 255 / 25%);
+  gap: 10px;
+  padding: 44px 12px 12px;
+  background: linear-gradient(to top, rgb(8 8 10 / 90%), rgb(8 8 10 / 45%) 55%, transparent);
+  color: var(--text-primary);
+  pointer-events: none;
 }
-.recommendation-media .recommendation-rank {
-  position: static;
-  display: block;
-  width: auto;
-  height: auto;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  color: inherit;
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-stretch: 60%;
-  font-weight: 900;
-  line-height: 1;
-  box-shadow: none;
-}
-.recommendation-obi-label {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  font-family: var(--font-display);
-  font-size: .72rem;
-  font-stretch: 100%;
-  font-weight: 650;
-  letter-spacing: .04em;
-  white-space: nowrap;
-  writing-mode: vertical-rl;
-  opacity: .9;
-}
-.recommendation-obi-score {
-  place-items: center;
-  width: 100%;
+.recommendation-badge-score {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
   background: var(--marker);
   color: var(--marker-ink);
   font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-stretch: 70%;
+  font-size: 1.2rem;
+  font-stretch: 88%;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  line-height: 1.2;
+}
+.recommendation-badge-score small { margin-left: 1px; font-size: .62em; font-weight: 700; opacity: .7; }
+.recommendation-badge-label {
+  min-width: 0;
+  font-size: .8rem;
+  font-weight: 650;
+  line-height: 1.25;
 }
 
 .recommendation-info {
@@ -726,7 +674,7 @@ html .detail-stat-label { text-decoration-color: var(--border-hover); }
   text-wrap: balance;
 }
 button.recommendation-title { padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
-button.recommendation-title:hover { color: var(--accent-primary); }
+button.recommendation-title:hover { text-decoration: underline; text-decoration-color: var(--brand); text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .recommendation-submeta { color: var(--text-muted); font-size: .8rem; }
 .card-alt-title {
   margin-top: 2px;
@@ -817,7 +765,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   grid-column: 1 / -1;
   margin-bottom: 20px;
   padding: 16px 18px;
-  border-left: 4px solid var(--obi);
+  border-left: 3px solid var(--brand);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--bg-secondary);
 }
@@ -884,7 +832,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 .recommendation-scoreboard .recommendation-stat { grid-column: 2; }
 .card-stats { opacity: 1; }
 
-/* Score marker: a highlighter stroke behind the number, the one place yellow appears in text. */
+/* Score marker: gold behind the number, the same gold as the score chip on pick posters. */
 .card-scoreboard .card-primary-value,
 .recommendation-scoreboard .recommendation-signal-value {
   justify-self: start;
@@ -959,12 +907,12 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 .browse-anime > h2 {
   margin: 0;
   font-size: clamp(1.6rem, 2.6vw, 2.3rem);
-  font-stretch: 108%;
+  font-stretch: 102%;
   font-weight: 800;
 }
 .browse-anime > .section-subtitle { margin-bottom: 12px; }
 
-.quick-filters, [data-theme="light"] .quick-filters {
+.quick-filters {
   display: block;
   padding: 6px 0;
   margin: 0;
@@ -981,7 +929,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 .quick-filters[open] .quick-filters-summary::after { content: '−'; }
 .quick-filters > .mood-filter-note { margin-bottom: 12px; }
 .quick-filters-tabs { margin-bottom: 12px; }
-.quick-filters-track, [data-theme="light"] .quick-filters-track { border: 0; background: transparent; padding: 0 0 12px; }
+.quick-filters-track { border: 0; background: transparent; padding: 0 0 12px; }
 
 .seasonal-filters {
   display: flex;
@@ -997,7 +945,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   box-shadow: none;
 }
 .seasonal-filters-label { color: var(--text-secondary); font-size: .95rem; font-weight: 700; letter-spacing: 0; text-transform: none; }
-.seasonal-chip, [data-theme="light"] .seasonal-chip { min-height: 40px; background: transparent; }
+.seasonal-chip { min-height: 40px; background: transparent; }
 
 /* ---------- Continue watching and airing ---------- */
 .continue-watching-section { margin: 24px 0 0; }
@@ -1035,7 +983,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   min-width: 0;
   padding: 16px 18px;
   border: 0;
-  border-left: 4px solid var(--obi);
+  border-left: 3px solid var(--brand);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--bg-secondary);
 }
@@ -1053,7 +1001,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 }
 .continue-card p { flex: 1; margin: 0; color: var(--text-secondary); font-size: .85rem; }
 
-.airing-dashboard-section, [data-theme="light"] .airing-dashboard-section {
+.airing-dashboard-section {
   --text-primary: inherit;
   --text-secondary: inherit;
   --text-muted: inherit;
@@ -1066,7 +1014,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   box-shadow: none;
 }
 .airing-dashboard-section::before { display: none; }
-.airing-card, .airing-summary-card, [data-theme="light"] :is(.airing-card, .airing-summary-card) {
+.airing-card, .airing-summary-card {
   border-color: var(--border-color);
   border-radius: var(--radius-md);
   background: var(--bg-primary);
@@ -1081,7 +1029,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 .watchlist-section > .section-header .section-subtitle { margin-top: 10px; font-size: .95rem; }
 .watchlist-section h1 {
   font-size: clamp(2.2rem, 4vw, 3.4rem);
-  font-stretch: 150%;
+  font-stretch: 115%;
   font-weight: 880;
   line-height: .92;
   letter-spacing: -.035em;
@@ -1095,14 +1043,14 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 .watchlist-empty-icon {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 64px;
-  border-radius: 2px;
-  background: var(--obi);
-  color: var(--obi-ink);
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--brand);
+  color: var(--brand-ink);
   font-size: 1.6rem;
 }
-.watchlist-empty h2 { margin-bottom: 12px; font-size: clamp(1.6rem, 3vw, 2.2rem); font-stretch: 108%; font-weight: 800; }
+.watchlist-empty h2 { margin-bottom: 12px; font-size: clamp(1.6rem, 3vw, 2.2rem); font-stretch: 102%; font-weight: 800; }
 .watchlist-empty-actions { margin-top: 24px; }
 .watchlist-filter-chip { min-height: 44px; }
 .anime-grid.watchlist-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
@@ -1136,9 +1084,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
 /* ---------- Dialogs and detail ---------- */
 .modal-overlay { width: 100%; height: 100%; margin: 0; box-sizing: border-box; background: var(--overlay); backdrop-filter: blur(6px); }
 .modal-overlay.visible { transition-property: opacity; }
-[data-theme="light"] .modal-overlay { background: var(--overlay); }
-.modal-content, .filter-modal-content, .settings-modal-content,
-[data-theme="light"] :is(.filter-modal-content, .settings-modal-content) {
+.modal-content, .filter-modal-content, .settings-modal-content {
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   background: var(--bg-secondary);
@@ -1152,9 +1098,8 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   color: var(--text-primary);
 }
 .filter-modal-header,
-.settings-modal-header,
-[data-theme="light"] .filter-modal-header { border-color: var(--border-color); background: var(--bg-secondary); }
-.filter-section-title { font-family: var(--font-display); font-stretch: 110%; font-weight: 760; letter-spacing: 0; text-transform: none; }
+.settings-modal-header { border-color: var(--border-color); background: var(--bg-secondary); }
+.filter-section-title { font-family: var(--font-display); font-stretch: 102%; font-weight: 760; letter-spacing: 0; text-transform: none; }
 .taste-profile-panel,
 .settings-section { border-color: var(--border-color); }
 
@@ -1184,8 +1129,7 @@ button.recommendation-title:hover { color: var(--accent-primary); }
   font-weight: 700;
 }
 .detail-tab:hover { color: var(--text-primary); background: transparent; }
-.detail-tab.is-active { border-bottom-color: var(--obi); background: transparent; color: var(--text-primary); }
-html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(--marker); }
+.detail-tab.is-active { border-bottom-color: var(--brand); background: transparent; color: var(--text-primary); }
 
 .has-tooltip .tooltip {
   border: 1px solid var(--border-color);
@@ -1198,9 +1142,7 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
 /* ---------- First visit ---------- */
 
 /* ---------- Preferences ---------- */
-.theme-selector,
 .sidebar-mode-selector { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.theme-option,
 .sidebar-mode-option {
   min-width: 0;
   border: 1.5px solid var(--border-color);
@@ -1208,10 +1150,6 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-}
-.theme-option { padding: 14px 10px; }
-.theme-option-icon { font-size: 1.25rem; }
-.sidebar-mode-option {
   display: flex;
   min-height: 84px;
   align-items: flex-start;
@@ -1224,10 +1162,12 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
 .sidebar-mode-copy { display: grid; gap: 3px; }
 .sidebar-mode-label { font-size: .875rem; font-weight: 700; }
 .sidebar-mode-description { color: var(--text-muted); font-size: .75rem; line-height: 1.35; }
+.sidebar-mode-option:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.sidebar-mode-option.is-active { border-color: var(--text-primary); background: var(--bg-tertiary); color: var(--text-primary); }
 .settings-section--sidebar { margin-top: 20px; }
 
 /* ---------- Toasts and status ---------- */
-.offline-indicator { background: var(--marker); color: var(--marker-ink); box-shadow: none; transition: transform .3s ease, visibility .3s; }
+.offline-indicator { background: var(--warning); color: var(--warning-ink); box-shadow: none; transition: transform .3s ease, visibility .3s; }
 .offline-indicator:not(.visible) { visibility: hidden; }
 .toast {
   border: 1px solid var(--border-color);
@@ -1328,10 +1268,6 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
 /* The community label reads as a label, matching its neighbour. */
 .recommendation-scoreboard .recommendation-community-label { padding: 0; border-radius: 0; background: transparent; }
 
-/* The obi states its scale so a bare number is never ambiguous. */
-.recommendation-obi-score { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; }
-.recommendation-obi-score small { font-size: .5em; font-stretch: 100%; font-weight: 700; opacity: .65; }
-
 /* Help link sits flush with the text column instead of floating as a pill. */
 .help-link, .help-link:hover { padding: 6px 0; border-radius: 0; background: transparent; }
 
@@ -1375,7 +1311,7 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
 .grid-section > .section-header h2 { font-size: clamp(1.3rem, 1.9vw, 1.7rem); font-stretch: 100%; }
 
 .load-more-container { display: flex; justify-content: center; grid-column: 1 / -1; margin-top: 12px; }
-.load-more-btn, [data-theme="light"] .load-more-btn {
+.load-more-btn {
   display: inline-flex;
   align-items: baseline;
   gap: 10px;
@@ -1392,7 +1328,7 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
   box-shadow: none;
   transform: none;
 }
-.load-more-btn:hover, [data-theme="light"] .load-more-btn:hover { border-color: var(--text-primary); background: transparent; transform: none; }
+.load-more-btn:hover { border-color: var(--text-primary); background: transparent; transform: none; }
 .load-more-count { color: var(--text-muted); font-size: .82rem; font-weight: 500; font-variant-numeric: tabular-nums; }
 
 /* Seasonal shortcuts read as one left-aligned row. */
@@ -1401,9 +1337,9 @@ html:not([data-theme="light"]) .detail-tab.is-active { border-bottom-color: var(
 .seasonal-chip { display: inline-flex; align-items: center; gap: 8px; }
 .seasonal-chip-note {
   padding: 1px 6px;
-  border-radius: 2px;
-  background: var(--obi);
-  color: var(--obi-ink);
+  border-radius: 3px;
+  background: var(--brand);
+  color: var(--brand-ink);
   font-size: .68rem;
   font-weight: 700;
   line-height: 1.5;
@@ -1439,8 +1375,7 @@ button.btn { line-height: inherit; }
 .watchlist-section .watchlist-controls-stepper { justify-content: flex-start; }
 
 /* ---------- Watchlist entries ---------- */
-.watchlist-filter-chip.is-active,
-[data-theme="light"] .watchlist-filter-chip.is-active {
+.watchlist-filter-chip.is-active {
   border-color: var(--primary-bg);
   background: var(--primary-bg);
   color: var(--primary-ink);
@@ -1500,7 +1435,7 @@ button.btn { line-height: inherit; }
   cursor: pointer;
 }
 .watchlist-loved-toggle:hover { border-color: var(--text-primary); }
-.watchlist-loved-toggle[aria-pressed="true"] { border-color: var(--marker); background: var(--marker); color: var(--marker-ink); }
+.watchlist-loved-toggle[aria-pressed="true"] { border-color: var(--brand); background: var(--brand); color: var(--brand-ink); }
 
 /* Hidden notices stay out of the page and the accessibility tree. */
 .update-notification[hidden] { display: none; }
@@ -1572,7 +1507,7 @@ button.btn { line-height: inherit; }
   .anime-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 14px; }
   #anime-grid .anime-card:not(.skeleton-card) { padding-bottom: 28px; }
   .anime-card .card-cover { height: 240px; }
-  .theme-selector, .sidebar-mode-selector { grid-template-columns: 1fr; }
+  .sidebar-mode-selector { grid-template-columns: 1fr; }
   .watchlist-page .header > .header-actions { margin-left: 0; min-width: 0; }
 }
 
@@ -1580,9 +1515,9 @@ button.btn { line-height: inherit; }
   .header-sort { display: none; }
   .header-controls .filter-btn, .mobile-watchlist-link { flex: 1; order: 2; }
   .discovery-garden { padding: 28px 0 20px; }
-  .discovery-title { font-size: clamp(2.3rem, 11vw, 3rem); font-stretch: 120%; margin-bottom: 12px; }
-  .watchlist-section h1 { font-stretch: 120%; }
-  .logo-title { font-stretch: 120%; }
+  .discovery-title { font-size: clamp(2.3rem, 11vw, 3rem); font-stretch: 104%; margin-bottom: 12px; }
+  .watchlist-section h1 { font-stretch: 106%; }
+  .logo-title { font-stretch: 106%; }
   .discovery-subtitle { font-size: .92rem; }
   .discovery-actions { margin-top: 18px; gap: 8px; }
   .discovery-actions .btn { flex: 1 1 auto; padding-inline: 14px; font-size: .82rem; }
@@ -1600,11 +1535,8 @@ button.btn { line-height: inherit; }
   /* Shorter covers keep the title and actions on screen. */
   #recommendations-grid .recommendation-media { height: 176px; }
   #recommendations-grid .recommendation-title { display: block; overflow: visible; font-size: 1.45rem; }
-  /* The short mobile cover keeps its label by running it condensed on Anybody's width axis. */
-  .recommendation-obi { width: 46px; gap: 6px; padding-top: 10px; }
-  .recommendation-obi-label { font-size: .7rem; font-stretch: 62%; letter-spacing: .01em; }
-  .recommendation-obi-score { min-height: 50px; }
-  .recommendation-media .recommendation-rank { font-size: 1.7rem; }
+  .recommendation-badge { gap: 8px; padding: 32px 10px 10px; }
+  .recommendation-badge-score { font-size: 1.05rem; }
   .seasonal-filters { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .seasonal-filters-label { flex: 0 0 100%; text-align: left; }
 }
@@ -1629,9 +1561,8 @@ button.btn { line-height: inherit; }
   .discovery-garden:not(.is-returning) { padding: 18px 0 0; }
   .discovery-garden:not(.is-returning) .discovery-title { font-size: clamp(2.6rem, 4vw, 3.3rem); }
   .discovery-garden:not(.is-returning) .discovery-actions { margin-top: 12px; }
-  .recommendations-section { padding-top: 36px; }
+  .recommendations-section { padding-top: 32px; }
   .recommendation-media { height: clamp(170px, 23vh, 210px); }
-  .recommendation-obi { gap: 8px; padding-top: 10px; }
-  .recommendation-obi-label { font-size: .68rem; font-stretch: 62%; letter-spacing: .01em; }
-  .recommendation-obi-score { min-height: 50px; }
+  .recommendation-badge { padding-top: 32px; }
+  .recommendation-badge-score { font-size: 1.05rem; }
 }

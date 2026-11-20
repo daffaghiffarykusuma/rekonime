@@ -62,7 +62,7 @@ test('App ignores unrelated keys and keeps focused settings intact', () => {
   const calls = [];
   const restore = stubApp(calls);
   try {
-    assert.equal(App.handleExternalStorageChange({ key: 'rekonime.theme' }), false);
+    assert.equal(App.handleExternalStorageChange({ key: 'rekonime.unrelated' }), false);
     assert.deepEqual(calls, []);
 
     document.getElementById('focused').focus();

@@ -38,8 +38,7 @@ test('HTML entrypoints load app CSS before first paint', () => {
 test('HTML entrypoints preload local self-hosted fonts', () => {
   const allHtml = `${read('index.html')}\n${read('watchlist.html')}`;
 
-  assert.match(allHtml, /href="\/fonts\/anybody-latin-variable\.woff2" as="font" type="font\/woff2"/);
-  assert.match(allHtml, /href="\/fonts\/m-plus-1-latin-variable\.woff2" as="font" type="font\/woff2"/);
+  assert.match(allHtml, /href="\/fonts\/archivo-latin-variable\.woff2" as="font" type="font\/woff2"/);
 });
 
 test('font loading does not depend on Google Fonts or delayed markers', () => {

@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { ThemeManager } from '../shared/ui/themeManager.js';
 import { SidebarPreference } from '../shared/ui/sidebar-preference.ts';
 import { Logger } from '../shared/services/logger.ts';
 import { initDeferredRuntimeServices } from './bootstrap/deferred-runtime.js';
@@ -68,7 +67,6 @@ const bootstrap = () => {
     performance.mark('rekonime:bootstrap-start');
   }
   Logger.init({ level: 'info', captureGlobalErrors: true });
-  ThemeManager.init();
   SidebarPreference.init();
 
   const runApp = async () => {
