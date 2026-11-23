@@ -46,3 +46,33 @@ test('Discovery getSeasonalFilters returns only existing seasons', () => {
 
   Discovery.getCurrentSeason = originalCurrent;
 });
+
+test('Surprise Me does not treat a median strength from thin evidence as passing its quality gate', () => {
+  const originalRandom = Math.random;
+  try {
+    // Random 0 picks the first remaining candidate, so the thin title is first: only the gate removes it.
+    Math.random = () => 0;
+    const thin = createAnime({ id: 'thin', episodes: [{}, {}, {}], stats: createStats({ retentionScore: 60, ratingEvidence: { ratedEpisodes: 3, weight: 0.2 } }) });
+    const supported = createAnime({ id: 'supported', episodes: [{}, {}, {}], stats: createStats({ retentionScore: 60, ratingEvidence: { ratedEpisodes: 3, weight: 0.9 } }) });
+    assert.equal(Discovery.getSurpriseMe([{ anime: thin }, { anime: supported }]).id, 'supported');
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
+test('Surprise Me applies its episode-rating gate to index entries without episode lists', () => {
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0;
+    // The runtime index strips episodes; rated-episode evidence in stats still identifies rated titles.
+    const indexEntry = (id, stats) => createAnime({ id, episodes: [], stats: createStats(stats) });
+    const weak = indexEntry('weak', { retentionScore: 30, ratingEvidence: { ratedEpisodes: 12, weight: 1 } });
+    const thin = indexEntry('thin', { retentionScore: 51, ratingEvidence: { ratedEpisodes: 1, weight: 0.02 } });
+    const strong = indexEntry('strong', { retentionScore: 80, ratingEvidence: { ratedEpisodes: 12, weight: 1 } });
+    assert.equal(Discovery.getSurpriseMe([{ anime: weak }, { anime: strong }]).id, 'strong');
+    // Fewer rated episodes than the gate's minimum leave the title to the other checks, as before.
+    assert.equal(Discovery.getSurpriseMe([{ anime: thin }, { anime: strong }]).id, 'thin');
+  } finally {
+    Math.random = originalRandom;
+  }
+});

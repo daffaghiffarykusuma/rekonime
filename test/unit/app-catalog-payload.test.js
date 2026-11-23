@@ -95,3 +95,20 @@ test('App applies one invalidation policy to catalog replacement and enrichment'
   assert.deepEqual(invalidated, ['one', 'all']);
   assert.equal(snapshotRefreshes.length, 1);
 });
+
+test('locally calculated strengths rank against this catalog when the payload profile has no quantile table', async () => {
+  const { Stats } = await import('../../src/features/discovery/stats.ts');
+  const series = score => Array.from({ length: 12 }, (_, i) => ({ episode: i + 1, score }));
+  const animeData = [3.6, 3.9, 4.1, 4.3, 4.5, 4.8].map((score, i) => ({ id: `t${i}`, episodes: series(score) }));
+  const app = Object.assign(Object.create(App), {
+    animeData,
+    scoreProfile: { p35: 4.15, p50: 4.29, p65: 4.4 },
+    loadStatsModule: async () => Stats
+  });
+  await app.ensureStats();
+  assert.equal(Stats.isValidStrengthQuantiles(app.scoreProfile.strengthQuantiles), true);
+  assert.equal(app.scoreProfile.p35, 4.15, 'the payload baseline is kept');
+  const strengths = animeData.map(anime => anime.stats.retentionScore);
+  assert.deepEqual([...strengths].sort((a, b) => a - b), strengths, 'higher-rated series rank higher');
+  assert.ok(strengths[0] < 20 && strengths.at(-1) > 80, `percentiles span the catalog: ${strengths}`);
+});

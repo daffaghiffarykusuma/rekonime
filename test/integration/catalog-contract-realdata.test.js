@@ -28,12 +28,15 @@ test('compact catalogs preserve title variants, search ranking, and genre search
 
 test('Python-built rating strength and evidence agree with browser calculations', () => {
   const catalog = readCatalog('anime.full.json');
+  const browserProfile = Stats.buildScoreProfile(catalog.anime);
+  assert.equal(Stats.isValidStrengthQuantiles(catalog.scoreProfile.strengthQuantiles), true);
+  assert.deepEqual(browserProfile.strengthQuantiles, catalog.scoreProfile.strengthQuantiles);
   for (const anime of catalog.anime) {
     const actual = Stats.calculateAllStats(anime, catalog.scoreProfile);
     assert.equal(actual.retentionScore, anime.stats.retentionScore, anime.id);
     assert.equal(actual.average, anime.stats.average, `${anime.id}: average`);
     assert.equal(actual.stdDev, anime.stats.stdDev, `${anime.id}: stdDev`);
-    assert.equal(actual.scoringVersion, 2);
+    assert.equal(actual.scoringVersion, 3);
     for (const key of ['ratedEpisodes', 'totalEpisodes', 'coverage', 'positionsKnown', 'limited', 'completion', 'medianVotes']) {
       assert.equal(actual.ratingEvidence[key], anime.stats.ratingEvidence[key], `${anime.id}: ${key}`);
     }

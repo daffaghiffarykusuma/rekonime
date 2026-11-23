@@ -65,7 +65,7 @@ The audience rating for an anime on MyAnimeList, expressed on a 0-10 scale. It d
 _Avoid_: satisfaction score, personal rating, finish probability
 
 **Episode Rating Strength**:
-An index on a 0-100 scale summarizing an anime's episode poll ratings, adjusted for the amount and coverage of available rating evidence. It is not a retention rate, completion probability, or validated prediction of viewing behavior.
+A catalog percentile on a 1-100 scale ranking an anime's episode poll ratings against the catalog, pulled toward the catalog median (50) when rating evidence is thin. It is not a retention rate, completion probability, or validated prediction of viewing behavior.
 _Avoid_: finish rate, retention score, completion probability
 
 **Score Refresh**:

@@ -1810,9 +1810,14 @@ const App = {
       }
       return;
     }
-    const scoreProfile = CatalogPayload.isValidScoreProfile(this.scoreProfile)
-      ? this.scoreProfile
-      : Stats.buildScoreProfile(this.animeData);
+    // A payload profile without the strength quantile table (older payloads) gets one built from
+    // this catalog, so locally calculated strengths stay catalog percentiles like stored ones.
+    const payloadProfile = CatalogPayload.isValidScoreProfile(this.scoreProfile) ? this.scoreProfile : null;
+    const scoreProfile = !payloadProfile
+      ? Stats.buildScoreProfile(this.animeData)
+      : Stats.isValidStrengthQuantiles(payloadProfile.strengthQuantiles)
+        ? payloadProfile
+        : Stats.withStrengthQuantiles(Stats.resolveScoreProfile(payloadProfile), this.animeData);
 
     this.scoreProfile = scoreProfile;
 
@@ -3944,7 +3949,7 @@ const App = {
               </span>
               </div>`}
               </div>
-              <p class="recommendation-rating-explanation">Episode Rating Strength (/100) is an episode-rating index adjusted for coverage and sample size, not a completion probability. Community Score (MAL, /10) is the audience rating from MyAnimeList.</p>
+              <p class="recommendation-rating-explanation">Episode Rating Strength (/100) ranks a title's episode ratings against the catalog: 80 means it rates above about 80% of titles. Sparse ratings are pulled toward 50, the catalog median. It is not a completion probability. Community Score (MAL, /10) is the audience rating from MyAnimeList.</p>
               </details>
               <div class="recommendation-taste-row">
               <details class="recommendation-taste" data-action="taste-preferences">
@@ -4300,7 +4305,7 @@ const App = {
         <p>Rekonime starts with audience ratings, then considers your saved taste:</p>
         <div class="help-factor">
           <strong>Episode Rating Strength (/100)</strong>
-          <p>A score out of 100 based on episode ratings, their pattern, and available coverage. Small samples are pulled toward the neutral midpoint. It is not a measured retention rate or a completion probability.</p>
+          <p>Where a title's episode ratings rank in the catalog, out of 100: 80 means its ratings, their pattern, and its ending hold up better than about 80% of titles. Small samples are pulled toward 50, the catalog median, and cards show the Community Score instead when episode evidence is thin. It is not a measured retention rate or a completion probability.</p>
         </div>
         <div class="help-factor">
           <strong>Community Score (MAL, /10)</strong>

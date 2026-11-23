@@ -94,7 +94,9 @@ test('rating evidence deduplicates, orders episodes, and distinguishes unknown p
 test('rating penalties vary gradually across the catalog baseline', () => {
   const profile = { p35: 4.15, p50: 4.29, p65: 4.41 };
   const strength = score => Stats.calculateRetentionScore(Array.from({ length: 12 }, (_, i) => ({ episode: i + 1, score })), profile);
-  assert.ok(strength(4.2) - strength(4.0) < 15);
+  // Version 3 drops the second strictness curve, so the raw scale is wider; the per-step
+  // check below is what rules out a cliff at the catalog baseline.
+  assert.ok(strength(4.2) - strength(4.0) < 20);
   let previous = strength(3.8);
   for (let i = 381; i <= 440; i++) {
     const current = strength(i / 100);
@@ -138,4 +140,59 @@ test('calculateRetentionScore is sensitive to slow-burn finishes', () => {
   assert.equal(baseSignal, 0);
   assert.ok(slowSignal > 0);
   assert.ok(slowRetention > baseRetention);
+});
+
+const flatSeries = (score, length) => Array.from({ length }, (_, i) => ({ episode: i + 1, score }));
+
+test('a series rated 5/5 throughout reaches the top of the raw index at any length', () => {
+  for (const length of [12, 24, 100]) {
+    assert.equal(Stats.calculateRetentionScore(flatSeries(5, length), Stats.defaultScoreProfile), 100, `${length} episodes`);
+  }
+});
+
+test('only a weaker ending costs points; a steady or rising ending keeps full credit', () => {
+  const profile = { p35: 4.15, p50: 4.29, p65: 4.41 };
+  const steady = flatSeries(4.6, 12);
+  const rising = steady.map(ep => (ep.episode > 9 ? { ...ep, score: 4.9 } : ep));
+  const falling = steady.map(ep => (ep.episode > 9 ? { ...ep, score: 4.3 } : ep));
+  const raw = episodes => Stats.calculateRetentionScore(episodes, profile);
+  assert.ok(raw(rising) >= raw(steady));
+  assert.ok(raw(falling) < raw(steady));
+});
+
+test('catalog quantiles rank a raw index between breakpoints and across ties', () => {
+  const quantiles = Array.from({ length: 101 }, (_, k) => k);
+  assert.equal(Stats.rawToCatalogPercentile(42.5, quantiles), 42.5);
+  assert.equal(Stats.rawToCatalogPercentile(-1, quantiles), 0);
+  assert.equal(Stats.rawToCatalogPercentile(100, quantiles), 100);
+  const tied = Array.from({ length: 101 }, (_, k) => (k < 40 ? k : k <= 60 ? 50 : k));
+  assert.equal(Stats.rawToCatalogPercentile(50, tied), 50);
+});
+
+test('rating strength is a catalog percentile pulled toward the median by missing evidence', () => {
+  const profile = { ...Stats.defaultScoreProfile, strengthQuantiles: Array.from({ length: 101 }, (_, k) => k) };
+  assert.equal(Stats.calculateRatingStrength(90, 1, profile), 90);
+  assert.equal(Stats.calculateRatingStrength(90, 0.5, profile), 70);
+  assert.equal(Stats.calculateRatingStrength(90, 0, profile), 50);
+  assert.equal(Stats.calculateRatingStrength(0, 1, profile), 1, '0 stays reserved for titles without ratings');
+  assert.equal(Stats.calculateRatingStrength(73.6, 1, Stats.defaultScoreProfile), 74, 'without a table the raw index is used');
+});
+
+test('score profiles carry a strength quantile table only when it is valid', () => {
+  const strengthQuantiles = Array.from({ length: 101 }, (_, k) => k);
+  assert.deepEqual(Stats.resolveScoreProfile({ p35: 4, p50: 4.2, p65: 4.4, strengthQuantiles }).strengthQuantiles, strengthQuantiles);
+  for (const invalid of [[1, 2, 3], strengthQuantiles.map((v, k) => (k === 50 ? 10 : v)), strengthQuantiles.map((v, k) => (k === 100 ? 101 : v))]) {
+    assert.equal('strengthQuantiles' in Stats.resolveScoreProfile({ p35: 4, p50: 4.2, p65: 4.4, strengthQuantiles: invalid }), false);
+  }
+  const catalog = Array.from({ length: 6 }, (_, i) => ({ episodes: flatSeries(3.5 + (i * 0.25), 12) }));
+  const built = Stats.buildScoreProfile(catalog);
+  assert.equal(Stats.isValidStrengthQuantiles(built.strengthQuantiles), true);
+  assert.equal(Stats.buildScoreProfile(catalog.slice(0, 4)).strengthQuantiles, undefined);
+});
+
+test('a raw value that rounds onto a tied breakpoint gets the tie midpoint', () => {
+  const tied = Array.from({ length: 101 }, (_, k) => (k < 40 ? k : k <= 60 ? 87.34 : 87.34 + ((k - 60) * 0.3)));
+  const profile = { strengthQuantiles: tied };
+  assert.equal(Stats.calculateRatingStrength(87.3366, 1, profile), 50);
+  assert.equal(Stats.calculateRatingStrength(87.3412, 1, profile), 50);
 });

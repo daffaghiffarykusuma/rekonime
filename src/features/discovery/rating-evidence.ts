@@ -24,12 +24,24 @@ const getRatingEvidenceLabel = (anime) => {
   return `${unavailable}${evidence.limited ? 'Limited data · ' : ''}${coverage}${evidence.completion === 'airing' ? ' · Provisional' : ''}`;
 };
 
+// Episode Rating Strength is a catalog percentile (scoring version 3), so the bands are
+// shares of the catalog: top 15%, at or above the median, the next 30%, and the bottom 20%.
+// Sparse titles are pulled toward 50, which keeps them out of the poor band.
 const getEpisodeRatingStrengthClass = (value) => {
   if (value === null || !Number.isFinite(value)) return '';
   if (value >= 85) return 'score-high';
-  if (value >= 70) return 'score-mid';
-  if (value >= 55) return 'score-low';
+  if (value >= 50) return 'score-mid';
+  if (value >= 20) return 'score-low';
   return 'score-poor';
+};
+
+// Below this evidence weight the strength is mostly the catalog median, so a card leads with
+// the Community Score when one exists. Legacy stats without a weight keep the episode signal.
+const MIN_HEADLINE_EVIDENCE_WEIGHT = 0.5;
+
+const hasLowRatingEvidenceWeight = (anime) => {
+  const weight = anime?.stats?.ratingEvidence?.weight;
+  return Number.isFinite(weight) && weight < MIN_HEADLINE_EVIDENCE_WEIGHT;
 };
 
 const getCommunityScoreClass = (value) => {
@@ -49,8 +61,8 @@ const hasOpeningEvidence = (anime) => {
   return Boolean(evidence.positionsKnown) && (anime.episodes || []).some(episode => episode.episode >= 1 && episode.episode <= 3);
 };
 
-const buildHeadline = ({ hasEpisodeEvidence, episodeRatingStrength, communityScore, evidenceLabel }) => {
-  if (episodeRatingStrength !== null) {
+const buildHeadline = ({ hasEpisodeEvidence, episodeRatingStrength, communityScore, evidenceLabel, lowEvidenceWeight }) => {
+  if (episodeRatingStrength !== null && !(lowEvidenceWeight && communityScore !== null)) {
     return {
       value: `${episodeRatingStrength}/100`,
       kind: 'episode',
@@ -64,7 +76,7 @@ const buildHeadline = ({ hasEpisodeEvidence, episodeRatingStrength, communitySco
       value: `${communityScore.toFixed(1)}/10`,
       kind: 'community',
       label: 'Community Score (MAL)',
-      note: hasEpisodeEvidence ? 'Use genre fit to decide' : evidenceLabel,
+      note: hasEpisodeEvidence && !lowEvidenceWeight ? 'Use genre fit to decide' : evidenceLabel,
       className: getCommunityScoreClass(communityScore)
     };
   }
@@ -80,7 +92,7 @@ const buildHeadline = ({ hasEpisodeEvidence, episodeRatingStrength, communitySco
 /**
  * @returns {{
  *   hasEpisodeEvidence: boolean,
- *   episodeRatingStrength: number|null,   rounded 0-100, null without rating evidence
+ *   episodeRatingStrength: number|null,   catalog percentile 1-100, null without rating evidence
  *   episodeRatingStrengthClass: string,
  *   communityScore: number|null,          0-10
  *   communityScoreClass: string,
@@ -106,7 +118,13 @@ const getRatingSignals = (anime) => {
     start: roundedWhen(hasEpisodeEvidence && hasOpeningEvidence(anime), stats?.threeEpisodeHook),
     stay: roundedWhen(hasEpisodeEvidence && Number.isFinite(churn), 100 - churn),
     finish: roundedWhen(hasEpisodeEvidence, stats?.worthFinishing),
-    headline: buildHeadline({ hasEpisodeEvidence, episodeRatingStrength, communityScore, evidenceLabel })
+    headline: buildHeadline({
+      hasEpisodeEvidence,
+      episodeRatingStrength,
+      communityScore,
+      evidenceLabel,
+      lowEvidenceWeight: hasLowRatingEvidenceWeight(anime)
+    })
   };
 };
 

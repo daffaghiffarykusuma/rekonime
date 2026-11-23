@@ -301,7 +301,54 @@ def resolve_score_profile(profile: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         normalized["sampleSize"] = profile.get("sampleSize")
     if isinstance(profile.get("source"), str):
         normalized["source"] = profile.get("source")
+    if is_valid_strength_quantiles(profile.get("strengthQuantiles")):
+        normalized["strengthQuantiles"] = list(profile["strengthQuantiles"])
     return normalized
+
+
+def is_valid_strength_quantiles(table: Any) -> bool:
+    if not isinstance(table, list) or len(table) != 101:
+        return False
+    previous = 0
+    for value in table:
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < previous or value > 100:
+            return False
+        previous = value
+    return True
+
+
+def build_strength_quantiles(raw_scores: List[float]) -> Optional[List[float]]:
+    """Catalog raw-index values at percentiles 0-100, used to rank one title against the catalog."""
+    if len(raw_scores) < 5:
+        return None
+    sorted_scores = sorted(raw_scores)
+    quantiles = []
+    # Same linear interpolation as calculate_percentile, sorting once for all 101 breakpoints.
+    for k in range(101):
+        rank = (k / 100) * (len(sorted_scores) - 1)
+        lower = math.floor(rank)
+        upper = math.ceil(rank)
+        value = sorted_scores[lower] if lower == upper else sorted_scores[lower] + ((sorted_scores[upper] - sorted_scores[lower]) * (rank - lower))
+        quantiles.append(round_to(value, 2))
+    return quantiles
+
+
+def raw_to_catalog_percentile(raw: float, quantiles: List[float]) -> float:
+    """Inverse of the quantile table: linear between breakpoints, mid-point across tied breakpoints.
+
+    Expects a raw value rounded to 2 decimals like the table (calculate_rating_strength does this).
+    """
+    below = sum(1 for value in quantiles if value < raw)
+    at_or_below = sum(1 for value in quantiles if value <= raw)
+    if at_or_below > below:
+        return (below + at_or_below - 1) / 2
+    if below == 0:
+        return 0
+    if below == len(quantiles):
+        return 100
+    lower = quantiles[below - 1]
+    upper = quantiles[below]
+    return (below - 1) + ((raw - lower) / (upper - lower))
 
 
 def build_score_profile_from_scores(scores: Iterable[Any]) -> Dict[str, Any]:
@@ -330,7 +377,14 @@ def build_score_profile(anime_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         for episode in anime.get("episodes") or []:
             if isinstance(episode, dict):
                 scores.append(episode.get("score"))
-    return build_score_profile_from_scores(scores)
+    profile = build_score_profile_from_scores(scores)
+    raw_scores = []
+    for anime in anime_list if isinstance(anime_list, list) else []:
+        episodes = normalize_episodes(anime.get("episodes") or [])
+        if episodes:
+            raw_scores.append(calculate_retention_score(episodes, profile))
+    table = build_strength_quantiles(raw_scores)
+    return {**profile, "strengthQuantiles": table} if table else profile
 
 
 def normalize_episodes(episodes: Any, strict: bool = False, max_episode_entries: int = MAX_EPISODE_ENTRIES) -> List[Dict[str, Any]]:
@@ -659,21 +713,35 @@ def get_slow_burn_signal(momentum_score: float, finale_strength: float) -> float
     return max(clamp((finale_strength - 65) / 35, 0, 1), clamp((momentum_score - 60) / 40, 0, 1))
 
 
-def calculate_retention_score(episodes: List[Dict[str, Any]], score_profile: Dict[str, Any]) -> int:
+def calculate_retention_score(episodes: List[Dict[str, Any]], score_profile: Dict[str, Any]) -> float:
+    """Raw Episode Rating Strength index (scoring version 3), before catalog ranking and evidence."""
     if not episodes:
         return 0
     hook = calculate_3_episode_hook(episodes)
     churn = calculate_churn_risk(episodes, score_profile)["score"]
-    momentum_score = clamp((calculate_momentum(episodes) + 100) / 2, 0, 100)
-    flow = calculate_flow_state(episodes)
+    momentum = calculate_momentum(episodes)
+    momentum_score = clamp((momentum + 100) / 2, 0, 100)
+    # Only a weaker ending costs points; a steady or rising finish keeps full credit.
+    ending_hold = 100 + clamp(momentum, -100, 0)
     finale = calculate_finale_strength(episodes)
     base_scale = get_early_penalty_scale(episodes)
     early_scale = clamp(base_scale + ((1 - base_scale) * (get_slow_burn_signal(momentum_score, finale) * 0.35)), 0, 1)
     opening_coverage = len([ep for i, ep in enumerate(episodes) if ep.get("positionKnown") is not False and ep.get("episode", i + 1) <= 3]) / 3
     hook_weight = 0.35 * early_scale * min(1, opening_coverage)
-    scale_up = (1 - hook_weight) / 0.65 if 0.65 > 0 else 0
-    blended = (hook * hook_weight) + ((100 - churn) * 0.3 * scale_up) + (momentum_score * 0.2 * scale_up) + (flow * 0.15 * scale_up)
-    return strict_percent(clamp(blended, 0, 100))
+    scale_up = (1 - hook_weight) / 0.65
+    blended = (hook * hook_weight) + ((100 - churn) * 0.45 * scale_up) + (ending_hold * 0.2 * scale_up)
+    return clamp(blended, 0, 100)
+
+
+def calculate_rating_strength(raw: float, weight: float, score_profile: Dict[str, Any]) -> int:
+    """Catalog percentile of the raw index, pulled toward the catalog median (50) by missing evidence.
+
+    1 is the lowest shown value because 0 remains the no-ratings sentinel.
+    """
+    table = score_profile.get("strengthQuantiles")
+    # Round like the table entries so a raw value on a tied breakpoint gets the tie midpoint.
+    percentile = raw_to_catalog_percentile(round_to(raw, 2), table) if is_valid_strength_quantiles(table) else raw
+    return int(clamp(js_round(50 + (percentile - 50) * weight), 1, 100))
 
 
 def calculate_session_safety(episodes: List[Dict[str, Any]], score_profile: Dict[str, Any]) -> int:
@@ -759,7 +827,7 @@ def calculate_all_stats(anime: Dict[str, Any], score_profile: Dict[str, Any], st
         observed_episode_count = max(observed_episode_count, count)
     score_range = get_episode_score_range(episodes)
     evidence = get_rating_evidence(anime, episodes)
-    strength = js_round(50 + (calculate_retention_score(episodes, profile) - 50) * evidence["weight"]) if episodes else 0
+    strength = calculate_rating_strength(calculate_retention_score(episodes, profile), evidence["weight"], profile) if episodes else 0
     return {
         "average": avg,
         "stdDev": std_dev,
@@ -771,7 +839,7 @@ def calculate_all_stats(anime: Dict[str, Any], score_profile: Dict[str, Any], st
         "lowestScore": score_range["min"],
         "retentionScore": strength,
         "ratingEvidence": evidence,
-        "scoringVersion": 2,
+        "scoringVersion": 3,
         "malSatisfactionScore": anime.get("communityScore") if isinstance(anime.get("communityScore"), (int, float)) else 0,
         "reliabilityScore": calculate_reliability_score(episodes, profile),
         "sessionSafety": calculate_session_safety(episodes, profile),

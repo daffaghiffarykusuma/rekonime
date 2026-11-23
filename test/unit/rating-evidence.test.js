@@ -52,3 +52,20 @@ test('a title with no ratings at all reports an unavailable headline', () => {
     value: 'N/A', kind: 'unavailable', label: 'Decision signal', note: 'Open details for more context', className: 'score-low'
   });
 });
+
+test('thin episode evidence leads with the Community Score when one exists', () => {
+  const sparse = { episodes: [{ episode: 1, score: 5 }], stats: { retentionScore: 50, ratingEvidence: evidence({ ratedEpisodes: 1, limited: true, weight: 0.08 }) } };
+  const withCommunity = getRatingSignals({ ...sparse, communityScore: 7.4 });
+  assert.equal(withCommunity.episodeRatingStrength, 50);
+  assert.equal(withCommunity.headline.kind, 'community');
+  assert.match(withCommunity.headline.note, /Limited data/);
+  assert.equal(getRatingSignals(sparse).headline.kind, 'episode');
+  const enough = getRatingSignals({ ...sparse, communityScore: 7.4, stats: { ...sparse.stats, ratingEvidence: evidence({ weight: 0.5 }) } });
+  assert.equal(enough.headline.kind, 'episode');
+});
+
+test('strength bands are catalog shares, so the median prior is never marked poor', () => {
+  const band = value => getRatingSignals({ episodes: [{ episode: 1, score: 4 }], stats: { retentionScore: value, ratingEvidence: evidence() } }).episodeRatingStrengthClass;
+  assert.deepEqual([band(85), band(84), band(50), band(49), band(20), band(19)],
+    ['score-high', 'score-mid', 'score-mid', 'score-low', 'score-low', 'score-poor']);
+});

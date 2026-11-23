@@ -20,7 +20,7 @@ const Stats = {
   /**
    * Build a score profile from a list of anime (per-user catalog baseline)
    * @param {Array} animeList - Array of anime objects
-   * @returns {Object} Score profile with p35/p50/p65
+   * @returns {Object} Score profile with p35/p50/p65 and, with enough titles, strengthQuantiles
    */
   buildScoreProfile(animeList = []) {
     const scores = [];
@@ -37,7 +37,67 @@ const Stats = {
       }
     }
 
-    return this.buildScoreProfileFromScores(scores);
+    return this.withStrengthQuantiles(this.buildScoreProfileFromScores(scores), animeList);
+  },
+
+  /**
+   * Add the catalog strength quantile table to a score profile, ranking every title with
+   * episode ratings under that profile's baseline. Returns the profile unchanged for fewer
+   * than five such titles.
+   */
+  withStrengthQuantiles(profile, animeList = []) {
+    const rawScores = [];
+    for (const anime of Array.isArray(animeList) ? animeList : []) {
+      const episodes = this.normalizeEpisodes(anime?.episodes || []);
+      if (episodes.length) rawScores.push(this.calculateRetentionScore(episodes, profile));
+    }
+    const strengthQuantiles = this.buildStrengthQuantiles(rawScores);
+    return strengthQuantiles ? { ...profile, strengthQuantiles } : profile;
+  },
+
+  /**
+   * Catalog raw-index values at percentiles 0-100, used to rank one title against the catalog.
+   * @param {Array<number>} rawScores - Raw index values, one per title with episode ratings
+   * @returns {Array<number>|null} 101 non-decreasing values, or null for fewer than five titles
+   */
+  buildStrengthQuantiles(rawScores = []) {
+    if (!Array.isArray(rawScores) || rawScores.length < 5) return null;
+    const sorted = [...rawScores].sort((a, b) => a - b);
+    const round2 = (value) => Math.floor((value * 100) + 0.5) / 100;
+    // Same linear interpolation as calculatePercentile, sorting once for all 101 breakpoints.
+    return Array.from({ length: 101 }, (_, k) => {
+      const rank = (k / 100) * (sorted.length - 1);
+      const lower = Math.floor(rank);
+      const upper = Math.ceil(rank);
+      const value = lower === upper ? sorted[lower] : sorted[lower] + (sorted[upper] - sorted[lower]) * (rank - lower);
+      return round2(value);
+    });
+  },
+
+  isValidStrengthQuantiles(table) {
+    if (!Array.isArray(table) || table.length !== 101) return false;
+    let previous = 0;
+    for (const value of table) {
+      if (typeof value !== 'number' || !Number.isFinite(value) || value < previous || value > 100) return false;
+      previous = value;
+    }
+    return true;
+  },
+
+  /**
+   * Inverse of the quantile table: linear between breakpoints, mid-point across tied breakpoints.
+   * Expects a raw value rounded to 2 decimals like the table (calculateRatingStrength does this).
+   * @returns {number} Catalog percentile (0-100)
+   */
+  rawToCatalogPercentile(raw, quantiles) {
+    const below = quantiles.filter(value => value < raw).length;
+    const atOrBelow = quantiles.filter(value => value <= raw).length;
+    if (atOrBelow > below) return (below + atOrBelow - 1) / 2;
+    if (below === 0) return 0;
+    if (below === quantiles.length) return 100;
+    const lower = quantiles[below - 1];
+    const upper = quantiles[below];
+    return (below - 1) + ((raw - lower) / (upper - lower));
   },
 
   /**
@@ -109,6 +169,7 @@ const Stats = {
 
     if (Number.isFinite(profile.sampleSize)) normalized.sampleSize = profile.sampleSize;
     if (typeof profile.source === 'string') normalized.source = profile.source;
+    if (this.isValidStrengthQuantiles(profile.strengthQuantiles)) normalized.strengthQuantiles = [...profile.strengthQuantiles];
 
     return normalized;
   },
@@ -942,44 +1003,54 @@ const Stats = {
   },
 
   // ======================================
-  // BEGINNER-FRIENDLY RETENTION METRIC
+  // EPISODE RATING STRENGTH (legacy key: retentionScore)
   // ======================================
 
   /**
-   * Calculate "Retention Score" - retention-based single metric
-   * Blends strong openings, low drop-off risk, momentum, and steady pacing
-   * Opening weight scales down for longer series; strong finishes soften early penalties
-   * @param {Array} episodes - Array of episode objects
-   * @returns {number} Retention score (0-100)
+   * Raw Episode Rating Strength index (scoring version 3), before catalog ranking and evidence.
+   * Blends opening ratings, inverse rating weakness, and how well the ending holds up.
+   * Opening weight scales down for longer series; strong finishes soften early penalties.
+   * @param {Array} episodes - Normalized episode objects
+   * @returns {number} Raw index (0-100, unrounded)
    */
   calculateRetentionScore(episodes, scoreProfile) {
     if (!episodes || episodes.length === 0) return 0;
 
     const hook = this.calculate3EpisodeHook(episodes);
-    const churnRisk = this.calculateChurnRisk(episodes, scoreProfile).score;
-    const dropSafety = 100 - churnRisk;
+    const dropSafety = 100 - this.calculateChurnRisk(episodes, scoreProfile).score;
     const momentum = this.calculateMomentum(episodes);
     const momentumScore = this.clamp((momentum + 100) / 2, 0, 100);
-    const flowState = this.calculateFlowState(episodes);
+    // Only a weaker ending costs points; a steady or rising finish keeps full credit.
+    const endingHold = 100 + this.clamp(momentum, -100, 0);
     const finaleStrength = this.calculateFinaleStrength(episodes);
 
     const baseEarlyScale = this.getEarlyPenaltyScale(episodes);
     const slowBurnSignal = this.getSlowBurnSignal({ momentumScore, finaleStrength });
-    const slowBurnLift = slowBurnSignal * 0.35;
-    const earlyScale = this.clamp(baseEarlyScale + ((1 - baseEarlyScale) * slowBurnLift), 0, 1);
+    const earlyScale = this.clamp(baseEarlyScale + ((1 - baseEarlyScale) * (slowBurnSignal * 0.35)), 0, 1);
 
     const openingCoverage = episodes.filter((ep, i) => ep.positionKnown !== false && (ep.episode ?? i + 1) <= 3).length / 3;
     const hookWeight = 0.35 * earlyScale * Math.min(1, openingCoverage);
-    const remainingWeight = 1 - hookWeight;
-    const otherTotal = 0.65;
-    const scaleUp = otherTotal > 0 ? (remainingWeight / otherTotal) : 0;
+    const scaleUp = (1 - hookWeight) / 0.65;
 
     const blended = (hook * hookWeight)
-      + (dropSafety * 0.3 * scaleUp)
-      + (momentumScore * 0.2 * scaleUp)
-      + (flowState * 0.15 * scaleUp);
+      + (dropSafety * 0.45 * scaleUp)
+      + (endingHold * 0.2 * scaleUp);
 
-    return this.strictPercent(this.clamp(blended, 0, 100));
+    return this.clamp(blended, 0, 100);
+  },
+
+  /**
+   * Catalog percentile of the raw index, pulled toward the catalog median (50) by missing evidence.
+   * Without a catalog quantile table the raw index is used directly. 1 is the lowest shown value
+   * because 0 remains the no-ratings sentinel.
+   */
+  calculateRatingStrength(raw, weight, scoreProfile) {
+    const table = scoreProfile?.strengthQuantiles;
+    // Round like the table entries so a raw value on a tied breakpoint gets the tie midpoint.
+    const percentile = this.isValidStrengthQuantiles(table)
+      ? this.rawToCatalogPercentile(Math.floor((raw * 100) + 0.5) / 100, table)
+      : raw;
+    return this.clamp(Math.round(50 + (percentile - 50) * weight), 1, 100);
   },
 
   getRatingEvidence(anime, episodes) {
@@ -1018,9 +1089,10 @@ const Stats = {
     const consistency = this.getConsistencyRating(stdDev);
     const scoreClass = this.getScoreColorClass(avg);
     const ratingEvidence = this.getRatingEvidence(anime, episodes);
-    const rawRatingStrength = this.calculateRetentionScore(episodes, profile);
-    // Keep the legacy storage key; this is an index, never a completion probability.
-    const retentionScore = episodes.length ? Math.round(50 + (rawRatingStrength - 50) * ratingEvidence.weight) : 0;
+    // Keep the legacy storage key; this is a catalog-relative index, never a completion probability.
+    const retentionScore = episodes.length
+      ? this.calculateRatingStrength(this.calculateRetentionScore(episodes, profile), ratingEvidence.weight, profile)
+      : 0;
     const momentum = this.calculateMomentum(episodes);
     const momentumScore = this.clamp((momentum + 100) / 2, 0, 100);
     const finaleStrength = this.calculateFinaleStrength(episodes);
@@ -1058,7 +1130,7 @@ const Stats = {
       lowestScore: scoreRange.min,
       retentionScore: retentionScore,
       ratingEvidence,
-      scoringVersion: 2,
+      scoringVersion: 3,
       malSatisfactionScore: malSatisfactionScore,
 
       // Weekly Watcher archetype metrics

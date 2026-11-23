@@ -8,7 +8,8 @@ import { CacheManager } from '../../shared/services/cache-manager.ts';
 const Discovery = {
     // Quality thresholds for surprise me
     qualityThresholds: {
-        minRetention: 70,
+        minRetention: 50,
+        minEvidenceWeight: 0.5,
         minSatisfaction: 7.0,
         minEpisodes: 3
     },
@@ -33,12 +34,22 @@ const Discovery = {
             const anime = candidate?.anime;
             if (!anime) return false;
 
-            const hasEpisodes = Array.isArray(anime.episodes) && anime.episodes.length >= this.qualityThresholds.minEpisodes;
+            // The runtime catalog index omits episode lists, so rated-episode evidence in stats decides
+            // whether the episode-rating gate applies; loaded episodes are the fallback for older stats.
+            const ratedEpisodes = anime.stats?.ratingEvidence?.ratedEpisodes;
+            const episodeCount = Number.isFinite(ratedEpisodes)
+                ? ratedEpisodes
+                : (Array.isArray(anime.episodes) ? anime.episodes.length : 0);
+            const hasEpisodes = episodeCount >= this.qualityThresholds.minEpisodes;
 
             // Quality filters
             if (requireRetention && hasEpisodes) {
                 const retention = anime.stats?.retentionScore ?? 0;
                 if (retention < this.qualityThresholds.minRetention) return false;
+                // Among titles rated enough for this gate, thin evidence pulls strength to the median,
+                // which says nothing about quality. Titles below minEpisodes skip the gate entirely.
+                const weight = anime.stats?.ratingEvidence?.weight;
+                if (Number.isFinite(weight) && weight < this.qualityThresholds.minEvidenceWeight) return false;
             }
 
             if (requireSatisfaction) {

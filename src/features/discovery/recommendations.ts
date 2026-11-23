@@ -334,7 +334,7 @@ const Recommendations = {
         class: this.getRetentionClass(retentionScore),
         tooltip: {
           title: 'Episode Rating Strength',
-          text: 'An episode-rating index adjusted for coverage and sample size. It is not a completion probability.'
+          text: "Ranks a title's episode ratings against the catalog: 80 means it rates above about 80% of titles. Sparse ratings are pulled toward 50, the catalog median. It is not a completion probability."
         }
       },
       {

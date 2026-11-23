@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { compactCatalogColorIndex, compactCatalogStats } from '../src/features/catalog/catalog-stats-defaults.js';
+import { buildFullIndexPayload } from './runtime-catalog-index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,51 +15,6 @@ const copyRecursive = (src, dest) => {
 };
 
 const detailFileName = (animeId) => `${encodeURIComponent(String(animeId))}.json`;
-
-const toRuntimeStatsSummary = (stats = {}) => ({
-  average: stats.average,
-  stdDev: stats.stdDev,
-  scoreClass: stats.scoreClass,
-  episodeCount: stats.episodeCount,
-  retentionScore: stats.retentionScore,
-  ratingEvidence: stats.ratingEvidence,
-  scoringVersion: stats.scoringVersion,
-  threeEpisodeHook: stats.threeEpisodeHook,
-  worthFinishing: stats.worthFinishing,
-  flowState: stats.flowState,
-  comfortScore: stats.comfortScore,
-  controversyPotential: stats.controversyPotential,
-  reliabilityScore: stats.reliabilityScore,
-  sessionSafety: stats.sessionSafety,
-  churnRisk: stats.churnRisk && Number.isFinite(stats.churnRisk.score)
-    ? { score: stats.churnRisk.score, label: stats.churnRisk.label }
-    : stats.churnRisk,
-  slowBurn: stats.slowBurn && Number.isFinite(stats.slowBurn.signal)
-    ? { signal: stats.slowBurn.signal, isActive: Boolean(stats.slowBurn.isActive) }
-    : stats.slowBurn
-});
-
-const toFullIndexAnime = (anime) => ({
-  id: anime.id,
-  title: anime.title,
-  titleEnglish: anime.titleEnglish,
-  titleJapanese: anime.titleJapanese,
-  malId: anime.malId,
-  anilistId: anime.anilistId,
-  cover: anime.cover,
-  type: anime.type,
-  year: anime.year,
-  season: anime.season,
-  studio: anime.studio,
-  source: anime.source,
-  genres: Array.isArray(anime.genres) ? anime.genres : [],
-  themes: Array.isArray(anime.themes) ? anime.themes : [],
-  demographic: anime.demographic,
-  communityScore: anime.communityScore,
-  episodeCount: anime.episodeCount,
-  stats: toRuntimeStatsSummary(anime.stats),
-  colorIndex: anime.colorIndex
-});
 
 const toAnimeDetailChunk = (anime) => ({
   id: anime.id,
@@ -81,27 +36,24 @@ const copyChunkedFullData = () => {
   const animeList = Array.isArray(payload.anime) ? payload.anime : [];
   fs.rmSync(detailDir, { recursive: true, force: true });
   fs.mkdirSync(detailDir, { recursive: true });
+  // Detail chunks carry finished stats, so the catalog strength quantile table (needed only to
+  // calculate missing stats) stays in the index instead of being repeated in every chunk.
+  // A chunk's profile must not be used to calculate stats: one title cannot rank against a catalog.
+  const detailScoreProfile = { ...(payload.scoreProfile || {}) };
+  delete detailScoreProfile.strengthQuantiles;
 
   animeList.forEach((anime) => {
     if (!anime?.id) return;
     const outputPath = path.join(detailDir, detailFileName(anime.id));
     fs.writeFileSync(outputPath, JSON.stringify({
       generatedAt: payload.generatedAt,
-      scoreProfile: payload.scoreProfile,
+      scoreProfile: detailScoreProfile,
       anime: [toAnimeDetailChunk(anime)]
     }), 'utf8');
   });
 
   fs.mkdirSync(path.dirname(indexPath), { recursive: true });
-  const { anime: statsCompacted, statsDefaults } = compactCatalogStats(animeList.map(toFullIndexAnime));
-  const { anime, colorIndexFromPosition } = compactCatalogColorIndex(statsCompacted);
-  fs.writeFileSync(indexPath, JSON.stringify({
-    generatedAt: payload.generatedAt,
-    scoreProfile: payload.scoreProfile,
-    ...(statsDefaults ? { statsDefaults } : {}),
-    ...(colorIndexFromPosition ? { colorIndexFromPosition } : {}),
-    anime
-  }), 'utf8');
+  fs.writeFileSync(indexPath, JSON.stringify(buildFullIndexPayload(payload)), 'utf8');
 };
 
 const copyRuntimeData = () => {
