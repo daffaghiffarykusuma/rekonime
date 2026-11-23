@@ -83,7 +83,6 @@ const EXPECTED_APP_CALLS = {
   'watch-progress-dec': ['adjustWatchProgress', '7', -1],
   'toggle-filter': ['toggleFilter', 'genres', 'Action'],
   'clear-search': ['clearHeaderSearchQuery', { scroll: true }],
-  'apply-preset': ['applyFilterPreset', 'hidden-gems'],
   'apply-seasonal': ['applySeasonalFilter', '2026'],
   'scroll-to-filters': ['scrollToFiltersSection'],
   'scroll-to-results': ['scrollToResultsSection'],
@@ -102,8 +101,7 @@ const EXPECTED_APP_CALLS = {
 
 test('each command calls its App command with values read from the action element', () => {
   for (const [action, expected] of Object.entries(EXPECTED_APP_CALLS)) {
-    setupDom(`<button data-action="${action}" data-anime-id="7" data-filter-type="genres" data-filter-value="Action"
-      data-preset="hidden-gems" data-season-year="2026">Go</button>`);
+    setupDom(`<button data-action="${action}" data-anime-id="7" data-filter-type="genres" data-filter-value="Action" data-season-year="2026">Go</button>`);
     const { app, calls } = createRecordingApp({ currentAnimeId: null, quickFilterState: {}, detailExperience: null });
     const event = { preventDefault() {}, stopPropagation() {} };
     globalThis.requestAnimationFrame ??= (callback) => setTimeout(callback, 0);

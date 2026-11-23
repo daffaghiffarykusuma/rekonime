@@ -218,7 +218,8 @@ test('advanced filters stay actionable while long groups remain progressive', as
 
   const modal = page.locator('#filter-modal.visible');
   await expect(modal).toBeVisible();
-  await expect(modal.locator('.preset-card-icon')).toHaveCount(0);
+  await expect(modal.getByText('Curated shortcuts')).toHaveCount(0);
+  await expect(modal.locator('[data-action="apply-preset"]')).toHaveCount(0);
 
   const studios = modal.locator('details').filter({ hasText: 'Studios' });
   const sources = modal.locator('details').filter({ hasText: 'Sources' });
@@ -229,7 +230,6 @@ test('advanced filters stay actionable while long groups remain progressive', as
 
   await page.setViewportSize({ width: 390, height: 844 });
   const interactiveControls = [
-    modal.locator('.preset-card').first(),
     studios.locator('summary'),
     modal.getByRole('button', { name: 'Add Action filter' }),
     modal.getByRole('button', { name: 'Reset all' }),

@@ -60,17 +60,6 @@ test('catalog sheet shares sorting with desktop and preserves filtering and Disc
   await expect(desktopSort).toHaveValue('taste');
   expect(await page.locator('#recommendations-grid .recommendation-title').allTextContents()).toEqual(picks);
   expect(await page.evaluate(() => localStorage.getItem('rekonime.tasteProfile'))).toBe(savedTaste);
-  await trigger.click();
-  await sheet.getByRole('button', { name: /Community favorites/ }).click();
-  await expect(sort).toHaveValue('satisfaction');
-  await sheet.getByRole('button', { name: 'Show matches' }).click();
-  await expect(desktopSort).toHaveValue('satisfaction');
-  await expect(titles).toHaveText(['Beta', 'Gamma']);
-  await trigger.click();
-  await sheet.getByRole('button', { name: /^Stable episode ratings/ }).click();
-  await expect(sort.locator('option:checked')).toHaveText('Highest Episode Rating Strength (/100)');
-  await sheet.getByRole('button', { name: 'Show matches' }).click();
-  await expect(desktopSort.locator('option:checked')).toHaveText('Highest Episode Rating Strength (/100)');
 });
 
 for (const width of [1280, 390, 320]) {

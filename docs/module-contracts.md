@@ -133,10 +133,10 @@
 - Fresh visits use original covers until the proxy health check succeeds. Failed proxies retry the original cover; unavailable covers end at the embedded `image-placeholder.js` image without another network request. Fallback transitions clear responsive image candidates and stop at the embedded image.
 
 ### Runtime Calculations
-- Stable TypeScript entry points: `src/features/discovery/stats.ts`, `src/features/discovery/recommendations.ts`, `src/features/discovery/rating-evidence.ts`, `src/features/discovery/filterPresets.ts`
-- Rating presentation: every displayed score (cards, recommendation cards, similar titles, detail breakdown) comes from `getRatingSignals(anime)`; ranking, sorting, filter presets, and reason text still read `anime.stats` directly. Evidence gating (no strength without rated episodes, no opening signal without episodes 1-3 at known positions) applies once there. Stored keys keep legacy names (`stats.retentionScore` holds Episode Rating Strength) because Snapshots, exports, and the Python build share them.
-- Inputs: episode score lists, Catalog Payload anime records, score profiles, Taste Profile-prepared recommendation candidates, Watchlist entries for franchise eligibility, and filter preset keys
-- Outputs: calculated stats, one render-ready recommendation decision with context, reasons, and Experience Cues, card stat models, badges, similar-title matches, and filter preset view models
+- Stable TypeScript entry points: `src/features/discovery/stats.ts`, `src/features/discovery/recommendations.ts`, `src/features/discovery/rating-evidence.ts`
+- Rating presentation: every displayed score (cards, recommendation cards, similar titles, detail breakdown) comes from `getRatingSignals(anime)`; ranking, sorting, and reason text still read `anime.stats` directly. Evidence gating (no strength without rated episodes, no opening signal without episodes 1-3 at known positions) applies once there. Stored keys keep legacy names (`stats.retentionScore` holds Episode Rating Strength) because Snapshots, exports, and the Python build share them.
+- Inputs: episode score lists, Catalog Payload anime records, score profiles, Taste Profile-prepared recommendation candidates, and Watchlist entries for franchise eligibility
+- Outputs: calculated stats, one render-ready recommendation decision with context, reasons, and Experience Cues, card stat models, badges, and similar-title matches
 - Interface: calculate statistics and display models; turn prepared candidates into one complete recommendation decision
 - Recommendation decision: ranks up to the Discovery Shortlist's limit (three by default, three more per request) and reports whether more picks exist, with one title per franchise. Episode summaries distinguish listed totals from observed episodes using retained rating evidence.
 - Side effects: recommendations mode preference may use `CacheManager`; scoring and filter predicates are pure

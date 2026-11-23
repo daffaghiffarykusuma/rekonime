@@ -120,9 +120,6 @@ const HOME_ACTION_COMMANDS = {
     state.expanded = !state.expanded;
     app.renderQuickFilters();
   },
-  'apply-preset': ({ app, data }) => {
-    if (data.preset) app.applyFilterPreset(data.preset);
-  },
   'apply-seasonal': ({ app, data }) => {
     if (data.seasonYear) app.applySeasonalFilter(data.seasonYear);
   },

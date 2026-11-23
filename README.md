@@ -19,7 +19,6 @@ Use Node.js 24.x and Bun. The Node version is declared in `.nvmrc` for local ver
 - **Surprise Me**: Get a random quality anime recommendation.
 - **Seasonal Discovery**: Quick filters for This Season, Last Season, Next Season.
 - **Because You Watched**: Personalized recommendations based on your watchlist.
-- **Filter Presets**: One-click curated filters (Binge-Worthy, Critical Darlings, Hidden Gems, etc.).
 - **Keyboard Shortcuts**: `?` for help, `/` for search, arrow keys for navigation.
 - **One dark theme**: A black, movie-platform look. There is no light mode.
 - **Offline Support**: Works offline with cached data via Service Worker.
@@ -154,7 +153,6 @@ Widened or condensed headings can still rewrap slightly.
 - `src/features/discovery/recommendations.ts`: recommendation + similarity scoring logic.
 - `src/features/detail/reviews.js`: MyAnimeList (via Jikan API) review fetching and rendering.
 - `src/features/discovery/discovery.js`: Surprise Me and seasonal discovery.
-- `src/features/discovery/filterPresets.ts`: quick filter presets (Binge-Worthy, Critical Darlings, etc.).
 - `src/shared/ui/keyboardShortcuts.ts`: keyboard navigation system.
 - `src/shared/runtime/serviceWorker.ts`: PWA service worker registration.
 - `sw.js`: service worker for offline caching.
@@ -171,7 +169,6 @@ flowchart TD
   app --> recs[src/features/discovery/recommendations.ts]
   app --> reviews[src/features/detail/reviews.js]
   app --> discovery[src/features/discovery/discovery.js]
-  app --> filterPresets[src/features/discovery/filterPresets.ts]
   app --> keyboardShortcuts[src/shared/ui/keyboardShortcuts.ts]
   app --> serviceWorkerManager[src/shared/runtime/serviceWorker.ts]
   app --> css[src/styles/styles.css]

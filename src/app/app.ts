@@ -3,7 +3,6 @@ import { IMAGE_PLACEHOLDER } from '../shared/runtime/image-placeholder.js';
 import { appSeoMethods } from './app-seo.ts';
 import { Recommendations } from '../features/discovery/recommendations.ts';
 import { Discovery } from '../features/discovery/discovery.js';
-import { FilterPresets } from '../features/discovery/filterPresets.ts';
 import { BrowseFiltering } from '../features/discovery/browse-filtering.ts';
 import { SidebarPreference } from '../shared/ui/sidebar-preference.ts';
 import { CacheManager } from '../shared/services/cache-manager.ts';
@@ -2615,9 +2614,6 @@ const App = {
     // Hundreds of studio and year pills are built as nodes: text and attribute
     // values cannot become markup, so they skip the HTML sanitizer entirely.
     const fragment = document.createDocumentFragment();
-    const presets = document.createElement('template');
-    setHTML(presets, FilterPresets.renderPresetSection());
-    fragment.appendChild(presets.content);
 
     const filterConfig = [
       { key: 'genres', label: 'Genres' },
@@ -4323,31 +4319,6 @@ const App = {
       this.getRuntimeCapabilities().setModalVisibility('metric-help-modal', true, {
         initialFocusSelector: '#close-metric-help'
       });
-    }
-  },
-
-  /**
-   * Apply a filter preset
-   */
-  applyFilterPreset(presetKey) {
-    const preset = FilterPresets.get(presetKey);
-    if (!preset) return;
-
-    const filtered = FilterPresets.applyPreset(presetKey, this.animeData);
-    this.filteredData = filtered;
-
-    const sortKey = FilterPresets.getSortForPreset(presetKey);
-    this.currentSort = sortKey;
-
-    this.syncSortControls();
-
-    this.resetGridPagination();
-    this.render();
-
-    const target = document.getElementById('catalog-section');
-    if (target) {
-      const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-      target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
     }
   },
 
