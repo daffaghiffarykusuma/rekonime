@@ -4,7 +4,7 @@ Rekonime is a static, browser-based anime dashboard that highlights how likely a
 
 ## Quick start
 
-Use Node.js 24.x and Bun. The Node version is declared in `.nvmrc` for local version managers and CI, and in `package.json` for Vercel builds.
+Use Node.js 26.x and Bun. The Node version is declared in `.nvmrc` for local version managers and CI, and in `package.json` for Vercel builds.
 
 1. Install dependencies: `bun install`
 2. Run local dev server: `bun run dev`
